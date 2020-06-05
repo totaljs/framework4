@@ -9,8 +9,8 @@ function Database(type, name, fork) {
 
 		if (builder.options) {
 			builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
-			// builder.options.type = type;
-			// builder.options.database = name;
+			builder.options.type = type;
+			builder.options.database = name;
 		}
 
 		if (t.fork.cmd_find) {
