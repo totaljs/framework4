@@ -375,6 +375,8 @@ QueryBuilder.prototype.done = function() {
 		this.response = meta.counter;
 	else if (this.$first)
 		this.response = this.response instanceof Array ? this.response[0] : this.response;
+	else if (this.scalararg)
+		this.response = this.scalararg;
 
 	if (process.totaldbworker) {
 		meta.response = this.response;

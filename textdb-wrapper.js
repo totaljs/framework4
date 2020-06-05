@@ -13,13 +13,13 @@ function Database(type, name, fork) {
 			var key = type + '_' + name;
 
 			if (t.fork[key]) {
-				t.fork[key][builder.command]().assign(builder.options).callback(builder.$callback);
+				t.fork[key][builder.command]().assign(builder.options).callback(builder.$joins ? builder.$callbackjoins() : builder.$callback);
 				return;
 			}
 
 			var db = require('./textdb');
 			t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases()) : db.TableDB(name, PATH.databases(), CONF['table_' + name]);
-			t.fork[key][builder.command]().assign(builder.options).callback(builder.$callback);
+			t.fork[key][builder.command]().assign(builder.options).callback(builder.joins ? builder.$callbackjoins() : builder.$callback);
 		}
 	};
 }
@@ -55,7 +55,32 @@ DP.read = function() {
 
 DP.count = function() {
 	var builder = new DatabaseBuilder();
-	builder.command = 'count';
+	builder.command = 'find';
+	builder.options.scalar = 'arg.count+=1';
+	builder.options.scalararg = { count: 0 };
+	this.next(builder);
+	return builder;
+};
+
+DP.scalar = function(type, key) {
+	var builder = new DatabaseBuilder();
+	builder.command = 'find';
+
+	switch (type) {
+		case 'min':
+		case 'max':
+		case 'sum':
+			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if (!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(key);
+			builder.options.scalararg = { count: 0, sum: 0 };
+			break;
+		case 'group':
+			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(key);
+			builder.options.scalararg = {};
+			break;
+	}
+
+	//builder.options.scalar = 'arg.count+=1';
+	//builder.options.scalararg = { count: 0 };
 	this.next(builder);
 	return builder;
 };
@@ -155,6 +180,7 @@ function DatabaseBuilder() {
 	var t = this;
 	t.builder = [];
 	t.options = { filterarg: { params: [] } };
+	//t.joins;
 }
 
 var DB = DatabaseBuilder.prototype;
@@ -382,6 +408,102 @@ function compare_datetype(type, key, paramindex, operator) {
 	}
 	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key, paramindex, operator, type);
 }
+
+DB.join = function(field, db) {
+
+	var self = this;
+	var builder = new DatabaseBuilder();
+	builder.command = 'find';
+
+	if (!self.joins)
+		self.joins = [];
+
+	self.joins.push({ field: field, db: db, builder: builder, in: [] });
+
+	builder.callback = function(callback) {
+		self.$callback = callback;
+		return builder;
+	};
+
+	return builder;
+};
+
+DB.on = function(a, b) {
+	this.$on = [a, b];
+	return this;
+};
+
+DB.$callbackjoins = function() {
+	var self = this;
+	return function(err, response, meta) {
+
+		var one = response && !(response instanceof Array);
+
+		if (!response) {
+			self.$callback(null, response, meta);
+			return;
+		}
+
+		if (one)
+			response = [response];
+		else if (!response.length) {
+			self.$callback(null, response, meta);
+			return;
+		}
+
+		for (var i = 0; i < response.length; i++) {
+			for (var j = 0; j < self.joins.length; j++) {
+				var join = self.joins[j];
+				var val = response[i][join.builder.$on[1]];
+				if (val != null && join.in.indexOf(val) === -1)
+					join.in.push(val);
+			}
+		}
+
+		self.joins.wait(function(join, next) {
+
+			var first = join.builder.options.first;
+			var take = join.builder.options.take;
+			var skip = join.builder.options.skip;
+
+			if (first)
+				join.builder.options.first = undefined;
+
+			if (take)
+				join.builder.options.take = undefined;
+
+			if (skip)
+				join.builder.options.skip = undefined;
+
+			join.builder.$callback = function(err, items, m) {
+
+				for (var i = 0; i < response.length; i++) {
+					var doc = response[i];
+					var b = doc[join.builder.$on[1]];
+					doc[join.field] = b ? items.findAll(join.builder.$on[0], b) : [];
+
+					if (skip)
+						doc[join.field] = doc[join.field].skip(skip);
+
+					if (take)
+						doc[join.field] = doc[join.field].take(take);
+
+					if (first && doc[join.field])
+						doc[join.field] = doc[join.field][0] || null;
+				}
+
+				meta.counter2 = (meta.counter2 || 0) + m.counter;
+				meta.count2 = (meta.count2 || 0) + m.count;
+				meta.scanned2 = (meta.scanned2 || 0) + m.scanned;
+				meta.duration2 = (meta.duration2 || 0) + m.duration;
+				next();
+			};
+
+			join.builder.in(join.builder.$on[0], join.in);
+			join.db.next(join.builder);
+		}, () => self.$callback(null, response, meta), 5);
+	};
+};
 
 exports.make = function(type, name, fork) {
 	return new Database(type, name, fork);

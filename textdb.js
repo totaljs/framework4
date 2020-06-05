@@ -2176,7 +2176,7 @@ TextReader.prototype.compare = function(docs) {
 				if (builder.scalarrule) {
 					builder.counter++;
 					try {
-						builder.scalarrule(doc, builder.scalararg);
+						builder.scalarrule(doc, builder.scalararg, builder.tmp, builder.func);
 					} catch (e) {
 						builder.canceled = true;
 						builder.error = e + '';
@@ -2239,7 +2239,7 @@ TextReader.prototype.comparereverse = function(docs) {
 				if (builder.scalarrule) {
 					builder.counter++;
 					try {
-						builder.scalarrule(doc, builder.scalararg);
+						builder.scalarrule(doc, builder.scalararg, builder.tmp, builder.func);
 					} catch (e) {
 						builder.canceled = true;
 						builder.error = e + '';
