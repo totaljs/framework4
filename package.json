@@ -1,0 +1,29 @@
+{
+  "name": "total4",
+  "version": "0.0.1-1",
+  "description": "Total.js framework v4",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/totaljs/framework4.git"
+  },
+  "keywords": [
+    "total.js",
+    "framework",
+    "mvc",
+    "web",
+    "platform"
+  ],
+  "author": "Peter Širka",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/totaljs/framework4/issues"
+  },
+  "homepage": "https://github.com/totaljs/framework4#readme"
+}

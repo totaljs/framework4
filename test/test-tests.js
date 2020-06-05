@@ -1,0 +1,1 @@
+require('../index').http('debug test');
