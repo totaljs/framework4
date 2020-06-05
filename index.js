@@ -729,9 +729,6 @@ global.EMPTYBUFFER = EMPTYBUFFER;
 
 const controller_error_status = function(controller, status, problem) {
 
-	if (status !== 500 && problem)
-		controller.problem(problem);
-
 	if (controller.res.success || controller.res.headersSent || !controller.isConnected)
 		return controller;
 
@@ -938,8 +935,6 @@ function Framework() {
 	self.convertors2 = null;
 	self.tests = [];
 	self.errors = [];
-	self.problems = [];
-	self.changes = [];
 	self.server = null;
 	self.port = 0;
 	self.ip = '';
@@ -5686,7 +5681,6 @@ F.usage = function(detailed) {
 		schedule: schedules.length,
 		helpers: helpers.length,
 		error: F.errors.length,
-		problem: F.problems.length,
 		queue: pending,
 		files: staticFiles.length,
 		notfound: staticNotfound.length,
@@ -5750,13 +5744,11 @@ F.usage = function(detailed) {
 	}
 
 	output.cache = cache;
-	output.changes = F.changes;
 	output.errors = F.errors;
 	output.files = staticFiles;
 	output.helpers = helpers;
 	output.nosqlcleaner = nosqlcleaner;
 	output.other = Object.keys(F.temporary.other);
-	output.problems = F.problems;
 	output.resources = resources;
 	output.commands = commands;
 	output.streaming = staticRange;
@@ -10326,7 +10318,7 @@ Controller.prototype = {
 	},
 
 	get schema() {
-		return this.route.schema ? this.route.schema[0] === 'default' ? this.route.schema[1] : this.route.schema.join('/') : '';
+		return this.route.schema ? this.route.schema[0] ? this.route.schema.join('/') : this.route.schema[1] : '';
 	},
 
 	get workflow() {
@@ -10482,12 +10474,207 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
-ControllerProto.$exec = function(name, helper, callback) {
-	var self = this;
+ControllerProto.$get = ControllerProto.$read = function(helper, callback) {
 
 	if (callback == null && typeof(helper) === 'function') {
 		callback = helper;
-		helper = EMPTYOBJECT;
+		helper = null;
+	}
+
+	this.getSchema().get(helper, callback, this);
+	return this;
+};
+
+ControllerProto.$query = function(options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	this.getSchema().query(options, callback, this);
+	return this;
+};
+
+ControllerProto.$save = function(options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	var self = this;
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$save(options, callback);
+	} else {
+		var model = self.getSchema().default();
+		model.$$controller = self;
+		model.$save(options, callback);
+	}
+	return self;
+};
+
+ControllerProto.$insert = function(options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	var self = this;
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$insert(options, callback);
+	} else {
+		var model = self.getSchema().default();
+		model.$$controller = self;
+		model.$insert(options, callback);
+	}
+	return self;
+};
+
+ControllerProto.$update = function(options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	var self = this;
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$update(options, callback);
+	} else {
+		var model = self.getSchema().default();
+		model.$$controller = self;
+		model.$update(options, callback);
+	}
+	return self;
+};
+
+ControllerProto.$patch = function(options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	var self = this;
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$patch(options, callback);
+	} else {
+		var model = self.getSchema().default();
+		model.$$controller = self;
+		model.$patch(options, callback);
+	}
+	return self;
+};
+
+ControllerProto.$remove = function(options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	var self = this;
+	self.getSchema().remove(options, callback, self);
+	return this;
+};
+
+ControllerProto.$workflow = function(name, options, callback) {
+	var self = this;
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$workflow(name, options, callback);
+	} else
+		self.getSchema().workflow2(name, options, callback, self);
+	return self;
+};
+
+ControllerProto.$workflow2 = function(name, options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
+	var self = this;
+	self.getSchema().workflow2(name, options, callback, self);
+	return self;
+};
+
+ControllerProto.$hook = function(name, options, callback) {
+	var self = this;
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$hook(name, options, callback);
+	} else
+		self.getSchema().hook2(name, options, callback, self);
+
+	return self;
+};
+
+ControllerProto.$hook2 = function(name, options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
+	var self = this;
+	self.getSchema().hook2(name, options, callback, self);
+	return self;
+};
+
+ControllerProto.$transform = function(name, options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
+	var self = this;
+	if (self.body && self.body.$$schema) {
+		self.body.$$controller = self;
+		self.body.$transform(name, options, callback);
+	} else
+		self.getSchema().transform2(name, options, callback, self);
+	return self;
+};
+
+ControllerProto.$transform2 = function(name, options, callback) {
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
+	var self = this;
+	self.getSchema().transform2(name, options, callback, self);
+	return self;
+};
+
+ControllerProto.$exec = function(name, options, callback) {
+	var self = this;
+
+	if (callback == null && typeof(options) === 'function') {
+		callback = options;
+		options = EMPTYOBJECT;
 	}
 
 	if (callback == null)
@@ -10495,13 +10682,13 @@ ControllerProto.$exec = function(name, helper, callback) {
 
 	if (self.body && self.body.$$schema) {
 		self.body.$$controller = self;
-		self.body.$exec(name, helper, callback);
+		self.body.$exec(name, options, callback);
 		return self;
 	}
 
 	var tmp = self.getSchema().create();
 	tmp.$$controller = self;
-	tmp.$exec(name, helper, callback);
+	tmp.$exec(name, options, callback);
 	return self;
 };
 
@@ -10519,10 +10706,16 @@ ControllerProto.$async = function(callback, index) {
 };
 
 ControllerProto.getSchema = function() {
-	var route = this.route;
-	if (!route.schema || !route.schema[0])
+	var self = this;
+	var route = self.route;
+	if (!route.schema || !route.schema[1])
 		throw new Error('The controller\'s route does not define any schema.');
-	var schema = route.isDYNAMICSCHEMA ? framework_builders.findschema(this.req.$schemaname) : GETSCHEMA(this.req.$schemaname);
+
+	var schemaname = self.req.$schemaname;
+	if (!schema)
+		schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
+
+	var schema = route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
 	if (schema)
 		return schema;
 	throw new Error('Schema "{0}" does not exist.'.format(route.schema[1]));
@@ -12454,15 +12647,9 @@ ControllerProto.nocontent = function(headers) {
 	return self;
 };
 
-/**
- * Destroys a request (closes it)
- * @param {String} problem Optional.
- * @return {Controller}
- */
-ControllerProto.destroy = function(problem) {
+ControllerProto.destroy = function() {
 	var self = this;
 
-	problem && self.problem(problem);
 	if (self.res.success || self.res.headersSent || !self.isConnected)
 		return self;
 
@@ -12570,86 +12757,41 @@ ControllerProto.stream = function(type, stream, download, headers, done, nocompr
 	return this;
 };
 
-/**
- * Throw 400 - Bad request.
- * @param  {String} problem Description of problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw400 = function(problem) {
 	return controller_error_status(this, 400, problem);
 };
 
-/**
- * Throw 401 - Unauthorized.
- * @param  {String} problem Description of problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw401 = function(problem) {
 	return controller_error_status(this, 401, problem);
 };
 
-/**
- * Throw 403 - Forbidden.
- * @param  {String} problem Description of problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw403 = function(problem) {
 	return controller_error_status(this, 403, problem);
 };
 
-/**
- * Throw 404 - Not found.
- * @param  {String} problem Description of problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw404 = function(problem) {
 	return controller_error_status(this, 404, problem);
 };
 
-/**
- * Throw 409 - Conflict.
- * @param  {String} problem Description of problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw409 = function(problem) {
 	return controller_error_status(this, 409, problem);
 };
 
-/**
- * Throw 500 - Internal Server Error.
- * @param {Error} error
- * @return {Controller}
- */
 ControllerProto.throw500 = function(error) {
 	var self = this;
 	F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
 	return controller_error_status(self, 500, error);
 };
 
-/**
- * Throw 501 - Not implemented
- * @param  {String} problem Description of the problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw501 = function(problem) {
 	return controller_error_status(this, 501, problem);
 };
 
-/**
- * Throw 503 - Service unavailable
- * @param  {String} problem Description of the problem (optional)
- * @return {Controller}
- */
 ControllerProto.throw503 = function(problem) {
 	return controller_error_status(this, 503, problem);
 };
 
-/**
- * Creates a redirect
- * @param {String} url
- * @param {Boolean} permanent Is permanent? Default: `false`
- * @return {Controller}
- */
+
 ControllerProto.redirect = function(url, permanent) {
 	this.precache && this.precache(null, null, null);
 	var res = this.res;
@@ -13513,6 +13655,14 @@ WebSocketProto.removeAllListeners = function(name) {
 	else
 		this.$events = {};
 	return this;
+};
+
+WebSocketProto.find = function(fn) {
+	for (var i = 0; i < this.keys.length; i++) {
+		var client = this.connections[this.keys[i]];
+		if (fn(client))
+			return client;
+	}
 };
 
 WebSocketProto.send = function(message, comparer, replacer, params) {
@@ -16189,8 +16339,6 @@ function extend_response(PROTO) {
 		var req = res.req;
 		var key = 'error' + res.options.code;
 
-		res.options.problem && F.problem(res.options.problem, 'response' + res.options.code + '()', req.uri, req.ip);
-
 		if (req.method === 'HEAD') {
 			res.writeHead(res.options.code || 501, res.options.headers || HEADERS.responseCode);
 			res.end();
@@ -17025,7 +17173,7 @@ function parseComponent(body, filename) {
 function getSchemaName(schema, params) {
 	if (!(schema instanceof Array))
 		schema = schema.split('/');
-	return schema[0] === 'default' ? (params ? params[schema[1]] : schema[1]) : (schema.length > 1 ? (schema[0] + '/' + schema[1]) : schema[0]);
+	return !schema[0] ? (params ? params[schema[1]] : schema[1]) : (schema.length > 1 ? (schema[0] + '/' + schema[1]) : schema[0]);
 }
 
 // Default action for workflow routing
@@ -17047,9 +17195,13 @@ function controller_json_workflow(id) {
 				return;
 			}
 
-			var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(self.req.$schemaname || (self.route.schema[0] + '/' + self.params[self.route.schema[1]])) : GETSCHEMA(self.route.schema[0], self.route.schema[1]);
+			var schemaname = self.req.$schemaname;
+			if (!schemaname)
+				schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
+
+			var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
 			if (!schema) {
-				var err = 'Schema "{0}" not found.'.format(getSchemaName(self.route.schema, self.route.isDYNAMICSCHEMA ? self.params : null));
+				var err = 'Schema "{0}" not found.'.format(schemaname);
 				if (self.route.isDYNAMICSCHEMA)
 					self.throw404(err);
 				else
@@ -17111,7 +17263,11 @@ function controller_json_workflow_multiple(id) {
 				return;
 			}
 
-			var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(self.route.schema[0] + '/' + self.params[self.route.schema[1]]) : GETSCHEMA(self.route.schema[0], self.route.schema[1]);
+			var schemaname = self.req.$schemaname;
+			if (!schemaname)
+				schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + self.route.schema[1];
+
+			var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
 			if (!schema) {
 				self.throw500('Schema "{0}" not found.'.format(getSchemaName(self.route.schema, self.isDYNAMICSCHEMA ? self.params : null)));
 				return;

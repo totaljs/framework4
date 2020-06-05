@@ -51,7 +51,7 @@ var CACHEITEMS = {};
 function TableDB(name, directory, schema) {
 	var t = this;
 	t.duration = [];
-	t.filename = Path.join(directory, name + '.tdb');
+	t.filename = Path.join(directory, name + '.table');
 	t.filenameLog = Path.join(directory, name + '.tlog');
 	t.filenameBackup = Path.join(directory, name + '.tbk');
 	t.id = HASH(t.filename, true) + '';
@@ -99,7 +99,7 @@ function JsonDB(name, directory) {
 
 	var t = this;
 
-	t.filename = Path.join(directory, name + '.ndb');
+	t.filename = Path.join(directory, name + '.nosql');
 	t.filenameLog = Path.join(directory, name + '.nlog');
 	t.filenameBackup = Path.join(directory, name + '.nbk');
 	t.id = HASH(t.filename, true) + '';

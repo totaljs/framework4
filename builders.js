@@ -1347,7 +1347,6 @@ SchemaBuilderEntityProto.find = function(name) {
  * Destroys current entity
  */
 SchemaBuilderEntityProto.destroy = function() {
-	delete this.parent.collection[this.name];
 	delete this.properties;
 	delete this.schema;
 	delete this.onDefault;
@@ -1779,7 +1778,7 @@ SchemaBuilderEntityProto.default = function() {
 				if (type.isArray) {
 					item[property] = [];
 				} else {
-					var tmp = this.parent.collection[type.raw] || GETSCHEMA(type.raw);
+					var tmp = GETSCHEMA(type.raw);
 					if (tmp) {
 						item[property] = tmp.default();
 					} else {
@@ -2380,7 +2379,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 
 				case 7:
 
-					entity = self.parent.collection[type.raw] || GETSCHEMA(type.raw);
+					entity = GETSCHEMA(type.raw);
 
 					if (entity) {
 						tmp = entity.prepare(tmp, dependencies, req, verifications);
@@ -3445,14 +3444,10 @@ global.EACHSCHEMA = exports.eachschema = function(group, fn) {
 		group = undefined;
 	}
 
-	var groups = group ? [group] : Object.keys(schemas);
-	for (var i = 0, length = groups.length; i < length; i++) {
-		var schema = schemas[groups[i]];
-		if (!schema)
-			continue;
-		var collection = Object.keys(schema.collection);
-		for (var j = 0, jl = collection.length; j < jl; j++)
-			fn(schema.name, schema.collection[collection[j]].name, schema.collection[collection[j]]);
+	var keys = Object.keys(schemas);
+	for (var i = 0; i < keys.length; i++) {
+		var schema = schemas[keys[i]];
+		fn(schema.name, schema);
 	}
 };
 

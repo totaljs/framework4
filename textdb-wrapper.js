@@ -1,25 +1,52 @@
+const SPECIAL = { clear: 1, clean: 1, drop: 1 };
+
 function Database(type, name, fork) {
 	var t = this;
 	t.type = type;
 	t.name = name;
 	t.fork = fork || {};
 	t.exec = function(builder) {
-		builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
-		builder.options.type = type;
-		builder.options.database = name;
-		if (t.fork.cmd_find)
-			t.fork['cmd_' + builder.command](builder.options, builder.$callback);
-		else {
-			var key = type + '_' + name;
 
-			if (t.fork[key]) {
-				t.fork[key][builder.command]().assign(builder.options).callback(builder.$joins ? builder.$callbackjoins() : builder.$callback);
+		if (builder.options) {
+			builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
+			// builder.options.type = type;
+			// builder.options.database = name;
+		}
+
+		if (t.fork.cmd_find) {
+
+			if (SPECIAL[builder.command]) {
+				t.fork['cmd_' + builder.command](builder.callback);
 				return;
 			}
 
-			var db = require('./textdb');
-			t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases()) : db.TableDB(name, PATH.databases(), CONF['table_' + name]);
-			t.fork[key][builder.command]().assign(builder.options).callback(builder.joins ? builder.$callbackjoins() : builder.$callback);
+			if (builder.command === 'alter') {
+				t.fork['cmd_' + builder.command](builder.schema, builder.callback);
+				return;
+			}
+
+			t.fork['cmd_' + builder.command](builder.options, builder.$callback);
+
+		} else {
+
+			var key = type + '_' + name;
+
+			if (!t.fork[key]) {
+				var db = require('./textdb');
+				t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases()) : db.TableDB(name, PATH.databases(), CONF['table_' + name]);
+			}
+
+			if (SPECIAL[builder.command]) {
+				t.fork[key][builder.command](builder.callback);
+				return;
+			}
+
+			if (builder.command === 'alter') {
+				t.fork[key][builder.command](builder.schema, builder.callback);
+				return;
+			}
+
+			t.fork[key][builder.command]().assign(builder.options).callback(builder.$custom ? builder.$custom() : builder.$callback);
 		}
 	};
 }
@@ -28,6 +55,7 @@ var DP = Database.prototype;
 
 DP.next = function(builder) {
 	setImmediate(this.exec, builder);
+	return this;
 };
 
 DP.scalar = function() {
@@ -44,7 +72,7 @@ DP.find = function() {
 	return builder;
 };
 
-DP.read = function() {
+DP.read = DP.one = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find2';
 	builder.options.take = 1;
@@ -100,8 +128,9 @@ DP.insert = function(data) {
 	return builder;
 };
 
-DP.update = DP.modify = function(data) {
+DP.update = DP.modify = function(data, upsert) {
 
+	var self = this;
 	var builder = new DatabaseBuilder();
 	builder.command = 'update';
 
@@ -152,8 +181,25 @@ DP.update = DP.modify = function(data) {
 		builder.options.modify = tmp.join(';');
 
 	builder.options.modifyarg = arg;
-	console.log(builder.options);
-	this.next(builder);
+
+	if (upsert) {
+		builder.$custom = function() {
+			return function(err, response, meta) {
+				if (response) {
+					builder.$callback(err, response, meta);
+				} else {
+					builder.$upsert && builder.$upsert(arg);
+					var bi = new DatabaseBuilder();
+					bi.command = 'insert';
+					bi.options.payload = arg;
+					bi.$callback = builder.$callback;
+					self.next(bi);
+				}
+			};
+		};
+	}
+
+	self.next(builder);
 	return builder;
 };
 
@@ -165,15 +211,19 @@ DP.remove = function() {
 };
 
 DP.drop = function() {
+	this.next({ command: 'drop' });
 };
 
 DP.alter = function(schema, callback) {
+	return this.next({ command: 'alter', schema: schema, callback: callback });
 };
 
 DP.clear = function(callback) {
+	return this.next({ command: 'clear', schema: schema, callback: callback });
 };
 
 DP.clean = function(callback) {
+	return this.next({ command: 'clean', schema: schema, callback: callback });
 };
 
 function DatabaseBuilder() {
@@ -184,6 +234,11 @@ function DatabaseBuilder() {
 }
 
 var DB = DatabaseBuilder.prototype;
+
+DB.insert = function(fn) {
+	this.$upsert = fn;
+	return this;
+};
 
 DB.callback = function(callback) {
 	this.$callback = callback;
@@ -415,8 +470,10 @@ DB.join = function(field, db) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find';
 
-	if (!self.joins)
+	if (!self.joins) {
+		self.$custom = DB.$callbackjoin;
 		self.joins = [];
+	}
 
 	self.joins.push({ field: field, db: db, builder: builder, in: [] });
 
@@ -433,7 +490,7 @@ DB.on = function(a, b) {
 	return this;
 };
 
-DB.$callbackjoins = function() {
+DB.$callbackjoin = function() {
 	var self = this;
 	return function(err, response, meta) {
 

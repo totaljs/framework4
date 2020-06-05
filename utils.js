@@ -1763,7 +1763,7 @@ exports.validate_builder = function(model, error, schema, path, index, fields, p
 
 		if (TYPE.isArray) {
 			if (TYPE.type === 7 && value instanceof Array && value.length) {
-				var nestedschema = schema.parent.collection[TYPE.raw] || GETSCHEMA(TYPE.raw);
+				var nestedschema = GETSCHEMA(TYPE.raw);
 				if (nestedschema) {
 					for (var j = 0, jl = value.length; j < jl; j++)
 						exports.validate_builder(value[j], error, nestedschema, current + name + '[' + j + ']', j, undefined, pluspath);
@@ -1804,7 +1804,7 @@ exports.validate_builder = function(model, error, schema, path, index, fields, p
 			result = TYPE.validate ? TYPE.validate(value, model) : null;
 
 			if (result == null) {
-				var nestedschema = schema.parent.collection[TYPE.raw] || GETSCHEMA(TYPE.raw);
+				var nestedschema = GETSCHEMA(TYPE.raw);
 				if (nestedschema)
 					exports.validate_builder(value, error, nestedschema, current + name, undefined, undefined, pluspath);
 				else

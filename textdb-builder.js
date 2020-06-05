@@ -281,7 +281,8 @@ QueryBuilder.prototype.filter = function(rule, arg) {
 		if (isdangerous(rule))
 			rule = 'false';
 		try {
-			FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', 'return ' + prepare_filter(rule));
+			//FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', 'return ' + prepare_filter(rule));
+			FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', 'return ' + rule);
 		} catch (e) {
 			self.$sortname = null;
 			self.$sortasc = null;
@@ -354,7 +355,6 @@ QueryBuilder.prototype.done = function() {
 		return;
 
 	var meta = {};
-	//console.log(this);
 
 	if (this.error)
 		meta.error = this.error;
