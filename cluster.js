@@ -21,7 +21,7 @@
 
 /**
  * @module FrameworkCluster
- * @version 3.4.0
+ * @version 4.0.0
  */
 
 const Fs = require('fs');
@@ -248,17 +248,6 @@ function master(count, mode, options, callback, https) {
 			can && exports.restart();
 		});
 	}
-
-	// Remove all DB locks
-	Fs.readdir(F.path.databases(), function(err, files) {
-		if (!err) {
-			var reglock = /(\.nosql-lock|\.table-lock|\.nosql-counter2-lock)$/;
-			for (var i = 0; i < files.length; i++) {
-				var file = files[i];
-				reglock.test(file) && Fs.unlinkSync(F.path.databases(file));
-			}
-		}
-	});
 
 	THREADS = count;
 
