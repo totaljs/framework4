@@ -2113,8 +2113,6 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 
 		case '!cookie':
 			return '$STRING(' + command + ')';
-		case '!isomorphic':
-			return '$STRING(' + command + ')';
 
 		case 'root':
 			var r = CONF.default_root;
