@@ -37,18 +37,10 @@ const BOOL = { true: 1, on: 1, '1': 1 };
 
 var schemas = {};
 var schemasall = {};
-var schemacache = {};
 var operations = {};
 var tasks = {};
 var transforms = { pagination: {}, error: {}, restbuilder: {} };
 var restbuilderupgrades = [];
-
-function SchemaBuilder(name) {
-	this.name = name;
-	this.collection = {};
-}
-
-const SchemaBuilderProto = SchemaBuilder.prototype;
 
 function SchemaOptions(error, model, options, callback, controller, name, schema) {
 	this.error = error;
@@ -276,10 +268,6 @@ SchemaOptionsProto.$transform = function(name, helper, callback, async) {
 	return this.model.$transform(name, helper, callback, async);
 };
 
-SchemaOptionsProto.$operation = function(name, helper, callback, async) {
-	return this.model.$operation(name, helper, callback, async);
-};
-
 SchemaOptionsProto.$hook = function(name, helper, callback, async) {
 	return this.model.$hook(name, helper, callback, async);
 };
@@ -397,50 +385,7 @@ SchemaOptionsProto.noop = function() {
 	return this;
 };
 
-/**
- *
- * Get a schema
- * @param {String} name
- * @return {Object}
- */
-SchemaBuilderProto.get = function(name) {
-	return this.collection[name];
-};
-
-/**
- * Create a new schema
- * @alias
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderProto.create = function(name) {
-	this.collection[name] = new SchemaBuilderEntity(this, name);
-	return this.collection[name];
-};
-
-/**
- * Removes an existing schema or group of schemas
- * @param {String} name Schema name, optional.
- * @return {SchemaBuilder}
- */
-SchemaBuilderProto.remove = function(name) {
-	if (name) {
-		var schema = this.collection[name];
-		schema && schema.destroy();
-		schema = null;
-		delete schemasall[name.toLowerCase()];
-		delete this.collection[name];
-	} else {
-		exports.remove(this.name);
-		this.collection = null;
-	}
-};
-
-SchemaBuilderProto.destroy = function(name) {
-	return this.remove(name);
-};
-
-function SchemaBuilderEntity(parent, name) {
-	this.parent = parent;
+function SchemaBuilderEntity(name) {
 	this.name = name;
 	this.primary;
 	this.trim = true;
@@ -455,8 +400,6 @@ function SchemaBuilderEntity(parent, name) {
 	this.transforms;
 	this.workflows;
 	this.hooks;
-	this.operations;
-	this.constants;
 	this.onPrepare;
 	this.$onPrepare; // Array of functions for inherits
 	this.onDefault;
@@ -674,16 +617,11 @@ SchemaBuilderEntityProto.verify = function(name, fn, cache) {
 	return self;
 };
 
-SchemaBuilderEntityProto.inherit = function(group, name) {
-
-	if (!name) {
-		name = group;
-		group = DEFAULT_SCHEMA;
-	}
+SchemaBuilderEntityProto.inherit = function(name) {
 
 	var self = this;
 
-	exports.getschema(group, name, function(err, schema) {
+	GETSCHEMA(name, function(err, schema) {
 
 		if (err)
 			throw err;
@@ -1105,26 +1043,6 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 	return result;
 };
 
-SchemaBuilderEntityProto.getDependencies = function() {
-	var dependencies = [];
-
-	for (var name in this.schema) {
-
-		var type = this.schema[name];
-		if (typeof(type) !== 'string')
-			continue;
-
-		var isArray = type[0] === ']';
-		if (isArray)
-			type = type.substring(1, type.length - 1);
-
-		var m = this.parent.get(type);
-		m && dependencies.push({ name: name, isArray: isArray, schema: m });
-	}
-
-	return dependencies;
-};
-
 /**
  * Set schema validation
  * @param {String|Array} properties Properties to validate, optional.
@@ -1184,6 +1102,7 @@ SchemaBuilderEntityProto.setPrepare = function(fn) {
  */
 SchemaBuilderEntityProto.setSave = function(fn, filter) {
 	this.onSave = fn;
+	this.meta.save = 1;
 	this.meta.savefilter = filter;
 	return this;
 };
@@ -1204,6 +1123,7 @@ SchemaBuilderEntityProto.setSaveExtension = function(fn) {
  */
 SchemaBuilderEntityProto.setInsert = function(fn, filter) {
 	this.onInsert = fn;
+	this.meta.insert = 1;
 	this.meta.insertfilter = filter;
 	return this;
 };
@@ -1244,6 +1164,7 @@ SchemaBuilderEntityProto.setUpdateExtension = function(fn) {
  */
 SchemaBuilderEntityProto.setPatch = function(fn, filter) {
 	this.onPatch = fn;
+	this.meta.patch = 1;
 	this.meta.patchfilter = filter;
 	return this;
 };
@@ -1274,6 +1195,7 @@ SchemaBuilderEntityProto.setError = function(fn) {
  */
 SchemaBuilderEntityProto.setGet = SchemaBuilderEntityProto.setRead = function(fn, filter) {
 	this.onGet = fn;
+	this.meta.get = this.meta.read = 1;
 	this.meta.getfilter = this.meta.readfilter = filter;
 	return this;
 };
@@ -1295,6 +1217,7 @@ SchemaBuilderEntityProto.setGetExtension = SchemaBuilderEntityProto.setReadExten
  */
 SchemaBuilderEntityProto.setQuery = function(fn, filter) {
 	this.onQuery = fn;
+	this.meta.query = 1;
 	this.meta.queryfilter = filter;
 	return this;
 };
@@ -1316,6 +1239,7 @@ SchemaBuilderEntityProto.setQueryExtension = function(fn) {
  */
 SchemaBuilderEntityProto.setRemove = function(fn, filter) {
 	this.onRemove = fn;
+	this.meta.remove = 1;
 	this.meta.removefilter = filter;
 	return this;
 };
@@ -1345,7 +1269,8 @@ SchemaBuilderEntityProto.addTransform = function(name, fn, filter) {
 
 	!this.transforms && (this.transforms = {});
 	this.transforms[name] = fn;
-	this.meta['transformfilter#' + name] = filter;
+	this.meta['transform_' + name] = 1;
+	this.meta['transformfilter_' + name] = filter;
 	return this;
 };
 
@@ -1374,7 +1299,8 @@ SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
 
 	!this.workflows && (this.workflows = {});
 	this.workflows[name] = fn;
-	this.meta['workflowfilter#' + name] = filter;
+	this.meta['workflow_' + name] = 1;
+	this.meta['workflowfilter_' + name] = filter;
 	return this;
 };
 
@@ -1394,7 +1320,8 @@ SchemaBuilderEntityProto.addHook = function(name, fn, filter) {
 
 	!this.hooks[name] && (this.hooks[name] = []);
 	this.hooks[name].push({ owner: F.$owner(), fn: fn });
-	this.meta['hookfilter#' + name] = filter;
+	this.meta['hook_' + name] = 1;
+	this.meta['hookfilter_' + name] = filter;
 	return this;
 };
 
@@ -2821,18 +2748,6 @@ SchemaBuilderEntityProto.getLoggerName = function(type, name) {
 	return this.name + '.' + type + (name ? ('(\'' + name + '\')') : '()');
 };
 
-SchemaBuilderEntityProto.operation2 = function(name, options, callback, controller) {
-
-	if (typeof(options) === 'function') {
-		controller = callback;
-		callback = options;
-		options = undefined;
-	}
-
-	!callback && (callback = function(){});
-	return this.operation(name, this.create(), options, callback, true, controller);
-};
-
 /**
  * Clean model (remove state of all schemas in model).
  * @param {Object} m Model.
@@ -3195,7 +3110,7 @@ SchemaInstance.prototype.$push = function(type, name, helper, first, async, call
 
 	var a = self.$$async;
 	var obj = { fn: fn, async: async, index: a.length };
-	var key = type === 'workflow' || type === 'transform' || type === 'operation' || type === 'hook' ? (type + '.' + name) : type;
+	var key = type === 'workflow' || type === 'transform' || type === 'hook' ? (type + '.' + name) : type;
 
 	if (first) {
 		a.fn.unshift(obj);
@@ -3449,27 +3364,6 @@ SchemaInstance.prototype.$hook = function(name, helper, callback, async) {
 	return this;
 };
 
-SchemaInstance.prototype.$operation = function(name, helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('operation', name, helper, null, async, callback);
-	} else
-		this.$$schema.operation(name, this, helper, callback, undefined, this.$$controller);
-
-	return this;
-};
-
 SchemaInstance.prototype.$clean = SchemaInstance.prototype.$plain = function() {
 	return this.$$schema.clean(this);
 };
@@ -3562,46 +3456,27 @@ global.EACHSCHEMA = exports.eachschema = function(group, fn) {
 	}
 };
 
-global.$$$ = global.GETSCHEMA = exports.getschema = function(group, name, fn, timeout) {
+global.GETSCHEMA = exports.getschema = function(name, fn, timeout) {
 
 	if (!name || typeof(name) === 'function') {
 		timeout = fn;
 		fn = name;
-	} else
-		group = group + '/' + name;
-
-	if (schemacache[group])
-		group = schemacache[group];
-	else {
-		if (group.indexOf('/') === -1)
-			group = DEFAULT_SCHEMA + '/' + group;
-		group = schemacache[group] = group.toLowerCase();
 	}
 
 	if (fn)
-		framework_utils.wait(() => !!schemasall[group], err => fn(err, schemasall[group]), timeout || 20000);
+		framework_utils.wait(() => !!schemasall[name], err => fn(err, schemasall[name]), timeout || 20000);
 	else
-		return schemasall[group];
+		return schemasall[name];
 };
 
 exports.findschema = function(groupname) {
 	return schemasall[groupname.toLowerCase()];
 };
 
-exports.newschema = function(group, name) {
-
-	if (!group)
-		group = DEFAULT_SCHEMA;
-
-	if (!schemas[group])
-		schemas[group] = new SchemaBuilder(group);
-
-	var o = schemas[group].create(name);
-	var key = group + '/' + name;
-
+exports.newschema = function(name) {
+	var o = new SchemaBuilderEntity(name);
 	o.owner = F.$owner();
-	schemasall[key.toLowerCase()] = o;
-
+	schemasall[name.toLowerCase()] = schemasall[name] = o;
 	return o;
 };
 
@@ -3610,47 +3485,17 @@ exports.newschema = function(group, name) {
  * @param {String} group Optional
  * @param {String} name
  */
-exports.remove = function(group, name) {
-	if (name) {
-
-		var g = schemas[group || DEFAULT_SCHEMA];
-		g && g.remove(name);
-		var key = ((group || DEFAULT_SCHEMA) + '/' + name).toLowerCase();
-		delete schemasall[key];
-
-	} else {
-
-		delete schemas[group];
-
-		var lower = group.toLowerCase();
-
-		Object.keys(schemasall).forEach(function(key) {
-			if (key.substring(0, group.length) === lower)
-				delete schemasall[key];
-		});
-	}
+exports.remove = function(name) {
+	Object.keys(schemasall).forEach(function(key) {
+		if (key === name)
+			delete schemasall[key];
+	});
 };
 
 global.EACHOPERATION = function(fn) {
 	var keys = Object.keys(operations);
 	for (var i = 0, length = keys.length; i < length; i++)
 		fn(keys[i]);
-};
-
-/**
- * Check if property value is joined to other class
- * @private
- * @param {String} value Property value from Schema definition.
- * @return {Boolean}
- */
-exports.isJoin = function(collection, value) {
-	if (!value)
-		return false;
-	if (value[0] === '[')
-		return true;
-	if (collection === undefined)
-		return false;
-	return collection[value] !== undefined;
 };
 
 /**
@@ -4052,7 +3897,7 @@ ErrorBuilder.prototype._prepare = function() {
 ErrorBuilder.prototype._transform = function(name) {
 	var transformName = name || this.transformName;
 	if (transformName) {
-		var current = transforms['error'][transformName];
+		var current = transforms.error[transformName];
 		return current ? current.call(this) : this.items;
 	}
 	return this.items;
@@ -4063,7 +3908,7 @@ ErrorBuilder.prototype.output = function(isResponse) {
 	if (!this.transformName)
 		return isResponse ? this.json() : this.items;
 
-	var current = transforms['error'][this.transformName];
+	var current = transforms.error[this.transformName];
 	if (current) {
 		this.prepare();
 		return current.call(this, isResponse);
@@ -4157,7 +4002,7 @@ ErrorBuilder.prototype.prepare = function() {
  * @param {Boolean} isDefault Default transformation for all error builders.
  */
 ErrorBuilder.addTransform = function(name, fn, isDefault) {
-	transforms['error'][name] = fn;
+	transforms.error[name] = fn;
 	isDefault && ErrorBuilder.setDefaultTransform(name);
 };
 
@@ -4166,7 +4011,7 @@ ErrorBuilder.addTransform = function(name, fn, isDefault) {
  * @param {String} name
  */
 ErrorBuilder.removeTransform = function(name) {
-	delete transforms['error'][name];
+	delete transforms.error[name];
 };
 
 /**
@@ -4176,9 +4021,9 @@ ErrorBuilder.removeTransform = function(name) {
  */
 ErrorBuilder.setDefaultTransform = function(name) {
 	if (name)
-		transforms['error_default'] = name;
+		transforms.error_default = name;
 	else
-		delete transforms['error_default'];
+		delete transforms.error_default;
 };
 
 /**
@@ -4212,7 +4057,7 @@ function Pagination(items, page, max, format) {
 	this.visible = false;
 	this.format = format || '?page={0}';
 	this.refresh(items, page, max);
-	this.transformName = transforms['pagination_default'];
+	this.transformName = transforms.pagination_default;
 }
 
 function Page(url, page, selected, enabled) {
@@ -4236,7 +4081,7 @@ Page.prototype.html = function(body, cls) {
  * @param {Boolean} isDefault Default transformation for all paginations.
  */
 Pagination.addTransform = function(name, fn, isDefault) {
-	transforms['pagination'][name] = fn;
+	transforms.pagination[name] = fn;
 	isDefault && Pagination.setDefaultTransform(name);
 };
 
@@ -4247,9 +4092,9 @@ Pagination.addTransform = function(name, fn, isDefault) {
  */
 Pagination.setDefaultTransform = function(name) {
 	if (name)
-		transforms['pagination_default'] = name;
+		transforms.pagination_default = name;
 	else
-		delete transforms['pagination_default'];
+		delete transforms.pagination_default;
 };
 
 /**
@@ -4257,7 +4102,7 @@ Pagination.setDefaultTransform = function(name) {
  * @param {String} name
  */
 Pagination.removeTransform = function(name) {
-	delete transforms['pagination'][name];
+	delete transforms.pagination[name];
 };
 
 /**
@@ -4324,7 +4169,7 @@ Pagination.prototype.transform = function(name) {
 	if (!transformName)
 		throw new Error('A transformation of Pagination not found.');
 
-	var current = transforms['pagination'][transformName];
+	var current = transforms.pagination[transformName];
 	if (!current)
 		return this.render();
 
@@ -4404,7 +4249,7 @@ Pagination.prototype.prepare = function(max, format, type) {
 	var self = this;
 
 	if (self.transformName)
-		return transforms['pagination'][self.transformName].apply(self, arguments);
+		return transforms.pagination[self.transformName].apply(self, arguments);
 
 	var builder = [];
 	format = format || self.format;
@@ -4598,7 +4443,7 @@ function RESTBuilder(url) {
 	this.$type = 0; // 0 = query, 1 = json, 2 = urlencode, 3 = raw
 	this.$schema;
 	this.$length = 0;
-	this.$transform = transforms['restbuilder_default'];
+	this.$transform = transforms.restbuilder_default;
 	this.$persistentcookies = false;
 
 	this.options = { url: url, timeout: 10000, method: 'GET', headers: { 'user-agent': 'Total.js/v' + F.version_header, accept: 'application/json, text/plain, text/plain, text/xml' }};
@@ -4614,6 +4459,14 @@ function RESTBuilder(url) {
 	this.$errorbuilderhandling = true;
 }
 
+RESTBuilder.socketpath = function(socket, path) {
+	var self = this;
+	self.options.socketpath = socket;
+	self.options.path = path;
+	delete self.options.url;
+	return self;
+};
+
 RESTBuilder.make = function(fn) {
 	var instance = new RESTBuilder();
 	fn && fn(instance);
@@ -4626,7 +4479,14 @@ RESTBuilder.url = function(url) {
 
 RESTBuilder.GET = function(url, data) {
 	var builder = new RESTBuilder(url);
-	data && builder.raw(data);
+	if (data) {
+		if (typeof(data) !== 'string')
+			data = Qs.stringify(data);
+		if (url.lastIndexOf('?') === -1)
+			url += '?' + data;
+		else
+			url += '&' + data;
+	}
 	return builder;
 };
 
@@ -4677,15 +4537,15 @@ RESTBuilder.upgrade = function(fn) {
  * @param {Boolean} isDefault Default transformation for all RESTBuilders.
  */
 RESTBuilder.addTransform = function(name, fn, isDefault) {
-	transforms['restbuilder'][name] = fn;
+	transforms.restbuilder[name] = fn;
 	isDefault && RESTBuilder.setDefaultTransform(name);
 };
 
 RESTBuilder.setDefaultTransform = function(name) {
 	if (name)
-		transforms['restbuilder_default'] = name;
+		transforms.restbuilder_default = name;
 	else
-		delete transforms['restbuilder_default'];
+		delete transforms.restbuilder_default;
 };
 
 var RESTP = RESTBuilder.prototype;
@@ -4763,10 +4623,10 @@ RESTP.convert = function(convert) {
 	return this;
 };
 
-RESTP.schema = function(group, name) {
-	this.$schema = exports.getschema(group, name);
+RESTP.schema = function(name) {
+	this.$schema = GETSCHEMA(name);
 	if (!this.$schema)
-		throw Error('RESTBuilder: Schema "{0}" not found.'.format(name ? (group + '/' + name) : group));
+		throw Error('RESTBuilder: Schema "{0}" not found.'.format(name));
 	return this;
 };
 
@@ -5016,7 +4876,7 @@ RESTP.exec = function(callback) {
 	var key;
 
 	if (self.$cache_expire && !self.$nocache) {
-		key = '$rest_' + (self.url + (self.options.body || '')).hash(true);
+		key = '$rest_' + ((self.options.url || '') + (self.options.socketpath || '') + (self.options.path || '') + (self.options.body || '')).hash(true);
 		var data = F.cache.read2(key);
 		if (data) {
 			callback(null, self.maketransform(this.$schema ? this.$schema.make(data.value) : data.value, data), data);
@@ -5135,10 +4995,6 @@ function exec_callback(err, response) {
 		callback(err, val, output);
 		output.cache = true;
 	}
-}
-
-function exec_removelisteners(evt) {
-	evt.removeAllListeners();
 }
 
 function RESTBuilderResponse() {}
@@ -5904,7 +5760,6 @@ function $convertdate(value) {
 // EXPORTS
 // ======================================================
 
-exports.SchemaBuilder = SchemaBuilder;
 exports.RESTBuilder = RESTBuilder;
 exports.ErrorBuilder = ErrorBuilder;
 exports.Pagination = Pagination;
@@ -5920,7 +5775,6 @@ global.ErrorBuilder = ErrorBuilder;
 global.Pagination = Pagination;
 global.Page = Page;
 global.UrlBuilder = global.URLBuilder = UrlBuilder;
-global.SchemaBuilder = SchemaBuilder;
 global.TaskBuilder = TaskBuilder;
 
 // Uninstall owners

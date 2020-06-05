@@ -86,7 +86,7 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 	var reader = isbuffer ? null : filename instanceof Readable ? filename : Fs.createReadStream(filename);
 	var writer = Fs.createWriteStream(filenameto);
 
-	var ext = ext(name);
+	var ext = framework_utils.getExtension(name);
 	var meta = { name: name, size: 0, width: 0, height: 0, ext: ext, custom: custom, type: U.getContentType(ext) };
 	var tmp;
 
@@ -180,7 +180,8 @@ FP.read = function(id, callback, nostream) {
 				return;
 			}
 
-			var meta = buffer.toString('utf8').replace(REGCLEAN, '').parseJSON();
+			var meta = buffer.toString('utf8').replace(REGCLEAN, '').parseJSON(true);
+			meta.id = id;
 
 			if (!nostream) {
 				meta.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
@@ -314,7 +315,7 @@ FP.res = function(res, options, checkcustom, notmodified) {
 	var id = options.id || '';
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
 
-	var stream = Fs.createReadStream(filename, HEADERSIZE);
+	var stream = Fs.createReadStream(filename, BINARYREADMETA);
 
 	stream.on('error', function() {
 		if (RELEASE)
@@ -348,7 +349,7 @@ FP.res = function(res, options, checkcustom, notmodified) {
 			var utc = obj.date ? new Date(+obj.date.substring(0, 4), +obj.date.substring(4, 6), +obj.date.substring(6, 8)).toUTCString() : '';
 
 			if (!options.download && req.headers['if-modified-since'] === utc) {
-				res.extention = ext(obj.name);
+				res.extention = framework_utils.getExtension(obj.name);
 				notmodified(res, utc);
 			} else {
 
@@ -358,7 +359,7 @@ FP.res = function(res, options, checkcustom, notmodified) {
 				}
 
 				res.options.type = obj.type;
-				res.options.stream = Fs.createReadStream(filename, HEADERSIZE);
+				res.options.stream = Fs.createReadStream(filename, BINARYREADDATA);
 				res.options.lastmodified = true;
 
 				if (options.download) {
@@ -398,14 +399,14 @@ FP.readbase64 = function(id, callback, count) {
 	}
 
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
-	var stream = Fs.createReadStream(filename, HEADERSIZE);
+	var stream = Fs.createReadStream(filename, BINARYREADMETA);
 	stream.on('error', err => callback(err));
 	stream.on('data', function(buffer) {
 		var json = buffer.toString('utf8').replace(REGCLEAN, '');
 		if (json) {
 			var meta = JSON.parse(json, jsonparser);
-			stream = Fs.createReadStream(filename, BINARYREADDATABASE64);
-			callback(null, stream, meta);
+			meta.stream = Fs.createReadStream(filename, BINARYREADDATABASE64);
+			callback(null, meta);
 			CLEANUP(stream);
 		} else
 			setTimeout(readfileattempt, 100, self, id, callback, count || 1);
@@ -421,11 +422,6 @@ function readfileattempt(self, id, callback, count) {
 FP.drop = function(callback) {
 	this.clear(callback);
 };
-
-function ext(name) {
-	var index = name.lastIndexOf('.');
-	return index === -1 ? '' : name.substring(index + 1).toLowerCase();
-}
 
 exports.FileDB = function(name, directory) {
 	return new FileDB(name, directory);

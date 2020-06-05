@@ -73,7 +73,6 @@ const QUERYPARSEROPTIONS = { maxKeys: 33 };
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
 const EMPTYREQUEST = { uri: {} };
-const SINGLETONS = {};
 const REPOSITORY_HEAD = '$head';
 const REPOSITORY_META_TITLE = '$title';
 const REPOSITORY_META_DESCRIPTION = '$description';
@@ -100,6 +99,7 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new http.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
 var PREFFILE = 'preferences.json';
+var WSCLIENTSID = 0;
 
 var PATHMODULES = require.resolve('./index');
 PATHMODULES = PATHMODULES.substring(0, PATHMODULES.length - 8);
@@ -150,8 +150,8 @@ HEADERS.redirect[HEADER_TYPE] = CT_HTML + '; charset=utf-8';
 HEADERS.redirect[HEADER_LENGTH] = '0';
 HEADERS.sse = {};
 HEADERS.sse[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.sse['Pragma'] = 'no-cache';
-HEADERS.sse['Expires'] = '-1';
+HEADERS.sse.Pragma = 'no-cache';
+HEADERS.sse.Expires = '-1';
 HEADERS.sse[HEADER_TYPE] = 'text/event-stream';
 HEADERS.sse['X-Powered-By'] = 'Total.js';
 HEADERS.file_lastmodified = {};
@@ -160,7 +160,7 @@ HEADERS.file_lastmodified[HEADER_CACHE] = 'public, max-age=11111111';
 HEADERS.file_lastmodified['X-Powered-By'] = 'Total.js';
 HEADERS.file_release_compress = {};
 HEADERS.file_release_compress[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release_compress['Vary'] = 'Accept-Encoding';
+HEADERS.file_release_compress.Vary = 'Accept-Encoding';
 HEADERS.file_release_compress['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release_compress['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release_compress['Content-Encoding'] = 'gzip';
@@ -168,7 +168,7 @@ HEADERS.file_release_compress['X-Powered-By'] = 'Total.js';
 HEADERS.file_release_compress_range = {};
 HEADERS.file_release_compress_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_release_compress_range[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release_compress_range['Vary'] = 'Accept-Encoding';
+HEADERS.file_release_compress_range.Vary = 'Accept-Encoding';
 HEADERS.file_release_compress_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release_compress_range['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release_compress_range['Content-Encoding'] = 'gzip';
@@ -177,14 +177,14 @@ HEADERS.file_release_compress_range['Content-Range'] = '';
 HEADERS.file_release_compress_range['X-Powered-By'] = 'Total.js';
 HEADERS.file_release = {};
 HEADERS.file_release[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release['Vary'] = 'Accept-Encoding';
+HEADERS.file_release.Vary = 'Accept-Encoding';
 HEADERS.file_release['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release['X-Powered-By'] = 'Total.js';
 HEADERS.file_release_range = {};
 HEADERS.file_release_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_release_range[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release_range['Vary'] = 'Accept-Encoding';
+HEADERS.file_release_range.Vary = 'Accept-Encoding';
 HEADERS.file_release_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release_range['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release_range[HEADER_LENGTH] = '0';
@@ -192,61 +192,61 @@ HEADERS.file_release_range['Content-Range'] = '';
 HEADERS.file_release_range['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug_compress = {};
 HEADERS.file_debug_compress[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug_compress['Vary'] = 'Accept-Encoding';
+HEADERS.file_debug_compress.Vary = 'Accept-Encoding';
 HEADERS.file_debug_compress['Access-Control-Allow-Origin'] = '*';
-HEADERS.file_debug_compress['Pragma'] = 'no-cache';
-HEADERS.file_debug_compress['Expires'] = '-1';
+HEADERS.file_debug_compress.Pragma = 'no-cache';
+HEADERS.file_debug_compress.Expires = '-1';
 HEADERS.file_debug_compress['Content-Encoding'] = 'gzip';
 HEADERS.file_debug_compress['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug_compress_range = {};
 HEADERS.file_debug_compress_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_debug_compress_range[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug_compress_range['Vary'] = 'Accept-Encoding';
+HEADERS.file_debug_compress_range.Vary = 'Accept-Encoding';
 HEADERS.file_debug_compress_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_debug_compress_range['Content-Encoding'] = 'gzip';
-HEADERS.file_debug_compress_range['Pragma'] = 'no-cache';
-HEADERS.file_debug_compress_range['Expires'] = '-1';
+HEADERS.file_debug_compress_range.Pragma = 'no-cache';
+HEADERS.file_debug_compress_range.Expires = '-1';
 HEADERS.file_debug_compress_range[HEADER_LENGTH] = '0';
 HEADERS.file_debug_compress_range['Content-Range'] = '';
 HEADERS.file_debug_compress_range['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug = {};
 HEADERS.file_debug[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug['Vary'] = 'Accept-Encoding';
-HEADERS.file_debug['Pragma'] = 'no-cache';
-HEADERS.file_debug['Expires'] = '-1';
+HEADERS.file_debug.Vary = 'Accept-Encoding';
+HEADERS.file_debug.Pragma = 'no-cache';
+HEADERS.file_debug.Expires = '-1';
 HEADERS.file_debug['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_debug['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug_range = {};
 HEADERS.file_debug_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_debug_range[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug_range['Vary'] = 'Accept-Encoding';
+HEADERS.file_debug_range.Vary = 'Accept-Encoding';
 HEADERS.file_debug_range['Access-Control-Allow-Origin'] = '*';
-HEADERS.file_debug_range['Pragma'] = 'no-cache';
-HEADERS.file_debug_range['Expires'] = '-1';
+HEADERS.file_debug_range.Pragma = 'no-cache';
+HEADERS.file_debug_range.Expires = '-1';
 HEADERS.file_debug_range[HEADER_LENGTH] = '0';
 HEADERS.file_debug_range['Content-Range'] = '';
 HEADERS.file_debug_range['X-Powered-By'] = 'Total.js';
 HEADERS.content_mobile_release = {};
 HEADERS.content_mobile_release[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.content_mobile_release['Vary'] = 'Accept-Encoding, User-Agent';
+HEADERS.content_mobile_release.Vary = 'Accept-Encoding, User-Agent';
 HEADERS.content_mobile_release['Content-Encoding'] = 'gzip';
-HEADERS.content_mobile_release['Expires'] = '-1';
+HEADERS.content_mobile_release.Expires = '-1';
 HEADERS.content_mobile_release['X-Powered-By'] = 'Total.js';
 HEADERS.content_mobile = {};
 HEADERS.content_mobile[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.content_mobile['Vary'] = 'Accept-Encoding, User-Agent';
-HEADERS.content_mobile['Expires'] = '-1';
+HEADERS.content_mobile.Vary = 'Accept-Encoding, User-Agent';
+HEADERS.content_mobile.Expires = '-1';
 HEADERS.content_mobile['X-Powered-By'] = 'Total.js';
 HEADERS.content_compress = {};
 HEADERS.content_compress[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.content_compress['Vary'] = 'Accept-Encoding';
+HEADERS.content_compress.Vary = 'Accept-Encoding';
 HEADERS.content_compress['Content-Encoding'] = 'gzip';
-HEADERS.content_compress['Expires'] = '-1';
+HEADERS.content_compress.Expires = '-1';
 HEADERS.content_compress['X-Powered-By'] = 'Total.js';
 HEADERS.content = {};
 HEADERS.content[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.content['Vary'] = 'Accept-Encoding';
-HEADERS.content['Expires'] = '-1';
+HEADERS.content.Vary = 'Accept-Encoding';
+HEADERS.content.Expires = '-1';
 HEADERS.content['X-Powered-By'] = 'Total.js';
 HEADERS.stream_release_compress = {};
 HEADERS.stream_release_compress[HEADER_CACHE] = 'public, max-age=11111111';
@@ -259,15 +259,15 @@ HEADERS.stream_release['Access-Control-Allow-Origin'] = '*';
 HEADERS.stream_release['X-Powered-By'] = 'Total.js';
 HEADERS.stream_debug_compress = {};
 HEADERS.stream_debug_compress[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.stream_debug_compress['Pragma'] = 'no-cache';
-HEADERS.stream_debug_compress['Expires'] = '-1';
+HEADERS.stream_debug_compress.Pragma = 'no-cache';
+HEADERS.stream_debug_compress.Expires = '-1';
 HEADERS.stream_debug_compress['Access-Control-Allow-Origin'] = '*';
 HEADERS.stream_debug_compress['Content-Encoding'] = 'gzip';
 HEADERS.stream_debug_compress['X-Powered-By'] = 'Total.js';
 HEADERS.stream_debug = {};
 HEADERS.stream_debug[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.stream_debug['Pragma'] = 'no-cache';
-HEADERS.stream_debug['Expires'] = '-1';
+HEADERS.stream_debug.Pragma = 'no-cache';
+HEADERS.stream_debug.Expires = '-1';
 HEADERS.stream_debug['Access-Control-Allow-Origin'] = '*';
 HEADERS.stream_debug['X-Powered-By'] = 'Total.js';
 HEADERS.binary_compress = {};
@@ -341,11 +341,6 @@ global.Builders = framework_builders;
 var U = global.Utils = global.utils = global.U = global.framework_utils;
 global.Mail = framework_mail;
 
-function nomemwrapper(name) {
-	return global.framework_nosql.inmemory(name);
-}
-
-
 var prefid;
 
 global.PREF = {};
@@ -367,14 +362,11 @@ global.CACHE = function(name, value, expire, persistent) {
 	return arguments.length === 1 ? F.cache.get2(name) : F.cache.set(name, value, expire, persistent);
 };
 
-global.CREATE = (group, name) => framework_builders.getschema(group, name).default();
-global.SINGLETON = (name, def) => SINGLETONS[name] || (SINGLETONS[name] = (new Function('return ' + (def || '{}')))());
-global.FUNCTION = (name) => F.functions[name] || NOOP;
 global.FINISHED = framework_internal.onFinished;
 global.DESTROY = framework_internal.destroyStream;
 
 function filestoragewrapper(name) {
-	var key = 'storage_' + name;
+	var key = 'fs_' + name;
 	return F.databases[key] ? F.databases[key] : (F.databases[key] = require('./filestorage').FileDB(name, PATH.databases('fs-' + name + '/')));
 }
 
@@ -476,74 +468,6 @@ global.$MAKE = function(schema, model, filter, callback, novalidate, argument) {
 	return o ? o.make(model, filter, callback, argument, novalidate, w) : undefined;
 };
 
-global.$QUERY = function(schema, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-	if (o)
-		o.query(options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.$GET = global.$READ = function(schema, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-	if (o)
-		o.get(options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.$WORKFLOW = function(schema, name, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-	if (o)
-		o.workflow2(name, options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.$TRANSFORM = function(schema, name, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-	if (o)
-		o.transform2(name, options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.$REMOVE = function(schema, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-
-	if (typeof(options) === 'function') {
-		controller = callback;
-		callback = options;
-		options = EMPTYOBJECT;
-	}
-
-	if (o)
-		o.remove(options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.$SAVE = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$save', schema, model, options, callback, controller, novalidate);
-};
-
-global.$INSERT = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$insert', schema, model, options, callback, controller, novalidate);
-};
-
-global.$UPDATE = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$update', schema, model, options, callback, controller, novalidate);
-};
-
-global.$PATCH = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$patch', schema, model, options, callback, controller, novalidate);
-};
-
 // GET Users/Neviem  --> @query @workflow
 global.$ACTION = function(schema, model, callback, controller) {
 
@@ -578,8 +502,7 @@ global.$ACTION = function(schema, model, callback, controller) {
 		meta.op = [];
 		meta.opcallbackindex = -1;
 
-		var name = meta.schema.split('/');
-		var o = GETSCHEMA(name[0], name[1]);
+		var o = GETSCHEMA(meta.schema);
 		if (!o) {
 			callback(new ErrorBuilder().push('', 'Schema "{0}" not found'.format(meta.schema)));
 			return;
@@ -604,14 +527,12 @@ global.$ACTION = function(schema, model, callback, controller) {
 			tmp.name = item;
 			tmp.name2 = '$' + tmp.name;
 
-			if (o.meta[item] === undefined) {
-				if (o.meta['workflow#' + item] !== undefined)
+			if (!o.meta[item]) {
+				if (o.meta['workflow_' + item])
 					tmp.type = '$workflow';
-				else if (o.meta['workflow#' + item] !== undefined)
+				else if (o.meta['transform_' + item])
 					tmp.type = '$transform';
-				else if (o.meta['operation#' + item] !== undefined)
-					tmp.type = '$operation';
-				else if (o.meta['hook#' + item] !== undefined)
+				else if (o.meta['hook_' + item])
 					tmp.type = '$hook';
 				else {
 					callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
@@ -644,6 +565,7 @@ global.$ACTION = function(schema, model, callback, controller) {
 		data.meta = meta;
 		data.callback = callback;
 		data.controller = controller;
+
 		meta.schema.make(model, null, performsschemaaction_async, data, null, null, req);
 	} else
 		performsschemaaction(meta, null, callback, controller);
@@ -678,7 +600,6 @@ function performsschemaaction(meta, model, callback, controller) {
 	} else {
 
 		var op = meta.op[0];
-
 		if (model) {
 			model.$$controller = controller;
 			if (op.type)
@@ -694,106 +615,12 @@ function performsschemaaction(meta, model, callback, controller) {
 	}
 }
 
-// type, schema, model, options, callback, controller
-function performschema(type, schema, model, options, callback, controller, novalidate) {
-
-	if (typeof(options) === 'function') {
-		novalidate = controller;
-		controller = callback;
-		callback = options;
-		options = null;
-	}
-
-	var o = framework_builders.getschema(schema);
-
-	if (!o) {
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-		return false;
-	}
-
-	var workflow = {};
-	workflow[type.substring(1)] = 1;
-
-	var req = controller ? controller.req : null;
-	var keys;
-
-	if (type === '$patch') {
-		keys = Object.keys(model);
-		if (req)
-			req.$patch = true;
-		else
-			req = { $patch: true };
-	}
-
-	o.make(model, null, function(err, model) {
-		if (err) {
-			callback && callback(err);
-		} else {
-			model.$$keys = keys;
-			model.$$controller = controller;
-			model[type](options, callback);
-			if (req && req.$patch && req.method && req.method !== 'PATCH')
-				delete req.$patch;
-		}
-	}, null, novalidate, workflow, req);
-
-	return !!o;
-}
-
-global.$ASYNC = function(schema, callback, index, controller) {
-
-	if (index && typeof(index) === 'object') {
-		controller = index;
-		index = undefined;
-	}
-
-	var o = framework_builders.getschema(schema).default();
-
-	if (!o) {
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-		return EMPTYOBJECT;
-	}
-
-	controller && (o.$$controller = controller);
-	return o.$async(callback, index);
-};
-
-global.$OPERATION = function(schema, name, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-	if (o)
-		o.operation2(name, options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.DB = global.DATABASE = function(a, b, c, d) {
-	return typeof(F.database) === 'object' ? F.database : F.database(a, b, c, d);
-};
-
 global.OFF = function() {
 	return arguments.length > 1 ? F.removeListener.apply(F, arguments) : F.removeAllListeners.apply(F, arguments);
 };
 
-global.NEWSCHEMA = function(group, name, make) {
-
-	if (typeof(name) === 'function') {
-		make = name;
-		name = undefined;
-	}
-
-	if (!name) {
-		var arr = group.split('/');
-		if (arr.length === 2) {
-			name = arr[1];
-			group = arr[0];
-		} else {
-			name = group;
-			group = 'default';
-		}
-	}
-
-	var schema = framework_builders.newschema(group, name);
+global.NEWSCHEMA = function(name, make) {
+	var schema = framework_builders.newschema(name);
 	make && make.call(schema, schema);
 	return schema;
 };
@@ -836,16 +663,6 @@ global.SUCCESS = function(success, value) {
 	return SUCCESSHELPER;
 };
 
-global.TRY = function(fn, err) {
-	try {
-		fn();
-		return true;
-	} catch (e) {
-		err && err(e);
-		return false;
-	}
-};
-
 global.OBSOLETE = function(name, message) {
 
 	if (CONF.nowarnings)
@@ -857,7 +674,6 @@ global.OBSOLETE = function(name, message) {
 };
 
 global.DEBUG = false;
-global.TEST = false;
 global.RELEASE = false;
 global.is_client = false;
 global.is_server = true;
@@ -1007,7 +823,7 @@ function Framework() {
 		// default 10 kB
 		default_request_maxlength: 10,
 		default_websocket_maxlength: 2,
-		default_websocket_encodedecode: true,
+		default_websocket_encodedecode: false,
 		default_maxopenfiles: 0,
 		default_timezone: 'utc',
 		default_root: '',
@@ -1056,7 +872,6 @@ function Framework() {
 		allow_persistent_images: true,
 
 		nosql_worker: false,
-		nosql_inmemory: null, // String Array
 		nosql_cleaner: 1440,
 		nosql_logger: true,
 		logger: false,
@@ -1068,50 +883,21 @@ function Framework() {
 		default_interval_clear_dnscache: 30,
 		default_interval_precompile_views: 61,
 		default_interval_websocket_ping: 3,
-		default_interval_uptodate: 5,
-
-		set ['mail-smtp'] (val) {
-			CONF['mail_smtp'] = val;
-			return null;
-		},
-
-		set ['mail-smtp-options'] (val) {
-			CONF['mail_smtp_options'] = val;
-			return null;
-		},
-
-		set ['mail-address-reply'] (val) {
-			CONF['mail_address_reply'] = val;
-			return null;
-		},
-
-		set ['mail-address-from'] (val) {
-			CONF['mail_address_from'] = val;
-			return null;
-		},
-
-		set ['mail-address-copy'] (val) {
-			CONF['mail_address_copy'] = val;
-			return null;
-		}
+		default_interval_uptodate: 5
 	};
 
 	global.REPO = global.G = self.global = {};
 	global.MAIN = {};
 	global.TEMP = {};
+	global.FUNC = {};
 
 	self.$bundling = true;
 	self.resources = {};
 	self.connections = {};
-	global.FUNC = self.functions = {};
 	self.themes = {};
 	self.versions = null;
-	self.workflows = {};
-	self.uptodates = null;
 	self.schedules = {};
 
-	self.isDebug = true;
-	self.isTest = false;
 	self.isLoaded = false;
 	self.isWorker = true;
 	self.isCluster = process.env.PASSENGER_APP_ENV ? false : require('cluster').isWorker;
@@ -1217,8 +1003,8 @@ function Framework() {
 		},
 
 		other: {
-			websocketPing: 0,
-			websocketCleaner: 0,
+			websocketping: 0,
+			websocketcleaner: 0,
 			obsolete: 0,
 			mail: 0
 		},
@@ -1263,9 +1049,9 @@ function Framework() {
 			redirect: 0,
 			forward: 0,
 			proxy: 0,
-			notModified: 0,
+			notmodified: 0,
 			sse: 0,
-			errorBuilder: 0,
+			errorbuilder: 0,
 			error400: 0,
 			error401: 0,
 			error403: 0,
@@ -1651,59 +1437,52 @@ F.$routes_sort = function(type) {
 
 F.parseComponent = parseComponent;
 
+var textdbworker = null;
+
 function nosqlwrapper(name) {
 	var db = F.databases[name];
 	if (db)
 		return db;
 
-	// absolute
-	if (name[0] === '~') {
-		db = framework_nosql.load(U.getName(name), name.substring(1), true);
-	} else {
-		var is = name.substring(0, 6);
-		if (is === 'http:/' || is === 'https:')
-			db = framework_nosql.load(U.getName(name), name);
-		else {
-			F.path.verify('databases');
-			db = framework_nosql.load(name, F.path.databases(name));
-		}
-	}
+	if (textdbworker)
+		return F.databases[name] = require('./textdb-wrapper').make('nosql', name, textdbworker);
 
-	F.databases[name] = db;
-	return db;
+	F.path.verify('databases');
+
+	// Is web server?
+	if (F.port)
+		textdbworker = framework_nosql.init(PATH.databases());
+
+	return F.databases[name] = require('./textdb-wrapper').make('nosql', name, textdbworker);
 }
 
-F.database = global.NOSQL = F.nosql = function(name) {
+global.NOSQL = function(name) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
-	// Someone rewrites F.database
-	if (F.database !== F.nosql)
-		global.NOSQL = F.nosql = nosqlwrapper;
-	else
-		F.database = nosqlwrapper;
-
+		global.framework_nosql = require('./textdb-process');
+	global.NOSQL = nosqlwrapper;
 	return nosqlwrapper(name);
 };
 
 function tablewrapper(name) {
-	var db = F.databases['$' + name];
+	var db = F.databases[name];
 	if (db)
 		return db;
 
-	if (name[0] === '~') {
-		db = framework_nosql.load(U.getName(name), name.substring(1), true);
-	} else {
-		F.path.verify('databases');
-		db = framework_nosql.table(name, F.path.databases(name));
-	}
+	if (textdbworker)
+		return F.databases[name] = require('./textdb-wrapper').make('table', name, textdbworker);
 
-	F.databases['$' + name] = db;
-	return db;
+	F.path.verify('databases');
+
+	// Is web server?
+	if (F.port)
+		textdbworker = framework_nosql.init(PATH.databases());
+
+	return F.databases[name] = require('./textdb-wrapper').make('table', name, textdbworker);
 }
 
 global.TABLE = function(name) {
 	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
+		global.framework_nosql = require('./textdb-process');
 	global.TABLE = tablewrapper;
 	return tablewrapper(name);
 };
@@ -1723,7 +1502,7 @@ F.stop = F.kill = function(signal) {
 		TRY(() => worker && worker.kill && worker.kill(signal));
 	}
 
-	global.framework_nosql && global.framework_nosql.kill(signal);
+	textdbworker && textdbworker.kill(0);
 
 	EMIT('exit', signal);
 
@@ -2075,7 +1854,7 @@ function corsextend(a, b) {
 		b.indexOf(a[i]) === -1 && b.push(a[i]);
 }
 
-global.GROUP = F.group = function() {
+global.GROUP = function() {
 
 	var fn = null;
 
@@ -2113,7 +1892,7 @@ global.GROUP = F.group = function() {
 	return F;
 };
 
-global.ROUTE = F.web = F.route = function(url, funcExecute, flags, length, language) {
+global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	var name;
 	var tmp;
@@ -2348,7 +2127,7 @@ global.ROUTE = F.web = F.route = function(url, funcExecute, flags, length, langu
 
 					if (schema.length === 1) {
 						schema[1] = schema[0];
-						schema[0] = 'default';
+						schema[0] = '';
 					}
 
 					// Is dynamic schema?
@@ -3744,7 +3523,7 @@ F.$notModified = function(req, res, date) {
 		res.success = true;
 		res.writeHead(304, HEADERS.responseNotModified);
 		res.end();
-		F.stats.response.notModified++;
+		F.stats.response.notmodified++;
 		F.reqstats(false, req.isStaticFile);
 		return true;
 	}
@@ -5665,10 +5444,12 @@ F.onSchema = function(req, route, callback) {
 
 	if (route.isDYNAMICSCHEMA) {
 		var index = route.param[route.paramnames.indexOf(route.schema[1])];
-		req.$schemaname = route.schema[0] + '/' + req.split[index];
+		req.$schemaname = (route.schema[0] ? (route.schema[0] + '/') : '') + req.split[index];
 		schema = framework_builders.findschema(req.$schemaname);
-	} else
-		schema = GETSCHEMA(route.schema[0], route.schema[1]);
+	} else {
+		req.$schemaname = (route.schema[0] ? (route.schema[0] + '/') : '') + route.schema[1];
+		schema = GETSCHEMA(req.$schemaname);
+	}
 
 	if (req.method === 'PATCH')
 		req.$patch = true;
@@ -5676,7 +5457,7 @@ F.onSchema = function(req, route, callback) {
 	if (schema)
 		schema.make(req.body, route.schema[2], onSchema_callback, callback, route.novalidate, route.workflow ? route.workflow.meta : null, req);
 	else
-		callback('Schema "' + (route.isDYNAMICSCHEMA ? req.$schemaname : (route.schema[0] + '/' + route.schema[1])) + '" not found.');
+		callback('Schema "' + req.$schemaname + '" not found.');
 };
 
 function onSchema_callback(err, res, callback) {
@@ -5802,44 +5583,7 @@ global.AUDIT = function(name, $, type, message) {
 	DEF.onAudit(name, data);
 };
 
-global.NOSQLREADER = function(filename) {
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
-	return new framework_nosql.Database('readonlynosql', filename, true);
-};
-
-global.TABLEREADER = function(filename) {
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
-	return new framework_nosql.Table('readonlytable', filename, true);
-};
-
-// @arguments {Object params}
-global.LOG = F.log = function() {
-
-	NOW = new Date();
-	var filename = NOW.getFullYear() + '-' + (NOW.getMonth() + 1).toString().padLeft(2, '0') + '-' + NOW.getDate().toString().padLeft(2, '0');
-	var time = NOW.getHours().toString().padLeft(2, '0') + ':' + NOW.getMinutes().toString().padLeft(2, '0') + ':' + NOW.getSeconds().toString().padLeft(2, '0');
-	var str = '';
-	var length = arguments.length;
-
-	for (var i = 0; i < length; i++) {
-		var val = arguments[i];
-		if (val === undefined)
-			val = 'undefined';
-		else if (val === null)
-			val = 'null';
-		else if (typeof(val) === 'object')
-			val = Util.inspect(val);
-		str += (str ? ' ' : '') + val;
-	}
-
-	F.path.verify('logs');
-	U.queue('F.log', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, filename + '.log'), time + ' | ' + str + '\n', next));
-	return F;
-};
-
-global.LOGGER = F.logger = function() {
+global.LOGGER = function() {
 	NOW = new Date();
 	var dt = NOW.getFullYear() + '-' + (NOW.getMonth() + 1).toString().padLeft(2, '0') + '-' + NOW.getDate().toString().padLeft(2, '0') + ' ' + NOW.getHours().toString().padLeft(2, '0') + ':' + NOW.getMinutes().toString().padLeft(2, '0') + ':' + NOW.getSeconds().toString().padLeft(2, '0');
 	var str = '';
@@ -5857,11 +5601,11 @@ global.LOGGER = F.logger = function() {
 	}
 
 	F.path.verify('logs');
-	U.queue('F.logger', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next));
+	U.queue('LOGGER', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next));
 	return F;
 };
 
-global.LOGMAIL = F.logmail = function(address, subject, body, callback) {
+global.LOGMAIL = function(address, subject, body, callback) {
 
 	if (typeof(body) === FUNCTION) {
 		callback = body;
@@ -5944,7 +5688,6 @@ F.usage = function(detailed) {
 		streaming: staticRange.length,
 		modificator:  F.modificators ? F.modificators.length : 0,
 		viewphrases: $VIEWCACHE.length,
-		uptodates: F.uptodates ? F.uptodates.length : 0,
 		nosqlcleaner: nosqlcleaner.length,
 		commands: commands.length,
 		sessions: sessions.length,
@@ -6013,7 +5756,6 @@ F.usage = function(detailed) {
 	output.commands = commands;
 	output.streaming = staticRange;
 	output.traces = F.traces;
-	output.uptodates = F.uptodates;
 	output.shortcache = shortcache;
 
 	return output;
@@ -6850,7 +6592,6 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 	}
 
 	F.isWorker = true;
-	F.isDebug = debug;
 
 	global.isWORKER = true;
 	global.DEBUG = debug;
@@ -6983,8 +6724,6 @@ F.initialize = function(http, debug, options) {
 
 	if (options.id)
 		F.id = options.id;
-
-	F.isDebug = debug;
 
 	if (options.bundling != null)
 		F.$bundling = options.bundling == true;
@@ -7220,7 +6959,6 @@ F.mode = function(http, name, options) {
 		}
 		DEBUG = debug;
 		CONF.trace = debug;
-		F.isDebug = debug;
 		global.DEBUG = debug;
 		global.RELEASE = !debug;
 		return F;
@@ -8294,7 +8032,7 @@ F.include = function(name, options, callback) {
  * @param {String} language Optional.
  * @return {MailMessage}
  */
-global.MAIL = F.mail = function(address, subject, view, model, callback, language) {
+global.MAIL = function(address, subject, view, model, callback, language) {
 
 	if (typeof(callback) === 'string') {
 		var tmp = language;
@@ -8487,7 +8225,7 @@ F.clear = function(callback, isInit) {
  * @param {Function} callback
  * @return {Framework}
  */
-F.unlink = F.path.unlink = function(arr, callback) {
+F.unlink = PATH.unlink = function(arr, callback) {
 
 	if (typeof(arr) === 'string')
 		arr = [arr];
@@ -8512,7 +8250,7 @@ F.unlink = F.path.unlink = function(arr, callback) {
  * @param {Function} callback
  * @return {Framework}
  */
-F.rmdir = F.path.rmdir = function(arr, callback) {
+F.rmdir = PATH.rmdir = function(arr, callback) {
 	if (typeof(arr) === 'string')
 		arr = [arr];
 
@@ -8545,7 +8283,7 @@ F.rmdir = F.path.rmdir = function(arr, callback) {
  * @param {Boolean} isUnique Optional, default true.
  * @return {String}
  */
-global.ENCRYPT = F.encrypt = function(value, key, isUnique) {
+global.ENCRYPT = function(value, key, isUnique) {
 
 	if (value == null)
 		return '';
@@ -8593,7 +8331,7 @@ global.ENCRYPT = F.encrypt = function(value, key, isUnique) {
  * @param {Boolean} jsonConvert Optional, default true.
  * @return {Object or String}
  */
-global.DECRYPT = F.decrypt = function(value, key, jsonConvert) {
+global.DECRYPT = function(value, key, jsonConvert) {
 
 	if (typeof(key) === 'boolean') {
 		var tmp = jsonConvert;
@@ -8643,7 +8381,7 @@ global.ENCRYPTREQ = function(req, val, key, strict) {
 	if (strict)
 		obj.ip = req.ip;
 	obj.data = val;
-	return F.encrypt(obj, key);
+	return ENCRYPT(obj, key);
 };
 
 global.DECRYPTREQ = function(req, val, key) {
@@ -8651,7 +8389,7 @@ global.DECRYPTREQ = function(req, val, key) {
 		return;
 	if (req instanceof Controller)
 		req = req.req;
-	var obj = F.decrypt(val, key || '', true);
+	var obj = DECRYPT(val, key || '', true);
 	if (!obj || (obj.ip && obj.ip !== req.ip) || (obj.ua !== req.ua))
 		return;
 	return obj.data;
@@ -8679,7 +8417,7 @@ global.RESOURCE = F.resource = function(name, key) {
 	var res = F.resources[name];
 	if (res) {
 		if (res.$empty && res[key] == null && name !== DEFNAME)
-			return res[key] = F.resource(DEFNAME, key); // tries to load a value from "default.resource"
+			return res[key] = RESOURCE(DEFNAME, key); // tries to load a value from "default.resource"
 		return res[key] == null ? '' : res[key];
 	}
 
@@ -8704,7 +8442,7 @@ global.RESOURCE = F.resource = function(name, key) {
 	var obj = body.parseConfig();
 	F.resources[name] = obj;
 	obj.$empty = empty;
-	return obj[key] == null ? name == DEFNAME ? '' : obj[key] = F.resource(DEFNAME, key) : obj[key];
+	return obj[key] == null ? name == DEFNAME ? '' : obj[key] = RESOURCE(DEFNAME, key) : obj[key];
 };
 
 /**
@@ -8721,9 +8459,9 @@ global.TRANSLATE = function(language, text) {
 	}
 
 	if (text[0] === '#' && text[1] !== ' ')
-		return F.resource(language, text.substring(1));
+		return RESOURCE(language, text.substring(1));
 
-	var value = F.resource(language, 'T' + text.hash(true).toString(16));
+	var value = RESOURCE(language, 'T' + text.hash(true).toString(16));
 	return value ? value : text;
 };
 
@@ -9139,9 +8877,9 @@ F.$configure_configs = function(arr, rewrite) {
 				var skip = tmp[i].match(/-(debug|release|test)$/i);
 				if (skip) {
 					skip = skip[0].toString().toLowerCase();
-					if (skip === '-debug' && !F.isDebug)
+					if (skip === '-debug' && !DEBUG)
 						continue;
-					if (skip === '-release' && F.isDebug)
+					if (skip === '-release' && DEBUG)
 						continue;
 					if (skip === '-test' && !F.isTest)
 						continue;
@@ -10739,240 +10477,6 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
-ControllerProto.$get = ControllerProto.$read = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	this.getSchema().get(helper, callback, this);
-	return this;
-};
-
-ControllerProto.$query = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	this.getSchema().query(helper, callback, this);
-	return this;
-};
-
-ControllerProto.$save = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$save(helper, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$save(helper, callback);
-	}
-	return self;
-};
-
-ControllerProto.$insert = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$insert(helper, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$insert(helper, callback);
-	}
-	return self;
-};
-
-ControllerProto.$update = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$update(helper, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$update(helper, callback);
-	}
-	return self;
-};
-
-ControllerProto.$patch = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$patch(helper, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$patch(helper, callback);
-	}
-	return self;
-};
-
-ControllerProto.$remove = function(helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	var self = this;
-	self.getSchema().remove(helper, callback, self);
-	return this;
-};
-
-ControllerProto.$workflow = function(name, helper, callback) {
-	var self = this;
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$workflow(name, helper, callback);
-	} else
-		self.getSchema().workflow2(name, helper, callback, self);
-	return self;
-};
-
-ControllerProto.$workflow2 = function(name, helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
-	}
-
-	var self = this;
-	self.getSchema().workflow2(name, helper, callback, self);
-	return self;
-};
-
-ControllerProto.$hook = function(name, helper, callback) {
-	var self = this;
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = EMPTYOBJECT;
-	}
-
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$hook(name, helper, callback);
-	} else
-		self.getSchema().hook2(name, helper, callback, self);
-
-	return self;
-};
-
-ControllerProto.$hook2 = function(name, helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = EMPTYOBJECT;
-	}
-
-	var self = this;
-	self.getSchema().hook2(name, helper, callback, self);
-	return self;
-};
-
-ControllerProto.$transform = function(name, helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = EMPTYOBJECT;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$transform(name, helper, callback);
-	} else
-		self.getSchema().transform2(name, helper, callback, self);
-	return self;
-};
-
-ControllerProto.$transform2 = function(name, helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = EMPTYOBJECT;
-	}
-
-	var self = this;
-	self.getSchema().transform2(name, helper, callback, self);
-	return self;
-};
-
-ControllerProto.$operation = function(name, helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = EMPTYOBJECT;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$operation(name, helper, callback);
-	} else
-		self.getSchema().operation2(name, helper, callback, self);
-	return self;
-};
-
-ControllerProto.operation = function(name, value, callback, options) {
-	OPERATION(name, value, callback, options, this);
-	return this;
-};
-
-ControllerProto.tasks = function() {
-	var tb = new TaskBuilder(this);
-	// tb.callback(this.callback());
-	return tb;
-};
-
-ControllerProto.$operation2 = function(name, helper, callback) {
-
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = EMPTYOBJECT;
-	}
-
-	var self = this;
-	self.getSchema().operation2(name, helper, callback, self);
-	return self;
-};
-
 ControllerProto.$exec = function(name, helper, callback) {
 	var self = this;
 
@@ -11011,9 +10515,9 @@ ControllerProto.$async = function(callback, index) {
 
 ControllerProto.getSchema = function() {
 	var route = this.route;
-	if (!route.schema || !route.schema[1])
+	if (!route.schema || !route.schema[0])
 		throw new Error('The controller\'s route does not define any schema.');
-	var schema = route.isDYNAMICSCHEMA ? framework_builders.findschema(route.schema[0] + '/' + this.params[route.schema[1]]) : GETSCHEMA(route.schema[0], route.schema[1]);
+	var schema = route.isDYNAMICSCHEMA ? framework_builders.findschema(this.req.$schemaname) : GETSCHEMA(this.req.$schemaname);
 	if (schema)
 		return schema;
 	throw new Error('Schema "{0}" does not exist.'.format(route.schema[1]));
@@ -11096,51 +10600,6 @@ ControllerProto.clear = function() {
 	return self;
 };
 
-/**
- * Translates text
- * @param {String} text
- * @return {String}
- */
-ControllerProto.translate = function(language, text) {
-
-	if (!text) {
-		text = language;
-		language = this.language;
-	}
-
-	return TRANSLATE(language, text);
-};
-
-/**
- * Exec middleware
- * @param {String Array} names Middleware name.
- * @param {Object} options Custom options for middleware.
- * @param {Function} callback
- * @return {Controller}
- */
-ControllerProto.middleware = function(names, options, callback) {
-
-	if (typeof(names) === 'string')
-		names = [names];
-
-	if (typeof(options) === 'function') {
-		var tmp = callback;
-		callback = options;
-		options = tmp;
-	}
-
-	if (!options)
-		options = EMPTYOBJECT;
-
-	var self = this;
-
-	if (self.req.$total_middleware)
-		self.req.$total_middleware = null;
-
-	async_middleware(0, self.req, self.res, names, () => callback && callback(), options, self);
-	return self;
-};
-
 ControllerProto.nocache = function() {
 	this.req.nocache();
 	return this;
@@ -11180,10 +10639,6 @@ ControllerProto.host = function(path) {
 
 ControllerProto.hostname = function(path) {
 	return this.req.hostname(path);
-};
-
-ControllerProto.resource = function(name, key) {
-	return F.resource(name, key);
 };
 
 /**
@@ -11237,36 +10692,6 @@ ControllerProto.invalid = function(status) {
 function next_controller_invalid(self, builder) {
 	self.content(builder);
 }
-
-/**
- * Registers a new problem
- * @param {String} message
- * @return {Controller}
- */
-ControllerProto.wtf = ControllerProto.problem = function(message) {
-	F.problem(message, this.name, this.uri, this.ip);
-	return this;
-};
-
-/**
- * Registers a new change
- * @param {String} message
- * @return {Controller}
- */
-ControllerProto.change = function(message) {
-	F.change(message, this.name, this.uri, this.ip);
-	return this;
-};
-
-/**
- * Trace
- * @param {String} message
- * @return {Controller}
- */
-ControllerProto.trace = function(message) {
-	F.trace(message, this.name, this.uri, this.ip);
-	return this;
-};
 
 /**
  * Transfer to new route
@@ -11335,16 +10760,6 @@ ControllerProto.transfer = function(url, flags) {
 
 ControllerProto.cancel = function() {
 	this.isCanceled = true;
-	return this;
-};
-
-ControllerProto.log = function() {
-	F.log.apply(F, arguments);
-	return this;
-};
-
-ControllerProto.logger = function() {
-	F.logger.apply(F, arguments);
 	return this;
 };
 
@@ -11700,52 +11115,6 @@ ControllerProto.$layout = function(name) {
 	return '';
 };
 
-ControllerProto.model = function(name) {
-	return F.model(name);
-};
-
-/**
- * Send e-mail
- * @param {String or Array} address E-mail address.
- * @param {String} subject E-mail subject.
- * @param {String} view View name.
- * @param {Object} model Optional.
- * @param {Function(err)} callback Optional.
- * @return {MailMessage}
- */
-ControllerProto.mail = function(address, subject, view, model, callback) {
-
-	if (typeof(model) === 'function') {
-		callback = model;
-		model = null;
-	}
-
-	var self = this;
-
-	if (typeof(self.language) === 'string')
-		subject = subject.indexOf('@(') === -1 ? TRANSLATE(self.language, subject) : TRANSLATOR(self.language, subject);
-
-	// Backup layout
-	var layoutName = self.layoutName;
-	var body = self.view(view, model, true);
-
-	var message;
-
-	if (body instanceof Function) {
-		message = F.onMail(address, subject, '');
-		message.manually();
-		body(function(err, body) {
-			message.body = body;
-			message.send2(callback);
-		});
-	} else {
-		message = F.onMail(address, subject, body, callback);
-		self.layoutName = layoutName;
-	}
-
-	return message;
-};
-
 ControllerProto.$view = function(name, model, expire, key) {
 
 	var self = this;
@@ -11991,7 +11360,7 @@ ControllerProto.$radio = function(model, name, value, attr) {
 
 	if (typeof(attr) === 'string') {
 		var label = attr;
-		attr = SINGLETON('!$radio');
+		attr = {};
 		attr.label = label;
 	}
 
@@ -12003,7 +11372,7 @@ ControllerProto.$checkbox = function(model, name, attr) {
 
 	if (typeof(attr) === 'string') {
 		var label = attr;
-		attr = SINGLETON('!$checkbox');
+		attr = {};
 		attr.label = label;
 	}
 
@@ -12036,10 +11405,7 @@ ControllerProto.$textarea = function(model, name, attr) {
 		}
 	}
 
-	if (model === undefined)
-		return builder + '></textarea>';
-
-	return builder + '>' + ((model[name] || attr.value) || '') + '</textarea>';
+	return model === undefined ? (builder + '></textarea>') : (builder + '>' + ((model[name] || attr.value) || '') + '</textarea>');
 };
 
 ControllerProto.$input = function(model, type, name, attr) {
@@ -12774,7 +12140,7 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 			res.options.code = obj.status;
 
 		obj = json;
-		F.stats.response.errorBuilder++;
+		F.stats.response.errorbuilder++;
 	} else {
 
 		if (obj && obj.$$schema)
@@ -12869,7 +12235,7 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 		obj = obj.json(beautify);
 		if (obj.status !== 200)
 			res.options.code = obj.status;
-		F.stats.response.errorBuilder++;
+		F.stats.response.errorbuilder++;
 	} else {
 
 		if (obj && obj.$$schema)
@@ -12986,7 +12352,7 @@ ControllerProto.content = function(body, type, headers) {
 			res.options.code = body.status;
 
 		body = tmp;
-		F.stats.response.errorBuilder++;
+		F.stats.response.errorbuilder++;
 	} else
 		res.options.type = type || CT_TEXT;
 
@@ -13137,17 +12503,6 @@ ControllerProto.filefs = function(name, id, download, headers, callback, checkme
 	return self;
 };
 
-ControllerProto.filenosql = function(name, id, download, headers, callback, checkmeta) {
-	var self = this;
-	var options = {};
-	options.id = id;
-	options.download = download;
-	options.headers = headers;
-	options.done = callback;
-	NOSQL(name).binary.res(self.res, options, checkmeta, $file_notmodified);
-	return self;
-};
-
 ControllerProto.imagefs = function(name, id, make, headers, callback, checkmeta) {
 	var self = this;
 	var options = {};
@@ -13157,18 +12512,6 @@ ControllerProto.imagefs = function(name, id, make, headers, callback, checkmeta)
 	options.headers = headers;
 	options.done = callback;
 	FILESTORAGE(name).res(self.res, options, checkmeta, $file_notmodified);
-	return self;
-};
-
-ControllerProto.imagenosql = function(name, id, make, headers, callback, checkmeta) {
-	var self = this;
-	var options = {};
-	options.id = id;
-	options.image = true;
-	options.make = make;
-	options.headers = headers;
-	options.done = callback;
-	NOSQL(name).binary.res(self.res, options, checkmeta, $file_notmodified);
 	return self;
 };
 
@@ -13227,7 +12570,7 @@ ControllerProto.stream = function(type, stream, download, headers, done, nocompr
  * @param  {String} problem Description of problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw400 = ControllerProto.view400 = function(problem) {
+ControllerProto.throw400 = function(problem) {
 	return controller_error_status(this, 400, problem);
 };
 
@@ -13236,7 +12579,7 @@ ControllerProto.throw400 = ControllerProto.view400 = function(problem) {
  * @param  {String} problem Description of problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw401 = ControllerProto.view401 = function(problem) {
+ControllerProto.throw401 = function(problem) {
 	return controller_error_status(this, 401, problem);
 };
 
@@ -13245,7 +12588,7 @@ ControllerProto.throw401 = ControllerProto.view401 = function(problem) {
  * @param  {String} problem Description of problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw403 = ControllerProto.view403 = function(problem) {
+ControllerProto.throw403 = function(problem) {
 	return controller_error_status(this, 403, problem);
 };
 
@@ -13254,7 +12597,7 @@ ControllerProto.throw403 = ControllerProto.view403 = function(problem) {
  * @param  {String} problem Description of problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw404 = ControllerProto.view404 = function(problem) {
+ControllerProto.throw404 = function(problem) {
 	return controller_error_status(this, 404, problem);
 };
 
@@ -13263,7 +12606,7 @@ ControllerProto.throw404 = ControllerProto.view404 = function(problem) {
  * @param  {String} problem Description of problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw409 = ControllerProto.view409 = function(problem) {
+ControllerProto.throw409 = function(problem) {
 	return controller_error_status(this, 409, problem);
 };
 
@@ -13272,7 +12615,7 @@ ControllerProto.throw409 = ControllerProto.view409 = function(problem) {
  * @param {Error} error
  * @return {Controller}
  */
-ControllerProto.throw500 = ControllerProto.view500 = function(error) {
+ControllerProto.throw500 = function(error) {
 	var self = this;
 	F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
 	return controller_error_status(self, 500, error);
@@ -13283,7 +12626,7 @@ ControllerProto.throw500 = ControllerProto.view500 = function(error) {
  * @param  {String} problem Description of the problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw501 = ControllerProto.view501 = function(problem) {
+ControllerProto.throw501 = function(problem) {
 	return controller_error_status(this, 501, problem);
 };
 
@@ -13292,7 +12635,7 @@ ControllerProto.throw501 = ControllerProto.view501 = function(problem) {
  * @param  {String} problem Description of the problem (optional)
  * @return {Controller}
  */
-ControllerProto.throw503 = ControllerProto.view503 = function(problem) {
+ControllerProto.throw503 = function(problem) {
 	return controller_error_status(this, 503, problem);
 };
 
@@ -13359,7 +12702,7 @@ ControllerProto.baa = function(label) {
 		return self.req.authorization();
 
 	var res = self.res;
-	var headers = SINGLETON('!controller.baa');
+	var headers = {};
 
 	headers['WWW-Authenticate'] = 'Basic realm="' + (label || 'Administration') + '"';
 
@@ -13479,7 +12822,7 @@ ControllerProto.close = function(end) {
  * @param {Number} timeout Optional, timeout (default: 10000)
  * @return {EventEmitter}
  */
-ControllerProto.proxy = ControllerProto.proxy2 = function(url, callback, headers, timeout) {
+ControllerProto.proxy = function(url, callback, headers, timeout) {
 
 	if (typeof(callback) === 'object') {
 		timeout = headers;
@@ -13541,6 +12884,7 @@ ControllerProto.proxy = ControllerProto.proxy2 = function(url, callback, headers
 		}
 	}
 
+	// @TODO: Missing new implementation
 	return U.request(url, flags, self.body, function(err, data, code, headers) {
 
 		if (err) {
@@ -14060,7 +13404,7 @@ const SOCKET_HASH = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const SOCKET_ALLOW_VERSION = [13];
 
 function WebSocket(path, name, id) {
-	this._keys = [];
+	this.keys = [];
 	this.id = id;
 	this.online = 0;
 	this.connections = {};
@@ -14105,20 +13449,11 @@ WebSocket.prototype = {
 			this.$params = EMPTYOBJECT;
 			return EMPTYOBJECT;
 		}
-	},
-
-	get keys() {
-		return this._keys;
 	}
 };
 
 
 const WebSocketProto = WebSocket.prototype;
-
-WebSocketProto.operation = function(name, value, callback, options) {
-	OPERATION(name, value, callback, options, this);
-	return this;
-};
 
 WebSocketProto.emit = function(name, a, b, c, d, e, f, g) {
 	var evt = this.$events[name];
@@ -14175,70 +13510,11 @@ WebSocketProto.removeAllListeners = function(name) {
 	return this;
 };
 
-/**
- * Sends a message
- * @param {String} message
- * @param {String Array or Function(id, client)} id (optional)
- * @param {String Array or Function(id, client)} blacklist (optional)
- * @param {Function(key, value)} replacer for JSON (optional)
- * @return {WebSocket}
- */
-WebSocketProto.send = function(message, id, blacklist, replacer) {
+WebSocketProto.send = function(message, comparer, replacer, params) {
 
 	var self = this;
-	var keys = self._keys;
+	var keys = self.keys;
 
-	if (!keys || !keys.length || message === undefined)
-		return self;
-
-	var data;
-	var raw = false;
-
-	for (var i = 0, length = keys.length; i < length; i++) {
-
-		var conn = self.connections[keys[i]];
-
-		if (id) {
-			if (id instanceof Array) {
-				if (!websocket_valid_array(conn.id, id))
-					continue;
-			} else if (id instanceof Function) {
-				if (!websocket_valid_fn(conn.id, conn, id, message))
-					continue;
-			} else
-				throw new Error('Invalid "id" argument.');
-		}
-
-		if (blacklist) {
-			if (blacklist instanceof Array) {
-				if (websocket_valid_array(conn.id, blacklist))
-					continue;
-			} else if (blacklist instanceof Function) {
-				if (websocket_valid_fn(conn.id, conn, blacklist, message))
-					continue;
-			} else
-				throw new Error('Invalid "blacklist" argument.');
-		}
-
-		if (data === undefined) {
-			if (conn.type === 3) {
-				raw = true;
-				data = JSON.stringify(message, replacer);
-			} else
-				data = message;
-		}
-
-		conn.send(data, raw);
-		F.stats.response.websocket++;
-	}
-
-	return self;
-};
-
-WebSocketProto.send2 = function(message, comparer, replacer, params) {
-
-	var self = this;
-	var keys = self._keys;
 	if (!keys || !keys.length || message === undefined)
 		return self;
 
@@ -14250,7 +13526,7 @@ WebSocketProto.send2 = function(message, comparer, replacer, params) {
 	var data;
 	var raw = false;
 
-	for (var i = 0, length = keys.length; i < length; i++) {
+	for (var i = 0; i < keys.length; i++) {
 
 		var conn = self.connections[keys[i]];
 
@@ -14272,28 +13548,20 @@ WebSocketProto.send2 = function(message, comparer, replacer, params) {
 	return self;
 };
 
-function websocket_valid_array(id, arr) {
-	return arr.indexOf(id) !== -1;
-}
-
-function websocket_valid_fn(id, client, fn, msg) {
-	return fn && fn(id, client, msg) ? true : false;
-}
-
 /**
  * Sends a ping message
  * @return {WebSocket}
  */
 WebSocketProto.ping = function() {
 
-	var keys = this._keys;
+	var keys = this.keys;
 	if (!keys)
 		return this;
 
 	var length = keys.length;
 	if (length) {
 		this.$ping = true;
-		F.stats.other.websocketPing++;
+		F.stats.other.websocketping++;
 		for (var i = 0; i < length; i++)
 			this.connections[keys[i]].ping();
 	}
@@ -14308,52 +13576,20 @@ WebSocketProto.ping = function() {
  * @param {Number} code Optional default 1000.
  * @return {Websocket}
  */
-WebSocketProto.close = function(id, message, code) {
+WebSocketProto.close = function(message, code) {
 
-	var keys = this._keys;
+	var self = this;
 
-	if (!keys)
-		return this;
-
-	if (typeof(id) === 'string') {
-		code = message;
-		message = id;
-		id = null;
-	}
-
-	var length = keys.length;
-	if (!length)
-		return this;
-
-	if (!id || !id.length) {
+	if (self.keys && self.keys.length) {
 		for (var i = 0; i < length; i++) {
-			var _id = keys[i];
-			this.connections[_id].close(message, code);
-			this.$remove(_id);
+			var id = self.keys[i];
+			self.connections[id].close(message, code);
+			self.$remove(id);
 		}
-		this.$refresh();
-		return this;
 	}
 
-	var is = id instanceof Array;
-	var fn = typeof(id) === 'function' ? id : null;
-
-	for (var i = 0; i < length; i++) {
-
-		var _id = keys[i];
-		if (is && id.indexOf(_id) === -1)
-			continue;
-
-		var conn = this.connections[_id];
-		if (fn && !fn.call(this, _id, conn))
-			continue;
-
-		conn.close(message, code);
-		this.$remove(_id);
-	}
-
-	this.$refresh();
-	return this;
+	self.$refresh();
+	return self;
 };
 
 /**
@@ -14366,80 +13602,10 @@ WebSocketProto.error = function(err) {
 	return err ? this : result;
 };
 
-/**
- * Creates a problem
- * @param {String} message
- * @return {WebSocket}
- */
-WebSocketProto.wtf = WebSocketProto.problem = function(message) {
-	F.problem(message, this.name, this.uri);
-	return this;
-};
-
-/**
- * Creates a change
- * @param {String} message
- * @return {WebSocket}
- */
-WebSocketProto.change = function(message) {
-	F.change(message, this.name, this.uri, this.ip);
-	return this;
-};
-
-/**
- * The method executes a provided function once per client.
- * @param {Function(connection, index)} fn
- * @return {WebSocket}
- */
-WebSocketProto.all = function(fn) {
-	var arr = fn == null || fn == true ? [] : null;
-	var self = this;
-	if (self._keys) {
-		for (var i = 0, length = self._keys.length; i < length; i++) {
-			if (arr)
-				arr.push(self.connections[self._keys[i]]);
-			else
-				fn(self.connections[self._keys[i]], i);
-		}
-	}
-	return arr ? arr : self;
-};
-
-/**
- * Finds a connection
- * @param {String} id
- * @return {WebSocketClient}
- */
-WebSocketProto.find = function(id) {
+WebSocketProto.destroy = function() {
 	var self = this;
 
-	if (!self._keys)
-		return self;
-
-	var length = self._keys.length;
-	var isFn = typeof(id) === 'function';
-
-	for (var i = 0; i < length; i++) {
-		var connection = self.connections[self._keys[i]];
-		if (isFn) {
-			if (id(connection, connection.id))
-				return connection;
-		} else if (connection.id === id)
-			return connection;
-	}
-	return null;
-};
-
-/**
- * Destroys a WebSocket controller
- * @param {String} problem Optional.
- * @return {WebSocket}
- */
-WebSocketProto.destroy = function(problem) {
-	var self = this;
-
-	problem && self.problem(problem);
-	if (!self.connections && !self._keys)
+	if (!self.connections && !self.keys)
 		return self;
 
 	self.close();
@@ -14447,8 +13613,8 @@ WebSocketProto.destroy = function(problem) {
 
 	setTimeout(function() {
 
-		for (var i = 0; i < self._keys.length; i++) {
-			var key = self._keys[i];
+		for (var i = 0; i < self.keys.length; i++) {
+			var key = self.keys[i];
 			var conn = self.connections[key];
 			if (conn) {
 				conn._isClosed = true;
@@ -14457,7 +13623,7 @@ WebSocketProto.destroy = function(problem) {
 		}
 
 		self.connections = null;
-		self._keys = null;
+		self.keys = null;
 		self.route = null;
 		self.buffer = null;
 		delete F.connections[self.id];
@@ -14492,8 +13658,8 @@ WebSocketProto.autodestroy = function(callback) {
  */
 WebSocketProto.$refresh = function() {
 	if (this.connections) {
-		this._keys = Object.keys(this.connections);
-		this.online = this._keys.length;
+		this.keys = Object.keys(this.connections);
+		this.online = this.keys.length;
 	} else
 		this.online = 0;
 	return this;
@@ -14516,41 +13682,24 @@ WebSocketProto.$remove = function(id) {
  * @return {WebSocket}
  */
 WebSocketProto.$add = function(client) {
-	this.connections[client._id] = client;
-	return this;
-};
-
-/**
- * A resource header
- * @param {String} name A resource name.
- * @param {String} key A resource key.
- * @return {String}
- */
-WebSocketProto.resource = function(name, key) {
-	return F.resource(name, key);
-};
-
-WebSocketProto.log = function() {
-	F.log.apply(framework, arguments);
-	return this;
-};
-
-WebSocketProto.logger = function() {
-	F.logger.apply(framework, arguments);
+	this.connections[client.ID] = client;
 	return this;
 };
 
 WebSocketProto.check = function() {
-	this.$ping && this.all(websocketcheck_ping);
-	return this;
-};
-
-function websocketcheck_ping(client) {
-	if (!client.$ping) {
-		client.close();
-		F.stats.other.websocketCleaner++;
+	var self = this;
+	if (self.$ping && self.keys) {
+		for (var i = 0; i < self.keys.length; i++) {
+			var client = self.connections[self.keys[i]];
+			if (!client.$ping) {
+				client.close();
+				F.stats.other.websocketcleaner++;
+			}
+		}
 	}
-}
+
+	return self;
+};
 
 /**
  * WebSocket controller
@@ -14558,9 +13707,9 @@ function websocketcheck_ping(client) {
  * @param {Socket} socket
  */
 function WebSocketClient(req, socket) {
+	// this.ID;
 	this.$ping = true;
 	this.container;
-	this._id;
 	this.id = '';
 	this.socket = socket;
 	this.req = req;
@@ -14727,8 +13876,11 @@ WebSocketClientProto.prepare = function(flags, protocols, allow, length) {
 		self.deflate.on('data', websocket_deflate);
 	}
 
-	self._id = Date.now() + U.GUID(5);
-	self.id = self._id;
+	if (WSCLIENTSID++ > 999999999)
+		WSCLIENTSID = 1;
+
+	self.ID = WSCLIENTSID + '';
+	self.id = self.ID;
 	return true;
 };
 
@@ -14986,7 +14138,7 @@ WebSocketClientProto.$decode = function() {
 
 	// Buffer
 	if (this.typebuffer) {
-		this.container.emit('message', this, data);
+		this.container.$events.message && this.container.emit('message', this, data);
 		return;
 	}
 
@@ -14994,7 +14146,7 @@ WebSocketClientProto.$decode = function() {
 
 		case 1: // BINARY
 			// this.container.emit('message', this, new Uint8Array(data).buffer);
-			this.container.emit('message', this, data);
+			this.container.$events.message && this.container.emit('message', this, data);
 			break;
 
 		case 3: // JSON
@@ -15007,7 +14159,7 @@ WebSocketClientProto.$decode = function() {
 
 			if (data.isJSON()) {
 				var tmp = F.onParseJSON(data, this.req);
-				if (tmp !== undefined)
+				if (tmp !== undefined && this.container.$events.message)
 					this.container.emit('message', this, tmp);
 			}
 			break;
@@ -15015,7 +14167,7 @@ WebSocketClientProto.$decode = function() {
 		default: // TEXT
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
-			this.container.emit('message', this, this.container.encodedecode === true ? $decodeURIComponent(data) : data);
+			this.container.$events.message && this.container.emit('message', this, this.container.encodedecode === true ? $decodeURIComponent(data) : data);
 			break;
 	}
 
@@ -15094,7 +14246,7 @@ WebSocketClientProto.$onclose = function() {
 		this.deflatechunks = null;
 	}
 
-	this.container.$remove(this._id);
+	this.container.$remove(this.ID);
 	this.container.$refresh();
 	this.container.$events.close && this.container.emit('close', this, this.closecode, this.closemessage);
 	this.socket.removeAllListeners();
@@ -15309,7 +14461,7 @@ function extend_request(PROTO) {
 
 	Object.defineProperty(PROTO, 'host', {
 		get: function() {
-			return this.headers['host'];
+			return this.headers.host;
 		}
 	});
 
@@ -15366,7 +14518,7 @@ function extend_request(PROTO) {
 	 * @return {Request}
 	 */
 	PROTO.signature = function(key) {
-		return F.encrypt((this.headers['user-agent'] || '') + '#' + this.ip + '#' + this.url + '#' + (key || ''), 'request-signature', false);
+		return ENCRYPT((this.headers['user-agent'] || '') + '#' + this.ip + '#' + this.url + '#' + (key || ''), 'request-signature', false);
 	};
 
 	PROTO.localize = function() {
@@ -15398,7 +14550,7 @@ function extend_request(PROTO) {
 		if (this.cookies)
 			return $decodeURIComponent(this.cookies[name] || '');
 
-		var cookie = this.headers['cookie'];
+		var cookie = this.headers.cookie;
 		if (!cookie)
 			return '';
 
@@ -15422,7 +14574,7 @@ function extend_request(PROTO) {
 	 */
 	PROTO.authorization = function() {
 
-		var authorization = this.headers['authorization'];
+		var authorization = this.headers.authorization;
 		if (!authorization)
 			return HEADERS.authorization;
 
@@ -15586,7 +14738,7 @@ function extend_request(PROTO) {
 
 		if (!route) {
 			if (status === 400 && this.$total_exception instanceof framework_builders.ErrorBuilder) {
-				F.stats.response.errorBuilder++;
+				F.stats.response.errorbuilder++;
 				this.$language && this.$total_exception.setResource(this.$language);
 				res.options.body = this.$total_exception.output(true);
 				res.options.code = this.$total_exception.status;
@@ -16055,7 +15207,7 @@ function extend_response(PROTO) {
 	 * Disable HTTP cache for current response
 	 * @return {Response}
 	 */
-	PROTO.noCache = PROTO.nocache = function() {
+	PROTO.nocache = function() {
 		var self = this;
 
 		if (self.$nocache)
@@ -16135,7 +15287,7 @@ function extend_response(PROTO) {
 						else
 							contentType = CT_JSON;
 						body = json;
-						F.stats.response.errorBuilder++;
+						F.stats.response.errorbuilder++;
 					} else
 						body = JSON.stringify(body);
 					!contentType && (contentType = CT_JSON);
@@ -16147,7 +15299,7 @@ function extend_response(PROTO) {
 		var headers = {};
 
 		headers[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-		headers['Vary'] = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
+		headers.Vary = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
 
 		if ((/text|application/).test(contentType))
 			contentType += '; charset=utf-8';
@@ -16265,17 +15417,6 @@ function extend_response(PROTO) {
 		return self;
 	};
 
-	PROTO.filenosql = function(name, id, download, headers, callback, checkmeta) {
-		var self = this;
-		var options = {};
-		options.id = id;
-		options.download = download;
-		options.headers = headers;
-		options.done = callback;
-		NOSQL(name).binary.res(self, options, checkmeta, $file_notmodified);
-		return self;
-	};
-
 	PROTO.imagefs = function(name, id, make, headers, callback, checkmeta) {
 		var self = this;
 		var options = {};
@@ -16285,18 +15426,6 @@ function extend_response(PROTO) {
 		options.headers = headers;
 		options.done = callback;
 		FILESTORAGE(name).res(self, options, checkmeta, $file_notmodified);
-		return self;
-	};
-
-	PROTO.imagenosql = function(name, id, make, headers, callback, checkmeta) {
-		var self = this;
-		var options = {};
-		options.id = id;
-		options.image = true;
-		options.make = make;
-		options.headers = headers;
-		options.done = callback;
-		NOSQL(name).binary.res(self, options, checkmeta, $file_notmodified);
 		return self;
 	};
 
@@ -16732,7 +15861,7 @@ function extend_response(PROTO) {
 		var compress = CONF.allow_gzip && COMPRESSION[options.type] && accept.indexOf('gzip') !== -1;
 		var headers = compress ? HEADERS.binary_compress : HEADERS.binary;
 
-		headers['Vary'] = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
+		headers.Vary = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
 
 		if (options.download)
 			headers['Content-Disposition'] = 'attachment; filename=' + encodeURIComponent(options.download);
@@ -17118,7 +16247,7 @@ function $file_notmodified(res, name) {
 	headers[HEADER_TYPE] = U.getContentType(req.extension);
 	res.writeHead(304, headers);
 	res.end();
-	F.stats.response.notModified++;
+	F.stats.response.notmodified++;
 	response_end(res);
 }
 
@@ -17547,10 +16676,6 @@ process.on('message', function(msg, h) {
 			msg.target === F.id && F.cluster.res(msg);
 		else if (msg.TYPE === 'emit')
 			F.$events[msg.name] && EMIT(msg.name, msg.a, msg.b, msg.c, msg.d, msg.e);
-		else if (msg.TYPE === 'nosql-meta')
-			NOSQL(msg.name).meta(msg.key, msg.value, true);
-		else if (msg.TYPE === 'table-meta')
-			TABLE(msg.name).meta(msg.key, msg.value, true);
 		else if (msg.TYPE === 'session') {
 			var session = SESSION(msg.NAME);
 			switch (msg.method) {
@@ -17617,28 +16742,6 @@ process.on('message', function(msg, h) {
 					F.cache.removeAll(msg.search);
 					F.cache.$sync = true;
 					break;
-			}
-		} else if (msg.TYPE === 'filestorage') {
-			var fs = F.databases['storage_' + msg.NAME];
-			if (fs) {
-				switch (msg.method) {
-					case 'add':
-						fs.meta.index = msg.index;
-						fs.meta.count = msg.count;
-						if (F.id === '0')
-							fs.$save();
-						break;
-					case 'remove':
-						fs.meta.count = msg.count;
-						if (F.id === '0' && msg.id) {
-							fs.meta.free.push(msg.id);
-							fs.$save();
-						}
-						break;
-					case 'refresh':
-						fs.$refresh();
-						break;
-				}
 			}
 		}
 	}
@@ -17951,13 +17054,13 @@ function controller_json_workflow(id) {
 
 			if (schema.meta[w.id] !== undefined) {
 				w.type = '$' + w.id;
-			} else if (schema.meta['workflow#' + w.id] !== undefined) {
+			} else if (schema.meta['workflow_' + w.id] !== undefined) {
 				w.type = '$workflow';
 				w.name = w.id;
-			} else if (schema.meta['workflow#' + w.id] !== undefined) {
+			} else if (schema.meta['transform_' + w.id] !== undefined) {
 				w.type = '$transform';
 				w.name = w.id;
-			} else if (schema.meta['hook#' + w.id] !== undefined) {
+			} else if (schema.meta['hook_' + w.id] !== undefined) {
 				w.type = '$hook';
 				w.name = w.id;
 			}
@@ -18014,11 +17117,11 @@ function controller_json_workflow_multiple(id) {
 				var id = w.id[i];
 				if (schema.meta[id] !== undefined) {
 					op.push({ name: '$' + id });
-				} else if (schema.meta['workflow#' + id] !== undefined) {
+				} else if (schema.meta['workflow_' + id] !== undefined) {
 					op.push({ name: '$workflow', id: id });
-				} else if (schema.meta['workflow#' + id] !== undefined) {
+				} else if (schema.meta['transform_' + id] !== undefined) {
 					op.push({ name: '$transform', id: id });
-				} else if (schema.meta['hook#' + id] !== undefined) {
+				} else if (schema.meta['hook_' + id] !== undefined) {
 					op.push({ name: '$hook', id: id });
 				} else {
 					// not found
@@ -18201,6 +17304,7 @@ function runsnapshot() {
 
 		var memory = process.memoryUsage();
 		stats.date = NOW;
+		stats.textdb = F.stats.textdb;
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
 		stats.rm = F.stats.performance.request.floor(2);  // request min
 		stats.fm = F.stats.performance.file.floor(2);     // files min

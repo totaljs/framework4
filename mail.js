@@ -441,7 +441,7 @@ Mailer.prototype.$writeattachment = function(obj) {
 	var stream;
 
 	if (attachment.storage) {
-		FILESTORAGE(attachment.storage).readbase64(attachment.filename, function(err, stream, meta) {
+		FILESTORAGE(attachment.storage).readbase64(attachment.filename, function(err, meta) {
 			if (err) {
 				F.error(err, 'Mail.filestorage()', attachment.filename);
 				mailer.$writeattachment(obj);
@@ -450,10 +450,10 @@ Mailer.prototype.$writeattachment = function(obj) {
 				if (!attachment.name) {
 					attachment.name = meta.name;
 					attachment.type = meta.type;
-					attachment.extension = U.getExtension(meta.name);
+					attachment.extension = meta.ext;
 				}
 
-				writeattachemnt_stream(attachment, obj, stream);
+				writeattachemnt_stream(attachment, obj, meta.stream);
 			}
 		});
 	} else {

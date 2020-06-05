@@ -262,7 +262,6 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 		}
 
 		req.files.push(tmp);
-		F.$events['upload-begin'] && EMIT('upload-begin', req, tmp);
 		F.$events.upload_begin && EMIT('upload_begin', req, tmp);
 		close++;
 		stream = Fs.createWriteStream(tmp.path, WRITESTREAM);
@@ -289,7 +288,6 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 			tmp.$data = undefined;
 			tmp.$is = undefined;
 			tmp.$step = undefined;
-			F.$events['upload-end'] && F.emit('upload-end', req, tmp);
 			F.$events.upload_end && F.emit('upload_end', req, tmp);
 			return;
 		}

@@ -529,11 +529,12 @@ global.REQUEST = function(opt) {
 		var builder = '';
 		for (var m in opt.cookies)
 			builder += (builder ? '; ' : '') + m + '=' + opt.cookies[m];
+
 		if (builder)
-			opt.headers['Cookie'] = builder;
+			opt.headers.Cookie = builder;
 	}
 
-	var uri = Url.parse(opt.url);
+	var uri = opt.socketpath ? { socketPath: opt.socketpath, path: opt.path } : Url.parse(opt.url);
 
 	if (!uri.hostname || !uri.host) {
 		opt.callback && opt.callback('Invalid hostname');
@@ -858,7 +859,7 @@ function request_response(res) {
 
 		options.redirect++;
 
-		var loc = res.headers['location'];
+		var loc = res.headers.location;
 		var proto = loc.substring(0, 6);
 
 		if (proto !== 'http:/' && proto !== 'https:')

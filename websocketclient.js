@@ -101,7 +101,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		var tmp = [];
 		for (var i = 0, length = keys.length; i < length; i++)
 			tmp.push(keys[i] + '=' + self.cookies[keys[i]]);
-		options.headers['Cookie'] = tmp.join(', ');
+		options.headers.Cookie = tmp.join(', ');
 	}
 
 	self.req = (isSecure ? Https : Http).get(options);
