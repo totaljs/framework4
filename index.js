@@ -375,12 +375,10 @@ global.DESTROY = framework_internal.destroyStream;
 
 function filestoragewrapper(name) {
 	var key = 'storage_' + name;
-	return F.databases[key] ? F.databases[key] : (F.databases[key] = new framework_nosql.DatabaseBinary({ name: name }, F.path.databases('fs-' + name + '/'), '.file'));
+	return F.databases[key] ? F.databases[key] : (F.databases[key] = require('./filestorage').FileDB(name, PATH.databases('fs-' + name + '/')));
 }
 
 global.FILESTORAGE = function(name) {
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
 	global.FILESTORAGE = filestoragewrapper;
 	return filestoragewrapper(name);
 };

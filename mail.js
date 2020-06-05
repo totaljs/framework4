@@ -146,11 +146,11 @@ function Message(subject, body) {
 	t.body = body || '';
 	t.type = 'html';
 	t.files;
-	t.addressTo = [];
-	t.addressReply;
-	t.addressCC;
-	t.addressBCC;
-	t.addressFrom = { name: '', address: '' };
+	t.address_to = [];
+	t.address_reply;
+	t.address_cc;
+	t.address_bcc;
+	t.address_from = { name: '', address: '' };
 	t.closed = false;
 	t.tls = false;
 	t.$callback;
@@ -187,8 +187,8 @@ Message.prototype.from = function(address, name) {
 		address = address.substring(index + 1, address.length - 1);
 	}
 
-	this.addressFrom.name = name || '';
-	this.addressFrom.address = address;
+	this.address_from.name = name || '';
+	this.address_from.address = address;
 	return this;
 };
 
@@ -221,12 +221,12 @@ Message.prototype.to = function(address, name, clear) {
 	}
 
 	if (clear)
-		this.addressTo = [];
+		this.address_to = [];
 
 	if (name)
-		this.addressTo.push({ email: address, name: name });
+		this.address_to.push({ email: address, name: name });
 	else
-		this.addressTo.push(address);
+		this.address_to.push(address);
 
 	return this;
 };
@@ -244,40 +244,52 @@ Message.prototype.cc = function(address, name, clear) {
 		address = address.substring(index + 1, address.length - 1);
 	}
 
-	if (clear || !this.addressCC)
-		this.addressCC = [];
+	if (clear || !this.address_cc)
+		this.address_cc = [];
 
 	if (name)
-		this.addressCC.push({ email: address, name: name });
+		this.address_cc.push({ email: address, name: name });
 	else
-		this.addressCC.push(address);
+		this.address_cc.push(address);
 
 	return this;
 };
 
 Message.prototype.bcc = function(address, clear) {
-	if (clear || !this.addressBCC)
-		this.addressBCC = [];
-	this.addressBCC.push(address);
+	if (clear || !this.address_bcc)
+		this.address_bcc = [];
+	this.address_bcc.push(address);
 	return this;
 };
 
 Message.prototype.reply = function(address, clear) {
-	if (clear || !this.addressReply)
-		this.addressReply = [];
-	this.addressReply.push(address);
+	if (clear || !this.address_reply)
+		this.address_reply = [];
+	this.address_reply.push(address);
 	return this;
 };
 
-Message.prototype.attachment = function(filename, name) {
+Message.prototype.attachment = function(filename, name, contentid) {
 	!name && (name = framework_utils.getName(filename));
 	var extension = framework_utils.getExtension(name);
+
+	var obj = {};
+	obj.name = name;
+	obj.filename = filename;
+	obj.type = framework_utils.getContentType(extension);
+	obj.extension = extension;
+
+	if (contentid) {
+		obj.disposition = 'inline';
+		obj.contentid = contentid;
+	}
+
 	!this.files && (this.files = []);
-	this.files.push({ name: name, filename: filename, type: framework_utils.getContentType(extension), extension: extension });
+	this.files.push(obj);
 	return this;
 };
 
-Message.prototype.attachmentfs = function(storagename, id, name) {
+Message.prototype.attachmentfs = function(storagename, id, name, contentid) {
 
 	var extension;
 	var type;
@@ -287,23 +299,20 @@ Message.prototype.attachmentfs = function(storagename, id, name) {
 		type = framework_utils.getContentType(extension);
 	}
 
-	!this.files && (this.files = []);
-	this.files.push({ storage: storagename, name: name, filename: id, type: type, extension: extension });
-	return this;
-};
+	var obj = {};
+	obj.storagename = storagename;
+	obj.name = name;
+	obj.filename = id;
+	obj.type = type;
+	obj.extension = extension;
 
-Message.prototype.attachmentnosql = function(db, id, name) {
-
-	var extension;
-	var type;
-
-	if (name) {
-		extension = framework_utils.getExtension(name);
-		type = framework_utils.getContentType(extension);
+	if (contentid) {
+		obj.disposition = 'inline';
+		obj.contentid = contentid;
 	}
 
 	!this.files && (this.files = []);
-	this.files.push({ nosql: db, name: name, filename: id, type: type, extension: extension });
+	this.files.push(obj);
 	return this;
 };
 
@@ -327,11 +336,11 @@ Message.prototype.manually = function() {
  * @param {String} contentId the Content-ID (e.g. 'AB435BH'), must be unique across the email
  * @returns {Message}
  */
-Message.prototype.attachmentInline = Message.prototype.attachmentinline = function(filename, name, contentId) {
+Message.prototype.attachment = function(filename, name, contentid) {
 	!name && (name = framework_utils.getName(filename));
 	!this.files && (this.files = []);
 	var extension = framework_utils.getExtension(name);
-	this.files.push({ name: name, filename: filename, type: framework_utils.getContentType(extension), disposition: 'inline', contentId: contentId, extension: extension });
+	this.files.push({ name: name, filename: filename, type: framework_utils.getContentType(extension), disposition: 'inline', contentid: contentid, extension: extension });
 	return this;
 };
 
@@ -345,7 +354,7 @@ Message.prototype.send2 = function(callback) {
 
 	// Computes a hostname
 	if (!CONF.mail_smtp) {
-		var ea = (this.addressFrom.address || this.addressFrom) || '';
+		var ea = (this.address_from.address || this.address_from) || '';
 		ea = ea.substring(ea.lastIndexOf('@') + 1);
 		if (ea)
 			ea = 'smtp.' + ea;
@@ -447,22 +456,6 @@ Mailer.prototype.$writeattachment = function(obj) {
 				writeattachemnt_stream(attachment, obj, stream);
 			}
 		});
-	} else if (attachment.nosql) {
-		NOSQL(attachment.nosql).binary.readbase64(attachment.filename, function(err, stream, meta) {
-			if (err) {
-				F.error(err, 'Mail.attachmentnosql()', attachment.filename);
-				mailer.$writeattachment(obj);
-			} else {
-
-				if (!attachment.name) {
-					attachment.name = meta.name;
-					attachment.type = meta.type;
-					attachment.extension = U.getExtension(meta.name);
-				}
-
-				writeattachemnt_stream(attachment, obj, stream);
-			}
-		});
 	} else {
 		stream = Fs.createReadStream(attachment.filename, ATTACHMENT_SO);
 		writeattachemnt_stream(attachment, obj, stream);
@@ -480,9 +473,9 @@ function writeattachemnt_stream(attachment, obj, stream) {
 	message.push('--' + obj.boundary);
 
 	if (!isCalendar) {
-		if (attachment.contentId) {
+		if (attachment.contentid) {
 			message.push('Content-Disposition: inline; filename="' + name + '"');
-			message.push('Content-ID: <' + attachment.contentId + '>');
+			message.push('Content-ID: <' + attachment.contentid + '>');
 		} else
 			message.push('Content-Disposition: attachment; filename="' + name + '"');
 	}
@@ -500,7 +493,6 @@ function writeattachemnt_stream(attachment, obj, stream) {
 		mailer.$writeline(obj, CRLF);
 		mailer.$writeattachment(obj);
 	});
-
 }
 
 function writeattachment_data(chunk) {
@@ -646,13 +638,13 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 	obj.count++;
 
 	message.push('MIME-Version: 1.0');
-	buffer.push('MAIL FROM: <' + msg.addressFrom.address + '>');
+	buffer.push('MAIL FROM: <' + msg.address_from.address + '>');
 	message.push('Message-ID: <total' + (INDEXATTACHMENT++) + '@WIN-t' + (INDEXATTACHMENT) + '>');
 
 	self.$priority && message.push('X-Priority: ' + self.$priority);
 	self.$confidential && message.push('Sensitivity: Company-Confidential');
 
-	message.push('From: ' + (msg.addressFrom.name ? unicode_encode(msg.addressFrom.name) + ' <' + msg.addressFrom.address + '>' : msg.addressFrom.address));
+	message.push('From: ' + (msg.address_from.name ? unicode_encode(msg.address_from.name) + ' <' + msg.address_from.address + '>' : msg.address_from.address));
 
 	var length;
 
@@ -662,7 +654,7 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 			message.push(headers[i] + ': ' + msg.headers[headers[i]]);
 	}
 
-	length = msg.addressTo.length;
+	length = msg.address_to.length;
 
 	var builder = '';
 	var mail;
@@ -670,7 +662,7 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 
 	if (length) {
 		for (var i = 0; i < length; i++) {
-			item = msg.addressTo[i];
+			item = msg.address_to[i];
 			if (item instanceof Object)
 				mail = '<' + item.email + '>';
 			else
@@ -682,10 +674,10 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 		builder = '';
 	}
 
-	if (msg.addressCC) {
-		length = msg.addressCC.length;
+	if (msg.address_cc) {
+		length = msg.address_cc.length;
 		for (var i = 0; i < length; i++) {
-			item = msg.addressCC[i];
+			item = msg.address_cc[i];
 			if (item instanceof Object)
 				mail = '<' + item.email  + '>';
 			else
@@ -697,10 +689,10 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 		builder = '';
 	}
 
-	if (msg.addressBCC) {
-		length = msg.addressBCC.length;
+	if (msg.address_bcc) {
+		length = msg.address_bcc.length;
 		for (var i = 0; i < length; i++)
-			buffer.push('RCPT TO: <' + msg.addressBCC[i] + '>');
+			buffer.push('RCPT TO: <' + msg.address_bcc[i] + '>');
 	}
 
 	// if (msg.$preview)
@@ -717,10 +709,10 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 		message.push('List-Unsubscribe-Post: List-Unsubscribe=One-Click');
 	}
 
-	if (msg.addressReply) {
-		length = msg.addressReply.length;
+	if (msg.address_reply) {
+		length = msg.address_reply.length;
 		for (var i = 0; i < length; i++)
-			builder += (builder !== '' ? ', ' : '') + '<' + msg.addressReply[i] + '>';
+			builder += (builder !== '' ? ', ' : '') + '<' + msg.address_reply[i] + '>';
 		message.push('Reply-To: ' + builder);
 		builder = '';
 	}

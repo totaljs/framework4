@@ -45,7 +45,7 @@ function WebSocketClient() {
 	this.closed = true;
 
 	// type: json, text, binary
-	this.options = { type: 'json', compress: true, reconnect: 3000, encodedecode: false };
+	this.options = { type: 'json', compress: true, reconnect: 3000, encodedecode: false, rejectunauthorized: false }; // key: Buffer, cert: Buffer, dhparam: Buffer
 	this.cookies = {};
 	this.headers = {};
 }
@@ -79,6 +79,18 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	origin && (options.headers['Sec-WebSocket-Origin'] = origin);
 	options.headers.Connection = 'Upgrade';
 	options.headers.Upgrade = 'websocket';
+
+	if (self.options.key)
+		options.key = self.options.key;
+
+	if (self.options.cert)
+		options.cert = self.options.cert;
+
+	if (self.options.dhparam)
+		options.dhparam = self.options.dhparam;
+
+	if (self.options.rejectUnauthorized || self.options.rejectunauthorized)
+		options.rejectUnauthorized = true;
 
 	var keys = Object.keys(self.headers);
 	for (var i = 0, length = keys.length; i < length; i++)

@@ -4595,16 +4595,13 @@ UrlBuilder.prototype.toOne = function(keys, delimiter) {
 
 function RESTBuilder(url) {
 
-	this.$url = url;
-	this.$headers = { 'user-agent': 'Total.js/v' + F.version_header, accept: 'application/json, text/plain, text/plain, text/xml' };
-	this.$method = 'get';
-	this.$timeout = 10000;
 	this.$type = 0; // 0 = query, 1 = json, 2 = urlencode, 3 = raw
 	this.$schema;
 	this.$length = 0;
 	this.$transform = transforms['restbuilder_default'];
-	this.$files = null;
 	this.$persistentcookies = false;
+
+	this.options = { url: url, timeout: 10000, method: 'GET', headers: { 'user-agent': 'Total.js/v' + F.version_header, accept: 'application/json, text/plain, text/plain, text/xml' }};
 
 	// this.$flags;
 	// this.$data = {};
@@ -4635,24 +4632,22 @@ RESTBuilder.GET = function(url, data) {
 
 RESTBuilder.POST = function(url, data) {
 	var builder = new RESTBuilder(url);
-	builder.$method = 'post';
-	builder.$type = 1;
+	builder.options.method = 'POST';
 	data && builder.raw(data);
 	return builder;
 };
 
 RESTBuilder.PUT = function(url, data) {
 	var builder = new RESTBuilder(url);
-	builder.$method = 'put';
-	builder.$type = 1;
-	builder.put(data);
+	builder.options.method = 'PUT';
+	data && builder.raw(data);
 	return builder;
 };
 
 RESTBuilder.DELETE = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.$method = 'delete';
-	builder.$type = 1;
+	builder.options.method = 'DELETE';
 	data && builder.raw(data);
 	return builder;
 };
@@ -4660,14 +4655,14 @@ RESTBuilder.DELETE = function(url, data) {
 RESTBuilder.PATCH = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.$method = 'patch';
-	builder.$type = 1;
+	builder.options.method = 'PATCH';
 	data && builder.raw(data);
 	return builder;
 };
 
 RESTBuilder.HEAD = function(url) {
 	var builder = new RESTBuilder(url);
-	builder.$method = 'head';
+	builder.options.method = 'HEAD';
 	return builder;
 };
 
@@ -4708,7 +4703,7 @@ RESTP.promise = function(fn) {
 };
 
 RESTP.proxy = function(value) {
-	this.$proxy = value;
+	this.options.proxy = value;
 	return this;
 };
 
@@ -4719,23 +4714,30 @@ RESTP.setTransform = function(name) {
 
 RESTP.url = function(url) {
 	if (url === undefined)
-		return this.$url;
-	this.$url = url;
+		return this.options.url;
+	this.options.url = url;
+	return this;
+};
+
+RESTP.cert = function(key, cert, dhparam) {
+	this.options.key = key;
+	this.options.cert = cert;
+	this.options.dhparam = dhparam;
 	return this;
 };
 
 RESTP.file = function(name, filename, buffer) {
 	var obj = { name: name, filename: filename, buffer: buffer };
-	if (this.$files)
-		this.$files.push(obj);
+	if (this.options.files)
+		this.options.files.push(obj);
 	else
-		this.$files = [obj];
+		this.options.files = [obj];
 	return this;
 };
 
 RESTP.maketransform = function(obj, data) {
 	if (this.$transform) {
-		var fn = transforms['restbuilder'][this.$transform];
+		var fn = transforms.restbuilder[this.$transform];
 		return fn ? fn(obj, data) : obj;
 	}
 	return obj;
@@ -4747,13 +4749,12 @@ RESTP.timeout = function(number) {
 };
 
 RESTP.maxlength = function(number) {
-	this.$length = number;
-	this.$flags = null;
+	this.options.limit = number;
 	return this;
 };
 
 RESTP.auth = function(user, password) {
-	this.$headers['authorization'] = 'Basic ' + Buffer.from(user + ':' + password).toString('base64');
+	this.options.headers.authorization = 'Basic ' + Buffer.from(user + ':' + password).toString('base64');
 	return this;
 };
 
@@ -4770,8 +4771,7 @@ RESTP.schema = function(group, name) {
 };
 
 RESTP.noDnsCache = function() {
-	this.$nodnscache = true;
-	this.$flags = null;
+	this.options.resolve = false;
 	return this;
 };
 
@@ -4786,142 +4786,99 @@ RESTP.make = function(fn) {
 };
 
 RESTP.xhr = function() {
-	this.$headers['X-Requested-With'] = 'XMLHttpRequest';
+	this.options.xhr = true;
 	return this;
 };
 
 RESTP.method = function(method, data) {
-	this.$method = method.charCodeAt(0) < 97 ? method.toLowerCase() : method;
-	this.$flags = null;
+	this.$method = method.charCodeAt(0) < 97 ? method.toUpperCase() : method;
 	data && this.raw(data);
 	return this;
 };
 
 RESTP.referer = RESTP.referrer = function(value) {
-	this.$headers['Referer'] = value;
+	this.options.headers.Referer = value;
 	return this;
 };
 
 RESTP.origin = function(value) {
-	this.$headers['Origin'] = value;
+	this.options.headers.Origin = value;
 	return this;
 };
 
 RESTP.robot = function() {
-	if (this.$headers['User-Agent'])
-		this.$headers['User-Agent'] += ' Bot';
+	if (this.options.headers['User-Agent'])
+		this.options.headers['User-Agent'] += ' Bot';
 	else
-		this.$headers['User-Agent'] = 'Bot';
+		this.options.headers['User-Agent'] = 'Bot';
 	return this;
 };
 
 RESTP.mobile = function() {
-	if (this.$headers['User-Agent'])
-		this.$headers['User-Agent'] += ' iPhone';
+	if (this.options.headers['User-Agent'])
+		this.options.headers['User-Agent'] += ' iPhone';
 	else
-		this.$headers['User-Agent'] = 'iPhone';
+		this.options.headers['User-Agent'] = 'iPhone';
 	return this;
 };
 
 RESTP.put = RESTP.PUT = function(data) {
-	if (this.$method !== 'put') {
-		this.$flags = null;
-		this.$method = 'put';
-		this.$type = 1;
-	}
+	this.options.method = 'PUT';
 	data && this.raw(data);
 	return this;
 };
 
 RESTP.delete = RESTP.DELETE = function(data) {
-	if (this.$method !== 'delete') {
-		this.$flags = null;
-		this.$method = 'delete';
-		this.$type = 1;
-	}
+	this.options.method = 'DELETE';
 	data && this.raw(data);
 	return this;
 };
 
 RESTP.get = RESTP.GET = function(data) {
-	if (this.$method !== 'get') {
-		this.$flags = null;
-		this.$method = 'get';
-	}
-	data && this.raw(data);
+	this.options.method = 'GET';
+	this.options.querystring = data;
 	return this;
 };
 
 RESTP.post = RESTP.POST = function(data) {
-	if (this.$method !== 'post') {
-		this.$flags = null;
-		this.$method = 'post';
-		this.$type = 1;
-	}
+	this.options.method = 'POST';
 	data && this.raw(data);
 	return this;
 };
 
 RESTP.head = RESTP.HEAD = function() {
-	if (this.$method !== 'head') {
-		this.$flags = null;
-		this.$method = 'head';
-	}
+	this.options.method = 'HEAD';
 	return this;
 };
 
 RESTP.patch = RESTP.PATCH = function(data) {
-	if (this.$method !== 'patch') {
-		this.$flags = null;
-		this.$method = 'patch';
-		this.$type = 1;
-	}
+	this.options.method = 'PATCH';
 	data && this.raw(data);
 	return this;
 };
 
 RESTP.json = function(data) {
-
-	if (this.$type !== 1)
-		this.$flags = null;
-
 	data && this.raw(data);
-	this.$type = 1;
-
-	if (this.$method === 'get')
-		this.$method = 'post';
-
+	if (this.options.method === 'GET')
+		this.options.method = 'POST';
 	return this;
 };
 
 RESTP.urlencoded = function(data) {
-
-	if (this.$type !== 2)
-		this.$flags = null;
-
-	if (this.$method === 'get')
-		this.$method = 'post';
-
+	if (this.options.method === 'GET')
+		this.options.method = 'POST';
 	this.$type = 2;
 	data && this.raw(data);
 	return this;
 };
 
 RESTP.accept = function(ext) {
-
 	var type;
-
 	if (ext.length > 8)
 		type = ext;
 	else
 		type = framework_utils.getContentType(ext);
-
-	if (this.$headers.Accept !== type)
-		this.$flags = null;
-
-	this.$flags = null;
-	this.$headers.Accept = type;
-
+	this.options.headers.Accept = type;
 	return this;
 };
 
@@ -4930,10 +4887,8 @@ RESTP.xml = function(data, replace) {
 	if (this.$type !== 3)
 		this.$flags = null;
 
-	if (this.$method === 'get')
-		this.$method = 'post';
-
-	this.$type = 3;
+	if (this.options.method === 'GET')
+		this.options.method = 'POST';
 
 	if (replace)
 		this.$replace = true;
@@ -4943,12 +4898,15 @@ RESTP.xml = function(data, replace) {
 };
 
 RESTP.redirect = function(value) {
-	this.$redirect = value;
+	this.options.noredirect = !value;
 	return this;
 };
 
 RESTP.raw = function(value) {
-	this.$data = value && value.$clean ? value.$clean() : value;
+	var val = value && value.$clean ? value.$clean() : value;
+	if (typeof(val) !== 'string')
+		val = this.$type === 2 ? Qs.stringify(val) : JSON.stringify(val);
+	this.options.body = val;
 	return this;
 };
 
@@ -4958,29 +4916,29 @@ RESTP.plain = function() {
 };
 
 RESTP.cook = function(value) {
-	this.$flags = null;
 	this.$persistentcookies = value !== false;
 	return this;
 };
 
 RESTP.cookies = function(obj) {
-	this.$cookies = obj;
+	this.options.cookies = obj;
 	return this;
 };
 
 RESTP.cookie = function(name, value) {
-	!this.$cookies && (this.$cookies = {});
-	this.$cookies[name] = value;
+	if (!this.options.cookies)
+		this.options.cookies = {};
+	this.options.cookies[name] = value;
 	return this;
 };
 
 RESTP.header = function(name, value) {
-	this.$headers[name] = value;
+	this.options.headers[name] = value;
 	return this;
 };
 
 RESTP.type = function(value) {
-	this.$headers['Content-Type'] = value;
+	this.options.headers['Content-Type'] = value;
 	return this;
 };
 
@@ -4999,57 +4957,43 @@ RESTP.cache = function(expire) {
 };
 
 RESTP.set = function(name, value) {
-	if (!this.$data)
-		this.$data = {};
+	if (!this.options.body)
+		this.options.body = {};
 	if (typeof(name) !== 'object') {
-		this.$data[name] = value;
+		this.options.body[name] = value;
 	} else {
 		var arr = Object.keys(name);
 		for (var i = 0, length = arr.length; i < length; i++)
-			this.$data[arr[i]] = name[arr[i]];
+			this.options.body[arr[i]] = name[arr[i]];
 	}
 	return this;
 };
 
 RESTP.rem = function(name) {
-	if (this.$data && this.$data[name])
-		this.$data[name] = undefined;
+	if (this.options.body && this.options.body[name])
+		this.options.body[name] = undefined;
+	return this;
+};
+
+RESTP.progress = function(fn) {
+	this.options.onprogress = fn;
 	return this;
 };
 
 RESTP.stream = function(callback) {
 	var self = this;
-	var flags = self.$flags ? self.$flags : [self.$method];
-
-	if (!self.$flags) {
-		!self.$nodnscache && flags.push('dnscache');
-		self.$persistentcookies && flags.push('cookies');
-		switch (self.$type) {
-			case 1:
-				flags.push('json');
-				break;
-			case 3:
-				flags.push('xml');
-				break;
-		}
-		self.$flags = flags;
-	}
-
-	return U.download(self.$url, flags, self.$data, callback, self.$cookies, self.$headers, undefined, self.$timeout);
+	self.options.custom = true;
+	setImmediate(streamresponse, self, callback);
+	return self;
 };
+
+function streamresponse(builder, callback) {
+	builder.exec(callback);
+}
 
 RESTP.keepalive = function() {
-	var self = this;
-	self.$keepalive = true;
-	return self;
-};
-
-RESTP.flags = function() {
-	var self = this;
-	!self.$flags && (self.$flags = []);
-	for (var i = 0; i < arguments.length; i++)
-		self.$flags(arguments[i]);
-	return self;
+	this.options.keepalive = true;
+	return this;
 };
 
 RESTP.exec = function(callback) {
@@ -5059,8 +5003,8 @@ RESTP.exec = function(callback) {
 
 	var self = this;
 
-	if (self.$files && self.$method === 'get')
-		self.$method = 'post';
+	if (self.options.files && self.options.method === 'GET')
+		self.options.method = 'POST';
 
 	self.$callback = callback;
 
@@ -5069,54 +5013,37 @@ RESTP.exec = function(callback) {
 			restbuilderupgrades[i](self);
 	}
 
-	var flags = self.$flags ? self.$flags : [self.$method];
 	var key;
 
-	if (!self.$flags) {
-
-		!self.$nodnscache && flags.push('dnscache');
-		self.$persistentcookies && flags.push('cookies');
-		self.$length && flags.push('<' + self.$length);
-		self.$redirect === false && flags.push('noredirect');
-		self.$proxy && flags.push('proxy ' + self.$proxy);
-		self.$keepalive && flags.push('keepalive');
-
-		if (self.$files) {
-			flags.push('upload');
-		} else {
-			switch (self.$type) {
-				case 1:
-					flags.push('json');
-					break;
-				case 3:
-					flags.push('xml');
-					break;
-			}
-		}
-
-		self.$flags = flags;
-	}
-
 	if (self.$cache_expire && !self.$nocache) {
-		key = '$rest_' + (self.$url + flags.join(',') + (self.$data ? Qs.stringify(self.$data) : '')).hash();
+		key = '$rest_' + (self.url + (self.options.body || '')).hash(true);
 		var data = F.cache.read2(key);
 		if (data) {
-			var evt = new framework_utils.EventEmitter2();
-			setImmediate(exec_removelisteners, evt);
 			callback(null, self.maketransform(this.$schema ? this.$schema.make(data.value) : data.value, data), data);
-			return evt;
+			return;
 		}
 	}
 
 	self.$callback_key = key;
-	return U.request(self.$url, flags, self.$data, exec_callback, self.$cookies, self.$headers, undefined, self.$timeout, self.$files, self);
+	self.options.callback = exec_callback;
+	self.options.response = {};
+	self.options.response.builder = self;
+	return REQUEST(self.options);
 };
 
-function exec_callback(err, response, status, headers, hostname, cookies, self) {
+function exec_callback(err, response) {
+
+	var self = response.builder;
+
+	if (self.options.custom) {
+		response.response.builder = self;
+		self.$callback.call(self, err, response.response);
+		return;
+	}
 
 	var callback = self.$callback;
 	var key = self.$callback_key;
-	var type = err ? '' : headers['content-type'] || '';
+	var type = err ? '' : response.headers['content-type'] || '';
 	var output = new RESTBuilderResponse();
 
 	if (type) {
@@ -5125,30 +5052,27 @@ function exec_callback(err, response, status, headers, hostname, cookies, self) 
 			type = type.substring(0, index).trim();
 	}
 
-	var ishead = response === headers;
-
-	if (ishead)
-		response = '';
+	var ishead = response.status === 204;
 
 	if (ishead) {
-		output.value = status < 400;
+		output.value = response.status < 400;
 	} else if (self.$plain) {
-		output.value = response;
+		output.value = response.response;
 	} else {
 		switch (type.toLowerCase()) {
 			case 'text/xml':
 			case 'application/xml':
-				output.value = response ? response.parseXML(self.$replace ? true : false) : {};
+				output.value = response.body ? response.body.parseXML(self.$replace ? true : false) : {};
 				break;
 			case 'application/x-www-form-urlencoded':
-				output.value = response ? F.onParseQuery(response) : {};
+				output.value = response.body ? F.onParseQuery(response.body) : {};
 				break;
 			case 'application/json':
 			case 'text/json':
-				output.value = response ? response.parseJSON(true) : null;
+				output.value = response.body ? response.body.parseJSON(true) : null;
 				break;
 			default:
-				output.value = response && response.isJSON() ? response.parseJSON(true) : null;
+				output.value = response.body && response.body.isJSON() ? response.body.parseJSON(true) : null;
 				break;
 		}
 	}
@@ -5156,10 +5080,10 @@ function exec_callback(err, response, status, headers, hostname, cookies, self) 
 	if (output.value == null)
 		output.value = EMPTYOBJECT;
 
-	output.response = response;
-	output.status = status;
-	output.headers = headers;
-	output.hostname = hostname;
+	output.response = response.body;
+	output.status = response.status;
+	output.headers = response.headers;
+	output.hostname = response.host;
 	output.cache = false;
 	output.datetime = NOW;
 
@@ -5225,7 +5149,7 @@ RESTBuilderResponse.prototype.cookie = function(name) {
 	if (self.cookies)
 		return $decodeURIComponent(self.cookies[name] || '');
 
-	var cookie = self.headers['cookie'];
+	var cookie = self.headers.cookie;
 	if (!cookie)
 		return '';
 

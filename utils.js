@@ -28,7 +28,6 @@
 
 const Dns = require('dns');
 const Url = require('url');
-const Qs = require('querystring');
 const Http = require('http');
 const Https = require('https');
 const Path = require('path');
@@ -62,7 +61,6 @@ const regexpDECODE = /&#?[a-z0-9]+;/g;
 const regexpARG = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
 const regexpINTEGER = /(^-|\s-)?[0-9]+/g;
 const regexpFLOAT = /(^-|\s-)?[0-9.,]+/g;
-const regexpALPHA = /^[A-Za-z0-9]+$/;
 const regexpSEARCH = /[^a-zA-Zá-žÁ-Ž\d\s:]/g;
 const regexpTERMINAL = /[\w\S]+/g;
 const regexpCONFIGURE = /\[\w+\]/g;
@@ -77,7 +75,6 @@ const ENCODING = 'utf8';
 const NEWLINE = '\r\n';
 const isWindows = require('os').platform().substring(0, 3).toLowerCase() === 'win';
 const DIACRITICSMAP = {};
-const STREAM_END = { end: false };
 const ALPHA_INDEX = { '&lt': '<', '&gt': '>', '&quot': '"', '&apos': '\'', '&amp': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': '\'', '&amp;': '&' };
 const STREAMPIPE = { end: false };
 const CT = 'Content-Type';
@@ -201,7 +198,6 @@ var CONTENTTYPES = {
 
 var dnscache = {};
 var datetimeformat = {};
-const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 global.DIFFARR = exports.diffarr = function(prop, db, form) {
 
@@ -244,68 +240,6 @@ global.DIFFARR = exports.diffarr = function(prop, db, form) {
 	obj.upd = au;
 	obj.rem = ar;
 	return obj;
-};
-
-/**
- * Checks if is object empty
- * @param {Object} obj
- * @return {Boolean}
- */
-exports.isEmpty = function(obj) {
-
-	if (!obj || obj instanceof Array)
-		return true;
-
-	for (var key in obj) {
-		if (hasOwnProperty.call(obj, key))
-			return false;
-	}
-
-	return true;
-};
-
-/**
- * Compare objects
- * @param {Object} obj1
- * @param {Object} obj2
- * @return {Boolean}
- */
-exports.isEqual = function(obj1, obj2, properties) {
-
-	var keys = properties ? properties : Object.keys(obj1);
-
-	for (var i = 0, length = keys.length; i < length; i++) {
-		var key = keys[i];
-		var a = obj1[key];
-		var b = obj2[key];
-		var ta = typeof(a);
-		var tb = typeof(b);
-
-		if (ta !== tb)
-			return false;
-
-		if (a === b)
-			continue;
-
-		if (a instanceof Date && b instanceof Date) {
-			if (a.getTime() === b.getTime())
-				continue;
-			return false;
-		} else if (a instanceof Array && b instanceof Array) {
-			if (JSON.stringify(a) === JSON.stringify(b))
-				continue;
-			return false;
-		}
-
-		if (ta === 'object' && tb === 'object') {
-			if (exports.isEqual(a, b))
-				continue;
-		}
-
-		return false;
-	}
-
-	return true;
 };
 
 /**
@@ -511,194 +445,114 @@ function parseProxy(p) {
  * @param  {Number} timeout Request timeout.
  * return {Boolean}
  */
+global.REQUEST = function(opt) {
 
-const NOBODY = { GET: 1, OPTIONS: 1, HEAD: 1 };
-
-global.REQUEST = exports.request = function(url, flags, data, callback, cookies, headers, encoding, timeout, files, param) {
-
-	// No data (data is optional argument)
-	if (typeof(data) === 'function') {
-		encoding = headers;
-		headers = cookies;
-		cookies = callback;
-		callback = data;
-		data = '';
-	} else if (!data)
-		data = '';
-
-	if (callback === NOOP)
-		callback = null;
-
-	var options = { length: 0, timeout: timeout || CONF.default_restbuilder_timeout, evt: new EventEmitter2(), encoding: typeof(encoding) !== 'string' ? ENCODING : encoding, callback: callback, post: false, redirect: 0 };
-	var method;
-	var type = 0;
-	var isCookies = false;
-	var def;
+	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: false, redirect: 0 };
 	var proxy;
 
-	if (headers) {
-		headers = exports.extend({}, headers);
-		def = headers[CT];
-	} else
-		headers = {};
-
-	if (flags instanceof Array) {
-		for (var i = 0, length = flags.length; i < length; i++) {
-
-			// timeout
-			if (flags[i] > 0) {
-				options.timeout = flags[i];
-				continue;
-			}
-
-			if (flags[i][0] === '<') {
-				options.max = flags[i].substring(1).trim().parseInt() * 1024; // kB
-				continue;
-			}
-
-			if (flags[i][0] === 'p' && flags[i][4] === 'y') {
-				proxy = parseProxy(flags[i].substring(6));
-				continue;
-			}
-
-			switch (flags[i].toLowerCase()) {
-				case 'utf8':
-				case 'ascii':
-				case 'base64':
-				case 'binary':
-				case 'hex':
-					options.encoding = flags[i];
-					break;
-				case 'xhr':
-					headers['X-Requested-With'] = 'XMLHttpRequest';
-					break;
-				case 'plain':
-					if (!def)
-						headers[CT] = 'text/plain';
-					break;
-				case 'html':
-					if (!def)
-						headers[CT] = 'text/html';
-					break;
-				case 'raw':
-					type = 3;
-					if (!def)
-						headers[CT] = 'application/octet-stream';
-					break;
-				case 'json':
-					if (!def)
-						headers[CT] = 'application/json';
-					!method && (method = 'POST');
-					type = 1;
-					break;
-				case 'xml':
-					if (!def)
-						headers[CT] = 'text/xml';
-					!method && (method = 'POST');
-					type = 2;
-					break;
-
-				case 'get':
-				case 'options':
-				case 'head':
-					method = flags[i].charCodeAt(0) > 96 ? flags[i].toUpperCase() : flags[i];
-					break;
-
-				case 'noredirect':
-					options.noredirect = true;
-					break;
-
-				case 'upload':
-					type = 4;
-					options.upload = true;
-					options.files = files || EMPTYARRAY;
-					options.boundary = '----totaljs' + Math.random().toString(16).substring(2);
-					headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
-					break;
-
-				case 'post':
-				case 'put':
-				case 'delete':
-				case 'patch':
-					method = flags[i].toUpperCase();
-					!def && !headers[CT] && (headers[CT] = 'application/x-www-form-urlencoded');
-					break;
-
-				case 'dnscache':
-					options.resolve = true;
-					break;
-
-				case 'keepalive':
-					options.keepalive = true;
-					break;
-
-				case 'cookies':
-					isCookies = true;
-					break;
-				default:
-
-					// Fallback for methods (e.g. CalDAV)
-					if (!method)
-						method = flags[i].charCodeAt(0) > 96 ? flags[i].toUpperCase() : flags[i];
-
-					break;
-			}
-		}
-	}
-
-	if (method)
-		options.post = !NOBODY[method];
+	if (opt.headers)
+		opt.headers = exports.extend({}, opt.headers);
 	else
-		method = 'GET';
+		opt.headers = {};
 
-	if (type < 3) {
+	// opt.limit in kB
+	// opt.key {Buffer}
+	// opt.cert {Buffer}
+	// opt.onprogress(percentage)
+	// opt.ondata(chunk, percentage)
 
-		if (typeof(data) !== 'string')
-			data = type === 1 ? JSON.stringify(data) : Qs.stringify(data);
-		else if (data[0] === '?')
-			data = data.substring(1);
+	if (opt.ondata)
+		options.ondata = opt.ondata;
 
-		if (!options.post) {
-			if (data.length) {
-				if (url.indexOf('?') === -1)
-					url += '?' + data;
-				else
-					url += '&' + data;
-			}
-			data = '';
+	if (opt.onprogress)
+		options.onprogress = opt.onprogress;
+
+	if (opt.proxy)
+		proxy = parseProxy(opt.proxy);
+
+	if (opt.xhr)
+		opt.headers['X-Requested-With'] = 'XMLHttpRequest';
+
+	options.response = opt.response ? opt.response : {};
+
+	if (opt.resolve || opt.dnscache)
+		options.resolve = true;
+
+	if (opt.custom)
+		options.custom = true;
+
+	if (opt.noredirect)
+		options.noredirect = true;
+
+	if (opt.keepalive)
+		options.keepalive = true;
+
+	if (opt.type) {
+		switch (opt.type) {
+			case 'plain':
+				opt.headers[CT] = 'text/plain';
+				break;
+			case 'html':
+				opt.headers[CT] = 'text/html';
+				break;
+			case 'raw':
+				opt.headers[CT] = 'application/octet-stream';
+				break;
+			case 'json':
+				opt.headers[CT] = 'application/json';
+				break;
+			case 'xml':
+				opt.headers[CT] = 'text/xml';
+				break;
 		}
-
-		// "null" or "empty string" is valid JSON value too
-		if (type === 1 && (data === EMPTYOBJECT || data === undefined) && options.post)
-			data = BUFEMPTYJSON;
 	}
 
-	if (data && type !== 4) {
-		options.data = data instanceof Buffer ? data : Buffer.from(data, ENCODING);
-		headers['Content-Length'] = options.data.length;
-	} else
-		options.data = data;
+	if (opt.files) {
+		options.boundary = '----totaljs' + Math.random().toString(16).substring(2);
+		options.headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
+		options.files = opt.files;
 
-	if (cookies) {
-		if (isCookies)
-			options.cookies = cookies;
+		// Must be object { key: value }
+		if (opt.body)
+			options.body = opt.body;
+
+	} else {
+		if (opt.body) {
+			if (!(opt.body instanceof Buffer))
+				opt.body = Buffer.from(opt.body, ENCODING);
+			opt.headers['Content-Length'] = opt.body.length;
+		}
+		options.body = opt.body;
+	}
+
+	if (opt.cookies) {
 		var builder = '';
-		for (var m in cookies)
-			builder += (builder ? '; ' : '') + m + '=' + cookies[m];
+		for (var m in opt.cookies)
+			builder += (builder ? '; ' : '') + m + '=' + opt.cookies[m];
 		if (builder)
-			headers['Cookie'] = builder;
+			opt.headers['Cookie'] = builder;
 	}
 
-	var uri = Url.parse(url);
+	var uri = Url.parse(opt.url);
 
 	if (!uri.hostname || !uri.host) {
-		callback && callback(new Error('URL doesn\'t contain a hostname'), '', 0);
+		opt.callback && opt.callback('Invalid hostname');
 		return;
 	}
 
-	uri.method = method;
-	uri.headers = headers;
+	uri.method = opt.method;
+	uri.headers = opt.headers;
 	options.uri = uri;
+	options.opt = opt;
+
+	if (options.key)
+		uri.key = options.key;
+
+	if (options.cert)
+		uri.cert = options.cert;
+
+	if (options.dhparam)
+		uri.dhparam = options.dhparam;
 
 	if (options.resolve && (uri.hostname === 'localhost' || uri.hostname.charCodeAt(0) < 64))
 		options.resolve = null;
@@ -710,7 +564,6 @@ global.REQUEST = exports.request = function(url, flags, data, callback, cookies,
 		proxy = null;
 
 	options.proxy = proxy;
-	options.param = param;
 
 	if (proxy && uri.protocol === 'https:') {
 		proxy.tls = true;
@@ -720,13 +573,19 @@ global.REQUEST = exports.request = function(url, flags, data, callback, cookies,
 		uri.agent.defaultPort = 443;
 	}
 
-	if (options.keepalive && !options.proxy && uri.protocol !== 'https:')
-		uri.agent = KeepAlive;
+	if (options.keepalive && !options.proxy) {
+		if (uri.protocol === 'https:') {
+			if (!uri.port)
+				uri.port = 443;
+			uri.agent = new Https.Agent(uri);
+		} else
+			uri.agent = KeepAlive;
+	}
 
 	if (proxy)
 		request_call(uri, options);
 	else if (options.resolve)
-		exports.resolve(url, request_resolve, options);
+		exports.resolve(opt.url, request_resolve, options);
 	else
 		request_call(uri, options);
 
@@ -779,7 +638,6 @@ PAP.createSocket = function(options, callback) {
 		} else {
 			var err = new Error('Proxy could not be established (maybe a problem in auth), code: ' + res.statusCode);
 			err.code = 'ECONNRESET';
-			options.request.emit('error', err);
 			req.destroy && req.destroy();
 			req = null;
 			self.requests = null;
@@ -790,7 +648,6 @@ PAP.createSocket = function(options, callback) {
 	req.on('error', function(err) {
 		var e = new Error('Request Proxy "proxy {0} --> target {1}": {2}'.format(PROXYOPTIONS.host + ':' + proxy.port, PROXYOPTIONS.path, err.toString()));
 		e.code = err.code;
-		options.request.emit('error', e);
 		req.destroy && req.destroy();
 		req = null;
 		self.requests = null;
@@ -851,7 +708,6 @@ function request_call(uri, options) {
 	options.timeoutid && clearTimeout(options.timeoutid);
 	options.timeoutid = setTimeout(request_process_timeout, options.timeout, req);
 
-	// req.on('response', (response) => response.req = req);
 	req.on('response', request_assign_res);
 
 	if (options.upload) {
@@ -859,19 +715,26 @@ function request_call(uri, options) {
 		options.files.wait(function(file, next) {
 			request_writefile(req, options, file, next);
 		}, function() {
-			var keys = Object.keys(options.data);
-			for (var i = 0, length = keys.length; i < length; i++) {
-				var value = options.data[keys[i]];
+
+			if (!options.body) {
+				req.end();
+				return;
+			}
+
+			var keys = Object.keys(options.body);
+			for (var i = 0; i < keys.length; i++) {
+				var value = options.body[keys[i]];
 				if (value != null) {
-					req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + keys[i] + '"' + NEWLINE + NEWLINE + value.toString());
+					req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + keys[i] + '"' + NEWLINE + NEWLINE + value);
 					if (options.first)
 						options.first = false;
 				}
 			}
+
 			req.end(NEWLINE + '--' + options.boundary + '--');
 		});
 	} else
-		req.end(options.data);
+		req.end(options.body);
 }
 
 function request_process_error(err) {
@@ -882,10 +745,10 @@ function request_process_error(err) {
 			options.timeoutid = null;
 		}
 		options.canceled = true;
-		options.callback(err, '', 0, undefined, this.$uri.host, EMPTYOBJECT, options.param);
+		options.response.status = 0;
+		options.response.host = this.$uri.host;
+		options.callback(err, options.response);
 		options.callback = null;
-		options.evt.removeAllListeners();
-		options.evt = null;
 	}
 }
 
@@ -899,11 +762,11 @@ function request_process_timeout(req) {
 		req.socket.destroy();
 		req.socket.end();
 		req.abort();
+		options.response.status = 408;
+		options.response.host = req.$uri.host;
 		options.canceled = true;
-		options.callback(new Error(exports.httpStatus(408)), '', 0, undefined, req.$uri.host, EMPTYOBJECT, options.param);
+		options.callback(exports.httpStatus(408), options.response);
 		options.callback = null;
-		options.evt.removeAllListeners();
-		options.evt = null;
 	}
 }
 
@@ -921,8 +784,7 @@ function request_writefile(req, options, file, next) {
 	if (options.first)
 		options.first = false;
 
-	// Is Buffer
-	if (file.buffer && type === 'object') {
+	if (file.buffer instanceof Buffer) {
 		req.write(file.buffer);
 		next();
 	} else {
@@ -949,13 +811,17 @@ function request_response(res) {
 			options.canceled = true;
 
 			if (options.callback) {
-				options.callback(null, '', res.statusCode, res.headers, uri.host, EMPTYOBJECT, options.param);
+				if (options.custom) {
+					options.response.status = res.statusCode;
+					options.response.response = res;
+					options.callback(null, options.response);
+				} else {
+					options.response.status = res.statusCode;
+					options.response.host = uri.host;
+					options.response.headers = res.headers;
+					options.callback(null, options.response);
+				}
 				options.callback = null;
-			}
-
-			if (options.evt) {
-				options.evt.removeAllListeners();
-				options.evt = null;
 			}
 
 			res.req.removeAllListeners();
@@ -971,13 +837,16 @@ function request_response(res) {
 			options.canceled = true;
 
 			if (options.callback) {
-				options.callback(new Error('Too many redirects.'), '', 0, undefined, uri.host, EMPTYOBJECT, options.param);
+				if (options.custom) {
+					options.response.status = res.statusCode;
+					options.response.response = res;
+					options.callback(null, options.response);
+				} else {
+					options.response.status = 0;
+					options.response.host = uri.host;
+					options.callback('Too many redirects.', options.response);
+				}
 				options.callback = null;
-			}
-
-			if (options.evt) {
-				options.evt.removeAllListeners();
-				options.evt = null;
 			}
 
 			res.req.removeAllListeners();
@@ -1031,7 +900,6 @@ function request_response(res) {
 	}
 
 	options.length = +res.headers['content-length'] || 0;
-	options.evt && options.evt.$events.begin && options.evt.emit('begin', options.length);
 
 	// Shared cookies
 	if (options.cookies) {
@@ -1057,7 +925,14 @@ function request_response(res) {
 
 	if (res.statusCode === 204) {
 		options.done = true;
-		request_process_end.call(res);
+		if (options.custom) {
+			options.timeoutid && clearTimeout(options.timeoutid);
+			options.response.status = res.statusCode;
+			options.response.response = res;
+			options.callback(null, options.response);
+			options.callback = null;
+		} else
+			request_process_end.call(res);
 		return;
 	}
 
@@ -1065,18 +940,26 @@ function request_response(res) {
 	if (encoding)
 		encoding = encoding.split(',')[0];
 
-	if (COMPRESS[encoding]) {
-		var zlib = encoding === 'gzip' ? Zlib.createGunzip() : Zlib.createInflate();
-		zlib._buffer = res.buffer;
-		zlib.headers = res.headers;
-		zlib.statusCode = res.statusCode;
-		zlib.res = res;
-		zlib.on('data', request_process_data);
-		zlib.on('end', request_process_end);
-		res.pipe(zlib);
+	if (options.custom) {
+		options.timeoutid && clearTimeout(options.timeoutid);
+		options.response.status = res.statusCode;
+		options.response.response = res;
+		options.callback && options.callback(null, options.response);
+		options.callback = null;
 	} else {
-		res.on('data', request_process_data);
-		res.on('end', request_process_end);
+		if (COMPRESS[encoding]) {
+			var zlib = encoding === 'gzip' ? Zlib.createGunzip() : Zlib.createInflate();
+			zlib._buffer = res.buffer;
+			zlib.headers = res.headers;
+			zlib.statusCode = res.statusCode;
+			zlib.res = res;
+			zlib.on('data', request_process_data);
+			zlib.on('end', request_process_end);
+			res.pipe(zlib);
+		} else {
+			res.on('data', request_process_data);
+			res.on('end', request_process_end);
+		}
 	}
 
 	res.resume();
@@ -1084,13 +967,11 @@ function request_response(res) {
 
 function request_process_data(chunk) {
 	var self = this;
-
 	// Is Zlib
 	if (!self.req)
 		self = self.res;
-
 	var options = self.req.$options;
-	if (options.canceled || (options.max && self._bufferlength > options.max))
+	if (options.canceled || (options.limit && self._bufferlength > options.limit))
 		return;
 	if (self._buffer) {
 		CONCAT[0] = self._buffer;
@@ -1099,7 +980,8 @@ function request_process_data(chunk) {
 	} else
 		self._buffer = chunk;
 	self._bufferlength += chunk.length;
-	options.evt && options.evt.$events.data && options.evt.emit('data', chunk, options.length ? (self._bufferlength / options.length) * 100 : 0);
+	options.ondata && options.ondata(chunk, options.length ? (self._bufferlength / options.length) * 100 : 0);
+	options.onprogress && options.onprogress(options.length ? (self._bufferlength / options.length) * 100 : 0);
 }
 
 function request_process_end() {
@@ -1129,17 +1011,15 @@ function request_process_end() {
 		data = self._buffer;
 
 	options.canceled = true;
-
 	self._buffer = undefined;
 
-	if (options.evt) {
-		options.evt.$events.end && options.evt.emit('end', data, self.statusCode, self.headers, uri.host, options.cookies, options.param);
-		options.evt.removeAllListeners();
-		options.evt = null;
-	}
-
 	if (options.callback) {
-		options.callback(null, uri.method === 'HEAD' ? self.headers : data, self.statusCode, self.headers, uri.host, options.cookies, options.param);
+		options.response.headers = self.headers;
+		options.response.body = data;
+		options.response.status = self.statusCode;
+		options.response.host = uri.host;
+		options.response.cookies = options.cookies;
+		options.callback(null, options.response);
 		options.callback = null;
 	}
 
@@ -1149,526 +1029,12 @@ function request_process_end() {
 	}
 }
 
-exports.$$request = function(url, flags, data, cookies, headers, encoding, timeout) {
-	return function(callback) {
-		exports.request(url, flags, data, callback, cookies, headers, encoding, timeout);
-	};
-};
-
 exports.btoa = function(str) {
 	return (str instanceof Buffer) ? str.toString('base64') : Buffer.from(str.toString(), 'utf8').toString('base64');
 };
 
 exports.atob = function(str) {
 	return Buffer.from(str, 'base64').toString('utf8');
-};
-
-/**
- * Create a request to a specific URL
- * @param {String} url URL address.
- * @param {String Array} flags Request flags.
- * @param {String or Object} data Request data (optional).
- * @param {Function(error, response)} callback Callback.
- * @param {Object} cookies Custom cookies (optional, default: null).
- * @param {Object} headers Custom headers (optional, default: null).
- * @param {String} encoding Encoding (optional, default: UTF8)
- * @param {Number} timeout Request timeout.
- * return {Boolean}
- */
-exports.download = function(url, flags, data, callback, cookies, headers, encoding, timeout, param) {
-
-	// No data (data is optional argument)
-	if (typeof(data) === 'function') {
-		timeout = encoding;
-		encoding = headers;
-		headers = cookies;
-		cookies = callback;
-		callback = data;
-		data = '';
-	}
-
-	if (typeof(cookies) === 'number') {
-		cookies = null;
-		timeout = cookies;
-	}
-
-	if (typeof(headers) === 'number') {
-		headers = null;
-		timeout = headers;
-	}
-
-	if (typeof(encoding) === 'number') {
-		encoding = null;
-		timeout = encoding;
-	}
-
-	if (typeof(encoding) !== 'string')
-		encoding = ENCODING;
-
-	var proxy, type = 0;
-	var method = 'GET';
-	var options = { callback: callback, resolve: false, length: 0, evt: new EventEmitter2(), timeout: timeout || 60000, post: false, encoding: encoding };
-
-	if (headers)
-		headers = exports.extend({}, headers);
-	else
-		headers = {};
-
-	if (data === null)
-		data = '';
-
-	if (flags instanceof Array) {
-		for (var i = 0, length = flags.length; i < length; i++) {
-
-			// timeout
-			if (flags[i] > 0) {
-				options.timeout = flags[i];
-				continue;
-			}
-
-			if (flags[i][0] === '<') {
-				// max length is not supported
-				continue;
-			}
-
-			if (flags[i][0] === 'p' && flags[i][4] === 'y') {
-				proxy = parseProxy(flags[i].substring(6));
-				continue;
-			}
-
-			switch (flags[i].toLowerCase()) {
-
-				case 'utf8':
-				case 'ascii':
-				case 'base64':
-				case 'binary':
-				case 'hex':
-					options.encoding = flags[i];
-					break;
-
-				case 'xhr':
-					headers['X-Requested-With'] = 'XMLHttpRequest';
-					break;
-
-				case 'plain':
-					headers['Content-Type'] = 'text/plain';
-					break;
-				case 'html':
-					headers['Content-Type'] = 'text/html';
-					break;
-
-				case 'json':
-					headers['Content-Type'] = 'application/json';
-					type = 1;
-					break;
-
-				case 'xml':
-					headers['Content-Type'] = 'text/xml';
-					type = 2;
-					break;
-
-				case 'get':
-				case 'head':
-				case 'options':
-					method = flags[i].charCodeAt(0) > 96 ? flags[i].toUpperCase() : flags[i];
-					break;
-
-				case 'upload':
-					headers['Content-Type'] = 'multipart/form-data';
-					break;
-
-				case 'post':
-				case 'patch':
-				case 'delete':
-				case 'put':
-					method = flags[i].charCodeAt(0) > 96 ? flags[i].toUpperCase() : flags[i];
-					if (!headers['Content-Type'])
-						headers['Content-Type'] = 'application/x-www-form-urlencoded';
-					break;
-
-				case 'dnscache':
-					options.resolve = true;
-					break;
-				case 'keepalive':
-					options.keepalive = true;
-					break;
-				default:
-					// Fallback for methods (e.g. CalDAV)
-					method = flags[i].charCodeAt(0) > 96 ? flags[i].toUpperCase() : flags[i];
-					break;
-			}
-		}
-	}
-
-	if (!method)
-		method = 'GET';
-
-	options.post = !NOBODY[method];
-
-	if (typeof(data) !== 'string')
-		data = type === 1 ? JSON.stringify(data) : Qs.stringify(data);
-	else if (data[0] === '?')
-		data = data.substring(1);
-
-	if (!options.post) {
-		if (data.length && url.indexOf('?') === -1)
-			url += '?' + data;
-		data = '';
-	}
-
-	if (cookies) {
-		var builder = '';
-		for (var m in cookies)
-			builder += (builder ? '; ' : '') + m + '=' + cookies[m];
-		if (builder)
-			headers['Cookie'] = builder;
-	}
-
-	var uri = Url.parse(url);
-	uri.method = method;
-	// uri.agent = false;
-	uri.headers = headers;
-	options.uri = uri;
-	options.param = param;
-
-	if (options.resolve && (uri.hostname === 'localhost' || uri.hostname.charCodeAt(0) < 64))
-		options.resolve = null;
-
-	if (data.length) {
-		options.data = Buffer.from(data, ENCODING);
-		headers['Content-Length'] = options.data.length;
-	}
-
-	if (CONF.default_proxy && !proxy && !PROXYBLACKLIST[uri.hostname])
-		proxy = parseProxy(CONF.default_proxy);
-
-	options.proxy = proxy;
-
-	if (proxy && uri.protocol === 'https:') {
-		proxy.tls = true;
-		uri.agent = new ProxyAgent(options);
-		uri.agent.request = Http.request;
-		uri.agent.createSocket = createSecureSocket;
-		uri.agent.defaultPort = 443;
-	}
-
-	if (options.keepalive && !options.proxy && uri.protocol !== 'https:')
-		uri.agent = KeepAlive;
-
-	if (proxy)
-		download_call(uri, options);
-	else if (options.resolve)
-		exports.resolve(url, download_resolve, options);
-	else
-		download_call(uri, options);
-
-	return options.evt;
-};
-
-function download_resolve(err, uri, options) {
-	if (!err)
-		options.uri.host = uri.host;
-	download_call(options.uri, options);
-}
-
-function download_call(uri, options) {
-
-	var opt;
-	options.length = 0;
-
-	if (options.proxy && !options.proxy.tls) {
-		opt = PROXYOPTIONSHTTP;
-		opt.port = options.proxy.port;
-		opt.host = options.proxy.hostname;
-		opt.path = uri.href;
-		opt.headers = uri.headers;
-		opt.method = uri.method;
-		if (options.proxy._auth)
-			opt.headers['Proxy-Authorization'] = options.proxy._auth;
-	} else
-		opt = uri;
-
-	var connection = uri.protocol === 'https:' ? Https : Http;
-	var req = options.post ? connection.request(opt, download_response) : connection.get(opt, download_response);
-
-	req.$options = options;
-	req.$uri = uri;
-
-	if (!options.callback) {
-		req.on('error', NOOP);
-		return;
-	}
-
-	req.on('error', download_process_error);
-	options.timeoutid && clearTimeout(options.timeoutid);
-	options.timeoutid = setTimeout(download_process_timeout, options.timeout);
-	req.on('response', download_assign_res);
-	req.end(options.data);
-}
-
-function download_assign_res(response) {
-	response.req = this;
-	var options = this.$options;
-	options.length = +response.headers['content-length'] || 0;
-	options.evt && options.evt.$events.begin && options.evt.emit('begin', options.length);
-}
-
-function download_process_timeout(req) {
-	var options = req.$options;
-	if (options.callback) {
-		options.timeoutid && clearTimeout(options.timeoutid);
-		options.timeoutid = null;
-		req.abort();
-		options.callback(new Error(exports.httpStatus(408)), null, null, null, null, options.param);
-		options.callback = null;
-		options.evt.removeAllListeners();
-		options.evt = null;
-		options.canceled = true;
-	}
-}
-
-function download_process_error(err) {
-	var options = this.$options;
-	if (options.callback && !options.done) {
-		options.timeoutid && clearTimeout(options.timeoutid);
-		options.timeoutid = null;
-		options.callback(err, null, null, null, null, options.param);
-		options.callback = null;
-		options.evt.removeAllListeners();
-		options.evt = null;
-		options.canceled = true;
-	}
-}
-
-function download_response(res) {
-
-	var options = this.$options;
-	var uri = this.$uri;
-
-	res._bufferlength = 0;
-
-	// We have redirect
-	if (res.statusCode === 301 || res.statusCode === 302) {
-
-		if (options.redirect > 3) {
-			options.canceled = true;
-			options.timeoutid && clearTimeout(options.timeoutid);
-			options.callback && options.callback(new Error('Too many redirects.'), null, null, null, null, options.param);
-			res.req.removeAllListeners();
-			res.req = null;
-			res.removeAllListeners();
-			res = null;
-			return;
-		}
-
-		options.redirect++;
-
-		var loc = res.headers['location'];
-		var proto = loc.substring(0, 6);
-
-		if (proto !== 'http:/' && proto !== 'https:')
-			loc = uri.protocol + '//' + uri.hostname + loc;
-
-		var tmp = Url.parse(loc);
-		tmp.headers = uri.headers;
-		// tmp.agent = false;
-		tmp.method = uri.method;
-		res.req.removeAllListeners();
-		res.req = null;
-
-		if (options.proxy && tmp.protocol === 'https:') {
-			// TLS?
-			options.uri = tmp;
-			download_call(options, request_call);
-			return;
-		}
-
-		if (!options.resolve) {
-			res.removeAllListeners();
-			res = null;
-			return download_call(tmp, options);
-		}
-
-		exports.resolve(loc, function(err, u) {
-			if (!err)
-				tmp.host = u.host;
-			res.removeAllListeners();
-			res = null;
-			download_call(tmp, options);
-		});
-
-		return;
-	}
-
-	res.on('data', download_process_data);
-	res.on('end', download_process_end);
-
-	res.resume();
-	options.timeoutid && clearTimeout(options.timeoutid);
-	options.callback && options.callback(null, res, res.statusCode, res.headers, uri.host, options.param);
-}
-
-exports.$$download = function(url, flags, data, cookies, headers, encoding, timeout) {
-	return function(callback) {
-		exports.download(url, flags, data, callback, cookies, headers, encoding, timeout);
-	};
-};
-
-function download_process_end() {
-
-	var res = this;
-	var self = this;
-	var options = self.req.$options;
-	var uri = self.req.$uri;
-
-	if (!options.canceled) {
-		var str = self._buffer ? self._buffer.toString(options.encoding) : '';
-		self._buffer = undefined;
-		options.evt && options.evt.$events.end && options.evt.emit('end', str, self.statusCode, self.headers, uri.host);
-	}
-
-	if (options.evt) {
-		options.evt.removeAllListeners();
-		options.evt = null;
-	}
-
-	res.req && res.req.removeAllListeners();
-	res.removeAllListeners();
-}
-
-function download_process_data(chunk) {
-	var self = this;
-	var options = self.req.$options;
-	if (!options.canceled) {
-		self._bufferlength += chunk.length;
-		if (options.evt) {
-			options.evt.$events.data && options.evt.emit('data', chunk, options.length ? (self._bufferlength / options.length) * 100 : 0);
-			options.evt.$events.progress && options.evt.emit('progress', options.length ? (self._bufferlength / options.length) * 100 : 0);
-		}
-	}
-}
-
-exports.upload = function(files, url, callback, cookies, headers, method, timeout) {
-
-	var BOUNDARY = '----totaljs' + Math.random().toString(16).substring(2);
-	var h = {};
-
-	headers && exports.extend_headers2(h, headers);
-
-	if (cookies) {
-		var builder = '';
-		for (var m in cookies)
-			builder += (builder ? '; ' : '') + m + '=' + cookies[m];
-		builder && (h['Cookie'] = builder);
-	}
-
-	h['Cache-Control'] = 'max-age=0';
-	h['Content-Type'] = 'multipart/form-data; boundary=' + BOUNDARY;
-
-	var e = new EventEmitter2();
-	var uri = Url.parse(url);
-	var options = { protocol: uri.protocol, auth: uri.auth, method: method || 'POST', hostname: uri.hostname, port: uri.port, path: uri.path, agent: false, headers: h };
-	var responseLength = 0;
-	var timeoutid;
-	var done = false;
-
-	var response = function(res) {
-
-		res.body = Buffer.alloc(0);
-		res._bufferlength = 0;
-
-		res.on('data', function(chunk) {
-			if (!done) {
-				CONCAT[0] = res.body;
-				CONCAT[1] = chunk;
-				res.body = Buffer.concat(CONCAT);
-				res._bufferlength += chunk.length;
-				e.$events.data && e.emit('data', chunk, responseLength ? (res._bufferlength / responseLength) * 100 : 0);
-			}
-		});
-
-		res.on('end', function() {
-			if (!done) {
-				var self = this;
-				e.$events.end && e.emit('end', self.statusCode, self.headers);
-				e.removeAllListeners();
-				callback && callback(null, self.body.toString('utf8'), self.statusCode, self.headers, uri.host);
-				timeoutid && clearTimeout(timeoutid);
-				self.body = null;
-				e = null;
-				done = true;
-			}
-		});
-	};
-
-	var connection = options.protocol === 'https:' ? Https : Http;
-	var req = connection.request(options, response);
-
-	req.on('response', function(response) {
-		responseLength = +response.headers['content-length'] || 0;
-		e.$events.begin && e.emit('begin', responseLength);
-	});
-
-	var timeoutcallback = function() {
-		if (!done) {
-			req.removeAllListeners();
-			e.removeAllListeners();
-			callback && callback(new Error(exports.httpStatus(408)), '', 408, undefined, uri.host);
-			timeoutid && clearTimeout(timeoutid);
-			req = null;
-			e = null;
-			done = true;
-		}
-	};
-
-	if (timeout)
-		timeoutid = setTimeout(timeoutcallback, timeout);
-
-	req.setTimeout(timeout || 60000, timeoutcallback);
-
-	req.on('error', function(err) {
-		done = true;
-		req.removeAllListeners();
-		e.removeAllListeners();
-		callback && callback(err, '', 0, undefined, uri.host);
-		timeoutid && clearTimeout(timeoutid);
-		req = null;
-		e = null;
-	});
-
-	req.on('close', function() {
-		req.removeAllListeners();
-		req = null;
-	});
-
-	var header = NEWLINE + NEWLINE + '--' + BOUNDARY + NEWLINE + 'Content-Disposition: form-data; name="{0}"; filename="{1}"' + NEWLINE + 'Content-Type: {2}' + NEWLINE + NEWLINE;
-
-	files.wait(function(item, next) {
-
-		// item.name;
-		// item.filename;
-		// item.stream (optional) or item.buffer (optional)
-
-		req.write(header.format(item.name, U.getName(item.filename), exports.getContentType(exports.getExtension(item.filename))));
-
-		if (item.buffer) {
-			req.write(item.buffer);
-			return next();
-		}
-
-		!item.stream && (item.stream = Fs.createReadStream(item.filename));
-		item.stream.pipe(req, STREAM_END);
-		item.stream.on('error', next);
-		item.stream.on('end', next);
-
-	}, () => req.end(NEWLINE + NEWLINE + '--' + BOUNDARY + '--'));
-	return e;
-};
-
-exports.$$upload = function(files, url, cookies, headers, method, timeout) {
-	return function(callback) {
-		exports.upload(files, url, callback, cookies, headers, method, timeout);
-	};
 };
 
 /**
@@ -2126,7 +1492,8 @@ exports.decode = function(str) {
  * @return {Boolean}
  */
 exports.isStaticFile = function(url) {
-	return regexpSTATIC.test(url);
+	var index = url.indexOf(url.length - 8);
+	return index !== -1;
 };
 
 /**
@@ -2187,28 +1554,6 @@ exports.isRegExp = function(obj) {
  */
 exports.isDate = function(obj) {
 	return obj instanceof Date && !isNaN(obj.getTime()) ? true : false;
-};
-
-/**
- * Check if the object is Date
- * @param {Object} obj
- * @return {Boolean}
- */
-exports.isError = function(obj) {
-	return (obj && obj.stack) ? true : false;
-};
-
-/**
- * Check if the value is object
- * @param {Object} value
- * @return {Boolean}
- */
-exports.isObject = function(value) {
-	try {
-		return (value && Object.getPrototypeOf(value) === Object.prototype) ? true : false;
-	} catch (e) {
-		return false;
-	}
 };
 
 /**
@@ -3000,42 +2345,6 @@ DP.extend = function(date) {
 	}
 
 	return dt;
-};
-
-/**
- * Compare dates
- * @param {Date} date
- * @return {Number} Results: -1 = current date is earlier than @date, 0 = current date is same as @date, 1 = current date is later than @date
- */
-DP.compare = function(date) {
-
-	var self = this;
-	var r = self.getTime() - date.getTime();
-
-	if (r === 0)
-		return 0;
-
-	if (r < 0)
-		return -1;
-
-	return 1;
-};
-
-/**
- * Compare two dates
- * @param {String or Date} d1
- * @param {String or Date} d2
- * @return {Number} Results: -1 = @d1 is earlier than @d2, 0 = @d1 is same as @d2, 1 = @d1 is later than @d2
- */
-Date.compare = function(d1, d2) {
-
-	if (typeof(d1) === 'string')
-		d1 = d1.parseDate();
-
-	if (typeof(d2) === 'string')
-		d2 = d2.parseDate();
-
-	return d1.compare(d2);
 };
 
 /**
