@@ -349,12 +349,17 @@ QueryBuilder.prototype.scalar = function(rule, arg) {
 };
 
 QueryBuilder.prototype.done = function() {
+
+	if (!this.$callback)
+		return;
+
 	var meta = {};
 	//console.log(this);
 
 	if (this.error)
 		meta.error = this.error;
 
+	meta.cid = this.cid;
 	meta.count = this.count;
 	meta.counter = this.counter;
 	meta.scanned = this.scanned;
@@ -366,10 +371,16 @@ QueryBuilder.prototype.done = function() {
 	if (this.canceled)
 		meta.canceled = true;
 
-	if (this.$first)
+	if (!this.$TextReader || this.$TextReader.type === 'update' || this.$TextReader.type === 'remove')
+		this.response = meta.counter;
+	else if (this.$first)
 		this.response = this.response instanceof Array ? this.response[0] : this.response;
 
-	this.$callback(null, this.response, meta);
+	if (process.totaldbworker) {
+		meta.response = this.response;
+		this.$callback(null, meta);
+	} else
+		this.$callback(null, this.response, meta);
 };
 
 QueryBuilder.prototype.callback = function(fn) {

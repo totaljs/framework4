@@ -18,7 +18,7 @@ function Database(type, name, fork) {
 			}
 
 			var db = require('./textdb');
-			t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases()) : db.TableDB(name, PATH.databases());
+			t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases()) : db.TableDB(name, PATH.databases(), CONF['table_' + name]);
 			t.fork[key][builder.command]().assign(builder.options).callback(builder.$callback);
 		}
 	};
@@ -70,14 +70,64 @@ DP.find2 = function() {
 DP.insert = function(data) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'insert';
-	builder.payload = data;
+	builder.options.payload = data;
 	this.next(builder);
 	return builder;
 };
 
-DP.modify = function(data) {
+DP.update = DP.modify = function(data) {
+
 	var builder = new DatabaseBuilder();
-	builder.command = 'modify';
+	builder.command = 'update';
+
+	var keys = Object.keys(data);
+	var tmp = [];
+	var arg = {};
+
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var val = data[key];
+		var cmd;
+
+		switch (key[0]) {
+			case '+':
+				key = key.substring(1);
+				cmd = 'doc.{0}=(doc.{0}==null?0:doc.{0})+arg.{0}';
+				break;
+			case '*':
+				key = key.substring(1);
+				cmd = 'doc.{0}=(doc.{0}==null?0:doc.{0})*arg.{0}';
+				break;
+			case '-':
+				key = key.substring(1);
+				cmd = 'doc.{0}=(doc.{0}==null?0:doc.{0})-arg.{0}';
+				break;
+			case '/':
+				key = key.substring(1);
+				cmd = 'doc.{0}=(doc.{0}==null?0:doc.{0})/arg.{0}';
+				break;
+			case '!':
+				key = key.substring(1);
+				cmd = 'doc.{0}=!doc.{0}';
+				break;
+			case '=':
+				key = key.substring(1);
+				cmd = 'doc.{0}=' + data[key];
+				break;
+			default:
+				cmd = 'doc.{0}=arg.{0}';
+				break;
+		}
+
+		arg[key] = val;
+		cmd && tmp.push(cmd.format(key));
+	}
+
+	if (tmp.length)
+		builder.options.modify = tmp.join(';');
+
+	builder.options.modifyarg = arg;
+	console.log(builder.options);
 	this.next(builder);
 	return builder;
 };
@@ -155,6 +205,11 @@ DB.rule = function(code, arg) {
 
 DB.take = function(count) {
 	this.options.take = count;
+	return this;
+};
+
+DB.first = function() {
+	this.options.first = 1;
 	return this;
 };
 

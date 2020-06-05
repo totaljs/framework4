@@ -58,7 +58,7 @@ module.exports.watcher = function(callback) {
 function runapp() {
 
 	!options && (options = {});
-	require('total.js');
+	require('total4');
 
 	var port = parseInt(process.argv[process.argv.length - 1]);
 
@@ -69,14 +69,14 @@ function runapp() {
 		options.port = port || 8000;
 
 	if (options.https)
-		F.https('debug', options);
+		HTTPS('debug', options);
 	else
-		F.http('debug', options);
+		HTTP('debug', options);
 
 	if (first)
-		EMIT('debug-start');
+		EMIT('debug_start');
 	else
-		EMIT('debug-restart');
+		EMIT('debug_restart');
 }
 
 function runwatching() {
@@ -88,7 +88,7 @@ function runwatching() {
 	const directory = process.cwd();
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
-	const REG_FILES = /config-debug|config-release|config|versions|workflows|sitemap|dependencies|\.js$|\.resource$/i;
+	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.resource$/i;
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
 	const REG_COMPONENTS = /components\/.*?\.html|\.package\/.*?$/i;
@@ -110,7 +110,7 @@ function runwatching() {
 
 		if (!watchercallback) {
 			global.OBSOLETE = NOOP;
-			F.config.allow_ssc_validation = true;
+			CONF.allow_ssc_validation = true;
 			F.$configure_configs();
 		}
 
@@ -122,7 +122,6 @@ function runwatching() {
 			U.combine(CONF.directory_controllers),
 			U.combine(CONF.directory_definitions),
 			U.combine(CONF.directory_operations),
-			U.combine(CONF.directory_isomorphic),
 			U.combine(CONF.directory_modules),
 			U.combine(CONF.directory_models),
 			U.combine(CONF.directory_schemas),
@@ -174,17 +173,17 @@ function runwatching() {
 		blacklist['/readme.md'] = 1;
 
 		if (isRELOAD && !watchercallback) {
-			var tmppath = Path.join(Os.tmpdir(), 'totaljslivereload');
+			var tmppath = Path.join(Os.tmpdir(), 'total4livereload');
 			Fs.mkdir(tmppath, function() {
 				F.console = NOOP;
-				F.websocket('/', function() {
+				WEBSOCKET('/', function() {
 					var self = this;
 					self.autodestroy(function() {
 						WS = null;
 					});
 					WS = self;
 				});
-				F.http('release', { port: typeof(options.livereload) === 'number' ? options.livereload : 35729, directory: tmppath });
+				HTTP('release', { port: typeof(options.livereload) === 'number' ? options.livereload : 35729, directory: tmppath });
 			});
 		}
 

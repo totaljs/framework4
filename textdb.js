@@ -48,8 +48,7 @@ const JSONBUFFER = 40;
 // Temporary
 var CACHEITEMS = {};
 
-function TableDB(name, directory) {
-
+function TableDB(name, directory, schema) {
 	var t = this;
 	t.duration = [];
 	t.filename = Path.join(directory, name + '.tdb');
@@ -84,9 +83,13 @@ function TableDB(name, directory) {
 
 	Fs.createReadStream(t.filename, { end: 2048 }).once('data', function(chunk) {
 		t.parseSchema(t, chunk.toString('utf8').split('\n', 1)[0].split(DELIMITER));
-		t.ready = true;
 		t.$header = Buffer.byteLength(t.stringifySchema(t)) + 1;
-		t.next(0);
+		if (schema) {
+			t.alter(schema);
+		} else {
+			t.ready = true;
+			t.next(0);
+		}
 	}).on('error', function() {
 		// NOOP
 	});
@@ -2302,8 +2305,8 @@ exports.JsonDB = function(name, directory) {
 	return new JsonDB(name, directory);
 };
 
-exports.TableDB = function(name, directory) {
-	return new TableDB(name, directory);
+exports.TableDB = function(name, directory, schema) {
+	return new TableDB(name, directory, schema);
 };
 
 // Clears cache each hour

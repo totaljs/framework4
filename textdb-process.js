@@ -4,7 +4,7 @@ var INSTANCE;
 
 exports.init = function(directory, callback) {
 
-	INSTANCE = Fork(__dirname + '/textdb-worker.js', [directory], { detached: true });
+	INSTANCE = Fork(__dirname + '/textdb-worker.js', [directory], { detached: true, serialization: 'advanced' });
 	INSTANCE.callbacks = {};
 	INSTANCE.on('message', function(msg) {
 
@@ -26,7 +26,9 @@ exports.init = function(directory, callback) {
 					delete INSTANCE.callbacks[msg.cid];
 					msg.TYPE = undefined;
 					msg.cid = undefined;
-					cb(msg);
+					var response = msg.response;
+					msg.response = undefined;
+					cb(null, response, msg);
 				}
 				break;
 		}
