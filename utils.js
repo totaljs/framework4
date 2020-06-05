@@ -1493,7 +1493,7 @@ exports.decode = function(str) {
  * @return {Boolean}
  */
 exports.isStaticFile = function(url) {
-	var index = url.indexOf(url.length - 8);
+	var index = url.indexOf('.', url.length - 8);
 	return index !== -1;
 };
 

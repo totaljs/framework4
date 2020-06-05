@@ -1499,15 +1499,20 @@ F.stop = F.kill = function(signal) {
 
 	for (var m in F.workers) {
 		var worker = F.workers[m];
-		TRY(() => worker && worker.kill && worker.kill(signal));
+		try {
+			worker && worker.kill && worker.kill(signal);
+		} catch (e) {}
 	}
 
 	textdbworker && textdbworker.kill(0);
 
 	EMIT('exit', signal);
 
-	if (!F.isWorker && process.send && process.connected)
-		TRY(() => process.send('total:stop'));
+	if (!F.isWorker && process.send && process.connected) {
+		try {
+			process.send('total:stop');
+		} catch (e) {}
+	}
 
 	F.cache.stop();
 
@@ -12884,7 +12889,7 @@ ControllerProto.proxy = function(url, callback, headers, timeout) {
 		}
 	}
 
-	// @TODO: Missing new implementation
+	// @TODO: Missing new implementation
 	return U.request(url, flags, self.body, function(err, data, code, headers) {
 
 		if (err) {
