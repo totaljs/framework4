@@ -6,6 +6,9 @@
   "directories": {
     "test": "test"
   },
+  "bin": {
+      "total4": "./bin/total4"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
