@@ -1235,6 +1235,9 @@ Framework.prototype = {
 	get cluster() {
 		return require('./cluster');
 	},
+	get clusterid() {
+		return F.$id ? ('cluster_' + F.$id + '_') : '';
+	},
 	get id() {
 		return F.$id;
 	},
@@ -2770,7 +2773,7 @@ global.MERGE = function(url) {
 		url = '/' + url;
 
 	var key = createTemporaryKey(url);
-	var filename = PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'merged_' + key);
+	var filename = PATH.temp(F.clusterid + 'merged_' + key);
 	F.routes.merge[url] = { filename: filename.replace(/\.(js|css)$/g, ext => '.min' + ext), files: arr };
 	Fs.unlink(F.routes.merge[url].filename, NOOP);
 	F.owners.push({ type: 'merge', owner: _owner, id: url });
@@ -4193,7 +4196,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
 
 		var hash = '\n/*' + name.crc32(true) + '*/\n';
-		var temporary = (F.id ? 'i-' + F.id + '_' : '') + 'components';
+		var temporary = F.clusterid + 'components';
 
 		content = parseComponent(internal ? declaration : Fs.readFileSync(declaration).toString(ENCODING), name);
 
@@ -4392,7 +4395,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		return F;
 	}
 
-	var plus = F.id ? 'i-' + F.id + '_' : '';
+	var plus = F.clusterid;
 	if (type === 'view') {
 
 		var item = F.routes.views[name];
@@ -4950,7 +4953,7 @@ global.UNINSTALL = function(type, name, options, skipEmit, packageName) {
 		delete F.components.files[name];
 		delete F.temporary.ready[type + '#' + name];
 
-		var temporary = (F.id ? 'i-' + F.id + '_' : '') + 'components';
+		var temporary = F.clusterid + 'components';
 		var data;
 		var index;
 		var beg = '\n/*' + name.hash() + '*/\n';
@@ -5704,7 +5707,7 @@ function compile_file(res) {
 			return;
 		}
 
-		var file = PATH.temp((F.id ? 'i-' + F.id + '_' : '') + createTemporaryKey(uri.pathname));
+		var file = PATH.temp(F.clusterid + createTemporaryKey(uri.pathname));
 		PATH.verify('temp');
 		Fs.writeFileSync(file, compile_content(req.extension, framework_internal.parseBlock(F.routes.blocks[uri.pathname], buffer.toString(ENCODING)), res.options.filename), ENCODING);
 		var stats = Fs.statSync(file);
@@ -7975,7 +7978,7 @@ F.test = function() {
 F.clear = function(callback, isInit) {
 
 	var dir = PATH.temp();
-	var plus = F.id ? 'i-' + F.id + '_' : '';
+	var plus = F.clusterid;
 
 	if (isInit) {
 		if (!CONF.allow_clear_temp) {
@@ -9823,13 +9826,13 @@ FrameworkCacheProto.init_timer = function() {
 };
 
 FrameworkCacheProto.save = function() {
-	Fs.writeFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachesnapshot.jsoncache'), JSON.stringify(this.items), NOOP);
+	Fs.writeFile(PATH.databases(F.clusterid + 'cache.json'), JSON.stringify(this.items), NOOP);
 	return this;
 };
 
 FrameworkCacheProto.load = function(callback) {
 	var self = this;
-	Fs.readFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachesnapshot.jsoncache'), function(err, data) {
+	Fs.readFile(PATH.databases(F.clusterid + 'cache.json'), function(err, data) {
 		if (!err) {
 			try {
 				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
@@ -9853,14 +9856,14 @@ FrameworkCacheProto.savepersistent = function() {
 				obj[key] = item;
 		}
 
-		Fs.writeFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachepersist.jsoncache'), JSON.stringify(obj), NOOP);
+		Fs.writeFile(PATH.temp(F.clusterid + 'framework_cachepersist.jsoncache'), JSON.stringify(obj), NOOP);
 	}, 1000, 50, this);
 	return this;
 };
 
 FrameworkCacheProto.loadpersistent = function(callback) {
 	var self = this;
-	Fs.readFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachepersist.jsoncache'), function(err, data) {
+	Fs.readFile(PATH.temp(F.clusterid + 'framework_cachepersist.jsoncache'), function(err, data) {
 		if (!err) {
 			try {
 				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
@@ -15960,7 +15963,7 @@ function extend_response(PROTO) {
 			return res;
 		}
 
-		var plus = F.id ? 'i-' + F.id + '_' : '';
+		var plus = F.clusterid;
 
 		options.name = PATH.temp(plus + key);
 
@@ -17256,7 +17259,7 @@ function runsnapshot() {
 				process.send(CLUSTER_SNAPSHOT);
 			}
 		} else
-			Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '  '), NOOP);
+			Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '\t'), NOOP);
 	};
 }
 

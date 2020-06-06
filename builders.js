@@ -678,9 +678,6 @@ SchemaBuilderEntityProto.inherit = function(name) {
 			self.$onDefault.push(schema.onDefault);
 		}
 
-		if (self.onValidate !== schema.onValidate)
-			self.onValidate = schema.onValidate;
-
 		if (!self.onSave && schema.onSave)
 			self.onSave = schema.onSave;
 
@@ -1042,28 +1039,6 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 	return result;
 };
 
-/**
- * Set schema validation
- * @param {String|Array} properties Properties to validate, optional.
- * @param {Function(propertyName, value, path, entityName, model)} fn A validation function.
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.setValidate = function(properties, fn) {
-
-	if (fn === undefined && properties instanceof Array) {
-		this.properties = properties;
-		return this;
-	}
-
-	if (typeof(properties) !== 'function') {
-		this.properties = properties;
-		this.onValidate = fn;
-	} else
-		this.onValidate = properties;
-
-	return this;
-};
-
 SchemaBuilderEntityProto.setPrefix = function(prefix) {
 	this.resourcePrefix = prefix;
 	return this;
@@ -1143,6 +1118,7 @@ SchemaBuilderEntityProto.setInsertExtension = function(fn) {
  */
 SchemaBuilderEntityProto.setUpdate = function(fn, filter) {
 	this.onUpdate = fn;
+	this.meta.update = 1;
 	this.meta.updatefilter = filter;
 	return this;
 };
@@ -1260,12 +1236,6 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
  * @return {SchemaBuilderEntity}
  */
 SchemaBuilderEntityProto.addTransform = function(name, fn, filter) {
-
-	if (typeof(name) === 'function') {
-		fn = name;
-		name = 'default';
-	}
-
 	!this.transforms && (this.transforms = {});
 	this.transforms[name] = fn;
 	this.meta['transform_' + name] = 1;
@@ -1290,12 +1260,6 @@ SchemaBuilderEntityProto.addTransformExtension = function(name, fn) {
  * @return {SchemaBuilderEntity}
  */
 SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
-
-	if (typeof(name) === 'function') {
-		fn = name;
-		name = 'default';
-	}
-
 	!this.workflows && (this.workflows = {});
 	this.workflows[name] = fn;
 	this.meta['workflow_' + name] = 1;
@@ -1350,7 +1314,6 @@ SchemaBuilderEntityProto.destroy = function() {
 	delete this.schema;
 	delete this.onDefault;
 	delete this.$onDefault;
-	delete this.onValidate;
 	delete this.onSave;
 	delete this.onInsert;
 	delete this.onUpdate;
@@ -3490,48 +3453,6 @@ global.EACHOPERATION = function(fn) {
 	var keys = Object.keys(operations);
 	for (var i = 0, length = keys.length; i < length; i++)
 		fn(keys[i]);
-};
-
-/**
- * Create validation
- * @param {String} name Schema name.
- * @param {Function|Array} fn Validator Handler or Property names as array for validating.
- * @param {String|Array} properties Valid only these properties, optional.
- * @return {Function|Array}
- */
-exports.validation = function(name, properties, fn) {
-
-	if (schemas[DEFAULT_SCHEMA] === undefined)
-		return EMPTYARRAY;
-
-	var schema = schemas[DEFAULT_SCHEMA].get(name);
-	if (schema === undefined)
-		return EMPTYARRAY;
-
-	if (fn instanceof Array && typeof(properties) === 'function') {
-		var tmp = fn;
-		fn = properties;
-		properties = tmp;
-	}
-
-	if (typeof(fn) === 'function') {
-		schema.onValidate = fn;
-		if (properties)
-			schema.properties = properties;
-		else
-			schema.properties = Object.keys(schema.schema);
-		return true;
-	}
-
-	if (!fn) {
-		var validator = schema.properties;
-		if (validator === undefined)
-			return Object.keys(schema.schema);
-		return validator || [];
-	}
-
-	schema.onValidate = fn;
-	return fn;
 };
 
 /**

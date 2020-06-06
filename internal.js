@@ -131,7 +131,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 	req.files = [];
 	req.body = {};
 
-	var path = framework_utils.combine(tmpDirectory, (F.id ? 'i-' + F.id + '_' : '') + 'uploadedfile-');
+	var path = framework_utils.combine(tmpDirectory, F.clusterid + 'upload_');
 
 	req.bodyexceeded = false;
 	req.bodyhas = true;

@@ -1741,7 +1741,6 @@ function validate_builder_default(name, value, entity) {
 
 exports.validate_builder = function(model, error, schema, path, index, fields, pluspath) {
 
-	var prepare = schema.onValidate || NOOP;
 	var current = path ? path + '.' : '';
 	var properties = model && model.$$keys ? model.$$keys : schema.properties;
 	var result;
@@ -1789,7 +1788,7 @@ exports.validate_builder = function(model, error, schema, path, index, fields, p
 				if (!TYPE.required)
 					continue;
 
-				result = TYPE.validate ? TYPE.validate(value, model) : prepare(name, value, current + name, model, schema.name, TYPE);
+				result = TYPE.validate ? TYPE.validate(value, model) : null;
 				if (result == null) {
 					result = value instanceof Array ? value.length > 0 : false;
 					if (result == null || result === true)
@@ -1842,7 +1841,7 @@ exports.validate_builder = function(model, error, schema, path, index, fields, p
 		if (!TYPE.required)
 			continue;
 
-		result = TYPE.validate ? TYPE.validate(value, model) : prepare(name, value, current + name, model, schema.name, TYPE);
+		result = TYPE.validate ? TYPE.validate(value, model) : null;
 		if (result == null) {
 			result = validate_builder_default(name, value, TYPE);
 			if (result == null || result === true)
