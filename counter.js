@@ -4,6 +4,10 @@ function Counter(name) {
 	var t = this;
 	t.db = 'counter_' + name;
 	t.cache = {};
+	ON('service', function(counter) {
+		if (counter % 5 === 0)
+			t.flush();
+	});
 }
 
 const CP = Counter.prototype;

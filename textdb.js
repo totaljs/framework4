@@ -30,7 +30,7 @@ const Fs = require('fs');
 const Path = require('path');
 const TextStreamReader = require('./textdb-stream');
 const QueryBuilder = require('./textdb-builder').QueryBuilder;
-const DButils = require('./textdb-utils');
+const TextReader = require('./textdb-reader');
 const DELIMITER = '|';
 const NEWLINEBUF = Buffer.from('\n', 'utf8');
 
@@ -531,7 +531,7 @@ JD.$update = function() {
 	self.$writting = true;
 
 	var filter = self.pending_update.splice(0);
-	var filters = new TextReader();
+	var filters = TextReader.make();
 	var fs = new TextStreamReader(self.filename);
 	var change = false;
 
@@ -611,10 +611,6 @@ JD.$update = function() {
 		if (filters.total > 0)
 			filters.db.total = filters.total;
 
-		if (change) {
-			// @TODO: replication
-		}
-
 	};
 
 	fs.openupdate();
@@ -631,13 +627,15 @@ JD.$reader = function(items, reader) {
 		return self;
 	}
 
-	var filters = new TextReader(self.pending_reader.splice(0));
+	var filters = TextReader.make(self.pending_reader.splice(0));
 
 	filters.type = 'read';
 	filters.db = self;
 	filters.cancelable = false;
+	filters.inmemory = false;
 
 	if (self.inmemory && CACHEITEMS[self.id].length) {
+		filters.inmemory = true;
 		filters.compare(CACHEITEMS[self.id]);
 		filters.done();
 		self.next(0);
@@ -691,11 +689,13 @@ JD.$reader2 = function() {
 		return self;
 	}
 
-	var filters = new TextReader(self.pending_reader2.splice(0));
+	var filters = TextReader.make(self.pending_reader2.splice(0));
 	filters.type = 'readreverse';
 	filters.db = self;
+	filters.inmemory = false;
 
 	if (self.inmemory && CACHEITEMS[self.id].length) {
+		filters.inmemory = true;
 		filters.comparereverse(CACHEITEMS[self.id]);
 		filters.done();
 		self.next(0);
@@ -786,7 +786,7 @@ JD.$remove = function() {
 
 	var fs = new TextStreamReader(self.filename);
 	var filter = self.pending_remove.splice(0);
-	var filters = new TextReader(filter);
+	var filters = TextReader.make(filter);
 	var change = false;
 
 	filters.type = 'remove';
@@ -1228,12 +1228,14 @@ TD.$reader = function() {
 		return self;
 	}
 
-	var filters = new TextReader(self.pending_reader.splice(0));
+	var filters = TextReader.make(self.pending_reader.splice(0));
 	filters.type = 'read';
 	filters.db = self;
 	filters.cancelable = false;
+	filters.inmemory = false;
 
 	if (self.inmemory && CACHEITEMS[self.id].length) {
+		filters.inmemory = true;
 		filters.compare(CACHEITEMS[self.id]);
 		filters.done();
 		self.next(0);
@@ -1301,11 +1303,13 @@ TD.$reader2 = function() {
 		return self;
 	}
 
-	var filters = new TextReader(self.pending_reader2.splice(0));
+	var filters = TextReader.make(self.pending_reader2.splice(0));
 	filters.type = 'readreverse';
 	filters.db = self;
+	filters.inmemory = false;
 
 	if (self.inmemory && CACHEITEMS[self.id].length) {
+		filters.inmemory = true;
 		filters.comparereverse(CACHEITEMS[self.id]);
 		filters.done();
 		self.next(0);
@@ -1413,7 +1417,7 @@ TD.$update = function() {
 
 	var fs = new TextStreamReader(self.filename);
 	var filter = self.pending_update.splice(0);
-	var filters = new TextReader();
+	var filters = TextReader.make();
 	var change = false;
 	var indexer = 0;
 	var data = { keys: self.$keys };
@@ -1479,20 +1483,21 @@ TD.$update = function() {
 
 	fs.$callback = function() {
 
+		if (self.inmemory)
+			CACHEITEMS[self.id] = [];
+
 		fs = null;
 		self.$writting = false;
 		self.next(0);
 
 		for (var i = 0; i < filters.builders.length; i++) {
 			var builder = filters.builders[i];
-			builder.done() && builder.$callback(null, items, builder);
+			builder.logrule && builder.logrule();
+			builder.done();
 		}
 
 		if (filters.total > 0)
 			filters.db.total = filters.total;
-
-		if (self.inmemory)
-			CACHEITEMS[self.id] = [];
 	};
 
 	fs.openupdate();
@@ -1513,7 +1518,7 @@ TD.$remove = function() {
 
 	var fs = new TextStreamReader(self.filename);
 	var filter = self.pending_remove.splice(0);
-	var filters = new TextReader(filter);
+	var filters = TextReader.make(filter);
 	var change = false;
 	var indexer = 0;
 
@@ -2051,261 +2056,6 @@ function regtescape(c) {
 function jsonparser(key, value) {
 	return typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value;
 }
-
-function TextReader(builder) {
-	var self = this;
-	self.ts = Date.now();
-	self.cancelable = true;
-	self.builders = [];
-	self.canceled = 0;
-	self.total = 0;
-	builder && self.add(builder);
-}
-
-TextReader.prototype.add = function(builder) {
-	var self = this;
-	if (builder instanceof Array) {
-		for (var i = 0; i < builder.length; i++)
-			self.add(builder[i]);
-	} else {
-		builder.$TextReader = self;
-		if (builder.$sortname)
-			self.cancelable = false;
-		self.builders.push(builder);
-	}
-	return self;
-};
-
-TextReader.prototype.compare2 = function(docs, custom, done) {
-	var self = this;
-
-	for (var i = 0; i < docs.length; i++) {
-
-		var doc = docs[i];
-		if (doc === EMPTYOBJECT)
-			continue;
-
-		if (self.builders.length === self.canceled) {
-			self.total = 0;
-			return false;
-		}
-
-		self.total++;
-		var is = false;
-
-		for (var j = 0; j < self.builders.length; j++) {
-
-			var builder = self.builders[j];
-			if (builder.canceled)
-				continue;
-
-			builder.scanned++;
-
-			var can = false;
-
-			try {
-				can = builder.filterrule(doc, builder.filterarg, builder.tmp, builder.func);
-			} catch (e) {
-				can = false;
-				builder.canceled = true;
-				builder.error = e + '';
-			}
-
-			if (can) {
-
-				builder.count++;
-
-				if (!builder.$sortname && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
-					continue;
-
-				!is && (is = true);
-
-				builder.counter++;
-
-				var canceled = builder.canceled;
-				var c = custom(docs, doc, i, builder, j);
-
-				if (builder.$take === 1) {
-					builder.canceled = true;
-					self.canceled++;
-				} else if (!canceled && builder.canceled)
-					self.canceled++;
-
-				if (c === 1)
-					break;
-				else
-					continue;
-			}
-		}
-
-		is && done && done(docs, doc, i, self.builders);
-	}
-};
-
-TextReader.prototype.compare = function(docs) {
-
-	var self = this;
-
-	self.total += docs.length;
-
-	for (var i = 0; i < docs.length; i++) {
-
-		var doc = docs[i];
-
-		if (self.builders.length === self.canceled) {
-			self.total = 0;
-			return false;
-		}
-
-		for (var j = 0; j < self.builders.length; j++) {
-
-			var builder = self.builders[j];
-			if (builder.canceled)
-				continue;
-
-			builder.scanned++;
-
-			var is = false;
-
-			try {
-				is = builder.filterrule(doc, builder.filterarg, builder.tmp, builder.func);
-			} catch (e) {
-				is = false;
-				builder.canceled = true;
-				builder.error = e + '';
-			}
-
-			if (is) {
-
-				builder.count++;
-
-				if (builder.scalarrule) {
-					builder.counter++;
-					try {
-						builder.scalarrule(doc, builder.scalararg, builder.tmp, builder.func);
-					} catch (e) {
-						builder.canceled = true;
-						builder.error = e + '';
-					}
-					continue;
-				}
-
-				if (!builder.$sortname && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
-					continue;
-
-				builder.counter++;
-				builder.push(doc);
-
-				if (self.cancelable && !builder.$sortname && builder.response.length === builder.$take) {
-					builder.canceled = true;
-					self.canceled++;
-				}
-			}
-		}
-	}
-};
-
-TextReader.prototype.comparereverse = function(docs) {
-
-	var self = this;
-
-	self.total += docs.length;
-
-	for (var i = docs.length - 1; i > -1; i--) {
-
-		var doc = docs[i];
-
-		if (self.builders.length === self.canceled) {
-			self.total = 0;
-			return false;
-		}
-
-		for (var j = 0; j < self.builders.length; j++) {
-
-			var builder = self.builders[j];
-			if (builder.canceled)
-				continue;
-
-			builder.scanned++;
-
-			var is = false;
-
-			try {
-				is = builder.filterrule(doc, builder.filterarg, builder.tmp, builder.func);
-			} catch (e) {
-				is = false;
-				builder.canceled = true;
-				builder.error = e + '';
-			}
-
-			if (is) {
-
-				builder.count++;
-
-				if (builder.scalarrule) {
-					builder.counter++;
-					try {
-						builder.scalarrule(doc, builder.scalararg, builder.tmp, builder.func);
-					} catch (e) {
-						builder.canceled = true;
-						builder.error = e + '';
-					}
-					continue;
-				}
-
-				if (!builder.$sortname && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
-					continue;
-
-				builder.counter++;
-				builder.push(doc);
-
-				if (self.cancelable && !builder.$sortname && builder.response.length === builder.$take) {
-					builder.canceled = true;
-					self.canceled++;
-				}
-			}
-		}
-	}
-};
-
-TextReader.prototype.callback = function(builder) {
-	var self = this;
-
-	if (builder.$sortname && !builder.$sorted)
-		DButils.sortfinal(builder);
-
-	for (var i = 0; i < builder.response.length; i++)
-		builder.response[i] = builder.prepare(builder.response[i]);
-
-	// Reverse
-	if (!builder.$sortname && (self.type === 'readreverse'))
-		builder.response.reverse();
-
-	builder.logrule && builder.logrule();
-	builder.done();
-	return self;
-};
-
-TextReader.prototype.done = function() {
-	var self = this;
-	var diff = Date.now() - self.ts;
-
-	if (self.db.duration.push({ type: self.type, duration: diff }) > 20)
-		self.db.duration.shift();
-
-	for (var i = 0; i < self.builders.length; i++) {
-		var builder = self.builders[i];
-		builder.duration = diff;
-		builder.inmemory = self.db.inmemory && CACHEITEMS[self.db.id].length > 0;
-		self.callback(builder);
-	}
-
-	if (self.total > 0)
-		self.db.total = self.total;
-
-	self.canceled = 0;
-	return self;
-};
 
 exports.JsonDB = function(name, directory) {
 	return new JsonDB(name, directory);

@@ -5490,12 +5490,19 @@ exports.Callback = function(count, callback) {
 function Reader() {
 	var t = this;
 	t.$add = function(builder) {
+		var b = require('./textdb-builder').make();
+		builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
+		b.assign(builder.options);
+		b.$callback = builder.$callback;
 		if (t.reader)
-			t.reader.add(builder);
-		else
-			t.reader = new framework_nosql.NoSQLReader(builder);
+			t.reader.add(b);
+		else {
+			t.reader = require('./textdb-reader').make();
+			t.reader.add(b);
+		}
 	};
 }
+
 const RP = Reader.prototype;
 
 RP.done = function() {
@@ -5520,26 +5527,39 @@ RP.push = function(data) {
 
 RP.find = function() {
 	var self = this;
-	var builder = new framework_nosql.DatabaseBuilder();
+	var builder = require('./textdb-wrapper').makebuilder();
+	builder.command = 'find';
 	setImmediate(self.$add, builder);
 	return builder;
 };
 
 RP.count = function() {
 	var builder = this.find();
-	builder.$options.readertype = 1;
+	builder.options.scalar = 'arg.count++';
+	builder.options.scalararg = { count: 0 };
 	return builder;
 };
 
-RP.scalar = function(type, field) {
-	return this.find().scalar(type, field);
+RP.scalar = function(type, key) {
+	var builder = this.find();
+	switch (type) {
+		case 'min':
+		case 'max':
+		case 'sum':
+			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if (!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(key);
+			builder.options.scalararg = { count: 0, sum: 0 };
+			break;
+		case 'group':
+			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(key);
+			builder.options.scalararg = {};
+			break;
+	}
+	return builder;
 };
 
 exports.reader = function() {
 	return new Reader();
 };
-
-const BUFEMPTYJSON = Buffer.from('{}');
 
 global.WAIT = exports.wait;
 !global.F && require('./index');

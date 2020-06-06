@@ -25,7 +25,7 @@
  */
 
 // Dependencies
-const DButils = require('./utils');
+const DButils = require('./textdb-utils');
 const Fs = require('fs');
 const NEWLINE = '\n';
 
@@ -475,3 +475,6 @@ function prepare_filter(value) {
 }
 
 exports.QueryBuilder = QueryBuilder;
+exports.make = function() {
+	return new QueryBuilder();
+};

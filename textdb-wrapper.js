@@ -470,6 +470,12 @@ DB.fields = function(fields) {
 	return self;
 };
 
+DB.sort = function(sort) {
+	var self = this;
+	self.options.sort = sort;
+	return self;
+};
+
 DB.month = function(name, operator, value) {
 	var self = this;
 	if (value === undefined) {
@@ -668,4 +674,8 @@ DB.$callbackjoin = function() {
 
 exports.make = function(type, name, fork) {
 	return new Database(type, name, fork);
+};
+
+exports.makebuilder = function() {
+	return new DatabaseBuilder();
 };
