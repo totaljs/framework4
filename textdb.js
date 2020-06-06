@@ -560,9 +560,6 @@ JD.$update = function() {
 	var updateflush = function(docs, doc, dindex) {
 
 		// doc = docs[dindex];
-
-		console.log(dindex, docs.length);
-
 		for (var i = dindex; i < docs.length; i++) {
 
 			doc = docs[i];
