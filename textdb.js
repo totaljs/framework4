@@ -46,6 +46,7 @@ const MAXREADERS = 3;
 const JSONBUFFER = 40;
 
 // For performing of cleaning
+// @TODO: missing implementation
 var INSTANCES = [];
 
 // Temporary
@@ -2074,7 +2075,9 @@ exports.TableDB = function(name, directory, schema, ext) {
 
 // Clears cache each hour
 process.totaldbworker && setInterval(function() {
+
 	var keys = Object.keys(CACHEITEMS);
 	for (var i = 0; i < keys.length; i++)
 		CACHEITEMS[keys[i]] = [];
+
 }, 60000 * 60);

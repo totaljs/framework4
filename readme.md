@@ -14,6 +14,7 @@ $ npm install -g total4
 - [ ] missing `COUNTER()` features (monthly stats, yearly stats)
 - [ ] rewrite `INSTALL()` and `UNINSTALL()`
 - [ ] TextDB Wrapper doesn't contain `backups()`
+- [ ] Missing implementation for auto-cleaner TextDBs
 
 ## Social networks
 
