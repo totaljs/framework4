@@ -316,6 +316,11 @@ function convert4(a) {
 
 		var key = line.substring(0, index).trim();
 
+		if (key[0] !== 'T') {
+			output.push(line);
+			continue;
+		}
+
 		if (key[1] === '-')
 			key = 'T' + ((+key.substring(1)) >>> 0).toString(16);
 		else
@@ -325,7 +330,7 @@ function convert4(a) {
 	}
 
 	var filename = a.replace('.', '-new.');
-	Fs.writeFileSync(filename, '// Total.js merged file\n// Created: ' + new Date().format('yyyy-MM-dd HH:mm') + '\n' + clean_resource(output.join('\n')));
+	Fs.writeFileSync(filename, clean_resource(output.join('\n')));
 	console.log('========================================');
 	console.log('Converted');
 	console.log('========================================');
@@ -365,7 +370,7 @@ function main() {
 	console.log('');
 	console.log('|==================================================|');
 	console.log('| Total.js - www.totaljs.com                       |');
-	console.log('| Version: v' + require('total.js').version_header.padRight(39) + '|');
+	console.log('| Version: v' + require('total4').version_header.padRight(39) + '|');
 	console.log('|==================================================|');
 	console.log('');
 
@@ -455,8 +460,8 @@ function main() {
 		}
 
 		if (!$type && (cmd === '-translate4' || cmd === '-4')) {
-			$type = 99;
-			continue;
+			convert4(process.argv[i + 1] || '');
+			return;
 		}
 
 		if (!$type && cmd === '-csv') {
@@ -545,11 +550,6 @@ function main() {
 		}
 
 		console.log('Minified: ' + filename);
-		return;
-	}
-
-	if ($type === 99) {
-		convert4(process.argv[i + 1] || '');
 		return;
 	}
 
