@@ -105,7 +105,7 @@ exports.make = function(callback) {
 				var pathupdate = CONF.directory_updates;
 				var pathstartup = '/startup';
 
-				F.restore(filename, target, resume, function(p, dir) {
+				RESTORE(filename, target, resume, function(p, dir) {
 
 					if (dir) {
 						if (!p.startsWith(dbpath) && META.directories.indexOf(p) === -1)

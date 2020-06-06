@@ -203,7 +203,7 @@ TD.restore = JD.restore = function(filename, callback) {
 		self.type = 9;
 
 		// Restore
-		F.restore(filename, self.directory, function(err, response) {
+		RESTORE(filename, self.directory, function(err, response) {
 			self.type = 0;
 			callback && callback(err, response);
 		});
@@ -242,7 +242,7 @@ TD.backup = JD.backup = function(filename, callback) {
 	pending.async(function() {
 		if (list.length) {
 			// Total.js Backup
-			F.backup(filename, list, callback);
+			BACKUP(filename, list, callback);
 		} else
 			callback('No files for backing up.');
 	});

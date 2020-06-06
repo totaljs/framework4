@@ -4340,7 +4340,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		};
 
 		if (F.$bundling)
-			F.restore(declaration, dir, restorecb);
+			RESTORE(declaration, dir, restorecb);
 		else
 			restorecb();
 
@@ -5963,7 +5963,7 @@ function compile_content(extension, content, filename) {
 	return content;
 }
 
-F.restore = function(filename, target, callback, filter) {
+global.RESTORE = function(filename, target, callback, filter) {
 
 	var buffer_key = Buffer.from(':');
 	var buffer_new = Buffer.from('\n');
@@ -6162,7 +6162,7 @@ F.restore = function(filename, target, callback, filter) {
 	return F;
 };
 
-F.backup = function(filename, filelist, callback, filter) {
+global.BACKUP = function(filename, filelist, callback, filter) {
 
 	var padding = 100;
 	var path = filelist instanceof Array ? PATH.root() : filelist;
@@ -6217,7 +6217,7 @@ F.backup = function(filename, filelist, callback, filter) {
 			Fs.stat(file, function(err, stats) {
 
 				if (err) {
-					F.error(err, 'F.backup()', filename);
+					F.error(err, 'BACKUP()', filename);
 					return next();
 				}
 
@@ -9599,6 +9599,9 @@ FrameworkRouteProto.setOptions = function(value) {
 
 function FrameworkPath() {}
 const FrameworkPathProto = FrameworkPath.prototype;
+
+FrameworkPathProto.ls = U.ls;
+FrameworkPathProto.ls2 = U.ls2;
 
 FrameworkPathProto.verify = function(name) {
 	var prop = '$directory-' + name;
