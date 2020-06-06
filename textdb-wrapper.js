@@ -278,8 +278,6 @@ DP.update = DP.modify = function(data, upsert, noeval) {
 		cmd && tmp.push(cmd.format(key));
 	}
 
-	console.log(cmd);
-
 	if (tmp.length)
 		builder.options.modify = tmp.join(';');
 

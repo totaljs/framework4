@@ -1,2 +1,3 @@
 ======= 0.0.1
 
+- added new start script `helpers/index.js` which supports `--release` mode (default: `debug`)
