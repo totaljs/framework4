@@ -878,7 +878,7 @@ function Framework() {
 		default_interval_websocket_ping: 3
 	};
 
-	global.REPO = global.G = self.global = {};
+	global.REPO = {};
 	global.MAIN = {};
 	global.TEMP = {};
 	global.FUNC = {};
@@ -919,7 +919,6 @@ function Framework() {
 	self.owners = [];
 	self.modificators = null;
 	self.modificators2 = null;
-	DEF.helpers = self.helpers = {};
 	self.modules = {};
 	self.models = {};
 	self.sources = {};
@@ -934,7 +933,8 @@ function Framework() {
 	self.port = 0;
 	self.ip = '';
 
-	DEF.validators = self.validators = {
+	DEF.helpers = {};
+	DEF.validators = {
 		email: new RegExp('^[a-zA-Z0-9-_.+]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'),
 		url: /http(s)?:\/\/[^,{}\\]*$/i,
 		phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
@@ -2567,7 +2567,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		F.routes.web.push(r);
 
 		// Appends cors route
-		isCORS && F.cors(urlcache, corsflags);
+		isCORS && CORS(urlcache, corsflags);
 		!_controller && F.$routes_sort(1);
 	}
 
@@ -5631,7 +5631,7 @@ F.usage = function(detailed) {
 	var workers = Object.keys(F.workers);
 	var modules = Object.keys(F.modules);
 	var models = Object.keys(F.models);
-	var helpers = Object.keys(F.helpers);
+	var helpers = Object.keys(DEF.helpers);
 	var staticFiles = Object.keys(F.temporary.path);
 	var staticNotfound = Object.keys(F.temporary.notfound);
 	var staticRange = Object.keys(F.temporary.range);
@@ -10721,7 +10721,7 @@ ControllerProto.component = function(name, settings, model) {
 				for (var i = 0; i < generator.components.length; i++)
 					self.repository[REPOSITORY_COMPONENTS][generator.components[i]] = 1;
 			}
-			return generator.call(self, self, self.repository, model || self.$model, self.session, self.query, self.body, self.url, F.global, F.helpers, self.user, CONF, F.functions, 0, self.outputPartial, self.req.files, self.req.mobile, settings || EMPTYOBJECT);
+			return generator.call(self, self, self.repository, model || self.$model, self.session, self.query, self.body, self.url, REPO, DEF.helpers, self.user, CONF, F.functions, 0, self.outputPartial, self.req.files, self.req.mobile, settings || EMPTYOBJECT);
 		}
 	}
 	return '';
@@ -12257,7 +12257,7 @@ ControllerProto.public = function(name, path) {
  * @return {String}
  */
 ControllerProto.helper = function(name) {
-	var helper = F.helpers[name];
+	var helper = DEF.helpers[name];
 	if (!helper)
 		return '';
 
@@ -13199,7 +13199,7 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 	if (isLayout)
 		self._currentView = self._defaultView || '';
 
-	var helpers = F.helpers;
+	var helpers = DEF.helpers;
 
 	try {
 

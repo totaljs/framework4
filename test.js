@@ -78,7 +78,7 @@ function NEXT() {
 		console.log('');
 
 		F.isTest = false;
-		F.emit('test-end', T);
+		EMIT('test_end', T);
 
 		// DONE
 		setTimeout(function() {
@@ -228,7 +228,7 @@ exports.load = function() {
 				return F._length_wait === 0;
 			}, function() {
 				T.tests.quicksort('priority');
-				F.emit('test-begin', T);
+				EMIT('test_begin', T);
 				console.log('===================== TESTING ======================');
 				console.log('');
 				T.running = true;

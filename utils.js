@@ -3406,19 +3406,19 @@ SP.isJSON = function() {
 };
 
 SP.isURL = function() {
-	return this.length <= 7 ? false : F.validators.url.test(this);
+	return this.length <= 7 ? false : DEF.validators.url.test(this);
 };
 
 SP.isZIP = function() {
-	return F.validators.zip.test(this);
+	return DEF.validators.zip.test(this);
 };
 
 SP.isEmail = function() {
-	return this.length <= 4 ? false : F.validators.email.test(this);
+	return this.length <= 4 ? false : DEF.validators.email.test(this);
 };
 
 SP.isPhone = function() {
-	return this.length < 6 ? false : F.validators.phone.test(this);
+	return this.length < 6 ? false : DEF.validators.phone.test(this);
 };
 
 SP.isBase64 = function() {
@@ -3432,7 +3432,7 @@ SP.isUID = function() {
 	if (str.length < 12)
 		return false;
 
-	var is = F.validators.uid.test(str);
+	var is = DEF.validators.uid.test(str);
 	if (is) {
 
 		var sum;
