@@ -5320,7 +5320,7 @@ function Chunker(name, max) {
 	this.percentage = 0;
 	this.autoremove = true;
 	this.compress = true;
-	this.filename = F.path.temp(this.filename);
+	this.filename = PATH.temp(this.filename);
 }
 
 const CHP = Chunker.prototype;

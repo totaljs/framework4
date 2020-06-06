@@ -47,7 +47,7 @@ META.ignore = () => true;
 
 exports.make = function(callback) {
 
-	var path = F.path.root();
+	var path = PATH.root();
 	var blacklist = {};
 
 	if (CONSOLE) {
@@ -90,8 +90,8 @@ exports.make = function(callback) {
 	});
 
 	async.push(function(next) {
-		var target = F.path.root(CONF.directory_src);
-		U.ls(F.path.root(CONF.directory_bundles), function(files) {
+		var target = PATH.root(CONF.directory_src);
+		U.ls(PATH.root(CONF.directory_bundles), function(files) {
 			var dirs = {};
 			files.wait(function(filename, resume) {
 
@@ -209,7 +209,7 @@ exports.make = function(callback) {
 	});
 
 	async.push(function(next) {
-		Fs.writeFileSync(Path.join(F.path.root(CONF.directory_src), 'bundle.json'), JSON.stringify(META, null, '\t'));
+		Fs.writeFileSync(Path.join(PATH.root(CONF.directory_src), 'bundle.json'), JSON.stringify(META, null, '\t'));
 		next();
 	});
 
@@ -261,7 +261,7 @@ function normalize(path) {
 
 function cleanFiles(callback) {
 
-	var path = F.path.root(CONF.directory_src);
+	var path = PATH.root(CONF.directory_src);
 	var length = path.length - 1;
 	var blacklist = {};
 
@@ -312,7 +312,7 @@ function cleanFiles(callback) {
 
 function createDirectories(dirs, callback) {
 
-	var path = F.path.root(CONF.directory_src);
+	var path = PATH.root(CONF.directory_src);
 
 	try {
 		Fs.mkdirSync(path);
@@ -331,7 +331,7 @@ function createDirectories(dirs, callback) {
 }
 
 function copyFiles(files, callback) {
-	var path = F.path.root(CONF.directory_src);
+	var path = PATH.root(CONF.directory_src);
 	files.wait(function(file, next) {
 
 		if (!META.ignore(file.name))

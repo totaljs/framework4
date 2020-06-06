@@ -90,7 +90,7 @@ function NEXT() {
 		T.current = test;
 		T.current.results = [];
 
-		console.log('[ TEST: ' + test.filename.substring(F.path.tests().length) + (T.current.priority ? ' ({0}) ]'.format(T.current.priority) : ' ]'));
+		console.log('[ TEST: ' + test.filename.substring(PATH.tests().length) + (T.current.priority ? ' ({0}) ]'.format(T.current.priority) : ' ]'));
 		console.log('');
 
 		NEXT();
@@ -200,7 +200,7 @@ global.TESTUSER = function(user, flags) {
 };
 
 exports.load = function() {
-	var dir = F.path.tests();
+	var dir = PATH.tests();
 	U.ls(dir, function(files) {
 		files.waitFor(function(filename, next) {
 

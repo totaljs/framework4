@@ -1,6 +1,7 @@
 const SPECIAL = { clear: 1, clean: 1, drop: 1 };
+const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
 
-function Database(type, name, fork) {
+function Database(type, name, fork, ext) {
 	var t = this;
 	t.type = type;
 	t.name = name;
@@ -18,8 +19,12 @@ function Database(type, name, fork) {
 			}
 
 			builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
-			builder.options.type = type;
-			builder.options.database = name;
+
+			if (fork) {
+				builder.options.type = type;
+				builder.options.database = name;
+				builder.options.ext = ext;
+			}
 		}
 
 		if (t.fork.cmd_find) {
@@ -47,7 +52,7 @@ function Database(type, name, fork) {
 
 			if (!t.fork[key]) {
 				var db = require('./textdb');
-				t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases()) : db.TableDB(name, PATH.databases(), CONF['table_' + name]);
+				t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases(), ext) : db.TableDB(name, PATH.databases(), CONF['table_' + name], ext);
 			}
 
 			if (SPECIAL[builder.command]) {
@@ -96,6 +101,24 @@ DP.scalar = function() {
 DP.find = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find';
+	this.next(builder);
+	return builder;
+};
+
+function listing(builder, items, response) {
+	var skip = builder.options.skip || 0;
+	var take = builder.options.take || 0;
+	return { page: ((skip / take) + 1), pages: response.count ? Math.ceil(response.count / take) : 0, limit: take, count: response.count, items: items || [] };
+}
+
+DP.list = function() {
+	var builder = new DatabaseBuilder();
+	builder.command = 'find';
+	builder.$custom = function() {
+		return function(err, response, meta) {
+			builder.$callback && builder.$callback(err, listing(builder, response, meta), meta);
+		};
+	};
 	this.next(builder);
 	return builder;
 };
@@ -289,7 +312,7 @@ DP.update = DP.modify = function(data, upsert, noeval) {
 				if (response) {
 					builder.$callback && builder.$callback(err, response, meta);
 				} else {
-					builder.$upsert && builder.$upsert(arg);
+					builder.$upsert && builder.$upsert(arg, builder);
 					var bi = new DatabaseBuilder();
 					bi.command = 'insert';
 					bi.options.payload = arg;
@@ -373,6 +396,16 @@ DB.where = function(name, operator, value) {
 
 	self.builder.push('doc.' + name + operator + 'arg.params[' + self.param(value) + ']');
 	return self;
+};
+
+DB.backup = function(data) {
+	this.options.backup = data;
+	return this;
+};
+
+DB.log = function(data) {
+	this.options.log = data;
+	return this;
 };
 
 DB.rule = function(code, arg) {
@@ -574,6 +607,324 @@ function compare_datetype(type, key, paramindex, operator) {
 	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key, paramindex, operator, type);
 }
 
+// Converting values
+var convert = function(value, type) {
+
+	if (type === undefined || type === String)
+		return value;
+
+	if (type === Number)
+		return value.trim().parseFloat();
+
+	if (type === Date) {
+		value = value.trim();
+		if (value.indexOf(' ') !== -1)
+			return NOW.add('-' + value);
+		if (value.length < 8) {
+			var tmp;
+			var index = value.indexOf('-');
+			if (index !== -1) {
+				tmp = value.split('-');
+				value = NOW.getFullYear() + '-' + (tmp[0].length > 1 ? '' : '0') + tmp[0] + '-' + (tmp[1].length > 1 ? '' : '0') + tmp[1];
+			} else {
+				index = value.indexOf('.');
+				if (index !== -1) {
+					tmp = value.split('.');
+					value = NOW.getFullYear() + '-' + (tmp[1].length > 1 ? '' : '0') + tmp[0] + '-' + (tmp[0].length > 1 ? '' : '0') + tmp[1];
+				} else {
+					index = value.indexOf(':');
+					if (index !== -1) {
+						// hours
+					} else if (value.length <= 4) {
+						value = +value;
+						return value || 0;
+					}
+				}
+			}
+		}
+
+		return value.trim().parseDate();
+	}
+
+	if (type === Boolean)
+		return value.trim().parseBoolean();
+
+	return value;
+};
+
+DB.gridfields = function(fields, allowed) {
+
+	var self = this;
+	var count = 0;
+	var newfields = [];
+
+	fields = fields.replace(REG_FIELDS_CLEANER, '').split(',');
+
+	if (allowed)
+		allowed = allowed.split(',');
+
+	for (var i = 0; i < fields.length; i++) {
+		var field = fields[i];
+		var can = !allowed;
+		if (!can) {
+			for (var j = 0; j < allowed.length; j++) {
+				if (allowed[j] === field) {
+					can = true;
+					break;
+				}
+			}
+		}
+		if (can) {
+			newfields.push(fields[i]);
+			count++;
+		}
+	}
+
+	if (!count)
+		self.options.fields = newfields.join(',');
+
+	return self;
+};
+
+// Grid filtering
+DB.gridfilter = function(name, obj, type, key) {
+
+	var builder = this;
+	var value = obj[name];
+	var arr, val;
+
+	if (!key)
+		key = name;
+
+	// Between
+	var index = value.indexOf(' - ');
+	if (index !== -1) {
+
+		arr = value.split(' - ');
+
+		for (var i = 0, length = arr.length; i < length; i++) {
+			var item = arr[i].trim();
+			arr[i] = convert(item, type);
+		}
+
+		if (type === Date) {
+			if (typeof(arr[0]) === 'number') {
+				arr[0] = new Date(arr[0], 1, 1, 0, 0, 0);
+				arr[1] = new Date(arr[1], 11, 31, 23, 59, 59);
+			} else
+				arr[1] = arr[1].extend('23:59:59');
+		}
+
+		return builder.between(key, arr[0], arr[1]);
+	}
+
+	// Multiple values
+	index = value.indexOf(',');
+	if (index !== -1) {
+
+		var arr = value.split(',');
+
+		if (type === undefined || type === String) {
+			builder.or(function() {
+				for (var i = 0; i < arr.length; i++) {
+					var item = arr[i].trim();
+					builder.search(key, item);
+				}
+			});
+			return builder;
+		}
+
+		for (var i = 0, length = arr.length; i < length; i++)
+			arr[i] = convert(arr[i], type);
+
+		return builder.in(key, arr);
+	}
+
+	if (type === undefined || type === String)
+		return builder.search(key, value);
+
+	if (type === Date) {
+
+		if (value === 'yesterday')
+			val = NOW.add('-1 day');
+		else if (value === 'today')
+			val = NOW;
+		else
+			val = convert(value, type);
+
+		if (typeof(val) === 'number') {
+			if (val > 1000)
+				return builder.year(key, val);
+			else
+				return builder.month(key, val);
+		}
+
+		if (!(val instanceof Date) || !val.getTime())
+			val = NOW;
+
+		return builder.between(key, val.extend('00:00:00'), val.extend('23:59:59'));
+	}
+
+	return builder.where(key, convert(value, type));
+};
+
+// Grid sorting
+DB.gridsort = function(sort) {
+	var self = this;
+	self.options.sort = sort;
+	return self;
+};
+
+DB.autofill = function($, allowedfields, skipfilter, defsort, maxlimit, localized) {
+
+	if (typeof(defsort) === 'number') {
+		maxlimit = defsort;
+		defsort = null;
+	}
+
+	var self = this;
+	var query = $.query || $.options;
+	var schema = $.schema;
+	var skipped;
+	var allowed;
+	var key;
+	var tmp;
+
+	if (skipfilter) {
+		key = 'NDB_' + skipfilter;
+		skipped = CACHE[key];
+		if (!skipped) {
+			tmp = skipfilter.split(',').trim();
+			var obj = {};
+			for (var i = 0; i < tmp.length; i++)
+				obj[tmp[i]] = 1;
+			skipped = CACHE[key] = obj;
+		}
+	}
+
+	if (allowedfields) {
+		key = 'NDB_' + allowedfields;
+		allowed = CACHE[key];
+		if (!allowed) {
+			var obj = {};
+			var arr = [];
+			var filter = [];
+
+			if (localized)
+				localized = localized.split(',');
+
+			tmp = allowedfields.split(',').trim();
+			for (var i = 0; i < tmp.length; i++) {
+				var k = tmp[i].split(':').trim();
+				obj[k[0]] = 1;
+
+				if (localized && localized.indexOf(k[0]) !== -1)
+					arr.push(k[0] + '§');
+				else
+					arr.push(k[0]);
+
+				k[1] && filter.push({ name: k[0], type: (k[1] || '').toLowerCase() });
+			}
+			allowed = CACHE[key] = { keys: arr, meta: obj, filter: filter };
+		}
+	}
+
+	var fields = query.fields;
+	var fieldscount = 0;
+	var newfields = [];
+
+	if (fields) {
+		fields = fields.replace(REG_FIELDS_CLEANER, '').split(',');
+		for (var i = 0; i < fields.length; i++) {
+			var field = fields[i];
+			if (allowed && allowed.meta[field]) {
+				newfields.push(fields[i]);
+				fieldscount++;
+			} else if (schema.schema[field]) {
+				if (skipped && skipped[field])
+					continue;
+				newfields.push(field);
+				fieldscount++;
+			}
+		}
+	}
+
+	if (!fieldscount) {
+		if (allowed) {
+			for (var i = 0; i < allowed.keys.length; i++)
+				newfields.push(allowed.keys[i]);
+		}
+		if (schema.fields) {
+			for (var i = 0; i < schema.fields.length; i++) {
+				if (skipped && skipped[schema.fields[i]])
+					continue;
+				newfields.push(schema.fields[i]);
+			}
+		}
+	}
+
+	if (allowed && allowed.filter) {
+		for (var i = 0; i < allowed.filter.length; i++) {
+			tmp = allowed.filter[i];
+			self.gridfilter(tmp.name, query, tmp.type);
+		}
+	}
+
+	if (schema.fields) {
+		for (var i = 0; i < schema.fields.length; i++) {
+			var name = schema.fields[i];
+			if ((!skipped || !skipped[name]) && query[name]) {
+				var field = schema.schema[name];
+				var type = 'string';
+				switch (field.type) {
+					case 2:
+						type = 'number';
+						break;
+					case 4:
+						type = 'boolean';
+						break;
+					case 5:
+						type = 'date';
+						break;
+				}
+				self.gridfilter(name, query, type);
+			}
+		}
+	}
+
+	if (query.sort) {
+		var index = query.sort.lastIndexOf('_');
+		if (index !== -1) {
+			var name = query.sort.substring(0, index);
+			var can = true;
+
+			if (skipped && skipped[name])
+				can = false;
+
+			if (can && allowed && !allowed.meta[name])
+				can = false;
+
+			if (can && !allowed) {
+				if (!schema.schema[name])
+					can = false;
+			} else if (!can)
+				can = !!schema.schema[name];
+
+			if (can)
+				self.sort(name, query.sort[index + 1] === 'd');
+			else if (defsort)
+				self.gridsort(defsort);
+
+		} else if (defsort)
+			self.gridsort(defsort);
+
+	} else if (defsort)
+		self.gridsort(defsort);
+
+	maxlimit && self.paginate(query.page, query.limit, maxlimit || 50);
+	return self;
+};
+
 DB.join = function(field, db) {
 
 	var self = this;
@@ -672,8 +1023,8 @@ DB.$callbackjoin = function() {
 	};
 };
 
-exports.make = function(type, name, fork) {
-	return new Database(type, name, fork);
+exports.make = function(type, name, fork, ext) {
+	return new Database(type, name, fork, ext);
 };
 
 exports.makebuilder = function() {

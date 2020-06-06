@@ -24,7 +24,7 @@ function processcommand(msg) {
 
 	if (!instance) {
 		var db = require('./textdb');
-		instance = instances[key] = msg.builder.type === 'nosql' ? db.JsonDB(msg.builder.database, process.argv[2]) : db.TableDB(msg.builder.database, process.argv[2], CONF['table_' + msg.builder.database]);
+		instance = instances[key] = msg.builder.type === 'nosql' ? db.JsonDB(msg.builder.database, process.argv[2], msg.builder.ext) : db.TableDB(msg.builder.database, process.argv[2], CONF['table_' + msg.builder.database], msg.builder.ext);
 		instance.recount();
 		setTimeout(processcommand, 100, msg);
 		return;

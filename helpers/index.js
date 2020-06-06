@@ -1,6 +1,5 @@
 // ===================================================
-// FOR DEVELOPMENT
-// Total.js - framework for Node.js platform
+// Total.js start script
 // https://www.totaljs.com
 // ===================================================
 

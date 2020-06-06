@@ -487,6 +487,138 @@ global.$MAKE = function(schema, model, filter, callback, novalidate, argument) {
 	return o ? o.make(model, filter, callback, argument, novalidate, w) : undefined;
 };
 
+global.$QUERY = function(schema, options, callback, controller) {
+	var o = framework_builders.getschema(schema);
+	if (o)
+		o.query(options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
+global.$GET = global.$READ = function(schema, options, callback, controller) {
+	var o = framework_builders.getschema(schema);
+	if (o)
+		o.get(options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
+global.$WORKFLOW = function(schema, name, options, callback, controller) {
+	var o = framework_builders.getschema(schema);
+	if (o)
+		o.workflow2(name, options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
+global.$TRANSFORM = function(schema, name, options, callback, controller) {
+	var o = framework_builders.getschema(schema);
+	if (o)
+		o.transform2(name, options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
+global.$REMOVE = function(schema, options, callback, controller) {
+	var o = framework_builders.getschema(schema);
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
+	if (o)
+		o.remove(options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
+global.$SAVE = function(schema, model, options, callback, controller, novalidate) {
+	return performschema('$save', schema, model, options, callback, controller, novalidate);
+};
+
+global.$INSERT = function(schema, model, options, callback, controller, novalidate) {
+	return performschema('$insert', schema, model, options, callback, controller, novalidate);
+};
+
+global.$UPDATE = function(schema, model, options, callback, controller, novalidate) {
+	return performschema('$update', schema, model, options, callback, controller, novalidate);
+};
+
+global.$PATCH = function(schema, model, options, callback, controller, novalidate) {
+	return performschema('$patch', schema, model, options, callback, controller, novalidate);
+};
+
+// type, schema, model, options, callback, controller
+function performschema(type, schema, model, options, callback, controller, novalidate) {
+
+	if (typeof(options) === 'function') {
+		novalidate = controller;
+		controller = callback;
+		callback = options;
+		options = null;
+	}
+
+	var o = framework_builders.getschema(schema);
+
+	if (!o) {
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+		return false;
+	}
+
+	var workflow = {};
+	workflow[type.substring(1)] = 1;
+
+	var req = controller ? controller.req : null;
+	var keys;
+
+	if (type === '$patch') {
+		keys = Object.keys(model);
+		if (req)
+			req.$patch = true;
+		else
+			req = { $patch: true };
+	}
+
+	o.make(model, null, function(err, model) {
+		if (err) {
+			callback && callback(err);
+		} else {
+			model.$$keys = keys;
+			model.$$controller = controller;
+			model[type](options, callback);
+			if (req && req.$patch && req.method && req.method !== 'PATCH')
+				delete req.$patch;
+		}
+	}, null, novalidate, workflow, req);
+
+	return !!o;
+}
+
+global.$ASYNC = function(schema, callback, index, controller) {
+
+	if (index && typeof(index) === 'object') {
+		controller = index;
+		index = undefined;
+	}
+
+	var o = framework_builders.getschema(schema).default();
+
+	if (!o) {
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+		return EMPTYOBJECT;
+	}
+
+	controller && (o.$$controller = controller);
+	return o.$async(callback, index);
+};
+
 // GET Users/Neviem  --> @query @workflow
 global.$ACTION = function(schema, model, callback, controller) {
 
@@ -1380,24 +1512,23 @@ F.$routes_sort = function(type) {
 };
 
 F.parseComponent = parseComponent;
-
-var textdbworker = null;
+F.textdbworker = null;
 
 function nosqlwrapper(name) {
 	var db = F.databases[name];
 	if (db)
 		return db;
 
-	if (textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('nosql', name, textdbworker);
+	if (F.textdbworker)
+		return F.databases[name] = require('./textdb-wrapper').make('nosql', name, F.textdbworker);
 
-	F.path.verify('databases');
+	PATH.verify('databases');
 
 	// Is web server?
 	if (F.port && CONF.textdb_worker)
-		textdbworker = framework_nosql.init(PATH.databases());
+		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	return F.databases[name] = require('./textdb-wrapper').make('nosql', name, textdbworker);
+	return F.databases[name] = require('./textdb-wrapper').make('nosql', name, F.textdbworker);
 }
 
 global.NOSQL = function(name) {
@@ -1418,16 +1549,16 @@ function tablewrapper(name) {
 	if (db)
 		return db;
 
-	if (textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('table', name, textdbworker);
+	if (F.textdbworker)
+		return F.databases[name] = require('./textdb-wrapper').make('table', name, F.textdbworker);
 
-	F.path.verify('databases');
+	PATH.verify('databases');
 
 	// Is web server?
 	if (F.port && CONF.textdb_worker)
-		textdbworker = framework_nosql.init(PATH.databases());
+		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	return F.databases[name] = require('./textdb-wrapper').make('table', name, textdbworker);
+	return F.databases[name] = require('./textdb-wrapper').make('table', name, F.textdbworker);
 }
 
 global.TABLE = function(name) {
@@ -1454,7 +1585,8 @@ F.stop = F.kill = function(signal) {
 		} catch (e) {}
 	}
 
-	textdbworker && textdbworker.kill(0);
+	F.textdbworker && F.textdbworker.kill(0);
+	F.textdbworker = null;
 
 	EMIT('exit', signal);
 
@@ -2627,9 +2759,9 @@ global.MERGE = function(url) {
 			var fn = items[j];
 			var c = fn[0];
 			if (c === '@')
-				fn = '~' + F.path.package(fn.substring(1));
+				fn = '~' + PATH.package(fn.substring(1));
 			else if (c === '=')
-				fn = '~' + F.path.themes(fn.substring(1));
+				fn = '~' + PATH.themes(fn.substring(1));
 			arr.push(fn);
 		}
 	}
@@ -2638,7 +2770,7 @@ global.MERGE = function(url) {
 		url = '/' + url;
 
 	var key = createTemporaryKey(url);
-	var filename = F.path.temp((F.id ? 'i-' + F.id + '_' : '') + 'merged_' + key);
+	var filename = PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'merged_' + key);
 	F.routes.merge[url] = { filename: filename.replace(/\.(js|css)$/g, ext => '.min' + ext), files: arr };
 	Fs.unlink(F.routes.merge[url].filename, NOOP);
 	F.owners.push({ type: 'merge', owner: _owner, id: url });
@@ -2694,13 +2826,13 @@ global.MAP = function(url, filename, filter) {
 
 	// package
 	if (c === '@') {
-		filename = F.path.package(filename.substring(1));
+		filename = PATH.package(filename.substring(1));
 		isPackage = true;
 	} else if (c === '=') {
 		if (F.isWindows)
 			filename = U.combine(CONF.directory_themes, filename.substring(1));
 		else
-			filename = F.path.themes(filename.substring(1));
+			filename = PATH.themes(filename.substring(1));
 		isPackage = true;
 	}
 
@@ -2708,7 +2840,7 @@ global.MAP = function(url, filename, filter) {
 
 	// Checks if the directory exists
 	if (!isPackage && !filename.startsWith(directory)) {
-		var tmp = filename[0] === '~' ? F.path.root(filename.substring(1)) : F.path.public(filename);
+		var tmp = filename[0] === '~' ? PATH.root(filename.substring(1)) : PATH.public(filename);
 		if (existsSync(tmp))
 			filename = tmp;
 	}
@@ -3566,7 +3698,7 @@ F.$bundle = function(callback) {
 			});
 		}, function() {
 			require('./bundles').make(function() {
-				F.directory = HEADERS.workers.cwd = directory = F.path.root(CONF.directory_src);
+				F.directory = HEADERS.workers.cwd = directory = PATH.root(CONF.directory_src);
 				callback();
 			});
 		});
@@ -3578,7 +3710,7 @@ F.$bundle = function(callback) {
 			makebundle();
 			return;
 		} else
-			F.directory = HEADERS.workers.cwd = directory = F.path.root(CONF.directory_src);
+			F.directory = HEADERS.workers.cwd = directory = PATH.root(CONF.directory_src);
 	} catch(e) {}
 	callback();
 };
@@ -3635,7 +3767,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 
 	try {
 		// Reads name of resources
-		F.temporary.internal.resources = Fs.readdirSync(F.path.resources()).map(n => n.substring(0, n.lastIndexOf('.')));
+		F.temporary.internal.resources = Fs.readdirSync(PATH.resources()).map(n => n.substring(0, n.lastIndexOf('.')));
 	} catch (e) {
 		F.temporary.internal.resources = [];
 	}
@@ -3687,11 +3819,11 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 				}
 
 				U.ls(item.filename, function(files, directories) {
-					var dir = F.path.temp(item.name) + '.package';
+					var dir = PATH.temp(item.name) + '.package';
 					!existsSync(dir) && Fs.mkdirSync(dir);
 
 					for (var i = 0, length = directories.length; i < length; i++) {
-						var target = F.path.temp(U.$normalize(directories[i]).replace(dirtmp, '') + '/');
+						var target = PATH.temp(U.$normalize(directories[i]).replace(dirtmp, '') + '/');
 						!existsSync(target) && Fs.mkdirSync(target);
 					}
 
@@ -3921,7 +4053,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 				name = '';
 			}
 		} else if (name[0] === '@') {
-			declaration = F.path.package(name.substring(1));
+			declaration = PATH.package(name.substring(1));
 			name = Path.basename(name).replace(/\.js$/i, '');
 			if (useRequired === undefined)
 				useRequired = true;
@@ -3969,7 +4101,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		if (declaration[0] === '~')
 			declaration = declaration.substring(1);
 		if (type !== 'config' && type !== 'resource' && type !== 'package' && type !== 'component' && !REG_SCRIPTCONTENT.test(declaration)) {
-			var relative = F.path.root(declaration);
+			var relative = PATH.root(declaration);
 			if (existsSync(relative))
 				declaration = relative;
 			if (!existsSync(declaration))
@@ -4066,8 +4198,8 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		content = parseComponent(internal ? declaration : Fs.readFileSync(declaration).toString(ENCODING), name);
 
 		if (F.$bundling) {
-			content.js && Fs.appendFileSync(F.path.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + hash.substring(0, hash.length - 1));
-			content.css && Fs.appendFileSync(F.path.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + hash.substring(0, hash.length - 1));
+			content.js && Fs.appendFileSync(PATH.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + hash.substring(0, hash.length - 1));
+			content.css && Fs.appendFileSync(PATH.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + hash.substring(0, hash.length - 1));
 		}
 
 		if (!Object.keys(content.parts).length)
@@ -4085,7 +4217,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 			delete F.components.files[name];
 
 		if (content.body) {
-			F.components.views[name] = '.' + F.path.temp('component_' + name);
+			F.components.views[name] = '.' + PATH.temp('component_' + name);
 			F.$bundling && Fs.writeFile(F.components.views[name].substring(1) + '.html', U.minifyHTML(content.body), NOOP);
 		} else
 			delete F.components.views[name];
@@ -4098,7 +4230,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 
 		if (content.install) {
 			try {
-				var filecomponent = F.path.temp('component-' + name + '.js');
+				var filecomponent = PATH.temp('component-' + name + '.js');
 				_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
 				Fs.writeFileSync(filecomponent, content.install.trim());
 				obj = require(filecomponent);
@@ -4149,12 +4281,12 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 				tmp = F.components.groups[obj.group] = {};
 
 			if (content.js) {
-				Fs.appendFileSync(F.path.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + hash.substring(0, hash.length - 1));
+				Fs.appendFileSync(PATH.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + hash.substring(0, hash.length - 1));
 				tmp.js = true;
 			}
 
 			if (content.css) {
-				Fs.appendFileSync(F.path.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + hash.substring(0, hash.length - 1));
+				Fs.appendFileSync(PATH.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + hash.substring(0, hash.length - 1));
 				tmp.css = true;
 			}
 
@@ -4177,7 +4309,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 	if (type === 'package') {
 
 		var id = Path.basename(declaration, '.' + U.getExtension(declaration));
-		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id + '.package') : Path.join(F.path.root(), CONF.directory_temp, id + '.package');
+		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id + '.package') : Path.join(PATH.root(), CONF.directory_temp, id + '.package');
 
 		F.routes.packages[id] = dir;
 
@@ -4242,7 +4374,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 	if (type === 'package2') {
 		type = type.substring(0, type.length - 1);
 		var id = U.getName(declaration, '.package');
-		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id) : Path.join(F.path.root(), CONF.directory_temp, id);
+		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id) : Path.join(PATH.root(), CONF.directory_temp, id);
 		var filename = Path.join(dir, 'index.js');
 		INSTALL('module', id.replace(/\.package$/i, ''), filename, options || CONF['package#' + name], function(err) {
 			setTimeout(function() {
@@ -4268,7 +4400,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 
 		if (item === undefined) {
 			item = {};
-			item.filename = F.path.temporary(plus + 'installed-view-' + U.GUID(10) + '.tmp');
+			item.filename = PATH.temporary(plus + 'installed-view-' + U.GUID(10) + '.tmp');
 			item.url = internal;
 			item.count = 0;
 			F.routes.views[name] = item;
@@ -4299,7 +4431,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		try {
 
 			if (useRequired) {
-				var relative = F.path.root(declaration);
+				var relative = PATH.root(declaration);
 				if (existsSync(relative))
 					declaration = relative;
 				delete require.cache[require.resolve(declaration)];
@@ -4345,7 +4477,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 		try {
 
 			if (useRequired) {
-				var relative = F.path.root(declaration);
+				var relative = PATH.root(declaration);
 				if (existsSync(relative))
 					declaration = relative;
 				obj = require(declaration);
@@ -4364,7 +4496,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 						name = tmp.toString().replace(/\.js/i, '');
 				}
 
-				var filename = F.path.temporary(plus + 'installed-' + type + '-' + U.GUID(10) + '.js');
+				var filename = PATH.temporary(plus + 'installed-' + type + '-' + U.GUID(10) + '.js');
 				Fs.writeFileSync(filename, declaration);
 				obj = require(filename);
 
@@ -4449,7 +4581,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 
 		try {
 			if (useRequired) {
-				var relative = F.path.root(declaration);
+				var relative = PATH.root(declaration);
 				if (existsSync(relative))
 					declaration = relative;
 				obj = require(declaration);
@@ -4469,7 +4601,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 						name = tmp.toString().replace(/\.js/i, '');
 				}
 
-				filename = F.path.temporary(plus + 'installed-' + type + '-' + U.GUID(10) + '.js');
+				filename = PATH.temporary(plus + 'installed-' + type + '-' + U.GUID(10) + '.js');
 				Fs.writeFileSync(filename, declaration);
 				obj = require(filename);
 				(function(name, filename) {
@@ -4504,7 +4636,7 @@ global.INSTALL = function(type, name, declaration, options, callback, internal, 
 
 		obj.booting && setTimeout(function() {
 
-			var tmpdir = F.path.temp(name + (U.getExtension(name) === 'package' ? '' : '.package/'));
+			var tmpdir = PATH.temp(name + (U.getExtension(name) === 'package' ? '' : '.package/'));
 
 			if (obj.booting === 'root') {
 				F.directory = directory = tmpdir;
@@ -4826,21 +4958,21 @@ global.UNINSTALL = function(type, name, options, skipEmit, packageName) {
 		var is = false;
 
 		if (F.components.js) {
-			data = Fs.readFileSync(F.path.temp(temporary + '.js')).toString('utf-8');
+			data = Fs.readFileSync(PATH.temp(temporary + '.js')).toString('utf-8');
 			index = data.indexOf(beg);
 			if (index !== -1) {
 				data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-				Fs.writeFileSync(F.path.temp(temporary + '.js'), data);
+				Fs.writeFileSync(PATH.temp(temporary + '.js'), data);
 				is = true;
 			}
 		}
 
 		if (F.components.css) {
-			data = Fs.readFileSync(F.path.temp(temporary + '.css')).toString('utf-8');
+			data = Fs.readFileSync(PATH.temp(temporary + '.css')).toString('utf-8');
 			index = data.indexOf(beg);
 			if (index !== -1) {
 				data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-				Fs.writeFileSync(F.path.temp(temporary + '.css'), data);
+				Fs.writeFileSync(PATH.temp(temporary + '.css'), data);
 				is = true;
 			}
 		}
@@ -4851,21 +4983,21 @@ global.UNINSTALL = function(type, name, options, skipEmit, packageName) {
 			if (tmp) {
 
 				if (tmp.js) {
-					data = Fs.readFileSync(F.path.temp(temporary + '.js')).toString('utf-8');
+					data = Fs.readFileSync(PATH.temp(temporary + '.js')).toString('utf-8');
 					index = data.indexOf(beg);
 					if (index !== -1) {
 						data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-						Fs.writeFileSync(F.path.temp(temporary + '.js'), data);
+						Fs.writeFileSync(PATH.temp(temporary + '.js'), data);
 						is = true;
 					}
 				}
 
 				if (tmp.css) {
-					data = Fs.readFileSync(F.path.temp(temporary + '.css')).toString('utf-8');
+					data = Fs.readFileSync(PATH.temp(temporary + '.css')).toString('utf-8');
 					index = data.indexOf(beg);
 					if (index !== -1) {
 						data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-						Fs.writeFileSync(F.path.temp(temporary + '.css'), data);
+						Fs.writeFileSync(PATH.temp(temporary + '.css'), data);
 						is = true;
 					}
 				}
@@ -4971,12 +5103,12 @@ F.register = function(path) {
 	var c = path[0];
 
 	if (c === '@')
-		path = F.path.package(path.substring(1));
+		path = PATH.package(path.substring(1));
 	else if (c === '=') {
 		if (path[1] === '?')
-			F.path.themes(CONF.default_theme + path.substring(2));
+			PATH.themes(CONF.default_theme + path.substring(2));
 		else
-			path = F.path.themes(path.substring(1));
+			path = PATH.themes(path.substring(1));
 	}
 
 	switch (extension) {
@@ -5070,7 +5202,7 @@ F.onMapping = function(url, def, ispublic, encode) {
 	if (tmp[1] === '~') {
 		var index = tmp.indexOf('/', 2);
 		var name = tmp.substring(2, index);
-		return F.components.files[name] && F.components.files[name][tmp.substring(index + 1)] ? (F.path.temp() + tmp.substring(1)) : null;
+		return F.components.files[name] && F.components.files[name][tmp.substring(index + 1)] ? (PATH.temp() + tmp.substring(1)) : null;
 	}
 
 	if (F.routes.mapping[url])
@@ -5091,9 +5223,9 @@ F.onMapping = function(url, def, ispublic, encode) {
 		def = $decodeURIComponent(def);
 
 	if (ispublic)
-		def = F.path.public_cache(def);
+		def = PATH.public_cache(def);
 	else
-		def = def[0] === '~' ? def.substring(1) : def[0] === '.' ? def : F.path.public_cache(def);
+		def = def[0] === '~' ? def.substring(1) : def[0] === '.' ? def : PATH.public_cache(def);
 
 	return def;
 };
@@ -5358,7 +5490,7 @@ global.LOGGER = function() {
 		str += (str ? ' ' : '') + val;
 	}
 
-	F.path.verify('logs');
+	PATH.verify('logs');
 	U.queue('LOGGER', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next));
 	return F;
 };
@@ -5572,8 +5704,8 @@ function compile_file(res) {
 			return;
 		}
 
-		var file = F.path.temp((F.id ? 'i-' + F.id + '_' : '') + createTemporaryKey(uri.pathname));
-		F.path.verify('temp');
+		var file = PATH.temp((F.id ? 'i-' + F.id + '_' : '') + createTemporaryKey(uri.pathname));
+		PATH.verify('temp');
 		Fs.writeFileSync(file, compile_content(req.extension, framework_internal.parseBlock(F.routes.blocks[uri.pathname], buffer.toString(ENCODING)), res.options.filename), ENCODING);
 		var stats = Fs.statSync(file);
 		var tmp = [file, stats.size, stats.mtime.toUTCString()];
@@ -5639,7 +5771,7 @@ function compile_merge(res, repeated) {
 		}
 
 		if (filename[0] !== '~') {
-			var tmp = F.path.public(filename);
+			var tmp = PATH.public(filename);
 			filename = tmp;
 		} else
 			filename = filename.substring(1);
@@ -5785,7 +5917,7 @@ function compile_gzip(arr, callback) {
 
 	// GZIP compression
 
-	var filename = F.path.temp('file' + arr[0].hash().toString().replace('-', '0') + '.gz');
+	var filename = PATH.temp('file' + arr[0].hash().toString().replace('-', '0') + '.gz');
 	arr.push(filename);
 
 	var reader = Fs.createReadStream(arr[0]);
@@ -5869,7 +6001,7 @@ F.restore = function(filename, target, callback, filter) {
 			if (!cache[path]) {
 				cache[path] = true;
 				if (!filter || filter(item, true) !== false)
-					F.path.mkdir(path);
+					PATH.mkdir(path);
 			}
 			type = 3;
 			parser.next();
@@ -5884,7 +6016,7 @@ F.restore = function(filename, target, callback, filter) {
 			var filename = filter && filter(item, false);
 
 			if (!filter || filename || filename == null)
-				F.path.mkdir(npath);
+				PATH.mkdir(npath);
 			else {
 				type = 5; // skip
 				parser.next();
@@ -6030,7 +6162,7 @@ F.restore = function(filename, target, callback, filter) {
 F.backup = function(filename, filelist, callback, filter) {
 
 	var padding = 100;
-	var path = filelist instanceof Array ? F.path.root() : filelist;
+	var path = filelist instanceof Array ? PATH.root() : filelist;
 
 	if (!(filelist instanceof Array))
 		filelist = [''];
@@ -6158,7 +6290,7 @@ F.exists = function(req, res, max, callback) {
 	}
 
 	var name = req.$key = createTemporaryKey(req);
-	var filename = F.path.temp(name);
+	var filename = PATH.temp(name);
 	var httpcachevalid = RELEASE && (req.headers['if-none-match'] === (ETAG + CONF.etag_version));
 
 	if (F.isProcessed(name) || httpcachevalid) {
@@ -6193,7 +6325,7 @@ F.isProcessed = function(filename) {
 		var index = name.indexOf('?');
 		if (index !== -1)
 			name = name.substring(0, index);
-		filename = F.path.public($decodeURIComponent(name));
+		filename = PATH.public($decodeURIComponent(name));
 	}
 
 	return !F.temporary.notfound[filename] && F.temporary.path[filename] !== undefined;
@@ -6816,7 +6948,7 @@ F.console = function() {
 };
 
 F.usagesnapshot = function(filename) {
-	Fs.writeFile(filename || F.path.root('usage' + (F.id ? ('-' + F.id) : '') + '.log'), JSON.stringify(F.usage(true), null, '\t'), NOOP);
+	Fs.writeFile(filename || PATH.root('usage' + (F.id ? ('-' + F.id) : '') + '.log'), JSON.stringify(F.usage(true), null, '\t'), NOOP);
 	return F;
 };
 
@@ -7842,7 +7974,7 @@ F.test = function() {
  */
 F.clear = function(callback, isInit) {
 
-	var dir = F.path.temp();
+	var dir = PATH.temp();
 	var plus = F.id ? 'i-' + F.id + '_' : '';
 
 	if (isInit) {
@@ -8453,9 +8585,9 @@ F.$configure_versions = function(arr, clean) {
 									if (F.themes[theme])
 										key = F.themes[theme] + 'public' + key.substring(index);
 									else
-										key = F.path.public(key);
+										key = PATH.public(key);
 								} else
-									key = F.path.public(key);
+									key = PATH.public(key);
 								MAP(filename, key);
 							}
 
@@ -8469,7 +8601,7 @@ F.$configure_versions = function(arr, clean) {
 
 		} else {
 			F.versions[key] = filename;
-			ismap && MAP(filename, F.path.public(key));
+			ismap && MAP(filename, PATH.public(key));
 		}
 	}
 
@@ -9190,7 +9322,7 @@ global.WORKER = F.worker = function(name, id, timeout, args, special) {
 	if (fork)
 		return fork;
 
-	var filename = name[0] === '@' ? F.path.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
+	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
 
 	if (!args)
 		args = EMPTYARRAY;
@@ -9691,13 +9823,13 @@ FrameworkCacheProto.init_timer = function() {
 };
 
 FrameworkCacheProto.save = function() {
-	Fs.writeFile(F.path.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachesnapshot.jsoncache'), JSON.stringify(this.items), NOOP);
+	Fs.writeFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachesnapshot.jsoncache'), JSON.stringify(this.items), NOOP);
 	return this;
 };
 
 FrameworkCacheProto.load = function(callback) {
 	var self = this;
-	Fs.readFile(F.path.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachesnapshot.jsoncache'), function(err, data) {
+	Fs.readFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachesnapshot.jsoncache'), function(err, data) {
 		if (!err) {
 			try {
 				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
@@ -9721,14 +9853,14 @@ FrameworkCacheProto.savepersistent = function() {
 				obj[key] = item;
 		}
 
-		Fs.writeFile(F.path.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachepersist.jsoncache'), JSON.stringify(obj), NOOP);
+		Fs.writeFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachepersist.jsoncache'), JSON.stringify(obj), NOOP);
 	}, 1000, 50, this);
 	return this;
 };
 
 FrameworkCacheProto.loadpersistent = function(callback) {
 	var self = this;
-	Fs.readFile(F.path.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachepersist.jsoncache'), function(err, data) {
+	Fs.readFile(PATH.temp((F.id ? 'i-' + F.id + '_' : '') + 'framework_cachepersist.jsoncache'), function(err, data) {
 		if (!err) {
 			try {
 				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
@@ -12357,7 +12489,7 @@ ControllerProto.file = function(filename, download, headers, done) {
 	if (filename[0] === '~')
 		filename = filename.substring(1);
 	else
-		filename = F.path.public_cache(filename);
+		filename = PATH.public_cache(filename);
 
 	var res = this.res;
 	res.options.filename = filename;
@@ -12408,7 +12540,7 @@ ControllerProto.image = function(filename, make, headers, done) {
 		if (filename[0] === '~')
 			filename = filename.substring(1);
 		else
-			filename = F.path.public_cache(filename);
+			filename = PATH.public_cache(filename);
 
 		res.options.filename = filename;
 	} else
@@ -12777,7 +12909,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 		filename = name;
 
 		if (self.themeName && skip < 3) {
-			filename = '.' + F.path.themes(self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
+			filename = '.' + PATH.themes(self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
 			isTheme = true;
 		}
 
@@ -12794,12 +12926,12 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 			filename = name.substring(1);
 
 		if (skip === 3)
-			filename = '.' + F.path.package(filename);
+			filename = '.' + PATH.package(filename);
 
 		if (skip === 6) {
 			c = U.parseTheme(filename);
 			name = name.substring(name.indexOf('/') + 1);
-			filename = '.' + F.path.themes(c + '/views/' + name).replace(REG_SANITIZE_BACKSLASH, '/');
+			filename = '.' + PATH.themes(c + '/views/' + name).replace(REG_SANITIZE_BACKSLASH, '/');
 		}
 
 		if (skip === 7) {
@@ -12811,7 +12943,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 				return;
 			}
 
-			filename = F.path.temp('view' + name.hash() + '.html');
+			filename = PATH.temp('view' + name.hash() + '.html');
 			F.temporary.other[key] = 0;
 
 			var done = { callback: NOOP };
@@ -14257,8 +14389,9 @@ function extend_request(PROTO) {
 
 	Object.defineProperty(PROTO, 'query', {
 		get: function() {
-			if (!this._querydata)
-				this._querydata = DEF.parsers.urlencoded(this.uri.query);
+			if (!this._querydata) {
+				this._querydata = this.uri.query ? DEF.parsers.urlencoded(this.uri.query) : {};
+			}
 			return this._querydata;
 		},
 		set: function(value) {
@@ -14504,7 +14637,7 @@ function extend_request(PROTO) {
 		this.$total_route = F.lookup(this, this.uri.pathname, this.flags, 0);
 		this.$total_header = header;
 		if (this.$total_route) {
-			F.path.verify('temp');
+			PATH.verify('temp');
 			framework_internal.parseMULTIPART(this, header, this.$total_route, CONF.directory_temp);
 		} else
 			this.$total_status(404);
@@ -15385,7 +15518,7 @@ function extend_response(PROTO) {
 				res.noCompress = true;
 				res.options.components = true;
 				var g = req.query.group ? req.query.group.substring(0, req.query.group.length - 6) : '';
-				filename = F.path.temp('components' + (g ? '_g' + g : '') + '.' + req.extension);
+				filename = PATH.temp('components' + (g ? '_g' + g : '') + '.' + req.extension);
 				if (g)
 					req.$key = 'components_' + g + '.' + req.extension;
 				else
@@ -15410,7 +15543,7 @@ function extend_response(PROTO) {
 			return res;
 		}
 
-		var tmp = F.path.temp(req.$key);
+		var tmp = PATH.temp(req.$key);
 		if (F.temporary.path[req.$key]) {
 			res.options.filename = req.uri.pathname;
 			res.$file();
@@ -15460,7 +15593,7 @@ function extend_response(PROTO) {
 
 			// Is package?
 			if (options.filename && options.filename[0] === '@')
-				options.filename = F.path.package(options.filename.substring(1));
+				options.filename = PATH.package(options.filename.substring(1));
 
 			F.$filelocalize(req, res, false, options);
 			return;
@@ -15481,7 +15614,7 @@ function extend_response(PROTO) {
 
 		// Is package?
 		if (options.filename && options.filename[0] === '@')
-			options.filename = F.path.package(options.filename.substring(1));
+			options.filename = PATH.package(options.filename.substring(1));
 
 		var name = F.temporary.path[req.$key];
 		var index;
@@ -15810,7 +15943,7 @@ function extend_response(PROTO) {
 		var name = F.temporary.path[key];
 
 		if (options.filename && options.filename[0] === '@')
-			options.filename = F.path.package(options.filename.substring(1));
+			options.filename = PATH.package(options.filename.substring(1));
 
 		if (name !== undefined) {
 			res.$file();
@@ -15829,7 +15962,7 @@ function extend_response(PROTO) {
 
 		var plus = F.id ? 'i-' + F.id + '_' : '';
 
-		options.name = F.path.temp(plus + key);
+		options.name = PATH.temp(plus + key);
 
 		if (options.persistent) {
 			fsFileExists(options.name, $image_persistent, res);
@@ -16130,7 +16263,7 @@ function $image_nocache(res) {
 	fsFileExists(options.filename, function(e) {
 
 		if (e) {
-			F.path.verify('temp');
+			PATH.verify('temp');
 			var image = framework_image.load(options.filename);
 			options.make.call(image, image, res);
 			F.stats.response.image++;
@@ -16170,7 +16303,7 @@ function $image_stream(exists, size, isFile, stats, res) {
 		return;
 	}
 
-	F.path.verify('temp');
+	PATH.verify('temp');
 
 	var image = framework_image.load(options.stream);
 	options.make.call(image, image, res);
@@ -16221,7 +16354,7 @@ function $image_filename(exists, size, isFile, stats, res) {
 		return;
 	}
 
-	F.path.verify('temp');
+	PATH.verify('temp');
 
 	var image = framework_image.load(options.filename);
 	options.make.call(image, image, res);
@@ -16554,7 +16687,7 @@ function prepare_error(e) {
 }
 
 function prepare_filename(name) {
-	return name[0] === '@' ? (F.isWindows ? U.combine(CONF.directory_temp, name.substring(1)) : F.path.package(name.substring(1))) : U.combine('/', name);
+	return name[0] === '@' ? (F.isWindows ? U.combine(CONF.directory_temp, name.substring(1)) : PATH.package(name.substring(1))) : U.combine('/', name);
 }
 
 function prepare_staticurl(url, isDirectory) {
@@ -16728,7 +16861,7 @@ function parseComponent(body, filename) {
 		body = body.substring(0, beg) + body.substring(end + 7);
 
 		// Creates directory
-		var p = F.path.temp() + '~' + comname;
+		var p = PATH.temp() + '~' + comname;
 		try {
 			Fs.mkdirSync(p);
 		} catch (e) {}
@@ -16948,7 +17081,7 @@ function controller_json_workflow_multiple(id) {
 }
 
 function ilogger(body) {
-	F.path.verify('logs');
+	PATH.verify('logs');
 	U.queue('F.ilogger', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, 'logger.log'), body, next));
 }
 

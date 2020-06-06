@@ -188,7 +188,7 @@ function runwatching() {
 		}
 
 		try {
-			Fs.statSync(F.path.root(CONF.directory_bundles));
+			Fs.statSync(PATH.root(CONF.directory_bundles));
 			isBUNDLE = true;
 		} catch(e) {}
 

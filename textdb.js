@@ -45,13 +45,16 @@ const TABLERECORD = { '+': 1, '-': 1, '*': 1 };
 const MAXREADERS = 3;
 const JSONBUFFER = 40;
 
+// For performing of cleaning
+var INSTANCES = [];
+
 // Temporary
 var CACHEITEMS = {};
 
-function TableDB(name, directory, schema) {
+function TableDB(name, directory, schema, ext) {
 	var t = this;
 	t.duration = [];
-	t.filename = Path.join(directory, name + '.table');
+	t.filename = Path.join(directory, name + (ext || '.table'));
 	t.filenameLog = Path.join(directory, name + '.tlog');
 	t.filenameBackup = Path.join(directory, name + '.tbk');
 	t.id = HASH(t.filename, true) + '';
@@ -95,11 +98,11 @@ function TableDB(name, directory, schema) {
 	});
 }
 
-function JsonDB(name, directory) {
+function JsonDB(name, directory, ext) {
 
 	var t = this;
 
-	t.filename = Path.join(directory, name + '.nosql');
+	t.filename = Path.join(directory, name + (ext || '.nosql'));
 	t.filenameLog = Path.join(directory, name + '.nlog');
 	t.filenameBackup = Path.join(directory, name + '.nbk');
 	t.id = HASH(t.filename, true) + '';
@@ -216,21 +219,21 @@ TD.backup = JD.backup = function(filename, callback) {
 	var pending = [];
 
 	pending.push(function(next) {
-		F.path.exists(self.filename, function(e) {
+		PATH.exists(self.filename, function(e) {
 			e && list.push(self.filename);
 			next();
 		});
 	});
 
 	pending.push(function(next) {
-		F.path.exists(self.filenameLog, function(e) {
+		PATH.exists(self.filenameLog, function(e) {
 			e && list.push(self.filenameLog);
 			next();
 		});
 	});
 
 	pending.push(function(next) {
-		F.path.exists(self.filenameBackup, function(e) {
+		PATH.exists(self.filenameBackup, function(e) {
 			e && list.push(self.filenameBackup);
 			next();
 		});
@@ -2057,12 +2060,16 @@ function jsonparser(key, value) {
 	return typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value;
 }
 
-exports.JsonDB = function(name, directory) {
-	return new JsonDB(name, directory);
+exports.JsonDB = function(name, directory, ext) {
+	var instance = new JsonDB(name, directory, ext);
+	INSTANCES.push(instance);
+	return instance;
 };
 
-exports.TableDB = function(name, directory, schema) {
-	return new TableDB(name, directory, schema);
+exports.TableDB = function(name, directory, schema, ext) {
+	var instance = new TableDB(name, directory, schema, ext);
+	INSTANCES.push(instance);
+	return instance;
 };
 
 // Clears cache each hour

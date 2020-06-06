@@ -2341,7 +2341,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return 'self.$' + appendModel(command);
 
 		default:
-			return F.helpers[name] ? ('helpers.' + view_insert_call(command)) : ('$STRING(' + (functions.indexOf(name) === -1 ? command[0] === '!' ? command.substring(1) + ')' : command + ').encode()' : command + ')'));
+			return DEF.helpers[name] ? ('helpers.' + view_insert_call(command)) : ('$STRING(' + (functions.indexOf(name) === -1 ? command[0] === '!' ? command.substring(1) + ')' : command + ').encode()' : command + ')'));
 	}
 }
 
@@ -2987,7 +2987,7 @@ function compressHTML(html, minify, isChunk) {
 function viewengine_read(path, controller) {
 	var config = CONF;
 	var out = path[0] === '.';
-	var filename = out ? path.substring(1) : F.path.views(path);
+	var filename = out ? path.substring(1) : PATH.views(path);
 	var key;
 
 	if (RELEASE) {
@@ -3026,7 +3026,7 @@ function viewengine_read(path, controller) {
 		return null;
 	}
 
-	filename = F.path.views(path.substring(index + 1));
+	filename = PATH.views(path.substring(index + 1));
 
 	if (existsSync(filename))
 		return view_parse(view_parse_localization(modificators(Fs.readFileSync(filename).toString('utf8'), filename, 'view', controller), controller.language), config.allow_compile_html, filename, controller);

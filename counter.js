@@ -26,7 +26,7 @@
 
 function Counter(name) {
 	var t = this;
-	t.db = 'counter_' + name;
+	t.db = require('./textdb-wrapper').make('nosql', name, F.textdbworker, '.counter');
 	t.cache = {};
 	ON('service', function(counter) {
 		if (counter % 5 === 0)
@@ -37,6 +37,10 @@ function Counter(name) {
 const CP = Counter.prototype;
 
 CP.hit = function(id, value) {
+
+	if (value == null)
+		value = 1;
+
 	var self = this;
 	var key = '+' + id;
 	if (self.cache[key]) {
@@ -59,8 +63,6 @@ CP.flush = function() {
 	var self = this;
 	var keys = Object.keys(self.cache);
 
-	var db = NOSQL(self.db);
-
 	for (var i = 0; i < keys.length; i++) {
 
 		var key = keys[i];
@@ -77,7 +79,7 @@ CP.flush = function() {
 		m.month = NOW.getMonth() + 1;
 		m.year = NOW.getFullYear();
 		m.date = NOW;
-		db.update(m, true).where('id', m.id);
+		self.db.update(m, true).where('id', m.id);
 	}
 
 	self.cache = {};
