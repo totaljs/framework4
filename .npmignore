@@ -1,0 +1,16 @@
+Makefile
+tools/
+helpers/
+test/
+*.markdown
+*.md
+.editorconfig
+.gitingore
+.git*
+*.yml
+*.DS_Store
+*.sublime-project
+*.sublime-workspace
+*.sh
+changes.txt
+roadmap.txt

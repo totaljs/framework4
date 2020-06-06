@@ -1,0 +1,9 @@
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+*.log
+.idea
+test/tmp/*
+node_modules
+test/test-framework-debug.js.json
+test/test-framework-release.js.json
