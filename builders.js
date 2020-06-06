@@ -4454,14 +4454,6 @@ function RESTBuilder(url) {
 	this.$errorbuilderhandling = true;
 }
 
-RESTBuilder.unixsocket = function(socket, path) {
-	var self = this;
-	self.options.socketpath = socket;
-	self.options.path = path;
-	delete self.options.url;
-	return self;
-};
-
 RESTBuilder.make = function(fn) {
 	var instance = new RESTBuilder();
 	fn && fn(instance);
@@ -4544,6 +4536,13 @@ RESTBuilder.setDefaultTransform = function(name) {
 };
 
 var RESTP = RESTBuilder.prototype;
+
+RESTP.unixsocket = function(socket, path) {
+	var self = this;
+	self.options.unixsocket = { socket: socket, path: patch };
+	delete self.options.url;
+	return self;
+};
 
 RESTP.promise = function(fn) {
 	var self = this;

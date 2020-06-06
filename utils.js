@@ -36,6 +36,7 @@ const Crypto = require('crypto');
 const Zlib = require('zlib');
 const Tls = require('tls');
 const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
+const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -447,7 +448,7 @@ function parseProxy(p) {
  */
 global.REQUEST = function(opt) {
 
-	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: false, redirect: 0 };
+	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
 
 	if (opt.headers)
@@ -460,6 +461,14 @@ global.REQUEST = function(opt) {
 	// opt.cert {Buffer}
 	// opt.onprogress(percentage)
 	// opt.ondata(chunk, percentage)
+
+	switch (opt.method) {
+		case 'GET':
+		case 'OPTIONS':
+		case 'HEAD':
+			options.post = false;
+			break;
+	}
 
 	if (opt.ondata)
 		options.ondata = opt.ondata;
@@ -534,10 +543,11 @@ global.REQUEST = function(opt) {
 			opt.headers.Cookie = builder;
 	}
 
-	var uri = opt.socketpath ? { socketPath: opt.socketpath, path: opt.path } : Url.parse(opt.url);
+	var uri = opt.unixsocket ? { socketPath: opt.unixsocket.socket, path: opt.unixsocket.path } : Url.parse(opt.url);
 
-	if (!uri.hostname || !uri.host) {
-		opt.callback && opt.callback('Invalid hostname');
+	if ((opt.unixsocket && !uri.socketPath) || (!opt.unixsocket && (!uri.hostname || !uri.host))) {
+		options.response.canceled = true;
+		opt.callback && opt.callback('Invalid hostname', options.response);
 		return;
 	}
 
@@ -546,17 +556,17 @@ global.REQUEST = function(opt) {
 	options.uri = uri;
 	options.opt = opt;
 
-	if (options.key)
-		uri.key = options.key;
+	if (opt.key)
+		uri.key = opt.key;
 
-	if (options.cert)
-		uri.cert = options.cert;
+	if (opt.cert)
+		uri.cert = opt.cert;
 
-	if (options.dhparam)
-		uri.dhparam = options.dhparam;
+	if (opt.dhparam)
+		uri.dhparam = opt.dhparam;
 
 	if (options.resolve && (uri.hostname === 'localhost' || uri.hostname.charCodeAt(0) < 64))
-		options.resolve = null;
+		options.resolve = false;
 
 	if (CONF.default_proxy && !proxy && !PROXYBLACKLIST[uri.hostname])
 		proxy = parseProxy(CONF.default_proxy);
@@ -578,10 +588,11 @@ global.REQUEST = function(opt) {
 		if (uri.protocol === 'https:') {
 			if (!uri.port)
 				uri.port = 443;
-			uri.agent = new Https.Agent(uri);
+			uri.agent = KeepAliveHttps;
 		} else
 			uri.agent = KeepAlive;
-	}
+	} else
+		uri.agent = null;
 
 	if (proxy)
 		request_call(uri, options);

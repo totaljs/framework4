@@ -62,14 +62,20 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.origin = origin;
 	self.protocol = protocol;
 
-	url = Url.parse(url);
+	if (typeof(url) === 'string') {
+		url = Url.parse(url);
+		options.port = url.port || (isSecure ? 443 : 80);
+		options.host = url.hostname;
+		options.path = url.path;
+		options.query = url.query;
+	} else {
+		options.socketPath = url.socket;
+		options.path = url.path;
+		// options.query = url.query;
+	}
 
 	var isSecure = url.protocol === 'wss:';
 
-	options.port = url.port || (isSecure ? 443 : 80);
-	options.host = url.hostname;
-	options.path = url.path;
-	options.query = url.query;
 	options.headers = {};
 	options.headers['User-Agent'] = 'Total.js/v' + F.version_header;
 	options.headers['Sec-WebSocket-Version'] = '13';
