@@ -559,28 +559,36 @@ JD.$update = function() {
 
 	var updateflush = function(docs, doc, dindex) {
 
-		doc = docs[dindex];
+		// doc = docs[dindex];
 
-		var rec = fs.docsbuffer[dindex];
-		var upd = JSON.stringify(doc).replace(REGBOOL, JSONBOOL);
-		if (upd === rec.doc)
-			return;
+		console.log(dindex, docs.length);
 
-		!change && (change = true);
-		var was = true;
+		for (var i = dindex; i < docs.length; i++) {
 
-		if (rec.doc.length === upd.length) {
-			var b = Buffer.byteLength(upd);
-			if (rec.length === b) {
-				fs.write(upd + NEWLINE, rec.position);
-				was = false;
+			doc = docs[i];
+
+			var rec = fs.docsbuffer[i];
+			var upd = JSON.stringify(doc).replace(REGBOOL, JSONBOOL);
+
+			if (upd === rec.doc)
+				return;
+
+			!change && (change = true);
+			var was = true;
+
+			if (rec.doc.length === upd.length) {
+				var b = Buffer.byteLength(upd);
+				if (rec.length === b) {
+					fs.write(upd + NEWLINE, rec.position);
+					was = false;
+				}
 			}
-		}
 
-		if (was) {
-			var tmp = fs.remchar + rec.doc.substring(1) + NEWLINE;
-			fs.write(tmp, rec.position);
-			fs.write2(upd + NEWLINE);
+			if (was) {
+				var tmp = fs.remchar + rec.doc.substring(1) + NEWLINE;
+				fs.write(tmp, rec.position);
+				fs.write2(upd + NEWLINE);
+			}
 		}
 	};
 
@@ -2073,6 +2081,7 @@ TextReader.prototype.add = function(builder) {
 
 TextReader.prototype.compare2 = function(docs, custom, done) {
 	var self = this;
+
 	for (var i = 0; i < docs.length; i++) {
 
 		var doc = docs[i];
@@ -2095,17 +2104,17 @@ TextReader.prototype.compare2 = function(docs, custom, done) {
 
 			builder.scanned++;
 
-			var is = false;
+			var can = false;
 
 			try {
-				is = builder.filterrule(doc, builder.filterarg, builder.tmp, builder.func);
+				can = builder.filterrule(doc, builder.filterarg, builder.tmp, builder.func);
 			} catch (e) {
-				is = false;
+				can = false;
 				builder.canceled = true;
 				builder.error = e + '';
 			}
 
-			if (is) {
+			if (can) {
 
 				builder.count++;
 

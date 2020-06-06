@@ -8,6 +8,15 @@ function Database(type, name, fork) {
 	t.exec = function(builder) {
 
 		if (builder.options) {
+
+			if (builder.options.bulk) {
+				for (var i = 0; i < builder.options.bulk.length; i++) {
+					var bulk = builder.options.bulk[i];
+					bulk.options.filter = bulk.builder.length ? bulk.builder.join('&&') : 'true';
+					builder.options.bulk[i] = bulk.options;
+				}
+			}
+
 			builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
 			builder.options.type = type;
 			builder.options.database = name;
@@ -25,7 +34,12 @@ function Database(type, name, fork) {
 				return;
 			}
 
-			t.fork['cmd_' + builder.command](builder.options, builder.$callback);
+			if (builder.command === 'memory') {
+				t.fork['cmd_' + builder.command](builder.count, builder.size);
+				return;
+			}
+
+			t.fork['cmd_' + builder.command](builder.options, builder.$custom ? builder.$custom() : builder.$callback);
 
 		} else {
 
@@ -46,7 +60,21 @@ function Database(type, name, fork) {
 				return;
 			}
 
-			t.fork[key][builder.command]().assign(builder.options).callback(builder.$custom ? builder.$custom() : builder.$callback);
+			if (builder.command === 'memory') {
+				t.fork[key][builder.command](builder.count, builder.size);
+				return;
+			}
+
+			if (builder.options && builder.options.bulk) {
+				var b;
+				for (var i = 0; i < builder.options.bulk.length; i++) {
+					var bi = builder.options.bulk[i];
+					b = t.fork[key][builder.command]().assign(bi).$callback = bi.$custom ? bi.$custom() : bi.$callback;
+				}
+				if (b)
+					b.$callback2 = builder.$callback;
+			} else
+				t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$callback;
 		}
 	};
 }
@@ -113,6 +141,10 @@ DP.scalar = function(type, key) {
 	return builder;
 };
 
+DP.memory = function(count, size) {
+	return this.next({ command: 'memory', count: count, size: size });
+};
+
 DP.find2 = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find2';
@@ -120,15 +152,76 @@ DP.find2 = function() {
 	return builder;
 };
 
-DP.insert = function(data) {
+DP.insert = function(data, check, noeval) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'insert';
 	builder.options.payload = data;
+
+	if (!noeval)
+		this.next(builder);
+
+	// @TODO: implement check
+
+	return builder;
+};
+
+DP.bulkinsert = function(fn) {
+	var self = this;
+	var builder = new DatabaseBuilder();
+	builder.command = 'insert';
+	builder.options.bulk = [];
+
+	var make = function(data) {
+		var b = self.insert(data, false, true);
+		builder.options.bulk.push(b);
+		return b;
+	};
+
+	fn(make);
+
 	this.next(builder);
 	return builder;
 };
 
-DP.update = DP.modify = function(data, upsert) {
+DP.bulkupdate = DP.bulkmodify = function(fn) {
+
+	var self = this;
+	var builder = new DatabaseBuilder();
+	builder.command = 'update';
+	builder.options.bulk = [];
+
+	var make = function(data, upsert) {
+		var b = self.update(data, upsert, true);
+		builder.options.bulk.push(b);
+		return b;
+	};
+
+	fn(make);
+
+	self.next(builder);
+	return builder;
+};
+
+DP.bulkremove = function(fn) {
+
+	var self = this;
+	var builder = new DatabaseBuilder();
+	builder.command = 'remove';
+	builder.options.bulk = [];
+
+	var make = function() {
+		var b = self.remove(true);
+		builder.options.bulk.push(b);
+		return b;
+	};
+
+	fn(make);
+
+	self.next(builder);
+	return builder;
+};
+
+DP.update = DP.modify = function(data, upsert, noeval) {
 
 	var self = this;
 	var builder = new DatabaseBuilder();
@@ -168,6 +261,14 @@ DP.update = DP.modify = function(data, upsert) {
 				key = key.substring(1);
 				cmd = 'doc.{0}=' + data[key];
 				break;
+			case '<':
+				key = key.substring(1);
+				cmd = 'doc.{0}=(doc.{0}==null?arg.{0}:doc.{0}<arg.{0}?arg.{0}:doc.{0})';
+				break;
+			case '>':
+				key = key.substring(1);
+				cmd = 'doc.{0}=(doc.{0}==null?arg.{0}:doc.{0}>arg.{0}?arg.{0}:doc.{0})';
+				break;
 			default:
 				cmd = 'doc.{0}=arg.{0}';
 				break;
@@ -176,6 +277,8 @@ DP.update = DP.modify = function(data, upsert) {
 		arg[key] = val;
 		cmd && tmp.push(cmd.format(key));
 	}
+
+	console.log(cmd);
 
 	if (tmp.length)
 		builder.options.modify = tmp.join(';');
@@ -186,7 +289,7 @@ DP.update = DP.modify = function(data, upsert) {
 		builder.$custom = function() {
 			return function(err, response, meta) {
 				if (response) {
-					builder.$callback(err, response, meta);
+					builder.$callback && builder.$callback(err, response, meta);
 				} else {
 					builder.$upsert && builder.$upsert(arg);
 					var bi = new DatabaseBuilder();
@@ -199,14 +302,17 @@ DP.update = DP.modify = function(data, upsert) {
 		};
 	}
 
-	self.next(builder);
+	if (!noeval)
+		self.next(builder);
+
 	return builder;
 };
 
-DP.remove = function() {
+DP.remove = function(noeval) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'remove';
-	this.next(builder);
+	if (!noeval)
+		this.next(builder);
 	return builder;
 };
 
@@ -219,11 +325,11 @@ DP.alter = function(schema, callback) {
 };
 
 DP.clear = function(callback) {
-	return this.next({ command: 'clear', schema: schema, callback: callback });
+	return this.next({ command: 'clear', callback: callback });
 };
 
 DP.clean = function(callback) {
-	return this.next({ command: 'clean', schema: schema, callback: callback });
+	return this.next({ command: 'clean', callback: callback });
 };
 
 function DatabaseBuilder() {

@@ -868,9 +868,7 @@ function Framework() {
 		allow_reqlimit: 0,
 		allow_persistent_images: true,
 
-		nosql_worker: false,
-		nosql_cleaner: 1440,
-		nosql_logger: true,
+		textdb_worker: true,
 		logger: false,
 
 		// Used in F.service()
@@ -879,8 +877,7 @@ function Framework() {
 		default_interval_clear_cache: 10,
 		default_interval_clear_dnscache: 30,
 		default_interval_precompile_views: 61,
-		default_interval_websocket_ping: 3,
-		default_interval_uptodate: 5
+		default_interval_websocket_ping: 3
 	};
 
 	global.REPO = global.G = self.global = {};
@@ -1168,10 +1165,6 @@ F.refresh = function() {
 };
 
 F.prototypes = function(fn) {
-
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./nosql');
-
 	var proto = {};
 	proto.Chunker = framework_utils.Chunker.prototype;
 	proto.Controller = Controller.prototype;
@@ -1445,7 +1438,7 @@ function nosqlwrapper(name) {
 	F.path.verify('databases');
 
 	// Is web server?
-	if (F.port)
+	if (F.port && CONF.textdb_worker)
 		textdbworker = framework_nosql.init(PATH.databases());
 
 	return F.databases[name] = require('./textdb-wrapper').make('nosql', name, textdbworker);
@@ -1456,6 +1449,12 @@ global.NOSQL = function(name) {
 		global.framework_nosql = require('./textdb-process');
 	global.NOSQL = nosqlwrapper;
 	return nosqlwrapper(name);
+};
+
+global.COUNTER = function(name) {
+	var key = 'counterinstance_' + name;
+	var db = F.databases[key];
+	return db ? db : (F.databases[key] = require('./counter').make(name));
 };
 
 function tablewrapper(name) {
@@ -1469,7 +1468,7 @@ function tablewrapper(name) {
 	F.path.verify('databases');
 
 	// Is web server?
-	if (F.port)
+	if (F.port && CONF.textdb_worker)
 		textdbworker = framework_nosql.init(PATH.databases());
 
 	return F.databases[name] = require('./textdb-wrapper').make('table', name, textdbworker);
@@ -1602,7 +1601,7 @@ global.REDIRECT = F.redirect = function(host, newHost, withPath, permanent) {
  * @param {Function} fn
  * @return {Framework}
  */
-global.SCHEDULE = F.schedule = function(date, repeat, fn) {
+global.SCHEDULE = function(date, repeat, fn) {
 
 	if (fn === undefined) {
 		fn = repeat;
@@ -1620,13 +1619,14 @@ global.SCHEDULE = F.schedule = function(date, repeat, fn) {
 	var sum = date.getTime();
 	repeat && (repeat = repeat.replace('each', '1'));
 	var id = U.GUID(5);
-	F.schedules[id] = { expire: sum, fn: fn, repeat: repeat, owner: _owner };
-	return id;
-};
+	var item = { id: id, expire: sum, fn: fn, repeat: repeat, owner: _owner };
+	F.schedules[id] = item;
 
-F.clearSchedule = function(id) {
-	delete F.schedules[id];
-	return F;
+	item.remove = function() {
+		delete F.schedules[id];
+	};
+
+	return item;
 };
 
 /**
@@ -1681,19 +1681,19 @@ global.RESIZE = function(url, fn, flags) {
 	}
 
 	if (!extensions.length) {
-		extensions['jpg'] = true;
-		extensions['jpeg'] = true;
-		extensions['png'] = true;
-		extensions['gif'] = true;
-		extensions['heic'] = true;
-		extensions['heif'] = true;
-		extensions['apng'] = true;
+		extensions.jpg = true;
+		extensions.jpeg = true;
+		extensions.png = true;
+		extensions.gif = true;
+		extensions.heic = true;
+		extensions.heif = true;
+		extensions.apng = true;
 	}
 
-	if (extensions['jpg'] && !extensions['jpeg'])
-		extensions['jpeg'] = true;
-	else if (extensions['jpeg'] && !extensions['jpg'])
-		extensions['jpg'] = true;
+	if (extensions.jpg && !extensions.jpeg)
+		extensions.jpeg = true;
+	else if (extensions.jpeg && !extensions.jpg)
+		extensions.jpg = true;
 
 	F.routes.resize[url] = { fn: fn, path: U.path(path || url), ishttp: path.match(/http:|https:/gi) ? true : false, extension: extensions, cache: cache };
 	F.owners.push({ type: 'resize', owner: _owner, id: url });
@@ -1709,7 +1709,7 @@ global.RESIZE = function(url, fn, flags) {
  * @param {Boolean} credentials
  * @return {Framework}
  */
-global.CORS = F.cors = function(url, flags, credentials) {
+global.CORS = function(url, flags, credentials) {
 
 	if (!arguments.length) {
 		F.routes.corsall = true;
@@ -1976,7 +1976,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				name = url;
 				url = sitemap.url;
 
-				if (sitemap.localizeUrl && language === undefined) {
+				if (sitemap.localizeurl && language === undefined) {
 					var sitemaproutes = {};
 					F.temporary.internal.resources.forEach(function(language) {
 						var item = F.sitemap(sitemap.id, true, language);
@@ -2654,7 +2654,7 @@ global.ROUTING = F.routing = function(name, flags) {
  * @param {String/String Array} fileN Filename or URL.
  * @return {Framework}
  */
-global.MERGE = F.merge = function(url) {
+global.MERGE = function(url) {
 
 	F.temporary.other['merge_' + url] = 1;
 
@@ -2667,7 +2667,7 @@ global.MERGE = F.merge = function(url) {
 		// auto-generating
 		var arg = arguments;
 		setTimeout(function(arg) {
-			F.merge.apply(F, arg);
+			MERGE.apply(F, arg);
 		}, 500, arg);
 		return F;
 	}
@@ -2706,7 +2706,7 @@ global.MERGE = F.merge = function(url) {
 };
 
 F.mapping = function() {
-	return F.map.apply(F, arguments);
+	return MAP.apply(F, arguments);
 };
 
 /**
@@ -2727,7 +2727,7 @@ F.send = function(message, handle) {
  * @param {Function(filename) or String Array} filter
  * @return {Framework}
  */
-global.MAP = F.map = function(url, filename, filter) {
+global.MAP = function(url, filename, filter) {
 
 	if (url[0] === '#')
 		url = sitemapurl(url.substring(1));
@@ -5663,9 +5663,6 @@ F.usage = function(detailed) {
 		directory: process.cwd()
 	};
 
-	if (CONF.nosql_worker && global.framework_nosql)
-		output.framework.pidnosql = framework_nosql.pid();
-
 	var keys = Object.keys(U.queuecache);
 	var pending = 0;
 	for (var i = 0, length = keys.length; i < length; i++)
@@ -6877,6 +6874,14 @@ function connection_tunning(socket) {
 	socket.setKeepAlive(true, 10);
 }
 
+function parseport() {
+	for (var i  = 2; i < process.argv.length; i++) {
+		var v = process.argv[i];
+		if (v && (/\d+/).test(v))
+			return +v;
+	}
+}
+
 /**
  * Run framework –> HTTP
  * @param  {String} mode Framework mode.
@@ -6893,7 +6898,7 @@ global.HTTP = F.http = function(mode, options, middleware) {
 	}
 
 	options == null && (options = {});
-	!options.port && (options.port = +process.argv[2]);
+	!options.port && (options.port = parseport());
 
 	if (options.port && isNaN(options.port))
 		options.port = 0;
@@ -6927,7 +6932,7 @@ global.HTTPS = F.https = function(mode, options, middleware) {
 	}
 
 	options == null && (options = {});
-	!options.port && (options.port = +process.argv[2]);
+	!options.port && (options.port = parseport());
 
 	if (options.port && isNaN(options.port))
 		options.port = 0;
@@ -7059,10 +7064,6 @@ F.console = function() {
 	console.log('Node.js       : ' + process.version);
 	console.log('Total.js      : v' + F.version_header);
 	console.log('OS            : ' + Os.platform() + ' ' + Os.release());
-
-	// Removed worker in v4
-	CONF.nosql_worker && global.framework_nosql && console.log('NoSQL PID     : ' + global.framework_nosql.pid());
-
 	console.log('Memory        : ' + memory.heapUsed.filesize(2) + ' / ' + memory.heapTotal.filesize(2));
 	console.log('User          : ' + Os.userInfo().username);
 	console.log('====================================================');
@@ -7253,16 +7254,6 @@ F.service = function(count) {
 
 	// Update expires date
 	count % 1000 === 0 && (DATE_EXPIRES = NOW.add('y', 1).toUTCString());
-
-	if (count % CONF.nosql_cleaner === 0 && CONF.nosql_cleaner) {
-		keys = Object.keys(F.databasescleaner);
-		keys.wait(function(item, next) {
-			if (item[0] === '$')
-				TABLE(item.substring(1)).clean(next);
-			else
-				NOSQL(item).clean(next);
-		});
-	}
 
 	F.$events.service && EMIT('service', count);
 
@@ -8517,16 +8508,16 @@ F.$configure_sitemap = function(arr, clean) {
 		}
 
 		var name = a[0].trim();
-		var localizeName = name.startsWith('@(');
-		var localizeUrl = url.startsWith('@(');
+		var localizename = name.startsWith('@(');
+		var localizeurl = url.startsWith('@(');
 
-		if (localizeName)
+		if (localizename)
 			name = name.substring(2, name.length - 1).trim();
 
-		if (localizeUrl)
+		if (localizeurl)
 			url = url.substring(2, url.length - 1).trim();
 
-		F.routes.sitemap[key] = { name: name, url: url, parent: a[2] ? a[2].trim() : null, wildcard: wildcard, formatName: name.indexOf('{') !== -1, formatUrl: url.indexOf('{') !== -1, localizeName: localizeName, localizeUrl: localizeUrl };
+		F.routes.sitemap[key] = { name: name, url: url, parent: a[2] ? a[2].trim() : null, wildcard: wildcard, formatname: name.indexOf('{') !== -1, formaturl: url.indexOf('{') !== -1, localizename: localizename, localizeurl: localizeurl };
 	}
 
 	return F;
@@ -8554,18 +8545,18 @@ global.SITEMAP = F.sitemap = function(name, me, language) {
 
 	if (me === true) {
 		sitemap = F.routes.sitemap[name];
-		var item = { sitemap: id, id: '', name: '', url: '', last: true, selected: true, index: 0, wildcard: false, formatName: false, formatUrl: false };
+		var item = { sitemap: id, id: '', name: '', url: '', last: true, selected: true, index: 0, wildcard: false, formatname: false, formaturl: false };
 		if (!sitemap)
 			return item;
 
 		title = sitemap.name;
-		if (sitemap.localizeName)
+		if (sitemap.localizename)
 			title = TRANSLATE(language, title);
 
 		url = sitemap.url;
 		var wildcard = sitemap.wildcard;
 
-		if (sitemap.localizeUrl) {
+		if (sitemap.localizeurl) {
 			if (sitemap.wildcard) {
 				if (url[url.length - 1] !== '/')
 					url += '/';
@@ -8583,10 +8574,10 @@ global.SITEMAP = F.sitemap = function(name, me, language) {
 
 		item.sitemap = id;
 		item.id = name;
-		item.formatName = sitemap.formatName;
-		item.formatUrl = sitemap.formatUrl;
-		item.localizeUrl = sitemap.localizeUrl;
-		item.localizeName = sitemap.localizeName;
+		item.formatname = sitemap.formatname;
+		item.formaturl = sitemap.formaturl;
+		item.localizeurl = sitemap.localizeurl;
+		item.localizename = sitemap.localizename;
 		item.name = title;
 		item.url = url;
 		item.wildcard = wildcard;
@@ -8607,10 +8598,10 @@ global.SITEMAP = F.sitemap = function(name, me, language) {
 
 		var wildcard = sitemap.wildcard;
 
-		if (sitemap.localizeName)
+		if (sitemap.localizename)
 			title = TRANSLATE(language, sitemap.name);
 
-		if (sitemap.localizeUrl) {
+		if (sitemap.localizeurl) {
 			if (sitemap.wildcard) {
 				if (url[url.length - 1] !== '/')
 					url += '/';
@@ -8625,7 +8616,7 @@ global.SITEMAP = F.sitemap = function(name, me, language) {
 				wildcard = false;
 		}
 
-		arr.push({ sitemap: id, id: name, name: title, url: url, last: index === 0, first: sitemap.parent ? false : true, selected: index === 0, index: index, wildcard: wildcard, formatName: sitemap.formatName, formatUrl: sitemap.formatUrl, localizeName: sitemap.localizeName, localizeUrl: sitemap.localizeUrl });
+		arr.push({ sitemap: id, id: name, name: title, url: url, last: index === 0, first: sitemap.parent ? false : true, selected: index === 0, index: index, wildcard: wildcard, formatname: sitemap.formatname, formaturl: sitemap.formaturl, localizename: sitemap.localizename, localizeurl: sitemap.localizeurl });
 		index++;
 		name = sitemap.parent;
 		if (!name)
@@ -8661,13 +8652,13 @@ F.sitemap_navigation = function(parent, language) {
 		var title = item.name;
 		var url = item.url;
 
-		if (item.localizeName)
+		if (item.localizename)
 			title = TRANSLATE(language, title);
 
-		if (item.localizeUrl)
+		if (item.localizeurl)
 			url = TRANSLATE(language, url);
 
-		arr.push({ id: parent || '', name: title, url: url, last: index === 0, first: item.parent ? false : true, selected: index === 0, index: index, wildcard: item.wildcard, formatName: item.formatName, formatUrl: item.formatUrl });
+		arr.push({ id: parent || '', name: title, url: url, last: index === 0, first: item.parent ? false : true, selected: index === 0, index: index, wildcard: item.wildcard, formatname: item.formatname, formaturl: item.formaturl });
 		index++;
 	}
 
@@ -8763,7 +8754,7 @@ F.$configure_versions = function(arr, clean) {
 										key = F.path.public(key);
 								} else
 									key = F.path.public(key);
-								F.map(filename, key);
+								MAP(filename, key);
 							}
 
 							F.temporary.views = {};
@@ -8776,7 +8767,7 @@ F.$configure_versions = function(arr, clean) {
 
 		} else {
 			F.versions[key] = filename;
-			ismap && F.map(filename, F.path.public(key));
+			ismap && MAP(filename, F.path.public(key));
 		}
 	}
 
@@ -8893,7 +8884,7 @@ F.$configure_configs = function(arr, rewrite) {
 	}
 
 	var done = function() {
-		process.title = 'total: ' + CONF.name.removeDiacritics().toLowerCase().replace(REG_EMPTY, '-').substring(0, 8);
+		process.title = 'total: ' + CONF.name.toASCII().toLowerCase().replace(REG_EMPTY, '-').substring(0, 8);
 		F.isVirtualDirectory = existsSync(U.combine(CONF.directory_public_virtual));
 	};
 
@@ -8956,7 +8947,6 @@ F.$configure_configs = function(arr, rewrite) {
 			case 'default_interval_clear_cache':
 			case 'default_interval_clear_resources':
 			case 'default_interval_precompile_views':
-			case 'default_interval_uptodate':
 			case 'default_interval_websocket_ping':
 			case 'default_interval_clear_dnscache':
 			case 'default_dependency_timeout':
@@ -9019,7 +9009,7 @@ F.$configure_configs = function(arr, rewrite) {
 			case 'allow_filter_errors':
 			case 'allow_custom_titles':
 			case 'trace':
-			case 'nosql_worker':
+			case 'textdb_worker':
 			case 'nosql_logger':
 			case 'default_websocket_encodedecode':
 				obj[name] = value.toLowerCase() === 'true' || value === '1' || value === 'on';
@@ -9120,8 +9110,6 @@ F.$configure_configs = function(arr, rewrite) {
 	if (CONF.default_timezone)
 		process.env.TZ = CONF.default_timezone;
 
-	CONF.nosql_worker && framework_nosql.worker();
-	CONF.nosql_inmemory && CONF.nosql_inmemory.forEach(framework_nosql.inmemory);
 	accepts && accepts.length && accepts.forEach(accept => CONF.static_accepts[accept] = true);
 
 	if (CONF.allow_performance)
@@ -11133,7 +11121,7 @@ ControllerProto.sitemap_add = function(parent, name, url) {
 	if (index === -1)
 		return sitemap;
 
-	var obj = { sitemap: '', id: '', name: name, url: url, last: false, first: false, index: index, wildcard: false, formatName: false, formatUrl: false, localizeName: false, localizeUrl: false };
+	var obj = { sitemap: '', id: '', name: name, url: url, last: false, first: false, index: index, wildcard: false, formatname: false, formaturl: false, localizename: false, localizeurl: false };
 
 	sitemap.splice(index + 1, 0, obj);
 
@@ -11176,9 +11164,9 @@ ControllerProto.sitemap_change = function(name, type, a, b, c, d, e, f) {
 		if (isFn)
 			item[type] = a(item[type]);
 		else if (type === 'name')
-			item[type] = item.formatName ? item[type].format(a, b, c, d, e, f) : a;
+			item[type] = item.formatname ? item[type].format(a, b, c, d, e, f) : a;
 		else if (type === 'url')
-			item[type] = item.formatUrl ? item[type].format(a, b, c, d, e, f) : a;
+			item[type] = item.formaturl ? item[type].format(a, b, c, d, e, f) : a;
 		else
 			item[type] = a;
 
@@ -11216,10 +11204,10 @@ ControllerProto.sitemap_replace = function(name, title, url) {
 		var is = self.repository[REPOSITORY_META_TITLE] === item.name;
 
 		if (title)
-			item.name = typeof(title) === 'function' ? title(item.name) : item.formatName ? item.name.format(title) : title;
+			item.name = typeof(title) === 'function' ? title(item.name) : item.formatname ? item.name.format(title) : title;
 
 		if (url)
-			item.url = typeof(url) === 'function' ? url(item.url) : item.formatUrl ? item.url.format(url) : url;
+			item.url = typeof(url) === 'function' ? url(item.url) : item.formaturl ? item.url.format(url) : url;
 
 		if (is)
 			self.repository[REPOSITORY_META_TITLE] = item.name;

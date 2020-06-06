@@ -351,7 +351,7 @@ QueryBuilder.prototype.scalar = function(rule, arg) {
 
 QueryBuilder.prototype.done = function() {
 
-	if (!this.$callback)
+	if (!this.$callback && !this.$callback2)
 		return;
 
 	var meta = {};
@@ -380,9 +380,12 @@ QueryBuilder.prototype.done = function() {
 
 	if (process.totaldbworker) {
 		meta.response = this.response;
-		this.$callback(null, meta);
-	} else
-		this.$callback(null, this.response, meta);
+		this.$callback && this.$callback(null, meta);
+		this.$callback2 && this.$callback2(null, meta);
+	} else {
+		this.$callback && this.$callback(null, this.response, meta);
+		this.$callback2 && this.$callback2(null, this.response, meta);
+	}
 };
 
 QueryBuilder.prototype.callback = function(fn) {

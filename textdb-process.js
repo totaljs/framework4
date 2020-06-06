@@ -73,6 +73,10 @@ function prepare(INSTANCE) {
 		INSTANCE.send2({ TYPE: 'find2', builder: builder });
 	};
 
+	INSTANCE.cmd_memory = function(count, size) {
+		INSTANCE.send2({ TYPE: 'memory', count: count, size: size });
+	};
+
 	INSTANCE.cmd_remove = function(builder, callback) {
 		builder.cid = COUNTER++;
 

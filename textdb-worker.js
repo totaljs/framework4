@@ -6,7 +6,6 @@ var reading = 0;
 var writing = 0;
 var readingstats = 0;
 var writingstats = 0;
-var instance;
 var statsid;
 var lastusagedate;
 var instances = {};
@@ -59,13 +58,17 @@ function processcommand(msg) {
 				process.send(builder);
 			};
 
-			if (msg.builder instanceof Array) {
-				for (var i = 0; i < msg.builder.length; i++) {
+			if (msg.builder && msg.builder.bulk instanceof Array) {
+				var b;
+
+				for (var i = 0; i < msg.builder.bulk.length; i++)
+					b = instance.insert().assign(msg.builder.bulk[i]);
+
+				if (b) {
 					writing++;
-					var b = instance.insert().assign(msg.builder[i]);
-					if (i === (msg.builder.length - 1))
-						b.callback(callback);
+					b.$callback2 = callback;
 				}
+
 			} else {
 				writing++;
 				instance.insert().assign(msg.builder).callback(callback);
@@ -80,14 +83,16 @@ function processcommand(msg) {
 				process.send(builder);
 			};
 
-			if (msg.builder instanceof Array) {
-				for (var i = 0; i < msg.builder.length; i++) {
-					var b = instance.update().assign(msg.builder);
-					if (i === (msg.builder.length - 1)) {
-						writing++;
-						b.callback(callback);
-					}
+			if (msg.builder && msg.builder.bulk instanceof Array) {
+				var b;
+				for (var i = 0; i < msg.builder.bulk.length; i++)
+					b = instance.update().assign(msg.builder.bulk[i]);
+
+				if (b) {
+					writing++;
+					b.$callback2 = callback;
 				}
+
 			} else {
 				writing++;
 				instance.update().assign(msg.builder).callback(callback);
@@ -102,13 +107,17 @@ function processcommand(msg) {
 				process.send(builder);
 			};
 
-			if (msg.builder instanceof Array) {
-				for (var i = 0; i < msg.builder.length; i++) {
+			if (msg.builder && msg.builder.bulk instanceof Array) {
+				var b;
+
+				for (var i = 0; i < msg.builder.bulk.length; i++)
+					b = instance.remove().assign(msg.builder.bulk[i]);
+
+				if (b) {
 					writing++;
-					var b = instance.remove().assign(msg.builder);
-					if (i === (msg.builder.length - 1))
-						b.callback(callback);
+					b.$callback2 = callback;
 				}
+
 			} else {
 				writing++;
 				instance.remove().assign(msg.builder).callback(callback);
@@ -128,17 +137,14 @@ function processcommand(msg) {
 			instance.clear(() => process.send({ TYPE: 'response', cid: msg.cid, success: true }));
 			break;
 
+		case 'memory':
+			instance.memory(msg.count, msg.size);
+			break;
+
 		case 'drop':
 			instance.drop();
 			setTimeout(() => process.kill(0), 10000);
 			break;
-	}
-}
-
-function statresponse(err, stat) {
-	if (stat) {
-		STATS.size = stat.size;
-		instance.inmemory = (stat.size / 1024 / 1024) <= 50;
 	}
 }
 
