@@ -757,8 +757,6 @@ function Framework() {
 	global.CONF = {
 
 		debug: true,
-		trace: true,
-		trace_console: true,
 
 		nowarnings: process.argv.indexOf('restart') !== -1,
 		name: 'Total.js',
@@ -4851,8 +4849,7 @@ global.UNINSTALL = F.uninstall = function(type, name, options, skipEmit, package
 	}
 
 	if (type === 'schema') {
-		tmp = name.split('/');
-		tmp.length === 2 ? framework_builders.remove(tmp[0], tmp[1]) : framework_builders.remove(undefined, tmp[0]);
+		tmp.length === 2 ? framework_builders.remove(name) : framework_builders.remove(name);
 		F.consoledebug('uninstall', type + '#' + name);
 	} else if (type === 'mapping') {
 		delete F.routes.mapping[name];
@@ -5749,7 +5746,6 @@ F.usage = function(detailed) {
 	output.resources = resources;
 	output.commands = commands;
 	output.streaming = staticRange;
-	output.traces = F.traces;
 	output.shortcache = shortcache;
 
 	return output;
@@ -6960,7 +6956,6 @@ F.mode = function(http, name, options) {
 				break;
 		}
 		DEBUG = debug;
-		CONF.trace = debug;
 		global.DEBUG = debug;
 		global.RELEASE = !debug;
 		return F;
@@ -6998,7 +6993,6 @@ F.mode = function(http, name, options) {
 			break;
 	}
 
-	CONF.trace = debug;
 	F.consoledebug('startup');
 	F.$startup(function() {
 		F.consoledebug('startup (done)');
@@ -7047,7 +7041,6 @@ F.custom = function(mode, http, request, response, options) {
 			break;
 	}
 
-	CONF.trace = debug;
 	F.consoledebug('startup');
 	F.$startup(function() {
 		F.consoledebug('startup (done)');

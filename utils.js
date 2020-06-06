@@ -1029,7 +1029,7 @@ function request_process_end() {
 		options.response.headers = self.headers;
 		options.response.body = data;
 		options.response.status = self.statusCode;
-		options.response.host = uri.host;
+		options.response.host = uri.host || uri.socketPath;
 		options.response.cookies = options.cookies;
 		options.callback(null, options.response);
 		options.callback = null;
