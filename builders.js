@@ -4454,7 +4454,7 @@ function RESTBuilder(url) {
 	this.$errorbuilderhandling = true;
 }
 
-RESTBuilder.socketpath = function(socket, path) {
+RESTBuilder.unixsocket = function(socket, path) {
 	var self = this;
 	self.options.socketpath = socket;
 	self.options.path = path;
