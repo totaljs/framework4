@@ -21,7 +21,7 @@
 
 /**
  * @module FrameworkInternal
- * @version 3.4.3
+ * @version 4.0.0
  */
 
 'use strict';
@@ -133,14 +133,14 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 	var path = framework_utils.combine(tmpDirectory, (F.id ? 'i-' + F.id + '_' : '') + 'uploadedfile-');
 
-	req.buffer_exceeded = false;
-	req.buffer_has = true;
+	req.bodyexceeded = false;
+	req.bodyhas = true;
 	req.buffer_parser = parser;
 	parser.initWithBoundary(boundary);
 
 	parser.onPartBegin = function() {
 
-		if (req.buffer_exceeded)
+		if (req.bodyexceeded)
 			return;
 
 		// Temporary data
@@ -153,7 +153,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 	parser.onHeaderValue = function(buffer, start, end) {
 
-		if (req.buffer_exceeded)
+		if (req.bodyexceeded)
 			return;
 
 		var header = buffer.slice(start, end).toString(ENCODING);
@@ -174,7 +174,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 		// UNKNOWN ERROR, maybe attack
 		if (header.indexOf('form-data; ') === -1) {
-			req.buffer_exceeded = true;
+			req.bodyexceeded = true;
 			!tmp.$is && destroyStream(stream);
 			return;
 		}
@@ -206,7 +206,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 	parser.onPartData = function(buffer, start, end) {
 
-		if (req.buffer_exceeded)
+		if (req.bodyexceeded)
 			return;
 
 		var data = buffer.slice(start, end);
@@ -215,7 +215,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 		size += length;
 
 		if (size >= maximumSize) {
-			req.buffer_exceeded = true;
+			req.bodyexceeded = true;
 			if (rm)
 				rm.push(tmp.path);
 			else
@@ -278,7 +278,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 			stream = null;
 		}
 
-		if (req.buffer_exceeded)
+		if (req.bodyexceeded)
 			return;
 
 		if (tmp == null)
@@ -325,7 +325,7 @@ function uploadparser(chunk) {
 }
 
 function uploadparser_done() {
-	!this.buffer_exceeded && (this.$upload = true);
+	!this.bodyexceeded && (this.$upload = true);
 	this.buffer_parser.end();
 }
 
@@ -1268,8 +1268,8 @@ exports.compile_css = function(value, filename, nomarkup) {
 
 	if (global.F) {
 		value = modificators(value, filename, 'style');
-		if (F.onCompileStyle)
-			return F.onCompileStyle(filename, value);
+		if (DEF.onCompileStyle)
+			return DEF.onCompileStyle(filename, value);
 	}
 
 	try {
@@ -1297,8 +1297,8 @@ exports.compile_javascript = function(source, filename, nomarkup) {
 
 	if (global.F) {
 		source = modificators(source, filename, 'script');
-		if (F.onCompileScript)
-			return F.onCompileScript(filename, source).trim();
+		if (DEF.onCompileScript)
+			return DEF.onCompileScript(filename, source).trim();
 	}
 
 	return minify_javascript(source);
@@ -1869,7 +1869,7 @@ function view_parse(content, minify, filename, controller) {
 				builder += '+' + DELIMITER + (new Function('self', 'return self.$import(' + cmd[0] + '!' + cmd.substring(1) + ')'))(controller) + DELIMITER;
 		} else if (cmd7 === 'compile' && cmd.lastIndexOf(')') === -1) {
 
-			builderTMP = builder + '+(F.onCompileView.call(self,\'' + (cmd8[7] === ' ' ? cmd.substring(8).trim() : '') + '\',';
+			builderTMP = builder + '+(DEF.onCompileView.call(self,\'' + (cmd8[7] === ' ' ? cmd.substring(8).trim() : '') + '\',';
 			builder = '';
 			sectionName = cmd.substring(8);
 			isCOMPILATION = true;
@@ -3373,7 +3373,6 @@ function markup(body) {
 	if (!command)
 		return body;
 
-	var G = F.global;
 	var config = CONF;
 	var resource = F.resource;
 	var M = EMPTYOBJECT;

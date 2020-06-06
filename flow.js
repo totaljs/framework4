@@ -21,7 +21,7 @@
 
 /**
  * @module FrameworkFlowStream
- * @version 3.4.0
+ * @version 4.0.0
  */
 
 if (!global.framework_utils)

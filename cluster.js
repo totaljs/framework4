@@ -448,7 +448,7 @@ function exec(index, https) {
 
 function fork() {
 	require('./index');
-	F.on('message', on_init);
+	ON('message', on_init);
 }
 
 function on_init(msg) {

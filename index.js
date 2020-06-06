@@ -67,9 +67,6 @@ const REG_TEXTAPPLICATION = /text|application/;
 const REG_ENCODINGCLEANER = /[;\s]charset=utf-8/g;
 const REG_SKIPERROR = /epipe|invalid\sdistance/i;
 const REG_UTF8 = /[^\x20-\x7E]+/;
-const FLAGS_INSTALL = ['get'];
-const FLAGS_DOWNLOAD = ['get', 'dnscache'];
-const QUERYPARSEROPTIONS = { maxKeys: 33 };
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
 const EMPTYREQUEST = { uri: {} };
@@ -135,6 +132,28 @@ global.FLOWSTREAM = function(name) {
 var DEF = global.DEF = {};
 
 DEF.currencies = {};
+
+DEF.parsers = {};
+DEF.parsers.json = function(body) {
+	return body.parseJSON(true);
+};
+
+DEF.parsers.xml = function(body) {
+	return body.parseXML(true);
+};
+
+DEF.parsers.urlencoded = function(body) {
+	return body.parseEncoded();
+};
+
+DEF.helpers = {};
+DEF.validators = {
+	email: new RegExp('^[a-zA-Z0-9-_.+]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'),
+	url: /http(s)?:\/\/[^,{}\\]*$/i,
+	phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
+	zip: /^\d{5}(?:[-\s]\d{4})?$/,
+	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c$/
+};
 
 var PROTORES, PROTOREQ;
 
@@ -355,7 +374,7 @@ global.PREF.set = function(name, value) {
 		F.pref[name] = global.PREF[name] = value;
 
 	prefid && clearTimeout(prefid);
-	prefid = setTimeout(F.onPrefSave, 1000, F.pref);
+	prefid = setTimeout(DEF.onPrefSave, 1000, F.pref);
 };
 
 global.CACHE = function(name, value, expire, persistent) {
@@ -779,7 +798,6 @@ function Framework() {
 		directory_operations: '/operations/',
 		directory_resources: '/resources/',
 		directory_public: '/public/',
-		directory_public_virtual: '/app/',
 		directory_modules: '/modules/',
 		directory_source: '/source/',
 		directory_logs: '/logs/',
@@ -925,23 +943,12 @@ function Framework() {
 	self.controllers = {};
 	self.dependencies = {};
 	self.components = { has: false, css: false, js: false, views: {}, instances: {}, version: null, links: '', groups: {}, files: {} };
-	self.convertors = [];
-	self.convertors2 = null;
 	self.tests = [];
+	self.convertors = {};
 	self.errors = [];
 	self.server = null;
 	self.port = 0;
 	self.ip = '';
-
-	DEF.helpers = {};
-	DEF.validators = {
-		email: new RegExp('^[a-zA-Z0-9-_.+]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$'),
-		url: /http(s)?:\/\/[^,{}\\]*$/i,
-		phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
-		zip: /^\d{5}(?:[-\s]\d{4})?$/,
-		uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c$/
-	};
-
 	self.workers = {};
 	self.sessions = {};
 	self.flows = {};
@@ -1075,7 +1082,6 @@ function Framework() {
 	self._length_subdomain_websocket = 0;
 	self._length_convertors = 0;
 
-	self.isVirtualDirectory = false;
 	self.isTheme = false;
 	self.isWindows = Os.platform().substring(0, 3).toLowerCase() === 'win';
 
@@ -1259,9 +1265,9 @@ global.EMIT = F.emit = function(name, a, b, c, d, e, f, g) {
 	return F;
 };
 
-global.ONCE = F.once = function(name, fn) {
+global.ONCE = function(name, fn) {
 	fn.$once = true;
-	return F.on(name, fn);
+	return ON(name, fn);
 };
 
 F.removeListener = function(name, fn) {
@@ -1294,54 +1300,6 @@ F.$owner = function() {
 
 F.isSuccess = function(obj) {
 	return obj === SUCCESSHELPER;
-};
-
-F.convert = function(value, convertor) {
-
-	if (convertor) {
-
-		if (F.convertors.findIndex('name', value) !== -1) {
-			if (convertor == null)
-				F.convertors = F.convertors.remove('name', value);
-			return false;
-		}
-
-		if (convertor === Number)
-			convertor = U.parseFloat;
-		else if (convertor === Boolean)
-			convertor = U.parseBoolean;
-		else if (typeof(convertor) === 'string') {
-			switch (convertor.toLowerCase()) {
-				case 'json':
-					convertor = U.parseJSON;
-					break;
-				case 'float':
-				case 'number':
-				case 'double':
-					convertor = U.parseFloat;
-					break;
-				case 'int':
-				case 'integer':
-					convertor = U.parseInt2;
-					break;
-				default:
-					return console.log('Unknown convertor type:', convertor);
-			}
-		}
-
-		F.convertors.push({ name: value, convertor: convertor });
-		F._length_convertors = F.convertors.length;
-		return true;
-	}
-
-	if (value) {
-		for (var i = 0, length = F.convertors.length; i < length; i++) {
-			if (value[F.convertors[i].name] != null)
-				value[F.convertors[i].name] = F.convertors[i].convertor(value[F.convertors[i].name]);
-		}
-	}
-
-	return value;
 };
 
 /**
@@ -1520,7 +1478,7 @@ F.stop = F.kill = function(signal) {
 };
 
 
-global.PROXY = F.proxy = function(url, target, copypath, before, after) {
+global.PROXY = function(url, target, copypath, before, after) {
 
 	if (typeof(copypath) == 'function') {
 		after = before;
@@ -1533,7 +1491,7 @@ global.PROXY = F.proxy = function(url, target, copypath, before, after) {
 	F._request_check_proxy = true;
 };
 
-global.REDIRECT = F.redirect = function(host, newHost, withPath, permanent) {
+global.REDIRECT = function(host, newHost, withPath, permanent) {
 
 	var external = host.startsWith('http://') || host.startsWith('https');
 	if (external) {
@@ -1576,16 +1534,13 @@ global.REDIRECT = F.redirect = function(host, newHost, withPath, permanent) {
 		return F;
 	}
 
-	F.route(host, function() {
-
+	ROUTE(host, function() {
 		if (newHost.startsWith('http://') || newHost.startsWith('https://')) {
 			this.redirect(newHost + this.href(), permanent);
 			return;
 		}
-
 		if (newHost[0] !== '/')
 			newHost = '/' + newHost;
-
 		this.redirect(newHost + this.href(), permanent);
 	}, flags);
 
@@ -2056,7 +2011,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var options;
 	var corsflags = [];
 	var membertype = 0;
-	var isGENERATOR = false;
 	var isDYNAMICSCHEMA = false;
 	var description;
 	var id = null;
@@ -2188,13 +2142,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				case 'credential':
 				case 'credentials':
 					corsflags.push(flag);
-					count--;
-					continue;
-
-				case 'sync':
-				case 'yield':
-				case 'synchronize':
-					isGENERATOR = true;
 					count--;
 					continue;
 
@@ -2371,9 +2318,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			funcExecute = workflow.id instanceof Array ? controller_json_workflow_multiple : controller_json_workflow;
 	}
 
-	if (!isGENERATOR)
-		isGENERATOR = (funcExecute.constructor.name === 'GeneratorFunction' || funcExecute.toString().indexOf('function*') === 0);
-
 	var url2 = framework_internal.preparePath(url.trim());
 	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
 	var hash = url2.hash();
@@ -2518,7 +2462,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isMOBILE = isMOBILE;
 	r.isROBOT = isROBOT;
 	r.isMOBILE_VARY = isMOBILE;
-	r.isGENERATOR = isGENERATOR;
 	r.MEMBER = membertype;
 	r.isWILDCARD = isWILDCARD;
 	r.isROLE = isROLE;
@@ -2858,7 +2801,7 @@ global.MAP = function(url, filename, filter) {
  * @return {Framework}
  */
 global.MIDDLEWARE = F.middleware = function(name, funcExecute) {
-	F.install('middleware', name, funcExecute);
+	INSTALL('middleware', name, funcExecute);
 	_owner && F.owners.push({ type: 'middleware', owner: _owner, id: name });
 	return F;
 };
@@ -3523,6 +3466,7 @@ F.$notModified = function(req, res, date) {
 		res.end();
 		F.stats.response.notmodified++;
 		F.reqstats(false, req.isStaticFile);
+		req.bodydata = null;
 		return true;
 	}
 };
@@ -3600,7 +3544,7 @@ global.MODIFY = F.modify = function(filename, fn) {
 
 F.$bundle = function(callback) {
 
-	var bundledir = F.path.root(CONF.directory_bundles);
+	var bundledir = PATH.root(CONF.directory_bundles);
 
 	var makebundle = function() {
 
@@ -3613,31 +3557,13 @@ F.$bundle = function(callback) {
 		}
 
 		url.wait(function(item, next) {
-
-			var filename = F.path.root(CONF.directory_bundles) + item.replace('.url', '.bundle');
-			var link = Fs.readFileSync(F.path.root(CONF.directory_bundles) + item).toString('utf8');
-
+			var filename = PATH.root(CONF.directory_bundles) + item.replace('.url', '.bundle');
+			var link = Fs.readFileSync(PATH.root(CONF.directory_bundles) + item).toString('utf8');
 			F.consoledebug('Download bundle: ' + link);
-
-			U.download(link, FLAGS_INSTALL, function(err, response) {
-
-				if (err) {
-					F.error(err, 'Bundle: ' + link);
-					next();
-					return;
-				}
-
-				var stream = Fs.createWriteStream(filename);
-
-				response.pipe(stream);
-				response.on('error', function(err) {
-					F.error(err, 'Bundle: ' + link);
-					next();
-				});
-
-				CLEANUP(stream, next);
+			DOWNLOAD(link, filename, function(err) {
+				err && F.error(err, 'Bundle: ' + link);
+				next();
 			});
-
 		}, function() {
 			require('./bundles').make(function() {
 				F.directory = HEADERS.workers.cwd = directory = F.path.root(CONF.directory_src);
@@ -3741,7 +3667,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/modules/' : CONF.directory_modules);
 			arr = [];
 			listing(dir, 0, arr, '.js');
-			arr.forEach((item) => dependencies.push(next => F.install('module', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('module', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3756,7 +3682,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			arr.wait(function(item, next2) {
 
 				if (!item.is) {
-					dependencies.push(next => F.install('package', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
+					dependencies.push(next => INSTALL('package', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
 					return next2();
 				}
 
@@ -3783,7 +3709,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 
 						// Windows sometimes doesn't load package and this delay solves the problem.
 						setTimeout(function() {
-							dependencies.push(next => F.install('package2', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
+							dependencies.push(next => INSTALL('package2', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
 							next2();
 						}, 50);
 
@@ -3798,7 +3724,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/models/' : CONF.directory_models);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => F.install('model', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('model', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3808,7 +3734,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/schemas/' : CONF.directory_schemas);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => F.install('schema', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('schema', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3818,7 +3744,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/tasks/' : CONF.directory_tasks);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => F.install('task', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('task', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3828,7 +3754,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/operations/' : CONF.directory_operations);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => F.install('operation', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('operation', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3844,7 +3770,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 				var filename = Path.join(themeDirectory, 'index.js');
 				F.themes[item.name] = U.path(themeDirectory);
 				F._length_themes++;
-				existsSync(filename) && dependencies.push(next => F.install('theme', item.name, filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
+				existsSync(filename) && dependencies.push(next => INSTALL('theme', item.name, filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
 			});
 			resume();
 		});
@@ -3855,7 +3781,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/definitions/' : CONF.directory_definitions);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => F.install('definition', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('definition', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3865,7 +3791,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/controllers/' : CONF.directory_controllers);
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => F.install('controller', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('controller', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3875,7 +3801,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/components/' : CONF.directory_components);
 			listing(dir, 0, arr, '.html');
-			arr.forEach((item) => dependencies.push(next => F.install('component', item.name, item.filename, undefined, undefined, undefined, undefined, undefined, undefined, next, packageName)));
+			arr.forEach((item) => dependencies.push(next => INSTALL('component', item.name, item.filename, undefined, undefined, undefined, undefined, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
@@ -3895,14 +3821,14 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			F.$configure_configs(dir + '/config-' + (DEBUG ? 'debug' : 'release'));
 			dir = U.combine(targetdirectory, '/threads/' + thread);
 			listing(dir, 0, arr);
-			arr.forEach(item => dependencies.push(next => F.install('module', 'threads/' + item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => INSTALL('module', 'threads/' + item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
 			resume();
 		});
 	}
 
 	if (can('preferences')) {
 		operations.push(function(resume) {
-			if (F.onPrefLoad)
+			if (DEF.onPrefLoad)
 				loadpreferences(resume);
 			else
 				resume();
@@ -3925,7 +3851,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 };
 
 function loadpreferences(callback) {
-	F.onPrefLoad(function(value) {
+	DEF.onPrefLoad(function(value) {
 		if (value) {
 			var keys = Object.keys(value);
 			for (var i = 0; i < keys.length; i++) {
@@ -3982,7 +3908,7 @@ F.$startup = function(callback) {
  * @param {String} packageName Internal, optional.
  * @return {Framework}
  */
-global.INSTALL = F.install = function(type, name, declaration, options, callback, internal, useRequired, skipEmit, uptodateName, next, packageName) {
+global.INSTALL = function(type, name, declaration, options, callback, internal, useRequired, skipEmit, uptodateName, next, packageName) {
 
 	var obj = null;
 
@@ -4040,80 +3966,15 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 
 	// Check if declaration is a valid URL address
 	if (type !== 'eval' && typeof(declaration) === 'string') {
-
-		if (declaration.startsWith('http://') || declaration.startsWith('https://')) {
-			if (type === 'package') {
-				F.consoledebug('download', type, declaration);
-				U.download(declaration, FLAGS_INSTALL, function(err, response) {
-
-					if (err) {
-						F.error(err, 'F.install(\'{0}\', \'{1}\')'.format(type, declaration), null);
-						next && next();
-						callback && callback(err);
-						return;
-					}
-
-					var id = Path.basename(declaration, '.package');
-					var filename = F.path.temp(id + '.download');
-					var stream = Fs.createWriteStream(filename);
-					var md5 = Crypto.createHash('md5');
-
-					response.on('data', (buffer) => md5.update(buffer));
-					response.pipe(stream);
-
-					stream.on('finish', function() {
-						var hash = md5.digest('hex');
-
-						if (F.temporary.versions[declaration] === hash) {
-							next && next();
-							callback && callback(null, uptodateName || name, true);
-							return;
-						}
-
-						F.temporary.versions[declaration] = hash;
-						F.install(type, id, filename, options, callback, undefined, undefined, true, uptodateName, next);
-					});
-				});
-				return F;
-			}
-
-			F.consoledebug('download', type, declaration);
-			U.request(declaration, FLAGS_INSTALL, function(err, data, code) {
-
-				if (code !== 200 && !err)
-					err = new Error(data);
-
-				if (err) {
-					F.error(err, 'F.install(\'{0}\', \'{1}\')'.format(type, declaration), null);
-					next && next();
-					callback && callback(err);
-				} else {
-
-					var hash = data.hash('md5');
-
-					if (F.temporary.versions[declaration] === hash) {
-						next && next();
-						callback && callback(null, uptodateName || name, true);
-						return;
-					}
-
-					F.temporary.versions[declaration] = hash;
-					F.install(type, name, data, options, callback, declaration, undefined, undefined, uptodateName, next);
-				}
-
-			});
-			return F;
-		} else {
-			if (declaration[0] === '~')
-				declaration = declaration.substring(1);
-			if (type !== 'config' && type !== 'resource' && type !== 'package' && type !== 'component' && !REG_SCRIPTCONTENT.test(declaration)) {
-				var relative = F.path.root(declaration);
-				if (existsSync(relative))
-					declaration = relative;
-				if (!existsSync(declaration))
-					throw new Error('The ' + type + ': ' + declaration + ' doesn\'t exist.');
-				useRequired = true;
-			}
+		if (declaration[0] === '~')
+			declaration = declaration.substring(1);
+		if (type !== 'config' && type !== 'resource' && type !== 'package' && type !== 'component' && !REG_SCRIPTCONTENT.test(declaration)) {
+			var relative = F.path.root(declaration);
+			if (existsSync(relative))
+				declaration = relative;
+			if (!existsSync(declaration))
+				throw new Error('The ' + type + ': ' + declaration + ' doesn\'t exist.');
+			useRequired = true;
 		}
 	}
 
@@ -4197,7 +4058,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		if (!name && internal)
 			name = U.getName(internal).replace(/\.html/gi, '').trim();
 
-		F.uninstall(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
+		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
 
 		var hash = '\n/*' + name.crc32(true) + '*/\n';
 		var temporary = (F.id ? 'i-' + F.id + '_' : '') + 'components';
@@ -4254,7 +4115,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 				F.components.instances[name] = obj;
 				obj && typeof(obj.install) === 'function' && obj.install(options || CONF[_owner], name);
 			} catch(e) {
-				F.error(e, 'F.install(\'component\', \'{0}\')'.format(name));
+				F.error(e, 'INSTALL(\'component\', \'{0}\')'.format(name));
 			}
 		} else if (!internal) {
 			var js = declaration.replace(/\.html$/i, '.js');
@@ -4328,7 +4189,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 				return;
 			}
 
-			F.install('module', id, filename, options || CONF['package#' + name], function(err) {
+			INSTALL('module', id, filename, options || CONF['package#' + name], function(err) {
 				setTimeout(function() {
 					EMIT('module#' + name);
 					EMIT(type + '#' + name);
@@ -4383,7 +4244,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		var id = U.getName(declaration, '.package');
 		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id) : Path.join(F.path.root(), CONF.directory_temp, id);
 		var filename = Path.join(dir, 'index.js');
-		F.install('module', id.replace(/\.package$/i, ''), filename, options || CONF['package#' + name], function(err) {
+		INSTALL('module', id.replace(/\.package$/i, ''), filename, options || CONF['package#' + name], function(err) {
 			setTimeout(function() {
 				EMIT('module#' + name);
 				EMIT(type + '#' + name);
@@ -4455,7 +4316,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		}
 
 		if (err) {
-			F.error(err, 'F.install(\'' + type + '\')', null);
+			F.error(err, 'INSTALL(\'' + type + '\')', null);
 			next && next();
 			callback && callback(err, name);
 			return F;
@@ -4520,7 +4381,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		}
 
 		if (err) {
-			F.error(err, 'F.install(\'' + type + '\', \'' + name + '\')', null);
+			F.error(err, 'INSTALL(\'' + type + '\', \'' + name + '\')', null);
 			next && next();
 			callback && callback(err, name);
 			return F;
@@ -4540,7 +4401,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		key = type + '.' + name;
 		tmp = F.dependencies[key];
 
-		F.uninstall(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
+		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
 		F.temporary.owners[_owner] = true;
 
 		if (tmp) {
@@ -4624,7 +4485,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		}
 
 		if (err) {
-			F.error(err, 'F.install(\'' + type + '\', \'' + (name ? '' : internal) + '\')', null);
+			F.error(err, 'INSTALL(\'' + type + '\', \'' + (name ? '' : internal) + '\')', null);
 			next && next();
 			callback && callback(err, name);
 			return F;
@@ -4669,7 +4530,7 @@ global.INSTALL = F.install = function(type, name, declaration, options, callback
 		key = type + '.' + name;
 		tmp = F.dependencies[key];
 
-		F.uninstall(type, uptodateName || name, uptodateName ? 'uptodate' : undefined, undefined, packageName);
+		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined, undefined, packageName);
 		F.temporary.owners[_owner] = true;
 
 		if (tmp) {
@@ -4781,7 +4642,7 @@ F.install_make = function(key, name, obj, options, callback, skipEmit, type) {
  * @param {Object} skipEmit Internal, optional.
  * @return {Framework}
  */
-global.UNINSTALL = F.uninstall = function(type, name, options, skipEmit, packageName) {
+global.UNINSTALL = function(type, name, options, skipEmit, packageName) {
 
 	var obj = null;
 	var k, v, tmp;
@@ -4812,12 +4673,6 @@ global.UNINSTALL = F.uninstall = function(type, name, options, skipEmit, package
 
 	if (type === 'operation') {
 		NEWOPERATION(name, null);
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	}
-
-	if (type === 'convertor') {
-		F.convertor(name, null);
 		F.consoledebug('uninstall', type + '#' + name);
 		return F;
 	}
@@ -4887,7 +4742,7 @@ global.UNINSTALL = F.uninstall = function(type, name, options, skipEmit, package
 	} else if (type === 'package') {
 		delete F.routes.packages[name];
 		delete F.temporary.ready['package#' + name];
-		F.uninstall('module', name, options, true);
+		UNINSTALL('module', name, options, true);
 		F.consoledebug('uninstall', type + '#' + name);
 		return F;
 	} else if (type === 'view' || type === 'precompile') {
@@ -5148,7 +5003,7 @@ F.register = function(path) {
  * @return {Framework}
  */
 F.eval = function(script) {
-	return F.install('eval', script);
+	return INSTALL('eval', script);
 };
 
 /**
@@ -5243,10 +5098,10 @@ F.onMapping = function(url, def, ispublic, encode) {
 	return def;
 };
 
-global.DOWNLOAD = F.download = F.snapshot = function(url, filename, callback) {
+global.DOWNLOAD = function(url, filename, callback) {
 
 	if (!F.isLoaded && url[0] === '/') {
-		setTimeout(F.download, 200, url, filename, callback);
+		setTimeout(global.DOWNLOAD, 200, url, filename, callback);
 		return F;
 	}
 
@@ -5260,10 +5115,17 @@ global.DOWNLOAD = F.download = F.snapshot = function(url, filename, callback) {
 		url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
 	}
 
-	U.download(url, FLAGS_DOWNLOAD, function(err, response) {
+	var opt = {};
+	opt.custom = true;
+	opt.url = url;
+	opt.resolve = true;
+	opt.callback = function(err, response) {
+
+		if (response)
+			response.filename = filename;
 
 		if (err) {
-			callback && callback(err);
+			callback && callback(err, response);
 			callback = null;
 			return;
 		}
@@ -5272,18 +5134,18 @@ global.DOWNLOAD = F.download = F.snapshot = function(url, filename, callback) {
 
 		var done = function(err) {
 			if (callback) {
-				callback(err);
+				callback(err, response);
 				callback = null;
 			}
 		};
 
-		response.pipe(stream);
-		response.on('error', done);
+		response.stream.pipe(stream);
+		response.stream.on('error', done);
 		stream.on('error', done);
 		CLEANUP(stream, done);
-	});
+	};
 
-	return F;
+	REQUEST(opt);
 };
 
 /**
@@ -5325,107 +5187,6 @@ F.findConnections = function(path) {
 			key.indexOf(path) !== -1 && output.push(F.connections[key]);
 	}
 	return output;
-};
-
-/**
- * Global validation
- * @param {Function(name, value)} delegate
- * @type {Boolean or StringErrorMessage}
- */
-F.onValidate = null;
-
-/**
- * Global XML parsing
- * @param {String} value
- * @return {Object}
- */
-F.onParseXML = function(value, replace) {
-	var val = U.parseXML(value, replace);
-	F._length_convertors && F.convert(val);
-	return val;
-};
-F.onParseXML.$def = true;
-
-F.$onParseXML = function(req) {
-	if (F.onParseXML.$def) {
-		req.body = U.parseXML(req.buffer_data);
-		F._length_convertors && F.convert(req.body);
-	} else
-		req.body = F.onParseXML(req.buffer_data);
-};
-
-/**
- * Global JSON parsing
- * @param {String} value
- * @return {Object}
- */
-F.onParseJSON = function(value) {
-	if (value) {
-		try {
-			return JSON.parse(value);
-		} catch (e) {}
-	}
-};
-F.onParseJSON.$def = true;
-
-F.$onParseJSON = function(req) {
-	req.body = F.onParseJSON.$def ? JSON.parse(req.buffer_data) : F.onParseJSON(req.buffer_data);
-};
-
-function parseQueryArguments(val) {
-	var arr = val.split('&', QUERYPARSEROPTIONS.maxKeys);
-	var obj = {};
-	for (var i = 0; i < arr.length; i++) {
-		var item = arr[i];
-		var index = item.indexOf('=');
-		// Max. length of key
-		if (index > 0 && index < CONF.default_request_maxkey) {
-			var k = item.substring(0, index);
-			if (obj[k] == null)
-				obj[k] = decodeURIComponent(item.substring(index + 1));
-		}
-	}
-	return obj;
-}
-
-/**
- * Global JSON parsing
- * @param {String} value
- * @return {Object}
- */
-F.onParseQuery = function(value) {
-	if (value) {
-		// var val = Qs.parse(value, null, null, QUERYPARSEROPTIONS);
-		var val = parseQueryArguments(value);
-		F._length_convertors && F.convert(val);
-		return val;
-	}
-	return {};
-};
-F.onParseQuery.$def = true;
-
-F.$onParseQueryBody = function(req) {
-	if (F.onParseQuery.$def) {
-		if (req.buffer_data) {
-			// req.body = Qs.parse(req.buffer_data, null, null, QUERYPARSEROPTIONS);
-			req.body = parseQueryArguments(req.buffer_data);
-			F._length_convertors && F.convert(req.body);
-		} else
-			req.body = {};
-	} else
-		req.body = F.onParseQuery(req.buffer_data, req);
-};
-
-F.$onParseQueryUrl = function(req) {
-	if (F.onParseQuery.$def) {
-		if (req.uri.query) {
-			// req._querydata = Qs.parse(req.uri.query, null, null, QUERYPARSEROPTIONS);
-			req._querydata = parseQueryArguments(req.uri.query);
-			F._length_convertors && F.convert(req._querydata);
-		} else
-			req._querydata = {};
-	} else
-		req._querydata = F.onParseQuery(req.uri.query, req);
 };
 
 /**
@@ -5751,11 +5512,11 @@ F.usage = function(detailed) {
 	return output;
 };
 
-F.onPrefSave = function(val) {
-	Fs.writeFile(F.path.databases(PREFFILE), JSON.stringify(val), ERROR('F.onPrefSave'));
+DEF.onPrefSave = function(val) {
+	Fs.writeFile(PATH.databases(PREFFILE), JSON.stringify(val), ERROR('DEF.onPrefSave'));
 };
 
-F.onPrefLoad = function(next) {
+DEF.onPrefLoad = function(next) {
 	Fs.readFile(U.combine(CONF.directory_databases, PREFFILE), function(err, data) {
 		if (data)
 			next(data.toString('utf8').parseJSON(true));
@@ -5764,8 +5525,8 @@ F.onPrefLoad = function(next) {
 	});
 };
 
-DEF.onAudit = F.onAudit = function(name, data) {
-	F.path.verify('logs');
+DEF.onAudit = function(name, data) {
+	PATH.verify('logs');
 	U.queue('F.logger', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), JSON.stringify(data) + '\n', next));
 };
 
@@ -5777,7 +5538,7 @@ DEF.onAudit = F.onAudit = function(name, data) {
  * @return {String}
  */
 // name, html, model
-F.onCompileView = function(name, html) {
+DEF.onCompileView = function(name, html) {
 	return html;
 };
 
@@ -5787,7 +5548,7 @@ F.onCompileView = function(name, html) {
 	@content {String} :: Content of CSS file
 	return {String}
 */
-F.onCompileStyle = null;
+DEF.onCompileStyle = null;
 
 /*
 	3rd JavaScript compiler (Sync)
@@ -5795,7 +5556,7 @@ F.onCompileStyle = null;
 	@content {String} :: Content of JavaScript file
 	return {String}
 */
-F.onCompileScript = null;
+DEF.onCompileScript = null;
 
 function compile_file(res) {
 	fsFileRead(res.options.filename, function(err, buffer) {
@@ -5852,10 +5613,14 @@ function compile_merge(res, repeated) {
 		var block;
 
 		if (filename.startsWith('http://') || filename.startsWith('https://')) {
-			U.request(filename, FLAGS_DOWNLOAD, function(err, data) {
 
-				var output = compile_content(req.extension, framework_internal.parseBlock(block, data), filename);
+			var opt = {};
+			opt.resolve = true;
+			opt.url = filename;
 
+			opt.callback = function(err, response) {
+
+				var output = compile_content(req.extension, framework_internal.parseBlock(block, response.body), filename);
 				if (JSFILES[req.extension]) {
 					if (output[output.length - 1] !== ';')
 						output += ';';
@@ -5867,14 +5632,14 @@ function compile_merge(res, repeated) {
 				DEBUG && merge_debug_writer(writer, filename, req.extension, index++, block);
 				writer.write(output);
 				next();
-			});
+			};
+
+			REQUEST(opt);
 			return;
 		}
 
 		if (filename[0] !== '~') {
 			var tmp = F.path.public(filename);
-			if (F.isVirtualDirectory && !existsSync(tmp))
-				tmp = F.path.virtual(filename);
 			filename = tmp;
 		} else
 			filename = filename.substring(1);
@@ -5978,49 +5743,6 @@ function component_debug(filename, value, extension) {
 	return beg + mid + plus + '\n' + mid + 'COMPONENT: ' + filename + '\n' + mid + plus + end + '\n\n' + value;
 }
 
-F.compile_virtual = function(res) {
-
-	var req = res.req;
-	var tmpname = res.options.filename.replace(CONF.directory_public, CONF.directory_public_virtual);
-
-	if (tmpname === res.options.filename) {
-		F.temporary.notfound[req.$key] = true;
-		delete F.temporary.processing[req.$key];
-		res.$file();
-		return;
-	}
-
-	fsFileExists(tmpname, function(e, size, sfile, stats) {
-
-		if (!e) {
-			F.temporary.notfound[req.$key] = true;
-			delete F.temporary.processing[req.$key];
-			res.$file();
-			return;
-		}
-
-		if (!res.noCompress && COMPRESSIONSPECIAL[req.extension] && CONF.allow_compile && !REG_NOCOMPRESS.test(res.options.filename)) {
-			res.options.filename = tmpname;
-			return compile_file(res);
-		}
-
-		var tmp = [tmpname, size, stats.mtime.toUTCString()];
-		if (CONF.allow_gzip && COMPRESSION[U.getContentType(req.extension)]) {
-			compile_gzip(tmp, function(tmp) {
-				F.temporary.path[req.$key] = tmp;
-				delete F.temporary.processing[req.$key];
-				res.$file();
-			});
-		} else {
-			F.temporary.path[req.$key] = tmp;
-			delete F.temporary.processing[req.$key];
-			res.$file();
-		}
-	});
-
-	return;
-};
-
 function compile_check(res) {
 
 	var req = res.req;
@@ -6051,9 +5773,7 @@ function compile_check(res) {
 				delete F.temporary.processing[req.$key];
 			}
 
-		} else if (F.isVirtualDirectory)
-			F.compile_virtual(res);
-		else {
+		} else {
 			F.temporary.notfound[req.$key] = true;
 			delete F.temporary.processing[req.$key];
 			res.$file();
@@ -7201,7 +6921,7 @@ F.service = function(count) {
 	if (count % CONF.default_interval_precompile_views === 0) {
 		for (var key in F.routes.views) {
 			var item = F.routes.views[key];
-			F.install('view', key, item.url, null);
+			INSTALL('view', key, item.url, null);
 		}
 	}
 
@@ -7506,8 +7226,8 @@ F.$requestcontinue = function(req, res, headers) {
 	F.stats.request.web++;
 	req.body = EMPTYOBJECT;
 	req.files = EMPTYARRAY;
-	req.buffer_exceeded = false;
-	req.buffer_has = false;
+	req.bodyexceeded = false;
+	req.bodyhas = false;
 	req.$flags = req.method[0] + req.method[1];
 
 	var flags = [req.method.toLowerCase()];
@@ -7528,7 +7248,7 @@ F.$requestcontinue = function(req, res, headers) {
 
 	if (first === 'P' || first === 'D') {
 		multipart = req.headers['content-type'] || '';
-		req.buffer_data = Buffer.alloc(0);
+		req.bodydata = Buffer.alloc(0);
 		var index = multipart.indexOf(';', 6);
 		var tmp = multipart;
 		if (index !== -1)
@@ -7944,24 +7664,13 @@ function next_upgrade_continue(socket, connection) {
 	socket.upgrade(connection);
 }
 
-/**
- * Request statistics writer
- * @private
- * @param {Boolean} beg
- * @param {Boolean} isStaticFile
- * @return {Framework}
- */
 F.reqstats = function(beg) {
-
 	if (beg)
 		F.stats.request.pending++;
 	else
 		F.stats.request.pending--;
-
 	if (F.stats.request.pending < 0)
 		F.stats.request.pending = 0;
-
-	return F;
 };
 
 /**
@@ -7974,7 +7683,7 @@ global.MODEL = F.model = function(name) {
 	if (obj || obj === null)
 		return obj;
 	var filename = U.combine(CONF.directory_models, name + '.js');
-	existsSync(filename) && F.install('model', name, filename, undefined, undefined, undefined, true);
+	existsSync(filename) && INSTALL('model', name, filename, undefined, undefined, undefined, true);
 	return F.models[name] || null;
 };
 
@@ -7989,7 +7698,7 @@ global.INCLUDE = global.SOURCE = F.source = function(name, options, callback) {
 	if (obj || obj === null)
 		return obj;
 	var filename = U.combine(CONF.directory_source, name + '.js');
-	existsSync(filename) && F.install('source', name, filename, options, callback, undefined, true);
+	existsSync(filename) && INSTALL('source', name, filename, options, callback, undefined, true);
 	return F.sources[name] || null;
 };
 
@@ -8768,11 +8477,14 @@ F.$configure_versions = function(arr, clean) {
 };
 
 function makehash(url, callback, count) {
-	var target = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
-	U.download(target, ['get'], function(err, stream, status) {
+
+	var opt = {};
+	opt.url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
+	opt.custom = true;
+	opt.callback = function(err, response) {
 
 		// Maybe F.wait()
-		if (status === 503) {
+		if (response.status === 503) {
 			// Unhandled problem
 			if (count > 60)
 				callback('');
@@ -8781,21 +8493,20 @@ function makehash(url, callback, count) {
 			return;
 		}
 
-		if (status !== 200) {
+		if (response.status !== 200) {
 			callback('');
 			return;
 		}
 
 		var hash = Crypto.createHash('md5');
 		hash.setEncoding('hex');
-		stream.pipe(hash);
-		stream.on('end', function() {
+		response.stream.pipe(hash);
+		response.stream.on('end', function() {
 			hash.end();
 			callback(hash.read().crc32(true));
 		});
-
-		stream.on('error', () => callback(''));
-	});
+		response.stream.on('error', () => callback(''));
+	};
 }
 
 F.$configure_env = function(filename) {
@@ -8878,7 +8589,6 @@ F.$configure_configs = function(arr, rewrite) {
 
 	var done = function() {
 		process.title = 'total: ' + CONF.name.toASCII().toLowerCase().replace(REG_EMPTY, '-').substring(0, 8);
-		F.isVirtualDirectory = existsSync(U.combine(CONF.directory_public_virtual));
 	};
 
 	if (!(arr instanceof Array) || !arr.length) {
@@ -9107,8 +8817,6 @@ F.$configure_configs = function(arr, rewrite) {
 
 	if (CONF.allow_performance)
 		http.globalAgent.maxSockets = 9999;
-
-	QUERYPARSEROPTIONS.maxKeys = CONF.default_request_maxkeys || 33;
 
 	var xpowered = CONF.default_xpoweredby;
 
@@ -9843,10 +9551,6 @@ FrameworkPathProto.private = function(filename) {
 
 FrameworkPathProto.configs = function(filename) {
 	return U.combine(CONF.directory_configs, filename);
-};
-
-FrameworkPathProto.virtual = function(filename) {
-	return U.combine(CONF.directory_public_virtual, filename);
 };
 
 FrameworkPathProto.logs = function(filename) {
@@ -12926,6 +12630,7 @@ ControllerProto.close = function(end) {
 		self.type = 0;
 		end && self.res.end();
 		self.req.clear(true);
+		self.req.bodydata = null;
 		return self;
 	}
 
@@ -12938,6 +12643,7 @@ ControllerProto.close = function(end) {
 	F.reqstats(false, false);
 	F.$events.request_end && EMIT('request_end', self.req, self.res);
 	end && self.res.end();
+	self.req.bodydata = null;
 	self.req.clear(true);
 	return self;
 };
@@ -12950,32 +12656,27 @@ ControllerProto.close = function(end) {
  * @param {Number} timeout Optional, timeout (default: 10000)
  * @return {EventEmitter}
  */
-ControllerProto.proxy = function(url, callback, headers, timeout) {
-
-	if (typeof(callback) === 'object') {
-		timeout = headers;
-		headers = callback;
-		callback = undefined;
-	}
+ControllerProto.proxy = function(opt) {
 
 	var self = this;
-	var flags = [];
 	var req = self.req;
-	var type = req.headers['content-type'];
-	var h = {};
 
-	flags.push(req.method);
-	flags.push('dnscache');
+	if (!opt.headers)
+		opt.headers = {};
 
-	if ((/\/json/i).test(type))
-		flags.push('json');
+	if (!opt.method)
+		opt.method = req.method.toUpperCase();
+
+	opt.resolve = true;
+	opt.encoding = 'binary';
+	opt.body = req.bodydata;
 
 	var tmp;
 
-	if (url.indexOf('?') === -1) {
+	if (opt.url.indexOf('?') === -1) {
 		tmp = Qs.stringify(self.query);
 		if (tmp)
-			url += '?' + tmp;
+			opt.url += '?' + tmp;
 	}
 
 	var keys = Object.keys(req.headers);
@@ -12985,50 +12686,34 @@ ControllerProto.proxy = function(url, callback, headers, timeout) {
 			case 'x-forwarded-protocol':
 			case 'x-nginx-proxy':
 			case 'connection':
-			case 'content-type':
 			case 'host':
 			case 'accept-encoding':
 				break;
 			default:
-				h[keys[i]] = req.headers[keys[i]];
+				opt.headers[keys[i]] = req.headers[keys[i]];
 				break;
 		}
 	}
 
-	if (headers) {
+	if (!opt.timeout)
+		opt.timeout = 10000;
 
-		if (headers.flags) {
-			if (typeof(headers.flags) === 'string')
-				headers.flags = headers.flags.split(',');
-			for (var i = 0; i < headers.flags.length; i++)
-				flags.push(headers.flags[i]);
-			headers.flags = undefined;
-		}
+	var prepare = opt.callback;
 
-		keys = Object.keys(headers);
-		for (var i = 0, length = keys.length; i < length; i++) {
-			if (headers[keys[i]])
-				h[keys[i]] = headers[keys[i]];
-		}
-	}
+	opt.callback = function(err, response) {
 
-	// @TODO: Missing new implementation
-	return U.request(url, flags, self.body, function(err, data, code, headers) {
+		prepare && prepare(err, response);
 
 		if (err) {
-			callback && callback(err);
-			self.invalid().push(err);
-		} else {
-			self.status = code;
-			callback && callback(err, data, code, headers);
-			var ct = (headers['content-type'] || 'text/plain').replace(REG_ENCODINGCLEANER, '');
-			if (data instanceof Buffer)
-				self.binary(data, ct);
-			else
-				self.content(data, ct);
+			self.invalid(err);
+			return;
 		}
 
-	}, null, h, ENCODING, timeout || 10000);
+		self.status = response.status;
+		self.binary(response.body, (response.headers['content-type'] || 'text/plain').replace(REG_ENCODINGCLEANER, ''));
+	};
+
+	REQUEST(opt);
 };
 
 /**
@@ -13131,7 +12816,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 
 			var done = { callback: NOOP };
 
-			F.download(name, filename, function(err) {
+			DOWNLOAD(name, filename, function(err) {
 				if (err) {
 					F.temporary.other[key] = undefined;
 					if (done.callback === NOOP)
@@ -14294,7 +13979,7 @@ WebSocketClientProto.$decode = function() {
 				data = $decodeURIComponent(data);
 
 			if (data.isJSON()) {
-				var tmp = F.onParseJSON(data, this.req);
+				var tmp = data.parseJSON(true);
 				if (tmp !== undefined && this.container.$events.message)
 					this.container.emit('message', this, tmp);
 			}
@@ -14572,7 +14257,8 @@ function extend_request(PROTO) {
 
 	Object.defineProperty(PROTO, 'query', {
 		get: function() {
-			!this._querydata && F.$onParseQueryUrl(this);
+			if (!this._querydata)
+				this._querydata = DEF.parsers.urlencoded(this.uri.query);
 			return this._querydata;
 		},
 		set: function(value) {
@@ -14827,8 +14513,8 @@ function extend_request(PROTO) {
 	PROTO.$total_urlencoded = function() {
 		this.$total_route = F.lookup(this, this.uri.pathname, this.flags, 0);
 		if (this.$total_route) {
-			this.buffer_has = true;
-			this.buffer_exceeded = false;
+			this.bodyhas = true;
+			this.bodyexceeded = false;
 			this.on('data', this.$total_parsebody);
 			this.$total_end();
 		} else
@@ -14847,6 +14533,7 @@ function extend_request(PROTO) {
 		this.res.end(U.httpStatus(status));
 		F.$events.request_end && EMIT('request_end', this, this.res);
 		this.clear(true);
+		this.req.bodydata = null;
 	};
 
 	PROTO.$total_end = function() {
@@ -14854,7 +14541,7 @@ function extend_request(PROTO) {
 		if (h === 'G' || h === 'H' || h === 'O') {
 			if (this.$total_route && this.$total_route.schema)
 				this.$total_schema = true;
-			this.buffer_data = null;
+			this.bodydata = null;
 			this.$total_prepare();
 		} else
 			this.on('end', this.$total_end2);
@@ -14947,16 +14634,12 @@ function extend_request(PROTO) {
 			if (this.$total_route.isCACHE && !F.temporary.other[this.uri.pathname])
 				F.temporary.other[this.uri.pathname] = this.path;
 
-			if (this.$total_route.isGENERATOR)
-				async.call(controller, this.$total_route.execute, true)(controller, framework_internal.routeParam(this.$total_route.param.length ? this.split : this.path, this.$total_route));
-			else {
-				if (this.$total_route.param.length) {
-					var params = framework_internal.routeParam(this.split, this.$total_route);
-					controller.id = params[0];
-					this.$total_route.execute.apply(controller, params);
-				} else
-					this.$total_route.execute.call(controller);
-			}
+			if (this.$total_route.param.length) {
+				var params = framework_internal.routeParam(this.split, this.$total_route);
+				controller.id = params[0];
+				this.$total_route.execute.apply(controller, params);
+			} else
+				this.$total_route.execute.call(controller);
 
 		} catch (err) {
 			F.error(err, name, this.uri);
@@ -14968,20 +14651,20 @@ function extend_request(PROTO) {
 
 	PROTO.$total_parsebody = function(chunk) {
 
-		if (this.buffer_exceeded)
+		if (this.bodyexceeded)
 			return;
 
-		if (!this.buffer_exceeded) {
-			CONCAT[0] = this.buffer_data;
+		if (!this.bodyexceeded) {
+			CONCAT[0] = this.bodydata;
 			CONCAT[1] = chunk;
-			this.buffer_data = Buffer.concat(CONCAT);
+			this.bodydata = Buffer.concat(CONCAT);
 		}
 
-		if ((this.buffer_data.length / 1024) < this.$total_route.length)
+		if ((this.bodydata.length / 1024) < this.$total_route.length)
 			return;
 
-		this.buffer_exceeded = true;
-		this.buffer_data = Buffer.alloc(0);
+		this.bodyexceeded = true;
+		this.bodydata = Buffer.alloc(0);
 	};
 
 	PROTO.$total_cancel = function() {
@@ -15024,7 +14707,7 @@ function extend_request(PROTO) {
 	PROTO.$total_authorize = function(isLogged, user, roles) {
 
 		var membertype = isLogged ? 1 : 2;
-		var code = this.buffer_exceeded ? 431 : 401;
+		var code = this.bodyexceeded ? 431 : 401;
 
 		this.$flags += membertype;
 		user && (this.user = user);
@@ -15035,9 +14718,9 @@ function extend_request(PROTO) {
 			else
 				this.$total_execute(code, true);
 		} else {
-			var route = F.lookup(this, this.buffer_exceeded ? '#431' : this.uri.pathname, this.flags, this.buffer_exceeded ? 0 : membertype);
+			var route = F.lookup(this, this.bodyexceeded ? '#431' : this.uri.pathname, this.flags, this.bodyexceeded ? 0 : membertype);
 			var status = this.$isAuthorized ? 404 : 401;
-			var code = this.buffer_exceeded ? 431 : status;
+			var code = this.bodyexceeded ? 431 : status;
 			!route && (route = F.lookup(this, '#' + status, EMPTYARRAY, 0));
 
 			this.$total_route = route;
@@ -15053,9 +14736,9 @@ function extend_request(PROTO) {
 
 		var route = this.$total_route;
 
-		if (this.buffer_exceeded) {
+		if (this.bodyexceeded) {
 			route = F.lookup(this, '#431', EMPTYARRAY, 0);
-			this.buffer_data = null;
+			this.bodydata = null;
 			if (route) {
 				this.$total_route = route;
 				this.$total_execute(431, true);
@@ -15064,13 +14747,9 @@ function extend_request(PROTO) {
 			return;
 		}
 
-		if (this.buffer_data && (!route || !route.isBINARY))
-			this.buffer_data = this.buffer_data.toString(ENCODING);
-
-		if (!this.buffer_data) {
+		if (!this.bodydata || !this.bodydata.length) {
 			if (route && route.schema)
 				this.$total_schema = true;
-			this.buffer_data = null;
 			this.$total_prepare();
 			return;
 		}
@@ -15079,13 +14758,11 @@ function extend_request(PROTO) {
 
 			if (this.$type !== 2) {
 				this.$total_400('Invalid "Content-Type".');
-				this.buffer_data = null;
 				return;
 			}
 
 			try {
-				F.$onParseXML(this);
-				this.buffer_data = null;
+				this.body = DEF.parsers.xml(this.bodydata.toString(ENCODING));
 				this.$total_prepare();
 			} catch (err) {
 				F.error(err, null, this.uri);
@@ -15096,41 +14773,27 @@ function extend_request(PROTO) {
 		}
 
 		if (route.isRAW) {
-			this.body = this.buffer_data;
-			this.buffer_data = null;
+			this.body = this.bodydata;
 			this.$total_prepare();
 			return;
 		}
 
 		if (!this.$type) {
-			this.buffer_data = null;
 			this.$total_400('Invalid "Content-Type".');
 			return;
 		}
 
 		if (this.$type === 1) {
 			try {
-				F.$onParseJSON(this);
-				this.buffer_data = null;
+				this.body = DEF.parsers.json(this.bodydata.toString(ENCODING));
 			} catch (e) {
 				this.$total_400('Invalid JSON data.');
 				return;
 			}
-		} else {
-
-			for (var i = 0; i < this.buffer_data.length - 2; i++) {
-				if (this.buffer_data[i] === '%' && this.buffer_data[i + 1] === '0' && this.buffer_data[i + 2] === '0') {
-					this.buffer_data = null;
-					this.$total_400('Not allowed chars in the request body.');
-					return;
-				}
-			}
-
-			F.$onParseQueryBody(this);
-		}
+		} else
+			this.body = DEF.parsers.urlencoded(this.bodydata.toString(ENCODING));
 
 		route.schema && (this.$total_schema = true);
-		this.buffer_data = null;
 		this.$total_prepare();
 	};
 
@@ -15212,10 +14875,10 @@ function extend_request(PROTO) {
 			F.onAuthorize(req, req.res, req.flags, req_authorizetotal);
 		} else {
 			if (!req.$total_route)
-				req.$total_route = F.lookup(req, req.buffer_exceeded ? '#431' : req.uri.pathname, req.flags, 0);
+				req.$total_route = F.lookup(req, req.bodyexceeded ? '#431' : req.uri.pathname, req.flags, 0);
 			if (!req.$total_route)
 				req.$total_route = F.lookup(req, '#404', EMPTYARRAY, 0);
-			var code = req.buffer_exceeded ? 431 : 404;
+			var code = req.bodyexceeded ? 431 : 404;
 			if (!req.$total_schema || !req.$total_route)
 				req.$total_execute(code, code);
 			else
@@ -15756,25 +15419,21 @@ function extend_response(PROTO) {
 
 		F.temporary.processing[req.uri.pathname] = true;
 
-		U.download(name, FLAGS_DOWNLOAD, function(err, response) {
-			var writer = Fs.createWriteStream(tmp);
-			response.pipe(writer);
-			CLEANUP(writer, function() {
+		DOWNLOAD(name, tmp, function(err, response) {
 
-				delete F.temporary.processing[req.uri.pathname];
-				var contentType = response.headers['content-type'];
+			delete F.temporary.processing[req.uri.pathname];
+			var type = response.headers['content-type'];
 
-				if (response.statusCode !== 200 || !contentType || !contentType.startsWith('image/')) {
-					if (!F.routes.filesfallback || !F.routes.filesfallback(req, res))
-						res.throw404();
-					return;
-				}
+			if (response.status !== 200 || !type || !type.startsWith('image/')) {
+				if (!F.routes.filesfallback || !F.routes.filesfallback(req, res))
+					res.throw404();
+				return;
+			}
 
-				res.options.cache = resizer.cache;
-				res.options.filename = tmp;
-				res.options.maker = resizer.fn;
-				res.$image();
-			});
+			res.options.cache = resizer.cache;
+			res.options.filename = tmp;
+			res.options.maker = resizer.fn;
+			res.$image();
 		});
 
 		return res;
@@ -16087,6 +15746,7 @@ function extend_response(PROTO) {
 
 		F.stats.response.stream++;
 		F.reqstats(false, req.isStaticFile);
+		req.bodydata = null;
 
 		if (req.method === 'HEAD') {
 			res.writeHead(options.code || 200, headers);
@@ -16605,6 +16265,7 @@ function response_end(res) {
 		F.$events.request_end && EMIT('request_end', res.req, res);
 
 	res.req.clear(true);
+	res.req.bodydata = null;
 	res.controller && res.req.$total_success();
 
 	if (res.options.callback) {

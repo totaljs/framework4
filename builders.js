@@ -404,7 +404,6 @@ function SchemaBuilderEntity(name) {
 	this.$onPrepare; // Array of functions for inherits
 	this.onDefault;
 	this.$onDefault; // Array of functions for inherits
-	this.onValidate = F.onValidate;
 	this.onSave;
 	this.onInsert;
 	this.onUpdate;
@@ -679,7 +678,7 @@ SchemaBuilderEntityProto.inherit = function(name) {
 			self.$onDefault.push(schema.onDefault);
 		}
 
-		if (self.onValidate === F.onValidate && self.onValidate !== schema.onValidate)
+		if (self.onValidate !== schema.onValidate)
 			self.onValidate = schema.onValidate;
 
 		if (!self.onSave && schema.onSave)
@@ -2618,7 +2617,7 @@ SchemaBuilderEntityProto.hook = function(name, model, options, callback, skip, c
 		if (CONF.logger)
 			$now = Date.now();
 
-		async_wait(hook, function(item, next, index) {
+		async_wait(hook, function(item, next) {
 			item.fn.call(self, new SchemaOptions(builder, model, options, function(res) {
 				CONF.logger && F.ilogger(self.getLoggerName($type, name), controller, $now);
 				output.push(res === undefined ? model : res);
@@ -4539,7 +4538,7 @@ var RESTP = RESTBuilder.prototype;
 
 RESTP.unixsocket = function(socket, path) {
 	var self = this;
-	self.options.unixsocket = { socket: socket, path: patch };
+	self.options.unixsocket = { socket: socket, path: path };
 	delete self.options.url;
 	return self;
 };
@@ -5557,7 +5556,7 @@ global.CONVERT = function(value, schema) {
 	var key = schema;
 	if (key.length > 50)
 		key = key.hash();
-	var fn = F.convertors2 && F.convertors2[key];
+	var fn = F.convertors[key];
 	return fn ? fn(value) : convertorcompile(schema, value, key);
 };
 
@@ -5697,9 +5696,7 @@ function convertorcompile(schema, data, key) {
 		}
 		return output;
 	};
-	if (!F.convertors2)
-		F.convertors2 = {};
-	F.convertors2[key] = fn;
+	F.convertors[key] = fn;
 	return fn(data);
 }
 

@@ -70,6 +70,7 @@ const regexpN = /\n/g;
 const regexpCHARS = /\W|_/g;
 const regexpCHINA = /[\u3400-\u9FBF]/;
 const regexpLINES = /\n|\r|\r\n/;
+const regexp0 = /\0|%00/g;
 const regexpBASE64 = /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
 const SOUNDEX = { a: '', e: '', i: '', o: '', u: '', b: 1, f: 1, p: 1, v: 1, c: 2, g: 2, j: 2, k: 2, q: 2, s: 2, x: 2, z: 2, d: 3, t: 3, l: 4, m: 5, n: 5, r: 6 };
 const ENCODING = 'utf8';
@@ -314,7 +315,7 @@ function dnsresolve_callback(uri, callback, param) {
 
 setImmediate(function() {
 	if (global.F) {
-		F.install('command', 'clear_dnscache', function() {
+		INSTALL('command', 'clear_dnscache', function() {
 			dnscache = {};
 		});
 	}
@@ -456,6 +457,9 @@ global.REQUEST = function(opt) {
 	else
 		opt.headers = {};
 
+	if (!opt.method)
+		opt.method = 'GET';
+
 	// opt.limit in kB
 	// opt.key {Buffer}
 	// opt.cert {Buffer}
@@ -568,10 +572,10 @@ global.REQUEST = function(opt) {
 	if (options.resolve && (uri.hostname === 'localhost' || uri.hostname.charCodeAt(0) < 64))
 		options.resolve = false;
 
-	if (CONF.default_proxy && !proxy && !PROXYBLACKLIST[uri.hostname])
+	if (!opt.unixsocket && CONF.default_proxy && !proxy && !PROXYBLACKLIST[uri.hostname])
 		proxy = parseProxy(CONF.default_proxy);
 
-	if (proxy && (uri.hostname === 'localhost' || uri.hostname === '127.0.0.1'))
+	if (!opt.unixsocket && proxy && (uri.hostname === 'localhost' || uri.hostname === '127.0.0.1'))
 		proxy = null;
 
 	options.proxy = proxy;
@@ -825,7 +829,7 @@ function request_response(res) {
 			if (options.callback) {
 				if (options.custom) {
 					options.response.status = res.statusCode;
-					options.response.response = res;
+					options.response.stream = res;
 					options.callback(null, options.response);
 				} else {
 					options.response.status = res.statusCode;
@@ -851,7 +855,7 @@ function request_response(res) {
 			if (options.callback) {
 				if (options.custom) {
 					options.response.status = res.statusCode;
-					options.response.response = res;
+					options.response.stream = res;
 					options.callback(null, options.response);
 				} else {
 					options.response.status = 0;
@@ -940,7 +944,7 @@ function request_response(res) {
 		if (options.custom) {
 			options.timeoutid && clearTimeout(options.timeoutid);
 			options.response.status = res.statusCode;
-			options.response.response = res;
+			options.response.stream = res;
 			options.callback(null, options.response);
 			options.callback = null;
 		} else
@@ -955,7 +959,7 @@ function request_response(res) {
 	if (options.custom) {
 		options.timeoutid && clearTimeout(options.timeoutid);
 		options.response.status = res.statusCode;
-		options.response.response = res;
+		options.response.stream = res;
 		options.callback && options.callback(null, options.response);
 		options.callback = null;
 	} else {
@@ -1018,7 +1022,7 @@ function request_process_end() {
 	var ct = self.headers['content-type'];
 
 	if (!ct || REG_TEXTAPPLICATION.test(ct))
-		data = self._buffer ? (options.encoding === 'binary' ? self._buffer : self._buffer.toString(options.encoding)) : '';
+		data = self._buffer ? options.encoding === 'binary' ? self._buffer : self._buffer.toString(options.encoding) : '';
 	else
 		data = self._buffer;
 
@@ -1737,7 +1741,7 @@ function validate_builder_default(name, value, entity) {
 
 exports.validate_builder = function(model, error, schema, path, index, fields, pluspath) {
 
-	var prepare = schema.onValidate || F.onValidate || NOOP;
+	var prepare = schema.onValidate || NOOP;
 	var current = path ? path + '.' : '';
 	var properties = model && model.$$keys ? model.$$keys : schema.properties;
 	var result;
@@ -1994,17 +1998,6 @@ exports.parseXML = function(xml, replace) {
 	}
 
 	return obj;
-};
-
-exports.parseJSON = function(value, date) {
-	try {
-		return JSON.parse(value, date ? jsonparser : undefined);
-	} catch(e) {
-	}
-};
-
-exports.parseQuery = function(value) {
-	return F.onParseQuery(value);
 };
 
 function jsonparser(key, value) {
@@ -2639,11 +2632,25 @@ SP.parseXML = function(replace) {
 };
 
 SP.parseJSON = function(date) {
-	return exports.parseJSON(this, date);
+	try {
+		return JSON.parse(this, date ? jsonparser : undefined);
+	} catch (e) {}
 };
 
-SP.parseQuery = function() {
-	return exports.parseQuery(this);
+SP.parseEncoded = function() {
+	var arr = this.replace(regexp0, '').split('&', CONF.default_request_maxkeys || 33);
+	var obj = {};
+	for (var i = 0; i < arr.length; i++) {
+		var item = arr[i];
+		var index = item.indexOf('=');
+		// Max. length of key
+		if (index > 0 && index < CONF.default_request_maxkey) {
+			var k = item.substring(0, index);
+			if (obj[k] == null)
+				obj[k] = decodeURIComponent(item.substring(index + 1));
+		}
+	}
+	return obj;
 };
 
 SP.parseUA = function(structured) {

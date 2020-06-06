@@ -21,7 +21,7 @@
 
 /**
  * @module FrameworkBundles
- * @version 3.4.3
+ * @version 4.0.0
  */
 
 require('./index');
