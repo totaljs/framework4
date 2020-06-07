@@ -398,7 +398,7 @@ function main() {
 				ROUTE('/*', function() {
 
 					var self = this;
-					var dir = F.path.public(self.url.substring(1));
+					var dir = PATH.public(self.url.substring(1));
 					var filename = Path.join(self.url, 'index.html').substring(1);
 
 					PATH.exists(filename, function(e) {

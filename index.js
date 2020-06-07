@@ -7631,9 +7631,6 @@ function configure_configs(arr, rewrite) {
 			case 'default_interval_clear_dnscache':
 			case 'default_dependency_timeout':
 			case 'default_restbuilder_timeout':
-			case 'nosql_cleaner':
-				obj[name] = U.parseInt(value);
-				break;
 			case 'default_image_consumption':
 			case 'default_image_quality':
 				obj[name] = U.parseInt(value.replace(/%|\s/g, ''));
@@ -7688,9 +7685,7 @@ function configure_configs(arr, rewrite) {
 			case 'allow_cache_cluster':
 			case 'allow_filter_errors':
 			case 'allow_custom_titles':
-			case 'trace':
 			case 'textdb_worker':
-			case 'nosql_logger':
 			case 'default_websocket_encodedecode':
 				obj[name] = value.toLowerCase() === 'true' || value === '1' || value === 'on';
 				break;
