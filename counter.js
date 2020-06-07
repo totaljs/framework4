@@ -78,12 +78,93 @@ CP.flush = function() {
 		m.day = NOW.getDate();
 		m.month = NOW.getMonth() + 1;
 		m.year = NOW.getFullYear();
+		m.ts = +NOW.format('yyyyMMdd');
 		m.date = NOW;
 		self.db.update(m, true).where('id', m.id);
 	}
 
 	self.cache = {};
 	return self;
+};
+
+CP.find = function() {
+	return this.db.find();
+};
+
+CP.scalar = function(type, field, callback) {
+	var self = this;
+	var builder = self.db.scalar(type, field);
+	callback && builder.callback(callback);
+	return builder;
+};
+
+CP.daily = function(id, callback) {
+	var self = this;
+	var builder = self.find().callback(callback);
+	builder.fields('-id');
+	builder.where('id', id);
+	return builder;
+};
+
+CP.monthly = function(id, callback) {
+	var self = this;
+	var builder = self.find();
+	callback && builder.callback(callback);
+	builder.options.scalar = 'tmp.id=((doc.ts)+\'\').substring(0,6);if(arg[tmp.id]){arg[tmp.id].sum+=doc.sum;if(arg[tmp.id].min>doc.min)arg[tmp.id].min=doc.min;if(arg[tmp.id].max<doc.max)arg[tmp.id].max=doc.max;arg[tmp.id].count++}else{arg[tmp.id]={count:1,sum:doc.sum,min:doc.min,max:doc.max,year:doc.year,month:doc.month,ts:+tmp.id}}';
+	builder.options.scalararg = {};
+	builder.where('id', id);
+	builder.$custom = function() {
+		return function(err, response, meta) {
+
+			var keys = Object.keys(response);
+			var arr = [];
+
+			for (var i = 0; i < keys.length; i++) {
+				var item = response[keys[i]];
+				item.date = keys[i];
+				arr.push(item);
+			}
+
+			response = null;
+			builder.$callback && builder.$callback(err, arr, meta);
+		};
+	};
+	return builder;
+};
+
+CP.yearly = function(id, callback) {
+	var self = this;
+	var builder = self.find();
+	callback && builder.callback(callback);
+	builder.options.scalar = 'tmp.id=((doc.ts)+\'\').substring(0,4);if(arg[tmp.id]){arg[tmp.id].sum+=doc.sum;if(arg[tmp.id].min>doc.min)arg[tmp.id].min=doc.min;if(arg[tmp.id].max<doc.max)arg[tmp.id].max=doc.max;arg[tmp.id].count++}else{arg[tmp.id]={count:1,sum:doc.sum,min:doc.min,max:doc.max,year:doc.year,ts:doc.year}}';
+	builder.options.scalararg = {};
+	builder.where('id', id);
+	builder.$custom = function() {
+		return function(err, response, meta) {
+
+			var keys = Object.keys(response);
+			var arr = [];
+
+			for (var i = 0; i < keys.length; i++) {
+				var item = response[keys[i]];
+				item.date = keys[i];
+				arr.push(item);
+			}
+
+			response = null;
+			builder.$callback && builder.$callback(err, arr, meta);
+		};
+	};
+	return builder;
+};
+
+CP.clear = function() {
+	this.db.clear();
+	return this;
+};
+
+CP.remove = function() {
+	return this.db.remove();
 };
 
 exports.make = function(name) {

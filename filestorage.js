@@ -38,19 +38,29 @@ const BINARYREADMETA = { start: 0, end: HEADERSIZE - 1, encoding: 'binary' };
 function FileDB(name, directory) {
 	var t = this;
 	t.name = name;
-	t.directory = directory;
-	t.logger = directory + '/files.log';
+	// t.directory = directory;
+	// t.logger = directory + '/files.log';
 	t.cache = {};
 	t.total = 0;
 	t.size = 0;
 	t.ext = '.file';
+
+	ON('service', function(counter) {
+		if (counter % 10)
+			t.cache = {};
+	});
+
+	t.storage(directory);
 }
 
 const FP = FileDB.prototype;
 
-FP.service = function(counter) {
-	if (counter % 10)
-		this.cache = {};
+FP.storage = function(value) {
+	var self = this;
+	self.cache = {};
+	self.directory = value;
+	self.logger = value + '/files.log';
+	return self;
 };
 
 FP.makedirectory = function(id) {

@@ -91,13 +91,6 @@ DP.next = function(builder) {
 	return this;
 };
 
-DP.scalar = function() {
-	var builder = new DatabaseBuilder();
-	builder.command = 'scalar';
-	this.next(builder);
-	return builder;
-};
-
 DP.find = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find';
