@@ -329,13 +329,7 @@ SessionProto.release = function(sessionid, expire, callback) {
 		item.data = null;
 	}
 
-	if (callback) {
-		// @TODO: WTF? Why is "get" used when the item is released???
-		// if (item)
-		// 	self.get(sessionid, expire, callback);
-		// else
-		callback(null, item ? 1 : 0);
-	}
+	callback && callback(null, item ? 1 : 0);
 };
 
 SessionProto.release2 = function(id, expire, callback) {
