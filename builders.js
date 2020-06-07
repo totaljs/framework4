@@ -32,7 +32,6 @@ const SKIP = { $$schema: 1, $$async: 1, $$repository: 1, $$controller: 1, $$work
 const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
 const hasOwnProperty = Object.prototype.hasOwnProperty;
-const Qs = require('querystring');
 const BOOL = { true: 1, on: 1, '1': 1 };
 
 var schemas = {};
@@ -400,8 +399,6 @@ function SchemaBuilderEntity(name) {
 	this.transforms;
 	this.workflows;
 	this.hooks;
-	this.onPrepare;
-	this.$onPrepare; // Array of functions for inherits
 	this.onDefault;
 	this.$onDefault; // Array of functions for inherits
 	this.onSave;
@@ -411,7 +408,6 @@ function SchemaBuilderEntity(name) {
 	this.onRemove;
 	this.onQuery;
 	this.onError;
-	this.gcache = {};
 	this.dependencies;
 	this.fields;
 	this.fields_allow;
@@ -640,7 +636,6 @@ SchemaBuilderEntityProto.inherit = function(name) {
 		copy_inherit(self, 'workflows', schema.workflows);
 		copy_inherit(self, 'hooks', schema.hooks);
 		copy_inherit(self, 'operations', schema.operations);
-		copy_inherit(self, 'constants', schema.constants);
 
 		if (schema.middlewares) {
 			self.middlewares = [];
@@ -664,12 +659,6 @@ SchemaBuilderEntityProto.inherit = function(name) {
 			Object.keys(schema.preparation).forEach(function(key) {
 				self.preparation[key] = schema.preparation[key];
 			});
-		}
-
-		if (schema.onPrepare) {
-			if (!self.$onPrepare)
-				self.$onPrepare = [];
-			self.$onPrepare.push(schema.onPrepare);
 		}
 
 		if (schema.onDefault) {
@@ -1060,16 +1049,6 @@ SchemaBuilderEntityProto.setDefault = function(fn) {
 };
 
 /**
- * Set the prepare
- * @param {Function(name, value)} fn Must return a new value.
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.setPrepare = function(fn) {
-	this.onPrepare = fn;
-	return this;
-};
-
-/**
  * Set save handler
  * @param {Function(error, model, helper, next(value), controller)} fn
  * @return {SchemaBuilderEntity}
@@ -1327,11 +1306,7 @@ SchemaBuilderEntityProto.destroy = function() {
 	delete this.meta;
 	delete this.properties;
 	delete this.hooks;
-	delete this.constants;
-	delete this.onPrepare;
-	delete this.$onPrepare;
 	delete this.onError;
-	delete this.gcache;
 	delete this.dependencies;
 	delete this.fields;
 	delete this.fields_allow;
@@ -1653,10 +1628,6 @@ SchemaBuilderEntityProto.create = function() {
 	return this.default();
 };
 
-SchemaBuilderEntityProto.Create = function() {
-	return this.default();
-};
-
 /**
  * Makes extensible object
  * @param {Object} obj
@@ -1945,23 +1916,9 @@ function autotrim(context, value) {
 }
 
 SchemaBuilderEntityProto.$onprepare = function(name, value, index, model, req) {
-
 	var val = value;
-
-	if (this.$onPrepare) {
-		for (var i = 0, length = this.$onPrepare.length; i < length; i++) {
-			var tmp = this.$onPrepare[i](name, val, index, model, req);
-			if (tmp !== undefined)
-				val = tmp;
-		}
-	}
-
-	if (this.onPrepare)
-		val = this.onPrepare(name, val, index, model, req);
-
 	if (this.preparation && this.preparation[name])
 		val = this.preparation[name](val, model, index, req);
-
 	return val === undefined ? value : val;
 };
 
@@ -3345,10 +3302,6 @@ SchemaInstance.prototype.$validate = function(resourcePrefix, resourceName, buil
 	return this.$$schema.validate(this, resourcePrefix, resourceName, builder);
 };
 
-SchemaInstance.prototype.$constant = function(name) {
-	return this.$$schema.constant(name);
-};
-
 /**
  * ErrorBuilder
  * @class
@@ -4388,7 +4341,7 @@ RESTBuilder.GET = function(url, data) {
 	var builder = new RESTBuilder(url);
 	if (data) {
 		if (typeof(data) !== 'string')
-			data = Qs.stringify(data);
+			data = U.toURLEncode(data);
 		if (url.lastIndexOf('?') === -1)
 			url += '?' + data;
 		else
@@ -4679,7 +4632,7 @@ RESTP.redirect = function(value) {
 RESTP.raw = function(value) {
 	var val = value && value.$clean ? value.$clean() : value;
 	if (typeof(val) !== 'string')
-		val = this.$type === 2 ? Qs.stringify(val) : JSON.stringify(val);
+		val = this.$type === 2 ? U.toURLEncode(val) : JSON.stringify(val);
 	this.options.body = val;
 	return this;
 };

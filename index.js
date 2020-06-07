@@ -26,7 +26,6 @@
 
 'use strict';
 
-const Qs = require('querystring');
 const Os = require('os');
 const Fs = require('fs');
 const Zlib = require('zlib');
@@ -10120,7 +10119,7 @@ ControllerProto.href = function(key, value) {
 	var self = this;
 
 	if (!arguments.length) {
-		var val = Qs.stringify(self.query);
+		var val = U.toURLEncode(self.query);
 		return val ? '?' + val : '';
 	}
 
@@ -10176,7 +10175,7 @@ ControllerProto.href = function(key, value) {
 	if (value != null)
 		obj[key] = value;
 
-	obj = Qs.stringify(obj);
+	obj = U.toURLEncode(obj);
 
 	if (value === undefined && type === 'string')
 		obj += (obj ? '&' : '') + key;
@@ -11664,7 +11663,7 @@ ControllerProto.proxy = function(opt) {
 	var tmp;
 
 	if (opt.url.indexOf('?') === -1) {
-		tmp = Qs.stringify(self.query);
+		tmp = U.toURLEncode(self.query);
 		if (tmp)
 			opt.url += '?' + tmp;
 	}

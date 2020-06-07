@@ -273,6 +273,39 @@ exports.wait = function(fnValid, fnCallback, timeout, interval) {
 	}, timeout || 5000);
 };
 
+exports.toURLEncode = function(value) {
+	var keys = Object.keys(value);
+	var builder = [];
+
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var val = value[key];
+
+		if (val == null || val === '')
+			continue;
+
+		var type = typeof(val);
+		switch (type) {
+			case 'string':
+				builder.push(key + '=' + encodeURIComponent(val));
+				break;
+			case 'date':
+				builder.push(key + '=' + encodeURIComponent(val.format('utc')));
+				break;
+			case 'boolean':
+			case 'number':
+				builder.push(key + '=' + val);
+				break;
+			case 'object':
+				if (val instanceof Array)
+					builder.push(key + '=' + encodeURIComponent(val.join(',')));
+				break;
+		}
+	}
+
+	return builder.length ? builder.join('&') : '';
+};
+
 /**
  * Resolves an IP from the URL address
  * @param {String} url
