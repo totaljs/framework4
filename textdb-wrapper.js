@@ -169,16 +169,35 @@ DP.find2 = function() {
 };
 
 DP.insert = function(data, check, noeval) {
-	var builder = new DatabaseBuilder();
-	builder.command = 'insert';
-	builder.options.payload = data;
 
-	if (!noeval)
-		this.next(builder);
+	var self = this;
+	var bi = new DatabaseBuilder();
+	bi.command = 'insert';
+	bi.options.payload = data;
 
-	// @TODO: implement check
+	if (check) {
+		var builder = new DatabaseBuilder();
+		builder.command = 'find2';
+		builder.options.take = 1;
+		builder.options.first = 1;
+		builder.$custom = function() {
+			return function(err, response, meta) {
+				if (response) {
+					builder.$callback && builder.$callback(err, 0, meta);
+				} else {
+					bi.$callback = builder.$callback;
+					self.next(bi);
+				}
+			};
+		};
 
-	return builder;
+		self.next(builder);
+		return builder;
+
+	} else if (!noeval)
+		self.next(bi);
+
+	return bi;
 };
 
 DP.bulkinsert = function(fn) {
