@@ -1008,7 +1008,7 @@ function Framework() {
 		allow_custom_titles: false,
 		allow_cache_snapshot: false,
 		allow_cache_cluster: false,
-		allow_debug: true,
+		allow_debug: false,
 		allow_head: false,
 		allow_filter_errors: true,
 		allow_clear_temp: true,
@@ -1456,7 +1456,7 @@ Mail.use = function(smtp, options, callback) {
 		if (callback)
 			callback(err);
 		else if (err)
-			F.error(err, 'F.useSMTP()', null);
+			F.error(err, 'Mail.use()', null);
 	});
 };
 
@@ -1464,7 +1464,7 @@ Mail.use = function(smtp, options, callback) {
  * Sort all routes
  * @return {Framework}
  */
-F.$routes_sort = function(type) {
+F.routes_sort = function(type) {
 
 	F.routes.web.sort((a, b) => a.priority > b.priority ? -1 : a.priority < b.priority ? 1 : 0);
 	F.routes.websockets.sort((a, b) => a.priority > b.priority ? -1 : a.priority < b.priority ? 1 : 0);
@@ -1602,7 +1602,6 @@ F.stop = F.kill = function(signal) {
 	setTimeout(() => process.exit(signal), global.TEST ? 2000 : 300);
 };
 
-
 global.PROXY = function(url, target, copypath, before, after) {
 
 	if (typeof(copypath) == 'function') {
@@ -1649,7 +1648,7 @@ global.REDIRECT = function(host, newHost, withPath, permanent) {
 	permanent = withPath;
 
 	if (U.isStaticFile(host)) {
-		F.file(host, function(req, res) {
+		FILE(host, function(req, res) {
 			if (newHost.startsWith('http://') || newHost.startsWith('https://'))
 				res.redirect(newHost, permanent);
 			else
@@ -2628,7 +2627,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		// Appends cors route
 		isCORS && CORS(urlcache, corsflags);
-		!_controller && F.$routes_sort(1);
+		!_controller && F.routes_sort(1);
 	}
 
 	if (isMOBILE)
@@ -2660,7 +2659,7 @@ function remove_route_web() {
 	var index = F.routes.web.indexOf(this);
 	if (index !== -1) {
 		F.routes.web.splice(index, 1);
-		F.$routes_sort();
+		F.routes_sort();
 		F.temporary.other = {};
 	}
 }
@@ -3283,7 +3282,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	F.routes.websockets.push(r);
 	F.initwebsocket && F.initwebsocket();
 	EMIT('route', 'websocket', r);
-	!_controller && F.$routes_sort(2);
+	!_controller && F.routes_sort(2);
 	return instance;
 };
 
@@ -3302,7 +3301,7 @@ F.initwebsocket = function() {
  * @param {String Array} middleware
  * @return {Framework}
  */
-global.FILE = F.file = function(fnValidation, fnExecute, flags) {
+global.FILE = function(fnValidation, fnExecute, flags) {
 
 	var a;
 
@@ -3484,9 +3483,9 @@ global.LOCALIZE = function(url, flags, minify) {
 	url = framework_internal.preparePath(url.replace('.*', ''));
 
 	if (minify)
-		F.file(url, F.$filelocalize, flags);
+		FILE(url, F.$filelocalize, flags);
 	else
-		F.file(url, filelocalize_nominify, flags);
+		FILE(url, filelocalize_nominify, flags);
 };
 
 function filelocalize_nominify(req, res) {
@@ -3672,7 +3671,7 @@ F.$bundle = function(callback) {
 	callback();
 };
 
-F.$load = function(types, targetdirectory, callback, packageName) {
+F.$load = function(types, targetdirectory, callback) {
 
 	var arr = [];
 	var dir = '';
@@ -3941,7 +3940,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 		F.consoledebug('load dependencies ' + count + 'x');
 		dependencies.async(function() {
 			types && types.indexOf('service') === -1 && F.cache.stop();
-			F.$routes_sort();
+			F.routes_sort();
 			F.consoledebug('load dependencies {0}x (done)'.format(count));
 			callback && callback();
 		});
@@ -4073,7 +4072,7 @@ function install(type, name, filename, next) {
 	CURRENT_OWNER = key;
 	F.dependencies[key] = m;
 	m.install && m.install(opt);
-	F.$routes_sort();
+	F.routes_sort();
 	next && setImmediate(next);
 	F.temporary.ready[key] = NOW;
 	EMIT(key, m);
@@ -4115,15 +4114,6 @@ F.register = function(path) {
 		default:
 			throw new Error('Not supported registration type "' + extension + '".');
 	}
-};
-
-/**
- * Run code
- * @param {String or Function} script Function to eval or Code or URL address.
- * @return {Framework}
- */
-F.eval = function(script) {
-	return INSTALL('eval', script);
 };
 
 /**
@@ -4625,7 +4615,6 @@ F.usage = function(detailed) {
 	output.commands = commands;
 	output.streaming = staticRange;
 	output.shortcache = shortcache;
-
 	return output;
 };
 
@@ -7902,22 +7891,20 @@ F.$version = function(name, def) {
 
 F.$versionprepare = function(html) {
 	var match = html.match(REG_VERSIONS);
-	if (!match)
-		return html;
+	if (match) {
+		for (var i = 0, length = match.length; i < length; i++) {
 
-	for (var i = 0, length = match.length; i < length; i++) {
+			var src = match[i].toString();
+			var end = 5;
 
-		var src = match[i].toString();
-		var end = 5;
+			// href
+			if (src[0] === 'h')
+				end = 6;
 
-		// href
-		if (src[0] === 'h')
-			end = 6;
-
-		var name = src.substring(end, src.length - 1);
-		html = html.replace(match[i], src.substring(0, end) + F.$version(name, true) + '"');
+			var name = src.substring(end, src.length - 1);
+			html = html.replace(match[i], src.substring(0, end) + F.$version(name, true) + '"');
+		}
 	}
-
 	return html;
 };
 
@@ -8424,17 +8411,12 @@ FrameworkRouteProto.setId = function(value) {
 	return this;
 };
 
-FrameworkRouteProto.setDecription = function(value) {
-	this.route.description = value;
-	return this;
-};
-
 FrameworkRouteProto.setTimeout = function(value) {
 	this.route.timeout = value;
 	return this;
 };
 
-FrameworkRouteProto.setMaxLength = function(value) {
+FrameworkRouteProto.setLength = function(value) {
 	this.route.length = value;
 	return this;
 };
@@ -8446,6 +8428,31 @@ FrameworkRouteProto.setOptions = function(value) {
 
 FrameworkRouteProto.remove = function() {
 
+	var self = this;
+	var index;
+
+	if (self.isWEBSOCKET) {
+		index = F.routes.websockets.push(self);
+		if (index !== -1) {
+			F.routes.websockets.splice(index, 1);
+			F.routes_sort();
+		}
+	} else if (self.isSYSTEM) {
+		var keys = Object.keys(F.routes.system);
+		for (var i = 0; i < keys.length; i++) {
+			var key = keys[i];
+			if (F.routes.system[key] === self) {
+				delete F.routes.system[key];
+				break;
+			}
+		}
+	} else {
+		index = F.routes.web.indexOf(self);
+		if (index !== -1) {
+			F.routes.web.splice(index, 1);
+			F.routes_sort();
+		}
+	}
 };
 
 // =================================================================================
@@ -15298,7 +15305,7 @@ process.on('uncaughtException', function(e) {
 });
 
 function fsFileRead(filename, callback, a, b, c) {
-	U.queue('F.files', CONF.default_maxopenfiles, function(next) {
+	U.queue('FILES', CONF.default_maxopenfiles, function(next) {
 		Fs.readFile(filename, function(err, result) {
 			next();
 			callback(err, result, a, b, c);
@@ -15307,7 +15314,7 @@ function fsFileRead(filename, callback, a, b, c) {
 }
 
 function fsFileExists(filename, callback, a, b, c) {
-	U.queue('F.files', CONF.default_maxopenfiles, function(next) {
+	U.queue('FILES', CONF.default_maxopenfiles, function(next) {
 		Fs.lstat(filename, function(err, stats) {
 			next();
 			callback(!err && stats.isFile(), stats ? stats.size : 0, stats ? stats.isFile() : false, stats, a, b, c);
@@ -15336,7 +15343,7 @@ function fsStreamRead(filename, options, callback, res) {
 	} else
 		opt = HEADERS.fsStreamRead;
 
-	U.queue('F.files', CONF.default_maxopenfiles, function(next) {
+	U.queue('FILES', CONF.default_maxopenfiles, function(next) {
 		var stream = Fs.createReadStream(filename, opt);
 		stream.on('error', NOOP);
 		callback(stream, next, res);
