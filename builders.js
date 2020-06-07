@@ -1821,11 +1821,6 @@ SchemaBuilderEntityProto.make = function(model, filter, callback, argument, nova
 
 	var self = this;
 
-	if (typeof(model) === 'function') {
-		model.call(self, self);
-		return self;
-	}
-
 	if (typeof(filter) === 'function') {
 		var tmp = callback;
 		callback = filter;
