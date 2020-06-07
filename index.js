@@ -4518,9 +4518,7 @@ F.usage = function(detailed) {
 		platform: process.platform,
 		processor: process.arch,
 		uptime: Math.floor(process.uptime() / 60),
-		memoryTotal: (memory.heapTotal / 1024 / 1024).floor(2),
-		memoryUsage: (memory.heapUsed / 1024 / 1024).floor(2),
-		memoryRss: (memory.rss / 1024 / 1024).floor(2),
+		memory: (memory.heapUsed / 1024 / 1024).floor(2),
 		mode: DEBUG,
 		port: F.port,
 		ip: F.ip,
@@ -4548,7 +4546,6 @@ F.usage = function(detailed) {
 		streaming: staticRange.length,
 		modificator:  F.modificators ? F.modificators.length : 0,
 		viewphrases: $VIEWCACHE.length,
-		nosqlcleaner: nosqlcleaner.length,
 		commands: commands.length,
 		sessions: sessions.length,
 		shortcache: shortcache.length
@@ -4597,7 +4594,6 @@ F.usage = function(detailed) {
 	}
 
 	output.sessions = [];
-
 	for (var i = 0, length = sessions.length; i < length; i++) {
 		var key = sessions[i];
 		var item = F.sessions[key];
@@ -4632,7 +4628,7 @@ DEF.onPrefLoad = function(next) {
 
 DEF.onAudit = function(name, data) {
 	PATH.verify('logs');
-	U.queue('F.logger', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), JSON.stringify(data) + '\n', next));
+	U.queue('LOGGER', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), JSON.stringify(data) + '\n', next));
 };
 
 /**
@@ -8129,7 +8125,7 @@ var WORKERID = 0;
  * @param {Array} args Additional arguments, optional.
  * @return {ChildProcess}
  */
-global.WORKER = F.worker = function(name, id, timeout, args, special) {
+global.WORKER = function(name, id, timeout, args, special) {
 
 	var fork = null;
 	var type = typeof(id);
