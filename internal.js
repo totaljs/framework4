@@ -2048,7 +2048,7 @@ function view_prepare_keywords(cmd) {
 }
 
 function wrapTryCatch(value, command, line) {
-	return F.isDebug ? ('(function(){try{return ' + value + '}catch(e){throw new Error(unescape(\'' + escape(command) + '\') + \' - Line: ' + line + ' - \' + e.message.toString());}return $EMPTY})()') : value;
+	return DEBUG ? ('(function(){try{return ' + value + '}catch(e){throw new Error(unescape(\'' + escape(command) + '\') + \' - Line: ' + line + ' - \' + e.message.toString());}return $EMPTY})()') : value;
 }
 
 function view_parse_plus(builder) {
@@ -3087,7 +3087,7 @@ function viewengine_load(name, filename, controller, component) {
 
 	generator = viewengine_read(filename, controller);
 
-	if (component || !F.isDebug)
+	if (component || RELEASE)
 		F.temporary.views[key] = generator;
 
 	return generator;
@@ -3101,7 +3101,7 @@ function viewengine_dynamic(content, language, controller, cachekey) {
 
 	generator = view_parse(view_parse_localization(modificators(content, '', 'view', controller), language), CONF.allow_compile_html, null, controller);
 
-	if (cachekey && !F.isDebug)
+	if (cachekey && RELEASE)
 		F.temporary.views[cachekey] = generator;
 
 	return generator;
