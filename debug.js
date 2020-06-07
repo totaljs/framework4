@@ -110,8 +110,7 @@ function runwatching() {
 
 		if (!watchercallback) {
 			global.OBSOLETE = NOOP;
-			CONF.allow_ssc_validation = true;
-			F.$configure_configs();
+			process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
 		}
 
 		F.directory = directory;

@@ -317,7 +317,7 @@ Message.prototype.attachmentfs = function(storagename, id, name, contentid) {
 };
 
 /**
- * Clears a timeout for sending emails (if the email is sent through the F.onMail)
+ * Clears a timeout for sending emails (if the email is sent through the DEF.onMail)
  * @return {Message}
  */
 Message.prototype.manually = function() {

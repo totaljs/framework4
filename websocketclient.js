@@ -463,8 +463,6 @@ WebSocketClientProto.$decode = function() {
 
 		case 'buffer': // Buffer
 		case 'binary': // Binary
-			// this.emit('message', Buffer.from(new Uint8Array(data)));
-			// break;
 			this.emit('message', data);
 			break;
 
@@ -472,7 +470,7 @@ WebSocketClientProto.$decode = function() {
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
 			this.options.encodedecode && (data = $decodeURIComponent(data));
-			data.isJSON() && this.emit('message', F.onParseJSON(data, this.req));
+			data.isJSON() && this.emit('message', DEF.parser.json(data));
 			break;
 
 		default: // TEXT

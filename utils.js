@@ -314,11 +314,9 @@ function dnsresolve_callback(uri, callback, param) {
 }
 
 setImmediate(function() {
-	if (global.F) {
-		INSTALL('command', 'clear_dnscache', function() {
-			dnscache = {};
-		});
-	}
+	global.F && NEWCOMMAND('clear_dnscache', function() {
+		dnscache = {};
+	});
 });
 
 exports.keywords = function(content, forSearch, alternative, max_count, max_length, min_length) {
@@ -1902,101 +1900,7 @@ exports.toASCII = function(str) {
  * @return {Object}
  */
 exports.parseXML = function(xml, replace) {
-
-	var beg = -1;
-	var end = 0;
-	var tmp = 0;
-	var current = [];
-	var obj = {};
-	var from = -1;
-
-	while (true) {
-		beg = xml.indexOf('<![CDATA[', beg);
-		if (beg === -1)
-			break;
-		end = xml.indexOf(']]>', beg + 9);
-		xml = xml.substring(0, beg) + xml.substring(beg + 9, end).trim().encode() + xml.substring(end + 3);
-		beg += 9;
-	}
-
-	beg = -1;
-	end = 0;
-
-	while (true) {
-
-		beg = xml.indexOf('<', beg + 1);
-		if (beg === -1)
-			break;
-
-		end = xml.indexOf('>', beg + 1);
-		if (end === -1)
-			break;
-
-		var el = xml.substring(beg, end + 1);
-		var c = el[1];
-
-		if (c === '?' || c === '/') {
-
-			var o = current.pop();
-
-			if (from === -1 || o !== el.substring(2, el.length - 1))
-				continue;
-
-			var path = (current.length ? current.join('.') + '.' : '') + o;
-			var value = xml.substring(from, beg).decode();
-
-			if (replace)
-				path = path.replace(REG_XMLKEY, '_');
-
-			if (obj[path] === undefined)
-				obj[path] = value;
-			else if (obj[path] instanceof Array)
-				obj[path].push(value);
-			else
-				obj[path] = [obj[path], value];
-
-			from = -1;
-			continue;
-		}
-
-		tmp = el.indexOf(' ');
-		var hasAttributes = true;
-
-		if (tmp === -1) {
-			tmp = el.length - 1;
-			hasAttributes = false;
-		}
-
-		from = beg + el.length;
-
-		var isSingle = el[el.length - 2] === '/';
-		var name = el.substring(1, tmp);
-
-		if (!isSingle)
-			current.push(name);
-
-		if (!hasAttributes)
-			continue;
-
-		var match = el.match(regexpXML);
-		if (!match)
-			continue;
-
-		var attr = {};
-		var length = match.length;
-
-		for (var i = 0; i < length; i++) {
-			var index = match[i].indexOf('"');
-			attr[match[i].substring(0, index - 1)] = match[i].substring(index + 1, match[i].length - 1).decode();
-		}
-
-		var k = current.join('.') + (isSingle ? '.' + name : '') + '[]';
-		if (replace)
-			k = k.replace(REG_XMLKEY, '_');
-		obj[k] = attr;
-	}
-
-	return obj;
+	return xml.parseXML(replace);
 };
 
 function jsonparser(key, value) {
@@ -2627,7 +2531,102 @@ SP.count = function(text) {
 };
 
 SP.parseXML = function(replace) {
-	return F.onParseXML(this, replace);
+
+	var xml = this;
+	var beg = -1;
+	var end = 0;
+	var tmp = 0;
+	var current = [];
+	var obj = {};
+	var from = -1;
+
+	while (true) {
+		beg = xml.indexOf('<![CDATA[', beg);
+		if (beg === -1)
+			break;
+		end = xml.indexOf(']]>', beg + 9);
+		xml = xml.substring(0, beg) + xml.substring(beg + 9, end).trim().encode() + xml.substring(end + 3);
+		beg += 9;
+	}
+
+	beg = -1;
+	end = 0;
+
+	while (true) {
+
+		beg = xml.indexOf('<', beg + 1);
+		if (beg === -1)
+			break;
+
+		end = xml.indexOf('>', beg + 1);
+		if (end === -1)
+			break;
+
+		var el = xml.substring(beg, end + 1);
+		var c = el[1];
+
+		if (c === '?' || c === '/') {
+
+			var o = current.pop();
+
+			if (from === -1 || o !== el.substring(2, el.length - 1))
+				continue;
+
+			var path = (current.length ? current.join('.') + '.' : '') + o;
+			var value = xml.substring(from, beg).decode();
+
+			if (replace)
+				path = path.replace(REG_XMLKEY, '_');
+
+			if (obj[path] === undefined)
+				obj[path] = value;
+			else if (obj[path] instanceof Array)
+				obj[path].push(value);
+			else
+				obj[path] = [obj[path], value];
+
+			from = -1;
+			continue;
+		}
+
+		tmp = el.indexOf(' ');
+		var hasAttributes = true;
+
+		if (tmp === -1) {
+			tmp = el.length - 1;
+			hasAttributes = false;
+		}
+
+		from = beg + el.length;
+
+		var isSingle = el[el.length - 2] === '/';
+		var name = el.substring(1, tmp);
+
+		if (!isSingle)
+			current.push(name);
+
+		if (!hasAttributes)
+			continue;
+
+		var match = el.match(regexpXML);
+		if (!match)
+			continue;
+
+		var attr = {};
+		var length = match.length;
+
+		for (var i = 0; i < length; i++) {
+			var index = match[i].indexOf('"');
+			attr[match[i].substring(0, index - 1)] = match[i].substring(index + 1, match[i].length - 1).decode();
+		}
+
+		var k = current.join('.') + (isSingle ? '.' + name : '') + '[]';
+		if (replace)
+			k = k.replace(REG_XMLKEY, '_');
+		obj[k] = attr;
+	}
+
+	return obj;
 };
 
 SP.parseJSON = function(date) {

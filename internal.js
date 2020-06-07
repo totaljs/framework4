@@ -56,7 +56,7 @@ const REG_BLOCK_END = /@\{end\}/i;
 const REG_SKIP_1 = /\('|"/;
 const REG_SKIP_2 = /,(\s)?\w+/;
 const REG_COMPONENTS_GROUP = /('|")[a-z0-9_]+('|")/i;
-const HTTPVERBS = { 'get': true, 'post': true, 'options': true, 'put': true, 'delete': true, 'patch': true, 'upload': true, 'head': true, 'trace': true, 'propfind': true };
+const HTTPVERBS = { get: true, post: true, options: true, put: true, delete: true, patch: true, upload: true, head: true, trace: true, propfind: true };
 const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', 'self.$script(', '$STRING(self.resource(', '$STRING(RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '$STRING(CONFIG(', '$STRING(config.', '$STRING(config[', '$STRING(CONF.', '$STRING(CONF[', '$STRING(config('];
 const REG_NOTRANSLATE = /@\{notranslate\}/gi;
 const REG_NOCOMPRESS = /@\{nocompress\s\w+}/gi;
@@ -2033,7 +2033,7 @@ function view_parse(content, minify, filename, controller) {
 		return '$VIEWCACHE[' + index + ']';
 	});
 
-	var fn = ('(function(self,repository,model,session,query,body,url,global,helpers,user,config,functions,index,output,files,mobile,settings){var G=F.global;var R=this.repository;var M=model;var theme=this.themeName;var language=this.language;var sitemap=this.repository.$sitemap;' + (isCookie ? 'var cookie=function(name){return self.req.cookie(name)};' : '') + (functions.length ? functions.join('') + ';' : '') + 'var controller=self;' + builder + ';return $output;})');
+	var fn = ('(function(self,repository,model,session,query,body,url,helpers,user,config,functions,index,output,files,mobile,settings){var R=this.repository;var M=model;var theme=this.themeName;var language=this.language;var sitemap=this.repository.$sitemap;' + (isCookie ? 'var cookie=function(name){return self.req.cookie(name)};' : '') + (functions.length ? functions.join('') + ';' : '') + 'var controller=self;' + builder + ';return $output;})');
 	try {
 		fn = eval(fn);
 		fn.components = keys;

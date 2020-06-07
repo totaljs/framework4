@@ -176,7 +176,7 @@ global.OK = function(is, description) {
 global.TESTUSER = function(user, flags) {
 
 	if (!T.auth)
-		T.auth = F.onAuthorize;
+		T.auth = DEF.onAuthorize;
 
 	T.user = user;
 	T.flags = flags;
@@ -196,7 +196,7 @@ global.TESTUSER = function(user, flags) {
 			$.success(F.tests.user);
 		});
 	} else
-		F.onAuthorize = T.auth;
+		DEF.onAuthorize = T.auth;
 };
 
 exports.load = function() {

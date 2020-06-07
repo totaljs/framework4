@@ -35,7 +35,7 @@ const Crypto = require('crypto');
 const Parser = require('url');
 const Child = require('child_process');
 const Util = require('util');
-const http = require('http');
+const Http = require('http');
 
 const ENCODING = 'utf8';
 const HEADER_CACHE = 'Cache-Control';
@@ -59,7 +59,6 @@ const REG_ACCEPTCLEANER = /\s|\./g;
 const REG_SANITIZE_BACKSLASH = /\/\//g;
 const REG_WEBSOCKET_ERROR = /ECONNRESET|EHOSTUNREACH|EPIPE|is closed/i;
 const REG_WINDOWSPATH = /\\/g;
-const REG_SCRIPTCONTENT = /<|>|;/;
 const REG_HTTPHTTPS = /^(\/)?(http|https):\/\//i;
 const REG_NOCOMPRESS = /[.|-]+min(@[a-z0-9]*)?\.(css|js)$/i;
 const REG_WWW = /^www\./i;
@@ -93,7 +92,7 @@ const MODELERROR = {};
 const IMAGES = { jpg: 1, png: 1, gif: 1, apng: 1, jpeg: 1, heif: 1, heic: 1, webp: 1 };
 const KEYSLOCALIZE = { html: 1, htm: 1 };
 const PROXYOPTIONS = { end: true };
-const PROXYKEEPALIVE = new http.Agent({ keepAlive: true, timeout: 60000 });
+const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
 var PREFFILE = 'preferences.json';
 var WSCLIENTSID = 0;
@@ -114,13 +113,17 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+global.NEWCOMMAND = function(name, fn) {
+	if (F.commands[name])
+		F.commands[name].push(fn);
+	else
+		F.commands[name] = [fn];
+};
+
 function flowwrapper(name) {
 	if (!name)
 		name = 'default';
-	if (F.flows[name])
-		return F.flows[name];
-	var flow = new framework_flow.make(name);
-	return F.flows[name] = flow;
+	return F.flows[name] ? F.flows[name] : F.flows[name] = framework_flow.make(name);
 }
 
 global.FLOWSTREAM = function(name) {
@@ -156,7 +159,6 @@ DEF.validators = {
 };
 
 var PROTORES, PROTOREQ;
-
 var RANGE = { start: 0, end: 0 };
 var HEADERS = {};
 var SUCCESSHELPER = { success: true };
@@ -316,7 +318,7 @@ HEADERS.response503ddos['X-Powered-By'] = 'Total.js';
 Object.freeze(HEADERS.authorization);
 
 var _controller = '';
-var _owner = '';
+var CURRENT_OWNER = '';
 var _flags;
 var _prefix;
 
@@ -447,7 +449,7 @@ global.ERROR = function(name) {
 };
 
 global.AUTH = function(fn) {
-	F.onAuthorize = framework_builders.AuthOptions.wrap(fn);
+	DEF.onAuthorize = framework_builders.AuthOptions.wrap(fn);
 };
 
 global.WEBSOCKETCLIENT = function(callback) {
@@ -1006,7 +1008,7 @@ function Framework() {
 		allow_custom_titles: false,
 		allow_cache_snapshot: false,
 		allow_cache_cluster: false,
-		allow_debug: false,
+		allow_debug: true,
 		allow_head: false,
 		allow_filter_errors: true,
 		allow_clear_temp: true,
@@ -1066,7 +1068,6 @@ function Framework() {
 		resources: {}
 	};
 
-	self.owners = [];
 	self.modificators = null;
 	self.modificators2 = null;
 	self.modules = {};
@@ -1117,7 +1118,6 @@ function Framework() {
 		other: {},
 		keys: {}, // for crypto keys
 		internal: {}, // controllers/modules names for the routing
-		owners: {},
 		ready: {},
 		ddos: {},
 		service: { redirect: 0, request: 0, file: 0 }
@@ -1299,8 +1299,6 @@ F.refresh = function() {
 	F.$events.clear && EMIT('clear', 'dns');
 	CMD('clear_dnscache');
 	CONF.allow_debug && F.consoledebug('clear DNS cache');
-
-	return F;
 };
 
 F.prototypes = function(fn) {
@@ -1333,7 +1331,6 @@ F.prototypes = function(fn) {
 	proto.WebSocketClient = WebSocketClient.prototype;
 	proto.AuthOptions = framework_builders.AuthOptions.prototype;
 	fn.call(proto, proto);
-	return F;
 };
 
 global.ON = F.on = function(name, fn) {
@@ -1375,8 +1372,6 @@ global.ON = F.on = function(name, fn) {
 		F.$events[name].push(fn);
 	else
 		F.$events[name] = [fn];
-
-	return F;
 };
 
 global.EMIT = F.emit = function(name, a, b, c, d, e, f, g) {
@@ -1397,7 +1392,6 @@ global.EMIT = F.emit = function(name, a, b, c, d, e, f, g) {
 				F.$events[name] = undefined;
 		}
 	}
-	return F;
 };
 
 global.ONCE = function(name, fn) {
@@ -1414,7 +1408,6 @@ F.removeListener = function(name, fn) {
 		else
 			F.$events[name] = undefined;
 	}
-	return F;
 };
 
 F.removeAllListeners = function(name) {
@@ -1422,7 +1415,6 @@ F.removeAllListeners = function(name) {
 		F.$events[name] = undefined;
 	else
 		F.$events = {};
-	return F;
 };
 
 /**
@@ -1430,7 +1422,7 @@ F.removeAllListeners = function(name) {
  * @return {String} Returns current (dependency type and name) owner.
  */
 F.$owner = function() {
-	return _owner;
+	return CURRENT_OWNER;
 };
 
 F.isSuccess = function(obj) {
@@ -1511,7 +1503,6 @@ F.$routes_sort = function(type) {
 			F.temporary.other[key] = undefined;
 	});
 
-	return F;
 };
 
 F.parseComponent = parseComponent;
@@ -1574,7 +1565,7 @@ global.TABLE = function(name) {
 F.stop = F.kill = function(signal) {
 
 	if (F.isKilled)
-		return F;
+		return;
 
 	F.isKilled = true;
 
@@ -1609,7 +1600,6 @@ F.stop = F.kill = function(signal) {
 	// var extenddelay = F.grapdbinstance && require('./graphdb').getImportantOperations() > 0;
 	// setTimeout(() => process.exit(signal), global.TEST || extenddelay ? 2000 : 300);
 	setTimeout(() => process.exit(signal), global.TEST ? 2000 : 300);
-	return F;
 };
 
 
@@ -1639,8 +1629,7 @@ global.REDIRECT = function(host, newHost, withPath, permanent) {
 
 		F.routes.redirects[host] = { url: newHost, path: withPath, permanent: permanent };
 		F._request_check_redirect = true;
-		F.owners.push({ type: 'redirects', owner: _owner, id: host });
-		return F;
+		return;
 	}
 
 	if (host[0] !== '/')
@@ -1666,20 +1655,17 @@ global.REDIRECT = function(host, newHost, withPath, permanent) {
 			else
 				res.redirect(newHost[0] !== '/' ? '/' + newHost : newHost, permanent);
 		});
-		return F;
-	}
-
-	ROUTE(host, function() {
-		if (newHost.startsWith('http://') || newHost.startsWith('https://')) {
+	} else {
+		ROUTE(host, function() {
+			if (newHost.startsWith('http://') || newHost.startsWith('https://')) {
+				this.redirect(newHost + this.href(), permanent);
+				return;
+			}
+			if (newHost[0] !== '/')
+				newHost = '/' + newHost;
 			this.redirect(newHost + this.href(), permanent);
-			return;
-		}
-		if (newHost[0] !== '/')
-			newHost = '/' + newHost;
-		this.redirect(newHost + this.href(), permanent);
-	}, flags);
-
-	return F;
+		}, flags);
+	}
 };
 
 /**
@@ -1707,7 +1693,7 @@ global.SCHEDULE = function(date, repeat, fn) {
 	var sum = date.getTime();
 	repeat && (repeat = repeat.replace('each', '1'));
 	var id = U.GUID(5);
-	var item = { id: id, expire: sum, fn: fn, repeat: repeat, owner: _owner };
+	var item = { id: id, expire: sum, fn: fn, repeat: repeat, owner: CURRENT_OWNER };
 	F.schedules[id] = item;
 
 	item.remove = function() {
@@ -1784,8 +1770,6 @@ global.RESIZE = function(url, fn, flags) {
 		extensions.jpg = true;
 
 	F.routes.resize[url] = { fn: fn, path: U.path(path || url), ishttp: path.match(/http:|https:/gi) ? true : false, extension: extensions, cache: cache };
-	F.owners.push({ type: 'resize', owner: _owner, id: url });
-	return F;
 };
 
 /**
@@ -1802,7 +1786,7 @@ global.CORS = function(url, flags, credentials) {
 	if (!arguments.length) {
 		F.routes.corsall = true;
 		PERF.OPTIONS = true;
-		return F;
+		return;
 	}
 
 	if (flags === true) {
@@ -1888,7 +1872,7 @@ global.CORS = function(url, flags, credentials) {
 
 	url = framework_internal.preparePath(framework_internal.encodeUnicodeURL(url.trim()));
 	route.hash = url.hash();
-	route.owner = _owner;
+	route.owner = CURRENT_OWNER;
 	route.url = framework_internal.routeSplitCreate(url);
 	route.origin = origin.length ? origin : null;
 	route.methods = methods.length ? methods : null;
@@ -1934,7 +1918,6 @@ global.CORS = function(url, flags, credentials) {
 	});
 
 	PERF.OPTIONS = true;
-	return F;
 };
 
 function corsextend(a, b) {
@@ -1977,7 +1960,6 @@ global.GROUP = function() {
 	fn && fn.call(F);
 	_prefix = undefined;
 	_flags = undefined;
-	return F;
 };
 
 global.ROUTE = function(url, funcExecute, flags, length, language) {
@@ -1989,7 +1971,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	if (url instanceof Array) {
 		url.forEach(url => F.route(url, funcExecute, flags, length));
-		return F;
+		return;
 	}
 
 	if (typeof(flags) === 'number') {
@@ -2575,7 +2557,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.subdomain = subdomain;
 	r.description = description;
 	r.controller = _controller ? _controller : 'unknown';
-	r.owner = _owner;
+	r.owner = CURRENT_OWNER;
 	r.urlraw = urlraw;
 	r.url = routeURL;
 	r.param = arr;
@@ -2745,7 +2727,7 @@ global.MERGE = function(url) {
 		setTimeout(function(arg) {
 			MERGE.apply(F, arg);
 		}, 500, arg);
-		return F;
+		return;
 	}
 
 	url = framework_internal.preparePath(url);
@@ -2776,24 +2758,11 @@ global.MERGE = function(url) {
 	var filename = PATH.temp(F.clusterid + 'merged_' + key);
 	F.routes.merge[url] = { filename: filename.replace(/\.(js|css)$/g, ext => '.min' + ext), files: arr };
 	Fs.unlink(F.routes.merge[url].filename, NOOP);
-	F.owners.push({ type: 'merge', owner: _owner, id: url });
 	delete F.temporary.notfound[key];
-	return F;
 };
 
 F.mapping = function() {
 	return MAP.apply(F, arguments);
-};
-
-/**
- * Send message
- * @param  {Object} message
- * @param  {Object} handle
- * @return {Framework}
- */
-F.send = function(message, handle) {
-	process.send(message, handle);
-	return F;
 };
 
 /**
@@ -2850,12 +2819,9 @@ global.MAP = function(url, filename, filter) {
 
 	if (isFile) {
 		F.routes.mapping[url] = filename;
-		F.owners.push({ type: 'mapping', owner: _owner, id: url });
-		if (block) {
-			F.owners.push({ type: 'blocks', owner: _owner, id: url });
+		if (block)
 			F.routes.blocks[url] = block;
-		}
-		return F;
+		return;
 	}
 
 	url = U.path(url);
@@ -2915,18 +2881,12 @@ global.MAP = function(url, filename, filter) {
 
 				var key = url + file;
 				F.routes.mapping[key] = plus + files[i];
-				F.owners.push({ type: 'mapping', owner: _owner, id: key });
-
-				if (block) {
-					F.owners.push({ type: 'blocks', owner: _owner, id: key });
+				if (block)
 					F.routes.blocks[key] = block;
-				}
 			}
 
 		});
 	}, isPackage ? 500 : 1);
-
-	return F;
 };
 
 /**
@@ -2935,10 +2895,10 @@ global.MAP = function(url, filename, filter) {
  * @param {Function(req, res, next, options)} funcExecute
  * @return {Framework}
  */
-global.MIDDLEWARE = F.middleware = function(name, funcExecute) {
-	INSTALL('middleware', name, funcExecute);
-	_owner && F.owners.push({ type: 'middleware', owner: _owner, id: name });
-	return F;
+global.MIDDLEWARE = function(name, fn) {
+	F.routes.middleware[name] = fn;
+	F._length_middleware = Object.keys(F.routes.middleware).length;
+	F.dependencies['middleware_' + name] = fn;
 };
 
 /**
@@ -2964,7 +2924,7 @@ F.use = function(name, url, types, first) {
 		} else
 			F.routes.request.push(name);
 		F._length_request_middleware = F.routes.request.length;
-		return F;
+		return;
 	}
 
 	if (url instanceof Array) {
@@ -3010,7 +2970,6 @@ F.use = function(name, url, types, first) {
 		}
 	}
 
-	return F;
 };
 
 function merge_middleware(a, b, first) {
@@ -3043,7 +3002,7 @@ function merge_middleware(a, b, first) {
  * @param {Object} options Optional, additional options for middleware.
  * @return {Framework}
  */
-global.WEBSOCKET = F.websocket = function(url, funcInitialize, flags, length) {
+global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	var tmp;
 
@@ -3291,7 +3250,7 @@ global.WEBSOCKET = F.websocket = function(url, funcInitialize, flags, length) {
 	r.hash = hash;
 	r.groups = flags_to_object(groups);
 	r.controller = _controller ? _controller : 'unknown';
-	r.owner = _owner;
+	r.owner = CURRENT_OWNER;
 	r.url = routeURL;
 	r.paramnames = params.length ? params : null;
 	r.param = arr;
@@ -3433,7 +3392,7 @@ global.FILE = F.file = function(fnValidation, fnExecute, flags) {
 	r.urlraw = urlraw;
 	r.groups = flags_to_object(groups);
 	r.controller = _controller ? _controller : 'unknown';
-	r.owner = _owner;
+	r.owner = CURRENT_OWNER;
 	r.url = url;
 	r.fixedfile = fixedfile;
 	r.wildcard = wildcard;
@@ -3448,7 +3407,6 @@ global.FILE = F.file = function(fnValidation, fnExecute, flags) {
 	F.routes.files.sort((a, b) => !a.url ? -1 : !b.url ? 1 : a.url.length > b.url.length ? -1 : 1);
 	EMIT('route', 'file', r);
 	F._length_files = F.routes.files.length;
-	return F;
 };
 
 global.FILE404 = function(fn) {
@@ -3479,10 +3437,10 @@ function sitemapurl(url) {
 	return url;
 }
 
-global.LOCALIZE = F.localize = function(url, flags, minify) {
+global.LOCALIZE = function(url, flags, minify) {
 
 	if (typeof(url) === 'function') {
-		F.onLocale = url;
+		DEF.onLocale = url;
 		return;
 	}
 
@@ -3543,7 +3501,7 @@ F.$filelocalize = function(req, res, nominify) {
 	// options.headers
 	// options.download
 
-	F.onLocale && (req.$language = F.onLocale(req, res, req.isStaticFile));
+	DEF.onLocale && (req.$language = DEF.onLocale(req, res, req.isStaticFile));
 
 	var key = 'locate_' + (req.$language ? req.$language : 'default') + '_' + (req.$key || req.url);
 	var output = F.temporary.other[key];
@@ -3558,7 +3516,7 @@ F.$filelocalize = function(req, res, nominify) {
 		return;
 	}
 
-	var filename = (res.options ? res.options.filename : null) || F.onMapping(req.uri.pathname, req.uri.pathname, true, true);
+	var filename = (res.options ? res.options.filename : null) || DEF.onMapping(req.uri.pathname, req.uri.pathname, true, true);
 
 	Fs.readFile(filename, function(err, content) {
 
@@ -3618,17 +3576,14 @@ F.error = function(err, name, uri) {
 	if (!arguments.length)
 		return F.errorcallback;
 
-	if (!err)
-		return F;
-
-	if (F.errors) {
-		NOW = new Date();
-		F.errors.push({ error: err.stack, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW });
-		F.errors.length > 50 && F.errors.shift();
+	if (err) {
+		if (F.errors) {
+			NOW = new Date();
+			F.errors.push({ error: err.stack, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW });
+			F.errors.length > 50 && F.errors.shift();
+		}
+		DEF.onError(err, name, uri);
 	}
-
-	F.onError(err, name, uri);
-	return F;
 };
 
 F.errorcallback = function(err) {
@@ -3653,7 +3608,7 @@ global.MODULE = F.module = function(name) {
  * @param {Function(type, filename, content)} fn The `fn` must return modified value.
  * @return {Framework}
  */
-global.MODIFY = F.modify = function(filename, fn) {
+global.MODIFY = function(filename, fn) {
 
 	if (typeof(filename) === 'function') {
 		fn = filename;
@@ -3673,8 +3628,7 @@ global.MODIFY = F.modify = function(filename, fn) {
 		F.modificators.push(fn);
 	}
 
-	fn.$owner = _owner;
-	return F;
+	fn.$owner = CURRENT_OWNER;
 };
 
 F.$bundle = function(callback) {
@@ -3802,7 +3756,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/modules/' : CONF.directory_modules);
 			arr = [];
 			listing(dir, 0, arr, '.js');
-			arr.forEach((item) => dependencies.push(next => INSTALL('module', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('module', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3817,12 +3771,14 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			arr.wait(function(item, next2) {
 
 				if (!item.is) {
-					dependencies.push(next => INSTALL('package', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
+					dependencies.push(next => install_package(item.name, item.filename, next));
 					return next2();
 				}
 
+				var dir = PATH.temp(item.name) + '.package';
+
 				U.ls(item.filename, function(files, directories) {
-					var dir = PATH.temp(item.name) + '.package';
+
 					!existsSync(dir) && Fs.mkdirSync(dir);
 
 					for (var i = 0, length = directories.length; i < length; i++) {
@@ -3844,7 +3800,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 
 						// Windows sometimes doesn't load package and this delay solves the problem.
 						setTimeout(function() {
-							dependencies.push(next => INSTALL('package2', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
+							dependencies.push(next => install('package', item.name, Path.join(dir, 'index.js'), next));
 							next2();
 						}, 50);
 
@@ -3859,7 +3815,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/models/' : CONF.directory_models);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => INSTALL('model', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('model', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3869,7 +3825,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/schemas/' : CONF.directory_schemas);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => INSTALL('schema', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('schema', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3879,7 +3835,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/tasks/' : CONF.directory_tasks);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => INSTALL('task', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('task', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3889,7 +3845,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/operations/' : CONF.directory_operations);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => INSTALL('operation', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('operation', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3905,7 +3861,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 				var filename = Path.join(themeDirectory, 'index.js');
 				F.themes[item.name] = U.path(themeDirectory);
 				F._length_themes++;
-				existsSync(filename) && dependencies.push(next => INSTALL('theme', item.name, filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName));
+				existsSync(filename) && dependencies.push(next => install('theme', item.name, filename, next));
 			});
 			resume();
 		});
@@ -3916,7 +3872,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			dir = U.combine(targetdirectory, isPackage ? '/definitions/' : CONF.directory_definitions);
 			arr = [];
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => INSTALL('definition', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('definition', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3926,7 +3882,7 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/controllers/' : CONF.directory_controllers);
 			listing(dir, 0, arr);
-			arr.forEach((item) => dependencies.push(next => INSTALL('controller', item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('controller', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3936,7 +3892,17 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/components/' : CONF.directory_components);
 			listing(dir, 0, arr, '.html');
-			arr.forEach((item) => dependencies.push(next => INSTALL('component', item.name, item.filename, undefined, undefined, undefined, undefined, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install_component(item.name, item.filename, next)));
+			resume();
+		});
+	}
+
+	if (can('sources')) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/sources/' : CONF.directory_modules);
+			arr = [];
+			listing(dir, 0, arr, '.js');
+			arr.forEach(item => dependencies.push(next => install('source', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3950,13 +3916,13 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 		operations.push(function(resume) {
 			arr = [];
 			dir = '/threads/' + thread;
-			F.$configure_env(dir + '/.env');
-			F.$configure_env(dir + '/.env-' + (DEBUG ? 'debug' : 'release'));
-			F.$configure_configs(dir + '/config');
-			F.$configure_configs(dir + '/config-' + (DEBUG ? 'debug' : 'release'));
+			configure_env(dir + '/.env');
+			configure_env(dir + '/.env-' + (DEBUG ? 'debug' : 'release'));
+			configure_configs(dir + '/config');
+			configure_configs(dir + '/config-' + (DEBUG ? 'debug' : 'release'));
 			dir = U.combine(targetdirectory, '/threads/' + thread);
 			listing(dir, 0, arr);
-			arr.forEach(item => dependencies.push(next => INSTALL('module', 'threads/' + item.name, item.filename, undefined, undefined, undefined, true, undefined, undefined, next, packageName)));
+			arr.forEach(item => dependencies.push(next => install('thread', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -3970,9 +3936,8 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 		});
 	}
 
-	var count = dependencies.length;
-
 	operations.async(function() {
+		var count = dependencies.length;
 		F.consoledebug('load dependencies ' + count + 'x');
 		dependencies.async(function() {
 			types && types.indexOf('service') === -1 && F.cache.stop();
@@ -3981,8 +3946,6 @@ F.$load = function(types, targetdirectory, callback, packageName) {
 			callback && callback();
 		});
 	});
-
-	return F;
 };
 
 function loadpreferences(callback) {
@@ -3998,1100 +3961,124 @@ function loadpreferences(callback) {
 	});
 }
 
-F.$startup = function(callback) {
+function install_package(name, filename, next) {
 
-	var dir = Path.join(directory, '/startup/');
+	var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), name + '.package') : Path.join(PATH.root(), CONF.directory_temp, name + '.package');
+	F.routes.packages[name] = dir;
 
-	if (!existsSync(dir))
-		return callback();
+	var restorecb = () => install('package', name, Path.join(dir, 'index.js'), next);
 
-	var run = [];
+	if (F.$bundling)
+		RESTORE(filename, dir, restorecb);
+	else
+		restorecb();
+}
 
-	Fs.readdirSync(dir).forEach(function(o) {
-		var extension = U.getExtension(o);
-		if (JSFILES[extension])
-			run.push(o);
-	});
+function install_component(name, filename, next) {
 
-	if (!run.length)
-		return callback();
+	var body = Fs.readFileSync(filename).toString(ENCODING);
+	var hash = '\n/*' + name.crc32(true) + '*/\n';
+	var temporary = F.clusterid + 'components';
+	var content = parseComponent(body, name);
+	var h = hash.substring(0, hash.length - 1);
 
-	run.wait(function(filename, next) {
-		var fn = dir + filename + '_bk';
-		Fs.renameSync(dir + filename, fn);
-		var fork = Child.fork(fn, [], { cwd: directory });
-		fork.on('exit', function() {
-			fork = null;
-			next();
-		});
-	}, callback);
+	var obj;
 
-	return F;
-};
-
-/**
- * Install type with its declaration
- * @param {String} type Available types: model, module, controller, source.
- * @param {String} name Default name (optional).
- * @param {String or Function} declaration
- * @param {Object} options Custom options, optional.
- * @param {Object} internal Internal/Temporary options, optional.
- * @param {Boolean} useRequired Internal, optional.
- * @param {Boolean} skipEmit Internal, optional.
- * @param {String} uptodateName Internal, optional.
- * @param {Function} next Internal, optional.
- * @param {String} packageName Internal, optional.
- * @return {Framework}
- */
-global.INSTALL = function(type, name, declaration, options, callback, internal, useRequired, skipEmit, uptodateName, next, packageName) {
-
-	var obj = null;
-
-	if (type !== 'config' && type !== 'version' && typeof(name) === 'string') {
-		if (name.startsWith('http://') || name.startsWith('https://')) {
-			if (typeof(declaration) === 'object') {
-				callback = options;
-				options = declaration;
-				declaration = name;
-				name = '';
-			}
-		} else if (name[0] === '@') {
-			declaration = PATH.package(name.substring(1));
-			name = Path.basename(name).replace(/\.js$/i, '');
-			if (useRequired === undefined)
-				useRequired = true;
-		}
+	if (F.$bundling) {
+		content.js && Fs.appendFileSync(PATH.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + h);
+		content.css && Fs.appendFileSync(PATH.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + h);
 	}
 
-	var t = typeof(declaration);
-	var key = '';
-	var tmp;
-	var content;
-	var err;
+	if (!Object.keys(content.parts).length)
+		content.parts = null;
 
-	NOW = new Date();
+	if (content.js)
+		F.components.js = true;
 
-	if (t === 'object') {
-		t = typeof(options);
-		if (t === 'function')
-			callback = options;
-		options = declaration;
-		declaration = undefined;
-	}
+	if (content.css)
+		F.components.css = true;
 
-	if (declaration === undefined) {
-		declaration = name;
-		name = '';
-	}
-
-	if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
-	}
-
-	if (type === 'command') {
-		if (typeof(declaration) === 'function') {
-			if (F.commands[name])
-				F.commands[name].push(declaration);
-			else
-				F.commands[name] = [declaration];
-		}
-		return F;
-	}
-
-	// Check if declaration is a valid URL address
-	if (type !== 'eval' && typeof(declaration) === 'string') {
-		if (declaration[0] === '~')
-			declaration = declaration.substring(1);
-		if (type !== 'config' && type !== 'resource' && type !== 'package' && type !== 'component' && !REG_SCRIPTCONTENT.test(declaration)) {
-			var relative = PATH.root(declaration);
-			if (existsSync(relative))
-				declaration = relative;
-			if (!existsSync(declaration))
-				throw new Error('The ' + type + ': ' + declaration + ' doesn\'t exist.');
-			useRequired = true;
-		}
-	}
-
-	if (type === 'middleware') {
-
-		F.routes.middleware[name] = typeof(declaration) === 'function' ? declaration : eval(declaration);
-		F._length_middleware = Object.keys(F.routes.middleware).length;
-		F.routes.middleware[name] = true;
-		next && next();
-		callback && callback(null, name);
-
-		key = type + '.' + name;
-
-		if (F.dependencies[key]) {
-			F.dependencies[key].updated = NOW;
-		} else {
-			F.dependencies[key] = { name: name, type: type, installed: NOW, updated: null, count: 0 };
-			if (internal)
-				F.dependencies[key].url = internal;
-		}
-
-		F.dependencies[key].count++;
-
-		setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		return F;
-	}
-
-	if (type === 'config' || type === 'configuration' || type === 'settings') {
-		F.$configure_configs(declaration instanceof Array ? declaration : declaration.toString().split('\n'), true);
-		setTimeout(function() {
-			delete F.temporary.mail_settings;
-			EMIT(type + '#' + name, CONF);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		next && next();
-		callback && callback(null, name);
-		return F;
-	}
-
-	if (type === 'version' || type === 'versions') {
-
-		F.$configure_versions(declaration.toString().split('\n'));
-		setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		next && next();
-		callback && callback(null, name);
-		return F;
-	}
-
-	if (type === 'sitemap') {
-
-		F.$configure_sitemap(declaration.toString().split('\n'));
-		setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-			F.consoledebug('install', type + '#' + name);
-		}, 500);
-
-		next && next();
-		callback && callback(null, name);
-		return F;
-	}
-
-	if (type === 'component') {
-
-		if (!name && internal)
-			name = U.getName(internal).replace(/\.html/gi, '').trim();
-
-		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
-
-		var hash = '\n/*' + name.crc32(true) + '*/\n';
-		var temporary = F.clusterid + 'components';
-
-		content = parseComponent(internal ? declaration : Fs.readFileSync(declaration).toString(ENCODING), name);
-
-		if (F.$bundling) {
-			content.js && Fs.appendFileSync(PATH.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + hash.substring(0, hash.length - 1));
-			content.css && Fs.appendFileSync(PATH.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + hash.substring(0, hash.length - 1));
-		}
-
-		if (!Object.keys(content.parts).length)
-			content.parts = null;
-
-		if (content.js)
-			F.components.js = true;
-
-		if (content.css)
-			F.components.css = true;
-
-		if (content.files)
-			F.components.files[name] = content.files;
-		else
-			delete F.components.files[name];
-
-		if (content.body) {
-			F.components.views[name] = '.' + PATH.temp('component_' + name);
-			F.$bundling && Fs.writeFile(F.components.views[name].substring(1) + '.html', U.minifyHTML(content.body), NOOP);
-		} else
-			delete F.components.views[name];
-
-		F.components.has = true;
-
-		var link = CONF.static_url_components;
-		F.components.version = NOW.getTime();
-		F.components.links = (F.components.js ? '<script src="{0}js?version={1}"></script>'.format(link, F.components.version) : '') + (F.components.css ? '<link type="text/css" rel="stylesheet" href="{0}css?version={1}" />'.format(link, F.components.version) : '');
-
-		if (content.install) {
-			try {
-				var filecomponent = PATH.temp('component-' + name + '.js');
-				_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-				Fs.writeFileSync(filecomponent, content.install.trim());
-				obj = require(filecomponent);
-				(function(name) {
-					setTimeout(function() {
-						delete require.cache[name];
-					}, 1000);
-				})(require.resolve(filecomponent));
-				obj.$owner = _owner;
-				F.temporary.owners[_owner] = true;
-				_controller = '';
-				obj.name = name;
-				obj.parts = content.parts;
-				F.components.instances[name] = obj;
-				obj && typeof(obj.install) === 'function' && obj.install(options || CONF[_owner], name);
-			} catch(e) {
-				F.error(e, 'INSTALL(\'component\', \'{0}\')'.format(name));
-			}
-		} else if (!internal) {
-			var js = declaration.replace(/\.html$/i, '.js');
-			if (existsSync(js)) {
-				_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-				F.temporary.owners[_owner] = true;
-				obj = require(js);
-				obj.name = name;
-				obj.parts = content.parts;
-				obj.$owner = _owner;
-				_controller = '';
-				F.components.instances[name] = obj;
-				typeof(obj.install) === 'function' && obj.install(options || CONF[_owner], name);
-				(function(name) {
-					setTimeout(function() {
-						delete require.cache[name];
-					}, 1000);
-				})(require.resolve(declaration));
-			}
-		}
-
-		if (obj) {
-
-			if (!obj.group)
-				obj.group = 'default';
-
-			key = obj.group.crc32(true);
-			temporary += '_g' + key;
-			tmp = F.components.groups[obj.group];
-			if (!tmp)
-				tmp = F.components.groups[obj.group] = {};
-
-			if (content.js) {
-				Fs.appendFileSync(PATH.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + hash.substring(0, hash.length - 1));
-				tmp.js = true;
-			}
-
-			if (content.css) {
-				Fs.appendFileSync(PATH.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + hash.substring(0, hash.length - 1));
-				tmp.css = true;
-			}
-
-			tmp.version = GUID(5);
-			tmp.links = (tmp.js ? '<script src="{0}js?group={2}_{1}"></script>'.format(link, tmp.version, key) : '') + (tmp.css ? '<link type="text/css" rel="stylesheet" href="{0}css?group={2}_{1}" />'.format(link, tmp.version, key) : '');
-		}
-
-		!skipEmit && setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		next && next();
-		callback && callback(null, name);
-		return F;
-	}
-
-	if (type === 'package') {
-
-		var id = Path.basename(declaration, '.' + U.getExtension(declaration));
-		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id + '.package') : Path.join(PATH.root(), CONF.directory_temp, id + '.package');
-
-		F.routes.packages[id] = dir;
-
-		var restorecb = function() {
-			var filename = Path.join(dir, 'index.js');
-			if (!existsSync(filename)) {
-				next && next();
-				callback && callback(null, name);
-				return;
-			}
-
-			INSTALL('module', id, filename, options || CONF['package#' + name], function(err) {
-				setTimeout(function() {
-					EMIT('module#' + name);
-					EMIT(type + '#' + name);
-					EMIT('install', 'module', name);
-					EMIT('install', type, name);
-					F.temporary.ready['package#' + name] = NOW;
-					F.temporary.ready['module#' + name] = NOW;
-				}, 500);
-				F.consoledebug('install', 'package#' + name);
-				callback && callback(err, name);
-			}, internal, useRequired, true, undefined);
-			next && next();
-		};
-
-		if (F.$bundling)
-			RESTORE(declaration, dir, restorecb);
-		else
-			restorecb();
-
-		return F;
-	}
-
-	if (type === 'theme') {
-
-		_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-		obj = require(declaration);
-		obj.$owner = _owner;
-		F.temporary.owners[_owner] = true;
-
-		typeof(obj.install) === 'function' && obj.install(options || CONF[_owner], name);
-
-		!skipEmit && setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		next && next();
-		callback && callback(null, name);
-
-		(function(name) {
-			setTimeout(function() {
-				delete require.cache[name];
-			}, 1000);
-		})(require.resolve(declaration));
-		return F;
-	}
-
-	if (type === 'package2') {
-		type = type.substring(0, type.length - 1);
-		var id = U.getName(declaration, '.package');
-		var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), id) : Path.join(PATH.root(), CONF.directory_temp, id);
-		var filename = Path.join(dir, 'index.js');
-		INSTALL('module', id.replace(/\.package$/i, ''), filename, options || CONF['package#' + name], function(err) {
-			setTimeout(function() {
-				EMIT('module#' + name);
-				EMIT(type + '#' + name);
-				EMIT('install', type, name);
-				EMIT('install', 'module', name);
-				F.temporary.ready['package#' + name] = NOW;
-				F.temporary.ready['module#' + name] = NOW;
-			}, 500);
-			F.consoledebug('install', 'package#' + name);
-			callback && callback(err, name);
-		}, internal, useRequired, true);
-		next && next();
-		return F;
-	}
-
-	var plus = F.clusterid;
-	if (type === 'view') {
-
-		var item = F.routes.views[name];
-		key = type + '.' + name;
-
-		if (item === undefined) {
-			item = {};
-			item.filename = PATH.temporary(plus + 'installed-view-' + U.GUID(10) + '.tmp');
-			item.url = internal;
-			item.count = 0;
-			F.routes.views[name] = item;
-		}
-
-		item.count++;
-		Fs.writeFileSync(item.filename, framework_internal.modificators(declaration, name));
-
-		setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		next && next();
-		callback && callback(null, name);
-		return F;
-	}
-
-	if (type === 'definition' || type === 'eval' || type === 'schema' || type === 'operation' || type === 'task') {
-
-		_controller = '';
-		_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-		F.temporary.owners[_owner] = true;
-		err = null;
-
-		try {
-
-			if (useRequired) {
-				var relative = PATH.root(declaration);
-				if (existsSync(relative))
-					declaration = relative;
-				delete require.cache[require.resolve(declaration)];
-				obj = require(declaration);
-
-				(function(name) {
-					setTimeout(() => delete require.cache[name], 1000);
-				})(require.resolve(declaration));
-			} else
-				obj = typeof(declaration) === 'function' ? eval('(' + declaration.toString() + ')()') : eval(declaration);
-
-		} catch (ex) {
-			err = ex;
-		}
-
-		if (err) {
-			F.error(err, 'INSTALL(\'' + type + '\')', null);
-			next && next();
-			callback && callback(err, name);
-			return F;
-		}
-
-		F.consoledebug('install', type + '#' + (name || '::undefined::'));
-		next && next();
-		callback && callback(null, name);
-
-		setTimeout(function() {
-			EMIT(type + '#' + name);
-			EMIT('install', type, name);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		return F;
-	}
-
-	if (type === 'model' || type === 'source') {
-
-		_controller = '';
-		_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-		F.temporary.owners[_owner] = true;
-		err = null;
-
-		try {
-
-			if (useRequired) {
-				var relative = PATH.root(declaration);
-				if (existsSync(relative))
-					declaration = relative;
-				obj = require(declaration);
-				(function(name) {
-					setTimeout(() => delete require.cache[name], 1000);
-				})(require.resolve(declaration));
-			}
-			else {
-
-				if (typeof(declaration) !== 'string')
-					declaration = declaration.toString();
-
-				if (!name && typeof(internal) === 'string') {
-					var tmp = internal.match(/[a-z0-9]+\.js$/i);
-					if (tmp)
-						name = tmp.toString().replace(/\.js/i, '');
-				}
-
-				var filename = PATH.temporary(plus + 'installed-' + type + '-' + U.GUID(10) + '.js');
-				Fs.writeFileSync(filename, declaration);
-				obj = require(filename);
-
-				(function(name, filename) {
-					setTimeout(function() {
-						Fs.unlinkSync(filename);
-						delete require.cache[name];
-					}, 1000);
-				})(require.resolve(filename), filename);
-			}
-
-		} catch (ex) {
-			err = ex;
-		}
-
-		if (err) {
-			F.error(err, 'INSTALL(\'' + type + '\', \'' + name + '\')', null);
-			next && next();
-			callback && callback(err, name);
-			return F;
-		}
-
-		if (typeof(obj.id) === 'string')
-			name = obj.id;
-		else if (typeof(obj.name) === 'string')
-			name = obj.name;
-
-		_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-		obj.$owner = _owner;
-
-		if (!name)
-			name = (Math.random() * 10000) >> 0;
-
-		key = type + '.' + name;
-		tmp = F.dependencies[key];
-
-		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined);
-		F.temporary.owners[_owner] = true;
-
-		if (tmp) {
-			F.dependencies[key] = tmp;
-			F.dependencies[key].updated = NOW;
-		}
-		else {
-			F.dependencies[key] = { name: name, type: type, installed: NOW, updated: null, count: 0 };
-			if (internal)
-				F.dependencies[key].url = internal;
-		}
-
-		F.dependencies[key].count++;
-
-		if (obj.reinstall)
-			F.dependencies[key].reinstall = obj.reinstall.toString().parseDateExpiration();
-		else
-			delete F.dependencies[key];
-
-		if (type === 'model')
-			F.models[name] = obj;
-		else
-			F.sources[name] = obj;
-
-		typeof(obj.install) === 'function' && obj.install(options || CONF[type + '#' + name], name);
-
-		!skipEmit && setTimeout(function() {
-			EMIT(type + '#' + name, obj);
-			EMIT('install', type, name, obj);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-
-		F.consoledebug('install', type + '#' + name);
-		next && next();
-		callback && callback(null, name);
-		return F;
-	}
-
-	if (type === 'module' || type === 'controller') {
-
-		// for inline routes
-		var _ID = _controller = 'TMP' + U.random(10000);
-		_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-		err = null;
-
-		try {
-			if (useRequired) {
-				var relative = PATH.root(declaration);
-				if (existsSync(relative))
-					declaration = relative;
-				obj = require(declaration);
-				(function(name) {
-					setTimeout(function() {
-						delete require.cache[name];
-					}, 1000);
-				})(require.resolve(declaration));
-			} else {
-
-				if (typeof(declaration) !== 'string')
-					declaration = declaration.toString();
-
-				if (!name && typeof(internal) === 'string') {
-					var tmp = internal.match(/[a-z0-9]+\.js$/i);
-					if (tmp)
-						name = tmp.toString().replace(/\.js/i, '');
-				}
-
-				filename = PATH.temporary(plus + 'installed-' + type + '-' + U.GUID(10) + '.js');
-				Fs.writeFileSync(filename, declaration);
-				obj = require(filename);
-				(function(name, filename) {
-					setTimeout(function() {
-						Fs.unlinkSync(filename);
-						delete require.cache[name];
-					}, 1000);
-				})(require.resolve(filename), filename);
-			}
-
-		} catch (ex) {
-			err = ex;
-		}
-
-		if (err) {
-			F.error(err, 'INSTALL(\'' + type + '\', \'' + (name ? '' : internal) + '\')', null);
-			next && next();
-			callback && callback(err, name);
-			return F;
-		}
-
-		if (typeof(obj.id) === 'string')
-			name = obj.id;
-		else if (typeof(obj.name) === 'string')
-			name = obj.name;
-
-		if (!name)
-			name = (Math.random() * 10000) >> 0;
-
-		_owner = (packageName ? packageName + '@' : '') + type + '#' + name;
-		obj.$owner = _owner;
-
-		obj.booting && setTimeout(function() {
-
-			var tmpdir = PATH.temp(name + (U.getExtension(name) === 'package' ? '' : '.package/'));
-
-			if (obj.booting === 'root') {
-				F.directory = directory = tmpdir;
-				F.temporary.path = {};
-				F.temporary.notfound = {};
-				F.$configure_env();
-				F.$configure_configs();
-				F.$configure_versions();
-				F.$configure_sitemap();
-			} else {
-				F.$configure_env('@' + name + '/.env');
-				F.$configure_env('@' + name + '/.env-' + (DEBUG ? 'debug' : 'release'));
-				F.$configure_configs('@' + name + '/config');
-				F.$configure_configs('@' + name + '/config-' + (DEBUG ? 'debug' : 'release'));
-				F.isTest && F.$configure_configs('@' + name + '/config-test');
-				F.$configure_versions('@' + name + '/versions');
-				F.$configure_sitemap('@' + name + '/sitemap');
-			}
-
-			F.$bundle(() => F.$load(undefined, tmpdir, undefined, name));
-		}, 100);
-
-		key = type + '.' + name;
-		tmp = F.dependencies[key];
-
-		UNINSTALL(type, uptodateName || name, uptodateName ? 'uptodate' : undefined, undefined, packageName);
-		F.temporary.owners[_owner] = true;
-
-		if (tmp) {
-			F.dependencies[key] = tmp;
-			F.dependencies[key].updated = NOW;
-		}
-		else {
-			F.dependencies[key] = { name: name, type: type, installed: NOW, updated: null, count: 0, _id: _ID };
-			if (internal)
-				F.dependencies[key].url = internal;
-		}
-
-		F.dependencies[key].dependencies = obj.dependencies;
-		F.dependencies[key].count++;
-		F.dependencies[key].processed = false;
-
-		if (obj.reinstall)
-			F.dependencies[key].reinstall = obj.reinstall.toString().parseDateExpiration();
-		else
-			delete F.dependencies[key].reinstall;
-
-		_controller = _ID;
-
-		if (obj.dependencies instanceof Array) {
-			for (var i = 0, length = obj.dependencies.length; i < length; i++) {
-				if (!F.dependencies[type + '.' + obj.dependencies[i]]) {
-					F.temporary.dependencies[key] = { obj: obj, options: options, callback: callback, skipEmit: skipEmit };
-					next && next();
-					return F;
-				}
-			}
-		}
-
-		F.install_make(key, name, obj, options, callback, skipEmit, type);
-
-		if (type === 'module')
-			F.modules[name] = obj;
-		else
-			F.controllers[name] = obj;
-
-		next && next();
-	}
-
-	return F;
-};
-
-F.install_make = function(key, name, obj, options, callback, skipEmit, type) {
-
-	var me = F.dependencies[key];
-	var routeID = me._id;
-	var type = me.type;
-
-	F.temporary.internal[me._id] = name;
-	_controller = routeID;
-	_owner = type + '#' + name.replace(/\.package$/gi, '');
-
-	typeof(obj.install) === 'function' && obj.install(options || CONF[_owner], name);
-	me.processed = true;
-
-	var id = (type === 'module' ? '#' : '') + name;
-	var length = F.routes.web.length;
-
-	for (var i = 0; i < length; i++) {
-		if (F.routes.web[i].controller === routeID)
-			F.routes.web[i].controller = id;
-	}
-
-	var tmp = Object.keys(F.routes.system);
-	length = tmp.length;
-	for (var i = 0; i < length; i++) {
-		if (F.routes.system[tmp[i]].controller === routeID)
-			F.routes.system[tmp[i]].controller = id;
-	}
-
-	length = F.routes.websockets.length;
-	for (var i = 0; i < length; i++) {
-		if (F.routes.websockets[i].controller === routeID)
-			F.routes.websockets[i].controller = id;
-	}
-
-	length = F.routes.files.length;
-	for (var i = 0; i < length; i++) {
-		if (F.routes.files[i].controller === routeID)
-			F.routes.files[i].controller = id;
-	}
-
-	F.$routes_sort();
-	_controller = '';
-	name = name.replace(/\.package$/gi, '');
-
-	if (!skipEmit) {
-		setTimeout(function() {
-			EMIT(type + '#' + name, obj);
-			EMIT('install', type, name, obj);
-			F.temporary.ready[type + '#' + name] = NOW;
-		}, 500);
-	}
-
-	F.consoledebug('install', type + '#' + name);
-	callback && callback(null, name);
-	return F;
-};
-
-/**
- * Uninstall type
- * @param {String} type Available types: model, module, controller, source.
- * @param {String} name
- * @param {Object} options Custom options, optional.
- * @param {Object} skipEmit Internal, optional.
- * @return {Framework}
- */
-global.UNINSTALL = function(type, name, options, skipEmit, packageName) {
-
-	var obj = null;
-	var k, v, tmp;
-
-	if (type === 'route' || type === 'web') {
-		k = typeof(name) === 'string' ? name.substring(0, 3) === 'id:' ? 'id' : 'urlraw' : 'execute';
-		v = k === 'execute' ? name : k === 'id' ? name.substring(3).trim() : name;
-		if (k === 'urlraw' && v[0] === '#')
-			delete F.routes.system[v];
-		else
-			F.routes.web = F.routes.web.remove(k, v);
-		F.$routes_sort();
-		F.consoledebug('uninstall', type + '#' + name);
-		F.temporary.other = {};
-		return F;
-	}
-
-	if (type === 'cors') {
-		k = typeof(name) === 'string' ? name.substring(0, 3) === 'id:' ? 'id' : 'hash' : 'hash';
-		v = k === 'id' ? name.substring(3).trim() : name;
-		if (k !== 'id')
-			v = framework_internal.preparePath(framework_internal.encodeUnicodeURL(v.replace('*', '').trim()));
-		F.routes.cors = F.routes.cors.remove(k, v);
-		F._length_cors = F.routes.cors.length;
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	}
-
-	if (type === 'operation') {
-		NEWOPERATION(name, null);
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	}
-
-	if (type === 'schedule') {
-		F.clearSchedule(name);
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	}
-
-	var id = (packageName ? packageName + '@' : '') +  type + '#' + name;
-
-	if (type === 'websocket') {
-		k = typeof(name) === 'string' ? name.substring(0, 3) === 'id:' ? 'id' : 'urlraw' : 'onInitialize';
-		v = k === 'onInitialize' ? name : k === 'id' ? name.substring(3).trim() : name;
-		F.routes.websockets = F.routes.websockets.remove(k, v);
-		F.$routes_sort();
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	}
-
-	if (type === 'file') {
-		k = typeof(name) === 'string' ? name.substring(0, 3) === 'id:' ? 'id' : 'urlraw' : 'execute';
-		v = k === 'execute' ? name : k === 'id' ? name.substring(3).trim() : name;
-		F.routes.files = F.routes.files.remove(k, v);
-		F._length_files = F.routes.files.length;
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	}
-
-	if (type === 'schema') {
-		tmp.length === 2 ? framework_builders.remove(name) : framework_builders.remove(name);
-		F.consoledebug('uninstall', type + '#' + name);
-	} else if (type === 'mapping') {
-		delete F.routes.mapping[name];
-		F.consoledebug('uninstall', type + '#' + name);
-	} else if (type === 'middleware') {
-
-		if (!F.routes.middleware[name])
-			return F;
-
-		delete F.routes.middleware[name];
-		delete F.dependencies[type + '.' + name];
-		delete F.temporary.ready[type + '#' + name];
-		F._length_middleware = Object.keys(F.routes.middleware).length;
-
-		for (var i = 0, length = F.routes.web.length; i < length; i++) {
-			tmp = F.routes.web[i];
-			if (tmp.middleware && tmp.middleware.length)
-				tmp.middleware = tmp.middleware.remove(name);
-		}
-
-		for (var i = 0, length = F.routes.websockets.length; i < length; i++) {
-			tmp = F.routes.websockets[i];
-			if (tmp.middleware && tmp.middleware.length)
-				tmp.middleware = tmp.middleware.remove(name);
-		}
-
-		for (var i = 0, length = F.routes.files.length; i < length; i++) {
-			tmp = F.routes.files[i];
-			if (tmp.middleware && tmp.middleware.length)
-				tmp.middleware = tmp.middleware.remove(name);
-		}
-
-		F.consoledebug('uninstall', type + '#' + name);
-
-	} else if (type === 'package') {
-		delete F.routes.packages[name];
-		delete F.temporary.ready['package#' + name];
-		UNINSTALL('module', name, options, true);
-		F.consoledebug('uninstall', type + '#' + name);
-		return F;
-	} else if (type === 'view' || type === 'precompile') {
-
-		obj = F.routes.views[name];
-
-		if (!obj)
-			return F;
-
-		delete F.routes.views[name];
-		delete F.dependencies[type + '.' + name];
-		delete F.temporary.ready[type + '#' + name];
-
-		fsFileExists(obj.filename, function(e) {
-			e && Fs.unlink(obj.filename, NOOP);
-			F.consoledebug('uninstall', type + '#' + name);
-		});
-
-	} else if (type === 'model' || type === 'source') {
-
-		obj = type === 'model' ? F.models[name] : F.sources[name];
-
-		if (!obj)
-			return F;
-
-		F.$uninstall(id);
-		typeof(obj.uninstall) === 'function' && obj.uninstall(options, name);
-
-		if (type === 'model')
-			delete F.models[name];
-		else
-			delete F.sources[name];
-
-		delete F.dependencies[type + '.' + name];
-		delete F.temporary.ready[type + '#' + name];
-		F.consoledebug('uninstall', type + '#' + name);
-
-	} else if (type === 'module' || type === 'controller') {
-
-		var isModule = type === 'module';
-		obj = isModule ? F.modules[name] : F.controllers[name];
-
-		if (!obj)
-			return F;
-
-		F.$uninstall(id, packageName ? '' : ((isModule ? '#' : '') + name));
-		delete F.temporary.ready[type + '#' + name];
-		F.consoledebug('uninstall', type + '#' + name);
-
-		if (obj) {
-			obj.uninstall && obj.uninstall(options, name);
-			if (isModule)
-				delete F.modules[name];
-			else
-				delete F.controllers[name];
-		}
-
-	} else if (type === 'component') {
-
-		if (!F.components.instances[name])
-			return F;
-
-		obj = F.components.instances[name];
-
-		if (obj) {
-			F.$uninstall(id);
-			obj.uninstall && obj.uninstall(options, name);
-			delete F.components.instances[name];
-		}
-
-		delete F.components.instances[name];
-		delete F.components.views[name];
+	if (content.files)
+		F.components.files[name] = content.files;
+	else
 		delete F.components.files[name];
-		delete F.temporary.ready[type + '#' + name];
 
-		var temporary = F.clusterid + 'components';
-		var data;
-		var index;
-		var beg = '\n/*' + name.hash() + '*/\n';
-		var end = beg.substring(0, beg.length - 1);
-		var is = false;
+	if (content.body) {
+		F.components.views[name] = '.' + PATH.temp(F.clusterid + 'component_' + name);
+		F.$bundling && Fs.writeFile(F.components.views[name].substring(1) + '.html', U.minifyHTML(content.body), NOOP);
+	} else
+		delete F.components.views[name];
 
-		if (F.components.js) {
-			data = Fs.readFileSync(PATH.temp(temporary + '.js')).toString('utf-8');
-			index = data.indexOf(beg);
-			if (index !== -1) {
-				data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-				Fs.writeFileSync(PATH.temp(temporary + '.js'), data);
-				is = true;
-			}
+	var link = CONF.static_url_components;
+
+	F.components.has = true;
+	F.components.version = NOW.getTime();
+	F.components.links = (F.components.js ? '<script src="{0}js?version={1}"></script>'.format(link, F.components.version) : '') + (F.components.css ? '<link type="text/css" rel="stylesheet" href="{0}css?version={1}" />'.format(link, F.components.version) : '');
+
+	if (content.install) {
+
+		try {
+
+			var filecomponent = PATH.temp('component_' + name + '.js');
+			Fs.writeFileSync(filecomponent, content.install.trim());
+
+			install('component', name, filecomponent, next);
+
+			obj = require(filecomponent);
+			obj.name = name;
+			obj.parts = content.parts;
+			F.components.instances[name] = obj;
+
+		} catch(e) {
+			F.error(e, 'Component: ' + name);
+			next && next();
+			return;
 		}
 
-		if (F.components.css) {
-			data = Fs.readFileSync(PATH.temp(temporary + '.css')).toString('utf-8');
-			index = data.indexOf(beg);
-			if (index !== -1) {
-				data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-				Fs.writeFileSync(PATH.temp(temporary + '.css'), data);
-				is = true;
-			}
-		}
-
-		if (obj.group) {
-			temporary += '_g' + obj.group.hash();
-			tmp = F.components.groups[obj.group];
-			if (tmp) {
-
-				if (tmp.js) {
-					data = Fs.readFileSync(PATH.temp(temporary + '.js')).toString('utf-8');
-					index = data.indexOf(beg);
-					if (index !== -1) {
-						data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-						Fs.writeFileSync(PATH.temp(temporary + '.js'), data);
-						is = true;
-					}
-				}
-
-				if (tmp.css) {
-					data = Fs.readFileSync(PATH.temp(temporary + '.css')).toString('utf-8');
-					index = data.indexOf(beg);
-					if (index !== -1) {
-						data = data.substring(0, index) + data.substring(data.indexOf(end, index + end.length) + end.length);
-						Fs.writeFileSync(PATH.temp(temporary + '.css'), data);
-						is = true;
-					}
-				}
-
-				tmp.version = NOW.getTime();
-			}
-		}
-
-		if (is)
-			F.components.version = NOW.getTime();
-
-		F.consoledebug('uninstall', type + '#' + name);
+	} else if (next) {
+		obj = {};
+		next();
 	}
 
-	!skipEmit && EMIT('uninstall', type, name);
-	return F;
-};
+	if (!obj.group)
+		obj.group = 'default';
 
-F.$uninstall = function(owner, controller) {
+	var key = obj.group.crc32(true);
+	var tmp = F.components.groups[obj.group];
 
-	if (!F.temporary.owners[owner])
-		return F;
+	temporary += '_g' + key;
 
-	if (controller) {
-		F.routes.web = F.routes.web.remove('controller', controller);
-		F.routes.files = F.routes.files.remove('controller', controller);
-		F.routes.websockets = F.routes.websockets.remove('controller', controller);
+	if (!tmp)
+		tmp = F.components.groups[obj.group] = {};
+
+	if (content.js) {
+		Fs.appendFileSync(PATH.temp(temporary + '.js'), hash + (DEBUG ? component_debug(name, content.js, 'js') : content.js) + h);
+		tmp.js = true;
 	}
 
-	F.routes.web = F.routes.web.remove('owner', owner);
-	F.routes.files = F.routes.files.remove('owner', owner);
-	F.routes.websockets = F.routes.websockets.remove('owner', owner);
-	F.routes.cors = F.routes.cors.remove('owner', owner);
-
-	var keys = Object.keys(F.schedules);
-
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
-		if (F.schedules[key].owner == owner)
-			delete F.schedules[key];
+	if (content.css) {
+		Fs.appendFileSync(PATH.temp(temporary + '.css'), hash + (DEBUG ? component_debug(name, content.css, 'css') : content.css) + h);
+		tmp.css = true;
 	}
 
-	if (F.modificators)
-		F.modificators = F.modificators.remove('$owner', owner);
+	tmp.version = GUID(5);
+	tmp.links = (tmp.js ? '<script src="{0}js?group={2}_{1}"></script>'.format(link, tmp.version, key) : '') + (tmp.css ? '<link type="text/css" rel="stylesheet" href="{0}css?group={2}_{1}" />'.format(link, tmp.version, key) : '');
+}
 
-	framework_builders.uninstall(owner);
-
-	var owners = [];
-	var redirects = false;
-
-	for (var i = 0, length = F.owners.length; i < length; i++) {
-
-		var m = F.owners[i];
-		if (m.owner !== owner) {
-			owners.push(m);
-			continue;
-		}
-
-		switch (m.type) {
-			case 'redirects':
-				delete F.routes.redirects[m.id];
-				redirects = true;
-				break;
-			case 'resize':
-				delete F.routes.resize[m.id];
-				break;
-			case 'merge':
-				delete F.routes.merge[m.id];
-				break;
-			case 'mapping':
-				delete F.routes.mapping[m.id];
-				break;
-			case 'blocks':
-				delete F.routes.blocks[m.id];
-				break;
-			case 'middleware':
-				UNINSTALL('middleware', m.id);
-				break;
-		}
-
-	}
-
-	if (redirects)
-		F._request_check_redirect = Object.keys(F.routes.redirects).length > 0;
-
-	F.owners = owners;
+function install(type, name, filename, next) {
+	var key = type + '_' + name;
+	F.consoledebug('install', key);
+	var m = require(filename);
+	var opt = CONF[key];
+	CURRENT_OWNER = key;
+	F.dependencies[key] = m;
+	m.install && m.install(opt);
 	F.$routes_sort();
-	delete F.temporary.owners[owner];
-
-	return F;
-};
+	next && setImmediate(next);
+	F.temporary.ready[key] = NOW;
+	EMIT(key, m);
+	EMIT('install', type, name, m);
+}
 
 /**
  * Register internal mapping (e.g. Resource)
@@ -5128,8 +4115,6 @@ F.register = function(path) {
 		default:
 			throw new Error('Not supported registration type "' + extension + '".');
 	}
-
-	return F;
 };
 
 /**
@@ -5148,10 +4133,9 @@ F.eval = function(script) {
  * @param {Object} uri URI address, optional.
  * @return {Framework}
  */
-F.onError = function(err, name, uri) {
+DEF.onError = function(err, name, uri) {
 	NOW = new Date();
 	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + err.toString() + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack);
-	return F;
 };
 
 /*
@@ -5161,7 +4145,7 @@ F.onError = function(err, name, uri) {
 	@flags {String array}
 	@callback {Function} - @callback(Boolean), true is [authorize]d and false is [unauthorize]d
 */
-F.onAuthorize = null;
+DEF.onAuthorize = null;
 
 /*
 	Sets the current language for the current request
@@ -5169,22 +4153,21 @@ F.onAuthorize = null;
 	@res {Response} OR {WebSocketClient}
 	@return {String}
 */
-F.onLocale = null;
-// OLD: F.onLocate = null;
+DEF.onLocale = null;
 
 /**
  * Sets theme to controller
  * @controller {Controller}
  * @return {String}
  */
-F.onTheme = null;
+DEF.onTheme = null;
 
 /*
 	Versioning static files (this delegate call LESS CSS by the background property)
 	@name {String} :: name of static file (style.css or script.js)
 	return {String} :: return new name of static file (style-new.css or script-new.js)
 */
-F.onVersion = null;
+DEF.onVersion = null;
 
 /**
  * On mapping static files
@@ -5192,7 +4175,7 @@ F.onVersion = null;
  * @param {String} def Default value.
  * @return {String}
  */
-F.onMapping = function(url, def, ispublic, encode) {
+DEF.onMapping = function(url, def, ispublic, encode) {
 
 	if (url[0] !== '/')
 		url = '/' + url;
@@ -5237,7 +4220,7 @@ global.DOWNLOAD = function(url, filename, callback) {
 
 	if (!F.isLoaded && url[0] === '/') {
 		setTimeout(global.DOWNLOAD, 200, url, filename, callback);
-		return F;
+		return;
 	}
 
 	url = framework_internal.preparePath(url);
@@ -5331,7 +4314,7 @@ F.findConnections = function(path) {
  * @param {String} name
  * @param {Function(err, body)} callback
  */
-F.onSchema = function(req, route, callback) {
+DEF.onSchema = function(req, route, callback) {
 
 	var schema;
 
@@ -5371,7 +4354,7 @@ var onmailsendforce = (cb, message) => message.send2(cb);
  * @param {String} replyTo
  * @return {MailMessage}
  */
-F.onMail = function(address, subject, body, callback, replyTo) {
+DEF.onMail = function(address, subject, body, callback, replyTo) {
 
 	var tmp;
 
@@ -5405,7 +4388,7 @@ F.onMail = function(address, subject, body, callback, replyTo) {
 	return message;
 };
 
-F.onMeta = function() {
+DEF.onMeta = function() {
 
 	var builder = '';
 	var length = arguments.length;
@@ -5495,7 +4478,6 @@ global.LOGGER = function() {
 
 	PATH.verify('logs');
 	U.queue('LOGGER', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next));
-	return F;
 };
 
 global.LOGMAIL = function(address, subject, body, callback) {
@@ -5513,7 +4495,7 @@ global.LOGMAIL = function(address, subject, body, callback) {
 		subject = CONF.name + ' v' + CONF.version;
 
 	var body = '<!DOCTYPE html><html><head><title>' + subject + '</title><meta charset="utf-8" /></head><body><pre style="max-width:600px;font-size:13px;line-height:16px;white-space:pre-line">' + (typeof(body) === 'object' ? JSON.stringify(body).escape() : body) + '</pre></body></html>';
-	return F.onMail(address, subject, body, callback);
+	return DEF.onMail(address, subject, body, callback);
 };
 
 F.usage = function(detailed) {
@@ -5858,8 +4840,6 @@ function compile_merge(res, repeated) {
 				merge.files.splice(merge.files.indexOf(remove[i]), 1);
 		}
 	});
-
-	return F;
 }
 
 function merge_debug_writer(writer, filename, extension, index, block) {
@@ -6159,7 +5139,6 @@ global.RESTORE = function(filename, target, callback, filter) {
 		parser.end();
 	});
 
-	return F;
 };
 
 global.BACKUP = function(filename, filelist, callback, filter) {
@@ -6281,8 +5260,6 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 			});
 		}, () => writer.end());
 	});
-
-	return F;
 };
 
 F.exists = function(req, res, max, callback) {
@@ -6299,7 +5276,7 @@ F.exists = function(req, res, max, callback) {
 	if (F.isProcessed(name) || httpcachevalid) {
 		res.options.filename = filename;
 		res.$file();
-		return F;
+		return;
 	}
 
 	U.queue('F.exists', max, function(next) {
@@ -6312,8 +5289,6 @@ F.exists = function(req, res, max, callback) {
 				callback(next, filename, req, res);
 		});
 	});
-
-	return F;
 };
 
 /**
@@ -6354,12 +5329,7 @@ F.isProcessing = function(filename) {
 	return !!F.temporary.processing[filename];
 };
 
-/**
- * Clears file information in release mode
- * @param {String/Request} url
- * @return {Framework}
- */
-F.touch = function(url) {
+global.TOUCH = function(url) {
 	if (url) {
 		var key = createTemporaryKey(url);
 		delete F.temporary.path[key];
@@ -6368,7 +5338,6 @@ F.touch = function(url) {
 		F.temporary.path = {};
 		F.temporary.notfound = {};
 	}
-	return F;
 };
 
 F.response503 = function(req, res) {
@@ -6376,10 +5345,9 @@ F.response503 = function(req, res) {
 	res.options.headers = HEADERS.response503;
 	res.options.body = VIEW('.' + PATHMODULES + res.options.code, F.waits);
 	res.$text();
-	return F;
 };
 
-global.LOAD = F.load = function(debug, types, pwd, ready) {
+global.LOAD = function(debug, types, pwd, ready) {
 
 	if (typeof(types) === 'function') {
 		ready = types;
@@ -6437,17 +5405,16 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 	}
 
 	F.isWorker = true;
-
 	global.isWORKER = true;
 	global.DEBUG = debug;
 	global.RELEASE = !debug;
 
-	var isNo = true;
+	var isno = true;
 
 	if (types) {
 		for (var i = 0; i < types.length; i++) {
 			if (types[i].substring(0, 2) !== 'no') {
-				isNo = false;
+				isno = false;
 				break;
 			}
 		}
@@ -6458,84 +5425,72 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 			return true;
 		if (types.indexOf('no' + type) !== -1)
 			return false;
-		return isNo ? true : types.indexOf(type) !== -1;
+		return isno ? true : types.indexOf(type) !== -1;
 	};
 
 	F.$bundle(function() {
-		F.consoledebug('startup');
-		F.$startup(function() {
+		configure_env();
+		configure_configs();
+		can('versions') && configure_versions();
+		can('sitemap') && configure_sitemap();
+		F.consoledebug('init');
 
-			F.consoledebug('startup (done)');
-			F.$configure_env();
-			F.$configure_configs();
+		var noservice = true;
 
-			if (can('versions'))
-				F.$configure_versions();
-
-			if (can('sitemap'))
-				F.$configure_sitemap();
-
-			F.consoledebug('init');
-
-			var noservice = true;
-
-			for (var i = 0; i < types.length; i++) {
-				switch(types[i]) {
-					case 'service':
-					case 'services':
-						noservice = false;
-						break;
-				}
-				if (!noservice)
+		for (var i = 0; i < types.length; i++) {
+			switch(types[i]) {
+				case 'service':
+				case 'services':
+					noservice = false;
 					break;
 			}
+			if (!noservice)
+				break;
+		}
 
-			F.cache.init(noservice);
-			EMIT('init');
+		F.cache.init(noservice);
+		EMIT('init');
 
-			F.$load(types, directory, function() {
+		F.$load(types, directory, function() {
 
-				F.isLoaded = true;
+			F.isLoaded = true;
 
-				process.send && process.send('total:ready');
+			process.send && process.send('total:ready');
 
-				setTimeout(function() {
+			setTimeout(function() {
 
-					try {
-						EMIT('load');
-						EMIT('ready');
-					} catch (err) {
-						F.error(err, 'ON("load/ready")');
-					}
-
-					ready && ready();
-
-					F.removeAllListeners('load');
-					F.removeAllListeners('ready');
-
-					if (F.isTest) {
-						F.console();
-						F.test();
-						return F;
-					}
-
-					// Because this is worker
-					// setTimeout(function() {
-					// 	if (!F.isTest)
-					// 		delete F.test;
-					// }, 5000);
-
-				}, 500);
-
-				if (CONF.allow_debug) {
-					F.consoledebug('done');
-					F.usagesnapshot();
+				try {
+					EMIT('load');
+					EMIT('ready');
+				} catch (err) {
+					F.error(err, 'ON("load/ready")');
 				}
-			});
+
+				ready && ready();
+
+				F.removeAllListeners('load');
+				F.removeAllListeners('ready');
+
+				if (F.isTest) {
+					F.console();
+					F.test();
+					return;
+				}
+
+				// Because this is worker
+				// setTimeout(function() {
+				// 	if (!F.isTest)
+				// 		delete F.test;
+				// }, 5000);
+
+			}, 500);
+
+			if (CONF.allow_debug) {
+				F.consoledebug('done');
+				F.usagesnapshot();
+			}
 		});
 	}, can('bundles'));
-
-	return F;
 };
 
 /**
@@ -6562,7 +5517,7 @@ F.initialize = function(http, debug, options) {
 	if (options.debug || options['allow-debug'] || options.allow_debug)
 		CONF.allow_debug = true;
 
-	F.isHTTPS = http.STATUS_CODES === undefined;
+	F.isHTTPS = Http.STATUS_CODES === undefined;
 
 	if (isNaN(port) && typeof(port) !== 'string')
 		port = null;
@@ -6584,11 +5539,11 @@ F.initialize = function(http, debug, options) {
 
 	F.$bundle(function() {
 
-		F.$configure_env();
-		F.$configure_configs();
-		F.$configure_versions();
-		F.$configure_sitemap();
-		F.isTest && F.$configure_configs('config-test', true);
+		configure_env();
+		configure_configs();
+		configure_versions();
+		configure_sitemap();
+		F.isTest && configure_configs('config-test', true);
 		F.cache.init();
 		F.consoledebug('init');
 		EMIT('init');
@@ -6650,10 +5605,10 @@ F.initialize = function(http, debug, options) {
 						meta.cert = Fs.readFileSync(meta.cert);
 				}
 
-				F.server = http.createServer(meta, F.listener);
+				F.server = Http.createServer(meta, F.listener);
 
 			} else
-				F.server = http.createServer(F.listener);
+				F.server = Http.createServer(F.listener);
 
 			CONF.allow_performance && F.server.on('connection', connection_tunning);
 			F.initwebsocket && F.initwebsocket();
@@ -6699,14 +5654,13 @@ F.initialize = function(http, debug, options) {
 
 					F.removeAllListeners('load');
 					F.removeAllListeners('ready');
-					options.package && INSTALL('package', options.package);
 					runsnapshot();
 				}, 500);
 
 				if (F.isTest) {
 					var sleep = options.sleep || options.delay || 1000;
 					setTimeout(F.test, sleep);
-					return F;
+					return;
 				}
 
 				setTimeout(function() {
@@ -6716,8 +5670,6 @@ F.initialize = function(http, debug, options) {
 			});
 		}, true);
 	});
-
-	return F;
 };
 
 function connection_tunning(socket) {
@@ -6741,7 +5693,6 @@ function parseport() {
  * @return {Framework}
  */
 global.HTTP = F.http = function(mode, options, middleware) {
-	F.consoledebug('begin');
 
 	if (typeof(options) === 'function') {
 		middleware = options;
@@ -6763,7 +5714,7 @@ global.HTTP = F.http = function(mode, options, middleware) {
 	var http = require('http');
 	extend_request(http.IncomingMessage.prototype);
 	extend_response(http.ServerResponse.prototype);
-	return F.mode(http, mode, options);
+	F.mode(http, mode, options);
 };
 
 /**
@@ -6774,7 +5725,7 @@ global.HTTP = F.http = function(mode, options, middleware) {
  * @return {Framework}
  */
 global.HTTPS = F.https = function(mode, options, middleware) {
-	F.consoledebug('begin');
+
 	var http = require('http');
 
 	if (typeof(options) === 'function') {
@@ -6793,7 +5744,7 @@ global.HTTPS = F.https = function(mode, options, middleware) {
 
 	extend_request(http.IncomingMessage.prototype);
 	extend_response(http.ServerResponse.prototype);
-	return F.mode(require('https'), mode, options);
+	F.mode(require('https'), mode, options);
 };
 
 F.mode = function(http, name, options) {
@@ -6813,47 +5764,34 @@ F.mode = function(http, name, options) {
 		DEBUG = debug;
 		global.DEBUG = debug;
 		global.RELEASE = !debug;
-		return F;
+		return;
 	}
 
 	F.isWorker = false;
 
 	switch (name.toLowerCase().replace(/\.|\s/g, '-')) {
 		case 'release':
-		case 'production':
 			break;
 
 		case 'debug':
-		case 'develop':
-		case 'development':
 			debug = true;
 			break;
 
 		case 'test-debug':
 		case 'debug-test':
-		case 'testing-debug':
 			debug = true;
 			F.isTest = true;
 			break;
 
 		case 'test':
-		case 'testing':
 		case 'test-release':
 		case 'release-test':
-		case 'testing-release':
-		case 'test-production':
-		case 'testing-production':
 			debug = false;
 			F.isTest = true;
 			break;
 	}
 
-	F.consoledebug('startup');
-	F.$startup(function() {
-		F.consoledebug('startup (done)');
-		F.initialize(http, debug, options);
-	});
-	return F;
+	F.initialize(http, debug, options);
 };
 
 F.custom = function(mode, http, request, response, options) {
@@ -6862,47 +5800,28 @@ F.custom = function(mode, http, request, response, options) {
 	if (options.directory)
 		F.directory = directory = options.directory;
 
-	F.consoledebug('begin');
-
 	extend_request(request);
 	extend_response(response);
 
 	switch (mode.toLowerCase().replace(/\.|\s/g, '-')) {
 		case 'release':
-		case 'production':
 			break;
-
 		case 'debug':
-		case 'develop':
-		case 'development':
 			debug = true;
 			break;
-
 		case 'test':
-		case 'testing':
 		case 'test-debug':
 		case 'debug-test':
-		case 'testing-debug':
 			debug = true;
 			F.isTest = true;
 			break;
-
 		case 'test-release':
 		case 'release-test':
-		case 'testing-release':
-		case 'test-production':
-		case 'testing-production':
 			debug = false;
 			break;
 	}
 
-	F.consoledebug('startup');
-	F.$startup(function() {
-		F.consoledebug('startup (done)');
-		F.initialize(http, debug, options);
-	});
-
-	return F;
+	F.initialize(http, debug, options);
 };
 
 F.console = function() {
@@ -6952,19 +5871,15 @@ F.console = function() {
 
 F.usagesnapshot = function(filename) {
 	Fs.writeFile(filename || PATH.root('usage' + (F.id ? ('-' + F.id) : '') + '.log'), JSON.stringify(F.usage(true), null, '\t'), NOOP);
-	return F;
 };
 
 F.consoledebug = function() {
-
-	if (!CONF.allow_debug)
-		return F;
-
-	var arr = [new Date().format('yyyy-MM-dd HH:mm:ss'), '--------->'];
-	for (var i = 0; i < arguments.length; i++)
-		arr.push(arguments[i]);
-	console.log.apply(console, arr);
-	return F;
+	if (CONF.allow_debug) {
+		var arr = [new Date().format('yyyy-MM-dd HH:mm:ss'), '--------->'];
+		for (var i = 0; i < arguments.length; i++)
+			arr.push(arguments[i]);
+		console.log.apply(console, arr);
+	}
 };
 
 /**
@@ -6977,7 +5892,6 @@ F.reconnect = function() {
 	if (CONF.default_ip !== undefined)
 		F.ip = CONF.default_ip;
 	F.server.close(() => F.server.listen(F.port, F.ip));
-	return F;
 };
 
 /**
@@ -7052,14 +5966,6 @@ F.service = function(count) {
 		}
 	}
 
-	// every 61 minutes (default) services precompile all (installed) views
-	if (count % CONF.default_interval_precompile_views === 0) {
-		for (var key in F.routes.views) {
-			var item = F.routes.views[key];
-			INSTALL('view', key, item.url, null);
-		}
-	}
-
 	if (count % CONF.default_interval_clear_dnscache === 0) {
 		F.$events.clear && EMIT('clear', 'dns');
 		CMD('clear_dnscache');
@@ -7122,7 +6028,7 @@ F.service = function(count) {
 	keys = Object.keys(F.schedules);
 
 	if (!keys.length)
-		return F;
+		return;
 
 	var expire = NOW.getTime();
 
@@ -7138,8 +6044,6 @@ F.service = function(count) {
 			schedule.fn.call(F);
 		}
 	}
-
-	return F;
 };
 
 /**
@@ -7214,8 +6118,8 @@ F.listener = function(req, res) {
 
 	if (req.isStaticFile)
 		req.extension = U.getExtension(req.uri.pathname);
-	else if (F.onLocale)
-		req.$language = F.onLocale(req, res, req.isStaticFile);
+	else if (DEF.onLocale)
+		req.$language = DEF.onLocale(req, res, req.isStaticFile);
 
 	F.reqstats(true, true);
 
@@ -7256,9 +6160,9 @@ function makeproxy(proxy, req, res) {
 			request = https.request(uri, makeproxycallback);
 	} else {
 		if (uri.method === 'GET')
-			request = http.get(uri, makeproxycallback);
+			request = Http.get(uri, makeproxycallback);
 		else
-			request = http.request(uri, makeproxycallback);
+			request = Http.request(uri, makeproxycallback);
 	}
 
 	request.on('error', makeproxyerror);
@@ -7659,7 +6563,6 @@ F.$cors = function(req, res, fn, arg) {
 	F.reqstats(false, false);
 	res.writeHead(200);
 	res.end();
-	return F;
 };
 
 /**
@@ -7696,8 +6599,8 @@ F.$upgrade = function(req, socket, head) {
 	req.path = framework_internal.routeSplit(req.uri.pathname);
 	req.websocket = websocket;
 
-	if (F.onLocale)
-		req.$language = F.onLocale(req, socket);
+	if (DEF.onLocale)
+		req.$language = DEF.onLocale(req, socket);
 
 	if (F._length_request_middleware)
 		async_middleware(0, req, req.websocket, F.routes.request, websocketcontinue_middleware);
@@ -7740,8 +6643,8 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 
 F.$websocketcontinue = function(req, path) {
 	req.websocketpath = path;
-	if (F.onAuthorize) {
-		F.onAuthorize(req, req.websocket, req.flags, websocketcontinue_authnew);
+	if (DEF.onAuthorize) {
+		DEF.onAuthorize(req, req.websocket, req.flags, websocketcontinue_authnew);
 	} else {
 		var route = F.lookup_websocket(req, req.websocket.uri.pathname, 0);
 		if (route) {
@@ -7813,13 +6716,8 @@ F.reqstats = function(beg) {
  * @param {String} name
  * @return {Object}
  */
-global.MODEL = F.model = function(name) {
-	var obj = F.models[name];
-	if (obj || obj === null)
-		return obj;
-	var filename = U.combine(CONF.directory_models, name + '.js');
-	existsSync(filename) && INSTALL('model', name, filename, undefined, undefined, undefined, true);
-	return F.models[name] || null;
+global.MODEL = function(name) {
+	return F.models[name];
 };
 
 /**
@@ -7828,23 +6726,8 @@ global.MODEL = F.model = function(name) {
  * @param {Object} options Custom initial options, optional.
  * @return {Object}
  */
-global.INCLUDE = global.SOURCE = F.source = function(name, options, callback) {
-	var obj = F.sources[name];
-	if (obj || obj === null)
-		return obj;
-	var filename = U.combine(CONF.directory_source, name + '.js');
-	existsSync(filename) && INSTALL('source', name, filename, options, callback, undefined, true);
-	return F.sources[name] || null;
-};
-
-/**
- * Load a source code (alias for F.source())
- * @param {String} name
- * @param {Object} options Custom initial options, optional.
- * @return {Object}
- */
-F.include = function(name, options, callback) {
-	return F.source(name, options, callback);
+global.INCLUDE = global.SOURCE = function(name) {
+	return F.sources[name];
 };
 
 /**
@@ -7871,8 +6754,8 @@ global.MAIL = function(address, subject, view, model, callback, language) {
 
 	if (controller.themeName)
 		view = prepare_viewname(view);
-	else if (F.onTheme)
-		controller.themeName = F.onTheme(controller);
+	else if (DEF.onTheme)
+		controller.themeName = DEF.onTheme(controller);
 	else
 		controller.themeName = '';
 
@@ -7919,11 +6802,10 @@ global.VIEW = function(name, model, layout, repository, language) {
 	if (theme) {
 		controller.themeName = theme;
 		name = prepare_viewname(name);
-	} else if (F.onTheme)
-		controller.themeName = F.onTheme(controller);
+	} else if (DEF.onTheme)
+		controller.themeName = DEF.onTheme(controller);
 	else
 		controller.themeName = undefined;
-
 	return controller.view(name, model, true);
 };
 
@@ -7964,9 +6846,8 @@ global.VIEWCOMPILE = function(body, model, layout, repository, language) {
  */
 F.test = function() {
 	F.isTest = true;
-	F.$configure_configs('config-test', true);
+	configure_configs('config-test', true);
 	require('./test').load();
-	return F;
 };
 
 /**
@@ -7985,7 +6866,7 @@ F.clear = function(callback, isInit) {
 			if (F.$bundling) {
 				// clears only JS and CSS files
 				U.ls(dir, function(files) {
-					F.unlink(files, function() {
+					PATH.unlink(files, function() {
 						callback && callback();
 					});
 				}, function(filename, folder) {
@@ -7997,13 +6878,13 @@ F.clear = function(callback, isInit) {
 					return JSFILES[ext]  || ext === 'css' || ext === 'tmp' || ext === 'upload' || ext === 'html' || ext === 'htm';
 				});
 			}
-			return F;
+			return;
 		}
 	}
 
 	if (!existsSync(dir) || !F.$bundling) {
 		callback && callback();
-		return F;
+		return;
 	}
 
 	U.ls(dir, function(files, directories) {
@@ -8031,7 +6912,7 @@ F.clear = function(callback, isInit) {
 			});
 		}
 
-		F.unlink(files, () => F.rmdir(directories, callback));
+		PATH.unlink(files, () => PATH.rmdir(directories, callback));
 	});
 
 	if (!isInit) {
@@ -8040,8 +6921,6 @@ F.clear = function(callback, isInit) {
 		F.temporary.range = {};
 		F.temporary.notfound = {};
 	}
-
-	return F;
 };
 
 /**
@@ -8050,23 +6929,21 @@ F.clear = function(callback, isInit) {
  * @param {Function} callback
  * @return {Framework}
  */
-F.unlink = PATH.unlink = function(arr, callback) {
+PATH.unlink = function(arr, callback) {
 
 	if (typeof(arr) === 'string')
 		arr = [arr];
 
 	if (!arr.length) {
 		callback && callback();
-		return F;
+		return;
 	}
 
 	var filename = arr.shift();
 	if (filename)
-		Fs.unlink(filename, () => F.unlink(arr, callback));
+		Fs.unlink(filename, () => PATH.unlink(arr, callback));
 	else
 		callback && callback();
-
-	return F;
 };
 
 /**
@@ -8075,13 +6952,13 @@ F.unlink = PATH.unlink = function(arr, callback) {
  * @param {Function} callback
  * @return {Framework}
  */
-F.rmdir = PATH.rmdir = function(arr, callback) {
+PATH.rmdir = function(arr, callback) {
 	if (typeof(arr) === 'string')
 		arr = [arr];
 
 	if (!arr.length) {
 		callback && callback();
-		return F;
+		return;
 	}
 
 	var path = arr.shift();
@@ -8090,15 +6967,11 @@ F.rmdir = PATH.rmdir = function(arr, callback) {
 			directories.reverse();
 			directories.push(path);
 			files.wait((item, next) => Fs.unlink(item, next), function() {
-				directories.wait(function(item, next) {
-					Fs.rmdir(item, next);
-				}, () => F.rmdir(arr, callback));
+				directories.wait((item, next) => Fs.rmdir(item, next), () => PATH.rmdir(arr, callback));
 			});
 		});
 	} else
 		callback && callback();
-
-	return F;
 };
 
 /**
@@ -8300,7 +7173,7 @@ global.TRANSLATOR = function(language, text) {
 	return framework_internal.parseLocalization(text, language);
 };
 
-F.$configure_sitemap = function(arr, clean) {
+function configure_sitemap(arr, clean) {
 
 	if (!arr || typeof(arr) === 'string') {
 		var filename = prepare_filename(arr || 'sitemap');
@@ -8311,7 +7184,7 @@ F.$configure_sitemap = function(arr, clean) {
 	}
 
 	if (!arr || !arr.length)
-		return F;
+		return;
 
 	if (clean || !F.routes.sitemap)
 		F.routes.sitemap = {};
@@ -8356,9 +7229,7 @@ F.$configure_sitemap = function(arr, clean) {
 
 		F.routes.sitemap[key] = { name: name, url: url, parent: a[2] ? a[2].trim() : null, wildcard: wildcard, formatname: name.indexOf('{') !== -1, formaturl: url.indexOf('{') !== -1, localizename: localizename, localizeurl: localizeurl };
 	}
-
-	return F;
-};
+}
 
 global.SITEMAP = F.sitemap = function(name, me, language) {
 
@@ -8510,11 +7381,10 @@ F.sitemap_navigation = function(parent, language) {
  * @return {framework}
  */
 F.sitemap_add = function (obj) {
-	F.$configure_sitemap(obj instanceof Array ? obj : [obj]);
-	return F;
+	configure_sitemap(obj instanceof Array ? obj : [obj]);
 };
 
-F.$configure_versions = function(arr, clean) {
+function configure_versions(arr, clean) {
 
 	if (arr === undefined || typeof(arr) === 'string') {
 		var filename = prepare_filename(arr || 'versions');
@@ -8527,7 +7397,7 @@ F.$configure_versions = function(arr, clean) {
 	if (!arr) {
 		if (clean)
 			F.versions = null;
-		return F;
+		return;
 	}
 
 	if (!clean)
@@ -8607,9 +7477,7 @@ F.$configure_versions = function(arr, clean) {
 			ismap && MAP(filename, PATH.public(key));
 		}
 	}
-
-	return F;
-};
+}
 
 function makehash(url, callback, count) {
 
@@ -8644,14 +7512,14 @@ function makehash(url, callback, count) {
 	};
 }
 
-F.$configure_env = function(filename) {
+function configure_env(filename) {
 
 	var data;
 
 	if (filename) {
 		filename = prepare_filename(filename);
 		if (!existsSync(filename, true))
-			return F;
+			return;
 		data = Fs.readFileSync(filename).toString(ENCODING);
 	}
 
@@ -8661,8 +7529,8 @@ F.$configure_env = function(filename) {
 		filename = U.combine('/', '.env');
 		filename2 = '.env-' + (DEBUG ? 'debug' : 'release');
 		if (!existsSync(filename, true)) {
-			F.$configure_env(filename2);
-			return F;
+			configure_env(filename2);
+			return;
 		}
 		data = Fs.readFileSync(filename).toString(ENCODING);
 	}
@@ -8676,18 +7544,18 @@ F.$configure_env = function(filename) {
 			process.env[key] = data[key];
 	}
 
-	filename2 && F.$configure_env(filename2);
-	return F;
-};
+	filename2 && configure_env(filename2);
+}
 
-F.$configure_configs = function(arr, rewrite) {
+function configure_configs(arr, rewrite) {
 
 	var type = typeof(arr);
 	if (type === 'string') {
 		var filename = prepare_filename(arr);
 		if (!existsSync(filename, true))
-			return F;
+			return;
 		arr = Fs.readFileSync(filename).toString(ENCODING).split('\n');
+		CONF.allow_debug && F.consoledebug('load ' + U.getName(filename));
 	}
 
 	if (!arr) {
@@ -8696,30 +7564,15 @@ F.$configure_configs = function(arr, rewrite) {
 		var filenameB = U.combine('/', 'config-' + (DEBUG ? 'debug' : 'release'));
 		arr = [];
 
-		// read all files from "configs" directory
-		var configs = PATH.configs();
-		if (existsSync(configs)) {
-			var tmp = Fs.readdirSync(configs);
-			for (var i = 0, length = tmp.length; i < length; i++) {
-				var skip = tmp[i].match(/-(debug|release|test)$/i);
-				if (skip) {
-					skip = skip[0].toString().toLowerCase();
-					if (skip === '-debug' && !DEBUG)
-						continue;
-					if (skip === '-release' && DEBUG)
-						continue;
-					if (skip === '-test' && !F.isTest)
-						continue;
-				}
-				arr = arr.concat(Fs.readFileSync(configs + tmp[i]).toString(ENCODING).split('\n'));
-			}
+		if (existsSync(filenameA) && Fs.lstatSync(filenameA).isFile()) {
+			arr = arr.concat(Fs.readFileSync(filenameA).toString(ENCODING).split('\n'));
+			CONF.allow_debug && F.consoledebug('load ' + U.getName(filenameA));
 		}
 
-		if (existsSync(filenameA) && Fs.lstatSync(filenameA).isFile())
-			arr = arr.concat(Fs.readFileSync(filenameA).toString(ENCODING).split('\n'));
-
-		if (existsSync(filenameB) && Fs.lstatSync(filenameB).isFile())
+		if (existsSync(filenameB) && Fs.lstatSync(filenameB).isFile()) {
 			arr = arr.concat(Fs.readFileSync(filenameB).toString(ENCODING).split('\n'));
+			CONF.allow_debug && F.consoledebug('load ' + U.getName(filenameB));
+		}
 	}
 
 	var done = function() {
@@ -8728,7 +7581,7 @@ F.$configure_configs = function(arr, rewrite) {
 
 	if (!(arr instanceof Array) || !arr.length) {
 		done();
-		return F;
+		return;
 	}
 
 	if (rewrite === undefined)
@@ -8951,7 +7804,7 @@ F.$configure_configs = function(arr, rewrite) {
 	accepts && accepts.length && accepts.forEach(accept => CONF.static_accepts[accept] = true);
 
 	if (CONF.allow_performance)
-		http.globalAgent.maxSockets = 9999;
+		Http.globalAgent.maxSockets = 9999;
 
 	var xpowered = CONF.default_xpoweredby;
 
@@ -8970,8 +7823,7 @@ F.$configure_configs = function(arr, rewrite) {
 
 	done();
 	F.$events.configure && EMIT('configure', CONF);
-	return F;
-};
+}
 
 F.public_js = function(name, theme) {
 	return F.$public(name, CONF.static_url_script, theme);
@@ -9043,8 +7895,8 @@ F.$version = function(name, def) {
 	var tmp;
 	if (F.versions)
 		tmp = F.versions[name] || name;
-	if (F.onVersion)
-		tmp = F.onVersion(name) || name;
+	if (DEF.onVersion)
+		tmp = DEF.onVersion(name) || name;
 	return tmp === 'auto' && def ? name : (tmp || name);
 };
 
@@ -9277,12 +8129,11 @@ F.lookup_websocket = function(req, url, membertype) {
  * @param {String} contentType Content-Type for file extension, optional.
  * @return {Framework}
  */
-F.accept = function(extension, contentType) {
-	if (extension[0] === '.')
-		extension = extension.substring(1);
-	CONF.static_accepts[extension] = true;
-	contentType && U.setContentType(extension, contentType);
-	return F;
+global.ACCEPT = F.accept = function(ext, type) {
+	if (ext[0] === '.')
+		ext = ext.substring(1);
+	CONF.static_accepts[ext] = true;
+	type && U.setContentType(ext, type);
 };
 
 // A temporary variable for generating Worker ID
@@ -9593,6 +8444,10 @@ FrameworkRouteProto.setOptions = function(value) {
 	return this;
 };
 
+FrameworkRouteProto.remove = function() {
+
+};
+
 // =================================================================================
 // Framework path
 // =================================================================================
@@ -9604,24 +8459,22 @@ FrameworkPathProto.ls = U.ls;
 FrameworkPathProto.ls2 = U.ls2;
 
 FrameworkPathProto.verify = function(name) {
-	var prop = '$directory-' + name;
+	var prop = '$directory_' + name;
 	if (F.temporary.path[prop])
-		return F;
+		return;
 	var directory = CONF['directory_' + name] || name;
 	var dir = U.combine(directory);
 	try {
 		!existsSync(dir) && Fs.mkdirSync(dir);
 	} catch (e) {}
 	F.temporary.path[prop] = true;
-	return F;
 };
 
 FrameworkPathProto.mkdir = function(p, cache) {
 
-	var key = '$directory-' + p;
-
+	var key = '$directory_' + p;
 	if (cache && F.temporary.path[key])
-		return F;
+		return;
 
 	F.temporary.path[key] = true;
 
@@ -9648,29 +8501,25 @@ FrameworkPathProto.mkdir = function(p, cache) {
 			p = p.substring(0, l);
 	}
 
-	if (existsSync(p))
-		return F;
+	if (!existsSync(p)) {
+		var arr = is ? p.replace(/\//g, '\\').split('\\') : p.split('/');
+		var directory = s;
 
-	var arr = is ? p.replace(/\//g, '\\').split('\\') : p.split('/');
-	var directory = s;
+		for (var i = 0, length = arr.length; i < length; i++) {
+			var name = arr[i];
+			if (is)
+				directory += (i && directory ? '\\' : '') + name;
+			else
+				directory += (i && directory ? '/' : '') + name;
 
-	for (var i = 0, length = arr.length; i < length; i++) {
-		var name = arr[i];
-		if (is)
-			directory += (i && directory ? '\\' : '') + name;
-		else
-			directory += (i && directory ? '/' : '') + name;
-
-		if (i >= beg && !existsSync(directory))
-			Fs.mkdirSync(directory);
+			if (i >= beg && !existsSync(directory))
+				Fs.mkdirSync(directory);
+		}
 	}
-
-	return F;
 };
 
 FrameworkPathProto.exists = function(path, callback) {
 	Fs.lstat(path, (err, stats) => callback(err ? false : true, stats ? stats.size : 0, stats ? stats.isFile() : false));
-	return F;
 };
 
 FrameworkPathProto.public = function(filename) {
@@ -10863,7 +9712,7 @@ ControllerProto.$meta = function() {
 
 	F.$events.controller_render_meta && EMIT('controller_render_meta', self);
 	var repository = self.repository;
-	return F.onMeta.call(self, repository[REPOSITORY_META_TITLE], repository[REPOSITORY_META_DESCRIPTION], repository[REPOSITORY_META_KEYWORDS], repository[REPOSITORY_META_IMAGE]);
+	return DEF.onMeta.call(self, repository[REPOSITORY_META_TITLE], repository[REPOSITORY_META_DESCRIPTION], repository[REPOSITORY_META_KEYWORDS], repository[REPOSITORY_META_IMAGE]);
 };
 
 ControllerProto.title = function(value) {
@@ -11744,6 +10593,7 @@ var $importmergecache = {};
 
 ControllerProto.$import = function() {
 
+
 	var self = this;
 	var builder = '';
 
@@ -11783,7 +10633,7 @@ ControllerProto.$import = function() {
 			continue;
 		}
 
-		var k = 'import#' + filename;
+		var k = 'import#' + (self.themeName || '') + filename;
 
 		if (F.temporary.other[k]) {
 			builder += F.temporary.other[k];
@@ -13033,7 +11883,7 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 				self.repository[REPOSITORY_COMPONENTS][generator.components[i]] = 1;
 		}
 
-		value = generator.call(self, self, self.repository, model, self.session, self.query, self.body, self.url, F.global, helpers, self.user, CONF, F.functions, 0, partial ? self.outputPartial : self.output, self.req.files, self.req.mobile, EMPTYOBJECT);
+		value = generator.call(self, self, self.repository, model, self.session, self.query, self.body, self.url, helpers, self.user, CONF, F.functions, 0, partial ? self.outputPartial : self.output, self.req.files, self.req.mobile, EMPTYOBJECT);
 
 	} catch (ex) {
 
@@ -13342,7 +12192,7 @@ ControllerProto.$memorize_prepare = function(key, expires, disabled, fnTo, fnFro
 
 // *********************************************************************************
 // =================================================================================
-// F.WebSocket
+// WebSocket
 // =================================================================================
 // *********************************************************************************
 
@@ -14483,7 +13333,7 @@ function extend_request(PROTO) {
 	};
 
 	PROTO.localize = function() {
-		F.onLocale && (this.$language = F.onLocale(this, this.res, this.isStaticFile));
+		DEF.onLocale && (this.$language = DEF.onLocale(this, this.res, this.isStaticFile));
 		return this.$language;
 	};
 
@@ -14557,16 +13407,12 @@ function extend_request(PROTO) {
 	 * @return {Request}
 	 */
 	PROTO.authorize = function(callback) {
-
 		var req = this;
-
-		if (!F.onAuthorize) {
+		if (DEF.onAuthorize) {
+			req.authorizecallback = callback;
+			DEF.onAuthorize(req, req.res, req.flags, req_authorizecallback);
+		} else
 			callback(null, null, false);
-			return req;
-		}
-
-		req.authorizecallback = callback;
-		F.onAuthorize(req, req.res, req.flags, req_authorizecallback);
 		return req;
 	};
 
@@ -14596,7 +13442,7 @@ function extend_request(PROTO) {
 		for (var i = 0; i < length; i++)
 			files[i].rem && arr.push(files[i].path);
 
-		F.unlink(arr);
+		PATH.unlink(arr);
 		self.files = null;
 		return self;
 	};
@@ -14671,8 +13517,8 @@ function extend_request(PROTO) {
 		this.res.writeHead(status);
 		this.res.end(U.httpStatus(status));
 		F.$events.request_end && EMIT('request_end', this, this.res);
+		this.bodydata = null;
 		this.clear(true);
-		this.req.bodydata = null;
 	};
 
 	PROTO.$total_end = function() {
@@ -14757,8 +13603,8 @@ function extend_request(PROTO) {
 
 		try {
 
-			if (F.onTheme)
-				controller.themeName = F.onTheme(controller);
+			if (DEF.onTheme)
+				controller.themeName = DEF.onTheme(controller);
 
 			if (controller.isCanceled)
 				return;
@@ -14830,7 +13676,7 @@ function extend_request(PROTO) {
 			return next(self, code);
 		}
 
-		F.onSchema(self, self.$total_route, function(err, body) {
+		DEF.onSchema(self, self.$total_route, function(err, body) {
 			if (err) {
 				self.$total_400(err);
 				next = null;
@@ -15009,9 +13855,9 @@ function extend_request(PROTO) {
 	PROTO.$total_prepare = function() {
 		var req = this;
 		var length = req.flags.length;
-		if (F.onAuthorize) {
+		if (DEF.onAuthorize) {
 			req.flagslength = length;
-			F.onAuthorize(req, req.res, req.flags, req_authorizetotal);
+			DEF.onAuthorize(req, req.res, req.flags, req_authorizetotal);
 		} else {
 			if (!req.$total_route)
 				req.$total_route = F.lookup(req, req.bodyexceeded ? '#431' : req.uri.pathname, req.flags, 0);
@@ -15504,13 +14350,13 @@ function extend_response(PROTO) {
 				canresize = resizer.extension['*'] || resizer.extension[req.extension];
 				if (canresize) {
 					name = resizer.path + $decodeURIComponent(name);
-					filename = F.onMapping(name, name, false, false);
+					filename = DEF.onMapping(name, name, false, false);
 				} else
-					filename = F.onMapping(name, name, true, true);
+					filename = DEF.onMapping(name, name, true, true);
 			} else
-				filename = F.onMapping(name, name, true, true);
+				filename = DEF.onMapping(name, name, true, true);
 		} else
-			filename = F.onMapping(name, name, true, true);
+			filename = DEF.onMapping(name, name, true, true);
 
 		if (!filename) {
 			if (!F.routes.filesfallback || !F.routes.filesfallback(req, res))
@@ -16231,14 +15077,12 @@ function $file_range(name, range, headers, res) {
 		res.writeHead(206, headers);
 		res.end();
 		response_end(res);
-		return F;
+	} else {
+		res.writeHead(206, headers);
+		RANGE.start = beg;
+		RANGE.end = end;
+		fsStreamRead(name, RANGE, $file_range_callback, res);
 	}
-
-	res.writeHead(206, headers);
-	RANGE.start = beg;
-	RANGE.end = end;
-	fsStreamRead(name, RANGE, $file_range_callback, res);
-	return F;
 }
 
 function $file_range_callback(stream, next, res) {
@@ -16262,7 +15106,7 @@ function $image_nocache(res) {
 		options.stream = image;
 		F.stats.response.image++;
 		res.$stream();
-		return F;
+		return;
 	}
 
 	// FILENAME
@@ -17154,7 +15998,7 @@ function evalroutehandler(controller) {
 	if (!controller.route.schema || !controller.route.schema[1] || controller.req.method === 'DELETE' || controller.req.method === 'GET')
 		return evalroutehandleraction(controller);
 
-	F.onSchema(controller.req, controller.route, function(err, body) {
+	DEF.onSchema(controller.req, controller.route, function(err, body) {
 		if (err) {
 			controller.$evalroutecallback(err, body);
 		} else {
@@ -17202,7 +16046,8 @@ global.ACTION = function(url, data, callback) {
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routeSplit(req.uri.pathname);
 	req.body = data || {};
-	req.query = params ? F.onParseQuery(params) : {};
+	// req.query = params ? F.onParseQuery(params) : {};
+	req.query = params ? DEF.parser.urlencoded(params) : {};
 	req.files = EMPTYARRAY;
 	req.method = method;
 	res.options = req.options = {};

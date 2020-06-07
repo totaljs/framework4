@@ -4839,7 +4839,7 @@ function exec_callback(err, response) {
 				output.value = response.body ? response.body.parseXML(self.$replace ? true : false) : {};
 				break;
 			case 'application/x-www-form-urlencoded':
-				output.value = response.body ? F.onParseQuery(response.body) : {};
+				output.value = response.body ? DEF.parser.urlencoded(response.body) : {};
 				break;
 			case 'application/json':
 			case 'text/json':
