@@ -2327,10 +2327,10 @@ DP.format = function(format, resource) {
 				return beg + 'd.getFullYear().toString().substring(2)' + end;
 			case 'MMM':
 				ismm = true;
-				return beg + '(F.resource(resource, mm) || mm).substring(0, 3)' + end;
+				return beg + '(RESOURCE(resource, mm) || mm).substring(0, 3)' + end;
 			case 'MMMM':
 				ismm = true;
-				return beg + '(F.resource(resource, mm) || mm)' + end;
+				return beg + '(RESOURCE(resource, mm) || mm)' + end;
 			case 'MM':
 				return beg + '(d.getMonth() + 1).toString().padLeft(2, \'0\')' + end;
 			case 'M':
@@ -2338,11 +2338,11 @@ DP.format = function(format, resource) {
 			case 'ddd':
 			case 'DDD':
 				isdd = true;
-				return beg + '(F.resource(resource, dd) || dd).substring(0, 2).toUpperCase()' + end;
+				return beg + '(RESOURCE(resource, dd) || dd).substring(0, 2).toUpperCase()' + end;
 			case 'dddd':
 			case 'DDDD':
 				isdd = true;
-				return beg + '(F.resource(resource, dd) || dd)' + end;
+				return beg + '(RESOURCE(resource, dd) || dd)' + end;
 			case 'dd':
 			case 'DD':
 				return beg + 'd.getDate().toString().padLeft(2, \'0\')' + end;

@@ -7086,7 +7086,7 @@ global.DECRYPTREQ = function(req, val, key) {
 
 const DEFNAME = 'default';
 
-global.RESOURCE = F.resource = function(name, key) {
+global.RESOURCE = function(name, key) {
 
 	if (!key) {
 		key = name;
