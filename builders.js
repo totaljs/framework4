@@ -4347,14 +4347,14 @@ RESTBuilder.GET = function(url, data) {
 RESTBuilder.POST = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.options.method = 'POST';
-	data && builder.raw(data);
+	data && builder.raw(data, 'json');
 	return builder;
 };
 
 RESTBuilder.PUT = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.options.method = 'PUT';
-	data && builder.raw(data);
+	data && builder.raw(data, 'json');
 	return builder;
 };
 
@@ -4362,7 +4362,7 @@ RESTBuilder.DELETE = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.$method = 'delete';
 	builder.options.method = 'DELETE';
-	data && builder.raw(data);
+	data && builder.raw(data, 'json');
 	return builder;
 };
 
@@ -4370,7 +4370,7 @@ RESTBuilder.PATCH = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.$method = 'patch';
 	builder.options.method = 'PATCH';
-	data && builder.raw(data);
+	data && builder.raw(data, 'json');
 	return builder;
 };
 
@@ -4623,10 +4623,8 @@ RESTP.redirect = function(value) {
 
 RESTP.raw = function(value, type) {
 	var val = value && value.$clean ? value.$clean() : value;
-
 	if (typeof(val) !== 'string')
 		val = type === 'urlencoded' ? U.toURLEncode(val) : JSON.stringify(val);
-
 	this.options.type = type;
 	this.options.body = val;
 	return this;

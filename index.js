@@ -7494,6 +7494,8 @@ function makehash(url, callback, count) {
 		});
 		response.stream.on('error', () => callback(''));
 	};
+
+	REQUEST(opt);
 }
 
 function configure_env(filename) {
