@@ -4303,7 +4303,6 @@ UrlBuilder.prototype.toOne = function(keys, delimiter) {
 
 function RESTBuilder(url) {
 
-	this.$type = 0; // 0 = query, 1 = json, 2 = urlencode, 3 = raw
 	this.$schema;
 	this.$length = 0;
 	this.$transform = transforms.restbuilder_default;
@@ -4492,12 +4491,12 @@ RESTP.schema = function(name) {
 	return this;
 };
 
-RESTP.noDnsCache = function() {
+RESTP.nodnscache = function() {
 	this.options.resolve = false;
 	return this;
 };
 
-RESTP.noCache = function() {
+RESTP.nocache = function() {
 	this.$nocache = true;
 	return this;
 };
@@ -4546,13 +4545,13 @@ RESTP.mobile = function() {
 
 RESTP.put = RESTP.PUT = function(data) {
 	this.options.method = 'PUT';
-	data && this.raw(data);
+	data && this.raw(data, this.options.type || 'json');
 	return this;
 };
 
 RESTP.delete = RESTP.DELETE = function(data) {
 	this.options.method = 'DELETE';
-	data && this.raw(data);
+	data && this.raw(data, this.options.type || 'json');
 	return this;
 };
 
@@ -4564,7 +4563,7 @@ RESTP.get = RESTP.GET = function(data) {
 
 RESTP.post = RESTP.POST = function(data) {
 	this.options.method = 'POST';
-	data && this.raw(data);
+	data && this.raw(data, this.options.type || 'json');
 	return this;
 };
 
@@ -4575,12 +4574,12 @@ RESTP.head = RESTP.HEAD = function() {
 
 RESTP.patch = RESTP.PATCH = function(data) {
 	this.options.method = 'PATCH';
-	data && this.raw(data);
+	data && this.raw(data, this.options.type || 'json');
 	return this;
 };
 
 RESTP.json = function(data) {
-	data && this.raw(data);
+	data && this.raw(data, 'json');
 	if (this.options.method === 'GET')
 		this.options.method = 'POST';
 	return this;
@@ -4589,8 +4588,8 @@ RESTP.json = function(data) {
 RESTP.urlencoded = function(data) {
 	if (this.options.method === 'GET')
 		this.options.method = 'POST';
-	this.$type = 2;
-	data && this.raw(data);
+	this.options.type = 'urlencoded';
+	data && this.raw(data, this.options.type);
 	return this;
 };
 
@@ -4606,16 +4605,14 @@ RESTP.accept = function(ext) {
 
 RESTP.xml = function(data, replace) {
 
-	if (this.$type !== 3)
-		this.$flags = null;
-
 	if (this.options.method === 'GET')
 		this.options.method = 'POST';
 
 	if (replace)
 		this.$replace = true;
 
-	data && this.raw(data);
+	this.options.type = 'xml';
+	data && this.raw(data, this.options.type);
 	return this;
 };
 
@@ -4624,10 +4621,13 @@ RESTP.redirect = function(value) {
 	return this;
 };
 
-RESTP.raw = function(value) {
+RESTP.raw = function(value, type) {
 	var val = value && value.$clean ? value.$clean() : value;
+
 	if (typeof(val) !== 'string')
-		val = this.$type === 2 ? U.toURLEncode(val) : JSON.stringify(val);
+		val = type === 'urlencoded' ? U.toURLEncode(val) : JSON.stringify(val);
+
+	this.options.type = type;
 	this.options.body = val;
 	return this;
 };
@@ -4787,7 +4787,7 @@ function exec_callback(err, response) {
 				output.value = response.body ? response.body.parseXML(self.$replace ? true : false) : {};
 				break;
 			case 'application/x-www-form-urlencoded':
-				output.value = response.body ? DEF.parser.urlencoded(response.body) : {};
+				output.value = response.body ? DEF.parsers.urlencoded(response.body) : {};
 				break;
 			case 'application/json':
 			case 'text/json':

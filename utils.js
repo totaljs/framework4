@@ -545,6 +545,9 @@ global.REQUEST = function(opt) {
 			case 'json':
 				opt.headers[CT] = 'application/json';
 				break;
+			case 'urlencoded':
+				opt.headers[CT] = 'application/x-www-form-urlencoded';
+				break;
 			case 'xml':
 				opt.headers[CT] = 'text/xml';
 				break;

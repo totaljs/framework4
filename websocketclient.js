@@ -62,19 +62,20 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.origin = origin;
 	self.protocol = protocol;
 
+	var secured = false;
+
 	if (typeof(url) === 'string') {
 		url = Url.parse(url);
-		options.port = url.port || (isSecure ? 443 : 80);
 		options.host = url.hostname;
 		options.path = url.path;
 		options.query = url.query;
+		secured = url.protocol === 'wss:';
+		options.port = url.port || (secured ? 443 : 80);
 	} else {
 		options.socketPath = url.socket;
 		options.path = url.path;
 		// options.query = url.query;
 	}
-
-	var isSecure = url.protocol === 'wss:';
 
 	options.headers = {};
 	options.headers['User-Agent'] = 'Total.js/v' + F.version_header;
@@ -110,7 +111,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		options.headers.Cookie = tmp.join(', ');
 	}
 
-	self.req = (isSecure ? Https : Http).get(options);
+	self.req = (secured ? Https : Http).get(options);
 	self.req.$main = self;
 
 	self.req.on('error', function(e) {
@@ -470,7 +471,7 @@ WebSocketClientProto.$decode = function() {
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
 			this.options.encodedecode && (data = $decodeURIComponent(data));
-			data.isJSON() && this.emit('message', DEF.parser.json(data));
+			data.isJSON() && this.emit('message', DEF.parsers.json(data));
 			break;
 
 		default: // TEXT
