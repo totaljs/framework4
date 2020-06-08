@@ -556,7 +556,7 @@ global.REQUEST = function(opt) {
 
 	if (opt.files) {
 		options.boundary = '----totaljs' + Math.random().toString(16).substring(2);
-		options.headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
+		opt.headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
 		options.files = opt.files;
 
 		// Must be object { key: value }
