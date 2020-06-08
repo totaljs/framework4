@@ -4512,7 +4512,7 @@ RESTP.xhr = function() {
 };
 
 RESTP.method = function(method, data) {
-	this.options.method = method.charCodeAt(0) < 97 ? method.toUpperCase() : method;
+	this.options.method = method.charCodeAt(0) > 96 ? method.toUpperCase() : method;
 	data && this.raw(data, 'json');
 	return this;
 };
