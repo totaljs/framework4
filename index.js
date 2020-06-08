@@ -9143,6 +9143,39 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.mail = function(address, subject, view, model, callback) {
+
+	if (typeof(model) === 'function') {
+		callback = model;
+		model = null;
+	}
+
+	var self = this;
+
+	if (typeof(self.language) === 'string')
+		subject = TRANSLATOR(self.language, subject);
+
+	// Backup layout
+	var layoutName = self.layoutName;
+	var body = self.view(view, model, true);
+
+	var message;
+
+	if (body instanceof Function) {
+		message = DEF.onMail(address, subject, '');
+		message.manually();
+		body(function(err, body) {
+			message.body = body;
+			message.send2(callback);
+		});
+	} else {
+		message = DEF.onMail(address, subject, body, callback);
+		self.layoutName = layoutName;
+	}
+
+	return message;
+};
+
 ControllerProto.$get = ControllerProto.$read = function(helper, callback) {
 
 	if (callback == null && typeof(helper) === 'function') {
