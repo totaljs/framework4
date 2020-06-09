@@ -3941,6 +3941,7 @@ F.$load = function(types, targetdirectory, callback) {
 			types && types.indexOf('service') === -1 && F.cache.stop();
 			F.routes_sort();
 			F.consoledebug('load dependencies {0}x (done)'.format(count));
+			CONF.allow_stats_snapshot && F.snapshotstats();
 			callback && callback();
 		});
 	});
@@ -8767,7 +8768,7 @@ FrameworkCacheProto.recycle = function() {
 	persistent && this.savepersistent();
 	CONF.allow_cache_snapshot && this.save();
 	F.service(this.count);
-	CONF.allow_stats_snapshot && F.snapshotstats && F.snapshotstats();
+	CONF.allow_stats_snapshot && F.snapshotstats();
 	measure_usage();
 	return this;
 };
