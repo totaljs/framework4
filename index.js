@@ -3941,7 +3941,6 @@ F.$load = function(types, targetdirectory, callback) {
 			types && types.indexOf('service') === -1 && F.cache.stop();
 			F.routes_sort();
 			F.consoledebug('load dependencies {0}x (done)'.format(count));
-			CONF.allow_stats_snapshot && F.snapshotstats();
 			callback && callback();
 		});
 	});
@@ -16142,6 +16141,8 @@ function runsnapshot() {
 		} else
 			Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '\t'), NOOP);
 	};
+
+	CONF.allow_stats_snapshot && F.snapshotstats();
 }
 
 var lastusagedate;
