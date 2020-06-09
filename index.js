@@ -3384,6 +3384,26 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	} else if (!extensions && !fnValidation)
 		fnValidation = fnExecute;
 
+	// A relative path to local file
+	if (typeof(fnExecute) === 'string') {
+		var filename = fnExecute;
+		if ((/^(https|http):\/\/\w/).test(fnExecute)) {
+			fnExecute = function(req, res) {
+				var opt = {};
+				opt.url = filename;
+				opt.custom = true;
+				opt.callback = function(err, response) {
+					if (err)
+						res.throw404(err);
+					else
+						res.stream(response.stream.headers['content-type'], response.stream);
+				};
+				REQUEST(opt);
+			};
+		} else
+			fnExecute = (req, res) => res.file(filename);
+	}
+
 	var instance = new FrameworkRoute();
 	var r = instance.route;
 	r.id = id;
@@ -8423,8 +8443,14 @@ FrameworkRouteProto.remove = function() {
 	var self = this;
 	var index;
 
-	if (self.isWEBSOCKET) {
-		index = F.routes.websockets.push(self);
+	if (self.type === 'file') {
+		index = F.routes.files.indexOf(self);
+		if (index !== -1) {
+			F.routes.files.splice(index, 1);
+			F.routes_sort();
+		}
+	} else if (self.isWEBSOCKET) {
+		index = F.routes.websockets.indexOf(self);
 		if (index !== -1) {
 			F.routes.websockets.splice(index, 1);
 			F.routes_sort();
