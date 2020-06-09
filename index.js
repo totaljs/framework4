@@ -4471,7 +4471,7 @@ global.LOGGER = function() {
 
 global.LOGMAIL = function(address, subject, body, callback) {
 
-	if (typeof(body) === FUNCTION) {
+	if (typeof(body) === 'function') {
 		callback = body;
 		body = subject;
 		subject = null;
