@@ -4911,9 +4911,13 @@ function taskrunner(obj, name, callback) {
 	obj.exec(name, callback);
 }
 
-global.TASK = function(taskname, name, callback, options) {
+global.TASK = function(taskname, callback, options) {
+
+	var tmp = taskname.split('/');
+	var name = tmp[1];
+
 	var obj = new TaskBuilder(options);
-	obj.taskname = taskname;
+	obj.taskname = tmp[0];
 
 	if (obj.controller) {
 		obj.controller.$filterschema = null;
