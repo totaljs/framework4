@@ -11704,6 +11704,9 @@ ControllerProto.close = function(end) {
  */
 ControllerProto.proxy = function(opt) {
 
+	if (typeof(opt) === 'string')
+		opt = { url: opt };
+
 	var self = this;
 	var req = self.req;
 
@@ -11726,7 +11729,7 @@ ControllerProto.proxy = function(opt) {
 	}
 
 	var keys = Object.keys(req.headers);
-	for (var i = 0, length = keys.length; i < length; i++) {
+	for (var i = 0; i < keys.length; i++) {
 		switch (keys[i]) {
 			case 'x-forwarded-for':
 			case 'x-forwarded-protocol':
