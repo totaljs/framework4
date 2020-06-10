@@ -4333,14 +4333,7 @@ RESTBuilder.url = function(url) {
 
 RESTBuilder.GET = function(url, data) {
 	var builder = new RESTBuilder(url);
-	if (data) {
-		if (typeof(data) !== 'string')
-			data = U.toURLEncode(data);
-		if (url.lastIndexOf('?') === -1)
-			url += '?' + data;
-		else
-			url += '&' + data;
-	}
+	builder.options.query = data;
 	return builder;
 };
 
@@ -4557,7 +4550,7 @@ RESTP.delete = RESTP.DELETE = function(data) {
 
 RESTP.get = RESTP.GET = function(data) {
 	this.options.method = 'GET';
-	this.options.querystring = data;
+	this.options.query = data;
 	return this;
 };
 

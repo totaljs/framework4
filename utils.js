@@ -581,6 +581,22 @@ global.REQUEST = function(opt) {
 			opt.headers.Cookie = builder;
 	}
 
+	if (opt.query) {
+		if (typeof(opt.query) !== 'string')
+			opt.query = U.toURLEncode(opt.query);
+		if (opt.url) {
+			if (opt.url.lastIndexOf('?') === -1)
+				opt.url += '?' + opt.query;
+			else
+				opt.url += '&' + opt.query;
+		} else if (opt.unixsocket.path) {
+			if (opt.unixsocket.path.lastIndexOf('?') === -1)
+				opt.unixsocket.path += '?' + opt.query;
+			else
+				opt.unixsocket.path += '&' + opt.query;
+		}
+	}
+
 	var uri = opt.unixsocket ? { socketPath: opt.unixsocket.socket, path: opt.unixsocket.path } : Url.parse(opt.url);
 
 	if ((opt.unixsocket && !uri.socketPath) || (!opt.unixsocket && (!uri.hostname || !uri.host))) {
