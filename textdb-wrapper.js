@@ -400,6 +400,15 @@ DP.clean = function(callback) {
 	return this.next({ command: 'clean', callback: callback });
 };
 
+DP.command = function(command, options, callback) {
+	var builder = new DatabaseBuilder();
+	builder.command = command;
+	builder.options = options;
+	builder.$callback = callback;
+	this.next(builder);
+	return builder;
+};
+
 function DatabaseBuilder() {
 	var t = this;
 	t.builder = [];
