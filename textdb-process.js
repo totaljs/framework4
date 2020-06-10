@@ -73,8 +73,8 @@ function prepare(INSTANCE) {
 		INSTANCE.send2({ TYPE: 'find2', builder: builder });
 	};
 
-	INSTANCE.cmd_memory = function(count, size) {
-		INSTANCE.send2({ TYPE: 'memory', count: count, size: size });
+	INSTANCE.cmd_memory = function(builder) {
+		INSTANCE.send2({ TYPE: 'memory', builder: builder });
 	};
 
 	INSTANCE.cmd_remove = function(builder, callback) {
@@ -104,28 +104,32 @@ function prepare(INSTANCE) {
 		INSTANCE.send2({ TYPE: 'insert', builder: builder });
 	};
 
-	INSTANCE.cmd_alter = function(schema, callback) {
+	INSTANCE.cmd_alter = function(schema, builder, callback) {
 		var id = COUNTER++;
 		if (callback)
 			INSTANCE.callbacks[id] = callback;
-		INSTANCE.send2({ TYPE: 'alter', cid: id, schema: schema });
+		INSTANCE.send2({ TYPE: 'alter', cid: id, schema: schema, builder: builder });
 	};
 
-	INSTANCE.cmd_clean = function(callback) {
+	INSTANCE.cmd_clean = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)
 			INSTANCE.callbacks[id] = callback;
-		INSTANCE.send2({ TYPE: 'clean', cid: id });
+		INSTANCE.send2({ TYPE: 'clean', cid: id, builder: builder });
 	};
 
-	INSTANCE.cmd_clear = function(callback) {
+	INSTANCE.cmd_recount = function(builder) {
+		INSTANCE.send2({ TYPE: 'recount', builder: builder });
+	};
+
+	INSTANCE.cmd_clear = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)
 			INSTANCE.callbacks[id] = callback;
-		INSTANCE.send2({ TYPE: 'clear', cid: id });
+		INSTANCE.send2({ TYPE: 'clear', cid: id, builder: builder });
 	};
 
-	INSTANCE.cmd_drop = function() {
-		INSTANCE.send2({ TYPE: 'drop' });
+	INSTANCE.cmd_drop = function(builder) {
+		INSTANCE.send2({ TYPE: 'drop', builder: builder });
 	};
 }

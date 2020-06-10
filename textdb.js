@@ -63,7 +63,6 @@ function TableDB(filename, schema, onetime) {
 		CACHEITEMS[t.id] = [];
 	}
 
-	t.$name = '$' + name;
 	t.pending_drops = false;
 	t.pending_count = 0;
 	t.pending_reader = [];

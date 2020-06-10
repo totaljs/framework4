@@ -128,6 +128,10 @@ function processcommand(msg) {
 
 			break;
 
+		case 'memory':
+			instance.memory(msg.builder.count, msg.builder.size);
+			break;
+
 		case 'alter':
 			instance.alter(msg.schema, err => process.send({ TYPE: 'response2', cid: msg.cid, err: err }));
 			break;
@@ -140,8 +144,8 @@ function processcommand(msg) {
 			instance.clear(() => process.send({ TYPE: 'response', cid: msg.cid, success: true }));
 			break;
 
-		case 'memory':
-			instance.memory(msg.count, msg.size);
+		case 'recount':
+			instance.recount();
 			break;
 
 		case 'drop':

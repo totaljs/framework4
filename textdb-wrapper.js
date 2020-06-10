@@ -61,17 +61,22 @@ function Database(type, name, fork, onetime) {
 		if (t.fork.cmd_find) {
 
 			if (SPECIAL[builder.command]) {
-				t.fork['cmd_' + builder.command](builder.callback);
+				t.fork['cmd_' + builder.command](builder.options, builder.$callback);
 				return;
 			}
 
 			if (builder.command === 'alter') {
-				t.fork['cmd_' + builder.command](builder.schema, builder.callback);
+				t.fork['cmd_' + builder.command](builder.options, builder.$callback);
 				return;
 			}
 
 			if (builder.command === 'memory') {
-				t.fork['cmd_' + builder.command](builder.count, builder.size);
+				t.fork['cmd_' + builder.command](builder.options);
+				return;
+			}
+
+			if (builder.command === 'recount') {
+				t.fork['cmd_' + builder.command](builder.options);
 				return;
 			}
 
@@ -87,17 +92,22 @@ function Database(type, name, fork, onetime) {
 			}
 
 			if (SPECIAL[builder.command]) {
-				t.fork[key][builder.command](builder.callback);
+				t.fork[key][builder.command](builder.$callback);
 				return;
 			}
 
 			if (builder.command === 'alter') {
-				t.fork[key][builder.command](builder.schema, builder.callback);
+				t.fork[key][builder.command](builder.schema, builder.$callback);
 				return;
 			}
 
 			if (builder.command === 'memory') {
-				t.fork[key][builder.command](builder.count, builder.size);
+				t.fork[key][builder.command](builder.options.count, builder.options.size);
+				return;
+			}
+
+			if (builder.command === 'recount') {
+				t.fork[key][builder.command](builder.$callback);
 				return;
 			}
 
@@ -127,6 +137,12 @@ DP.find = function() {
 	builder.command = 'find';
 	this.next(builder);
 	return builder;
+};
+
+DP.recount = function() {
+	var builder = new DatabaseBuilder();
+	builder.command = 'recount';
+	return this.next(builder);
 };
 
 function listing(builder, items, response) {
@@ -189,7 +205,11 @@ DP.scalar = function(type, key) {
 };
 
 DP.memory = function(count, size) {
-	return this.next({ command: 'memory', count: count, size: size });
+	var builder = new DatabaseBuilder();
+	builder.command = 'memory';
+	builder.options.count = count;
+	builder.options.size = size;
+	this.next(builder);
 };
 
 DP.find2 = function() {
@@ -380,24 +400,32 @@ DP.remove = function(noeval) {
 	return builder;
 };
 
-DP.drop = function(noeval) {
+DP.drop = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'drop';
-	if (!noeval)
-		this.next(builder);
-	return builder;
+	this.next(builder);
 };
 
 DP.alter = function(schema, callback) {
-	return this.next({ command: 'alter', schema: schema, callback: callback });
+	var builder = new DatabaseBuilder();
+	builder.command = 'alter';
+	builder.schema = schema;
+	builder.$callback = callback;
+	return this.next(builder);
 };
 
 DP.clear = function(callback) {
-	return this.next({ command: 'clear', callback: callback });
+	var builder = new DatabaseBuilder();
+	builder.command = 'clear';
+	builder.$callback = callback;
+	return this.next(builder);
 };
 
 DP.clean = function(callback) {
-	return this.next({ command: 'clean', callback: callback });
+	var builder = new DatabaseBuilder();
+	builder.command = 'clean';
+	builder.$callback = callback;
+	return this.next(builder);
 };
 
 DP.command = function(command, options, callback) {
