@@ -3414,7 +3414,7 @@ SP.arg = function(obj, encode, def) {
 
 SP.max = function(length, chars) {
 	var str = this;
-	if (typeof(chars) !== 'string')
+	if (chars == null)
 		chars = '...';
 	return str.length > length ? str.substring(0, length - chars.length) + chars : str;
 };
