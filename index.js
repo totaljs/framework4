@@ -1508,20 +1508,30 @@ F.parseComponent = parseComponent;
 F.textdbworker = null;
 
 function nosqlwrapper(name) {
+
 	var db = F.databases[name];
 	if (db)
 		return db;
 
-	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('nosql', name, F.textdbworker);
+	var onetime = name[0] === '~';
+	var path = onetime ? name.substring(1) : PATH.databases(name + '.nosql');
 
-	PATH.verify('databases');
+	if (F.textdbworker)
+		return F.databases[name] = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
+
+	if (!onetime)
+		PATH.verify('databases');
 
 	// Is web server?
 	if (F.port && CONF.textdb_worker)
 		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	return F.databases[name] = require('./textdb-wrapper').make('nosql', name, F.textdbworker);
+	var instance = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
+
+	if (!onetime)
+		F.databases[name] = instance;
+
+	return instance;
 }
 
 global.NOSQL = function(name) {
@@ -1538,20 +1548,30 @@ global.COUNTER = function(name) {
 };
 
 function tablewrapper(name) {
+
 	var db = F.databases[name];
 	if (db)
 		return db;
 
-	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('table', name, F.textdbworker);
+	var onetime = name[0] === '~';
+	var path = onetime ? name.substring(1) : PATH.databases(name + '.table');
 
-	PATH.verify('databases');
+	if (F.textdbworker)
+		return F.databases[name] = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime);
+
+	if (!onetime)
+		PATH.verify('databases');
 
 	// Is web server?
 	if (F.port && CONF.textdb_worker)
 		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	return F.databases[name] = require('./textdb-wrapper').make('table', name, F.textdbworker);
+	var instance = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime);
+
+	if (!onetime)
+		F.databases[name] = instance;
+
+	return instance;
 }
 
 global.TABLE = function(name) {

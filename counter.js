@@ -26,7 +26,7 @@
 
 function Counter(name) {
 	var t = this;
-	t.db = require('./textdb-wrapper').make('nosql', name, F.textdbworker, '.counter');
+	t.db = require('./textdb-wrapper').make('nosql', PATH.databases(name + '.counter'), F.textdbworker);
 	t.cache = {};
 	ON('service', function(counter) {
 		if (counter % 5 === 0)

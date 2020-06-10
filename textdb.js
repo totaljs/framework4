@@ -27,7 +27,6 @@
 'use strict';
 
 const Fs = require('fs');
-const Path = require('path');
 const TextStreamReader = require('./textdb-stream');
 const QueryBuilder = require('./textdb-builder').QueryBuilder;
 const TextReader = require('./textdb-reader');
@@ -52,15 +51,18 @@ var INSTANCES = [];
 // Temporary
 var CACHEITEMS = {};
 
-function TableDB(name, directory, schema, ext) {
+function TableDB(filename, schema, onetime) {
 	var t = this;
 	t.duration = [];
-	t.filename = Path.join(directory, name + (ext || '.table'));
-	t.filenameLog = Path.join(directory, name + '.tlog');
-	t.filenameBackup = Path.join(directory, name + '.tbk');
-	t.id = HASH(t.filename, true) + '';
-	CACHEITEMS[t.id] = [];
-	t.name = name;
+	t.filename = filename;
+	t.filenamelog = filename + '.log';
+	t.filenamebackup = filename + '.bk';
+
+	if (onetime) {
+		t.id = HASH(t.filename, true) + '';
+		CACHEITEMS[t.id] = [];
+	}
+
 	t.$name = '$' + name;
 	t.pending_drops = false;
 	t.pending_count = 0;
@@ -99,19 +101,20 @@ function TableDB(name, directory, schema, ext) {
 	});
 }
 
-function JsonDB(name, directory, ext) {
+function JsonDB(filename, onetime) {
 
 	var t = this;
 
-	t.filename = Path.join(directory, name + (ext || '.nosql'));
-	t.filenameLog = Path.join(directory, name + '.nlog');
-	t.filenameBackup = Path.join(directory, name + '.nbk');
-	t.id = HASH(t.filename, true) + '';
+	t.filename = filename;
+	t.filenamelog = filename + '.log';
+	t.filenamebackup = filename + '.bk';
 
-	CACHEITEMS[t.id] = [];
+	if (!onetime) {
+		t.id = HASH(t.filename, true) + '';
+		CACHEITEMS[t.id] = [];
+	}
 
 	t.duration = [];
-	t.name = name;
 	t.pending_count = 0;
 	t.pending_update = [];
 	t.pending_append = [];
@@ -149,6 +152,7 @@ function prepareschema(schema) {
 	return schema.replace(/;|,/g, DELIMITER).trim();
 }
 
+// @TODO: missing locking of DB
 TD.alter = function(schema, callback) {
 
 	var self = this;
@@ -227,15 +231,15 @@ TD.backup = JD.backup = function(filename, callback) {
 	});
 
 	pending.push(function(next) {
-		PATH.exists(self.filenameLog, function(e) {
-			e && list.push(self.filenameLog);
+		PATH.exists(self.filenamelog, function(e) {
+			e && list.push(self.filenamelog);
 			next();
 		});
 	});
 
 	pending.push(function(next) {
-		PATH.exists(self.filenameBackup, function(e) {
-			e && list.push(self.filenameBackup);
+		PATH.exists(self.filenamebackup, function(e) {
+			e && list.push(self.filenamebackup);
 			next();
 		});
 	});
@@ -264,7 +268,7 @@ TD.backups = JD.backups = function(callback, builder) {
 		return builder;
 	}
 
-	var stream = Fs.createReadStream(self.filenameBackup);
+	var stream = Fs.createReadStream(self.filenamebackup);
 	var output = [];
 	var tmp = {};
 
@@ -489,13 +493,13 @@ JD.$append = function() {
 		for (var i = 0; i < items.length; i++) {
 			var builder = items[i];
 			json += JSON.stringify(builder.payload) + NEWLINE;
-			if (self.inmemory && CACHEITEMS[self.id].length)
+			if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 				CACHEITEMS[self.id].push(builder.payload);
 		}
 
 		Fs.appendFile(self.filename, json, function(err) {
 
-			err && F.error(err, 'NoSQL insert: ' + self.name);
+			err && F.error(err, 'NoSQL insert: ' + self.filename);
 
 			var diff = Date.now() - now;
 
@@ -599,7 +603,7 @@ JD.$update = function() {
 
 	fs.$callback = function() {
 
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 
 		fs = null;
@@ -638,7 +642,7 @@ JD.$reader = function(items, reader) {
 	filters.cancelable = false;
 	filters.inmemory = false;
 
-	if (self.inmemory && CACHEITEMS[self.id].length) {
+	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
 		filters.inmemory = true;
 		filters.compare(CACHEITEMS[self.id]);
 		filters.done();
@@ -666,7 +670,7 @@ JD.$reader = function(items, reader) {
 
 	fs.$callback = function() {
 
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = memory;
 
 		self.$reading--;
@@ -698,7 +702,7 @@ JD.$reader2 = function() {
 	filters.db = self;
 	filters.inmemory = false;
 
-	if (self.inmemory && CACHEITEMS[self.id].length) {
+	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
 		filters.inmemory = true;
 		filters.comparereverse(CACHEITEMS[self.id]);
 		filters.done();
@@ -820,7 +824,7 @@ JD.$remove = function() {
 
 	fs.$callback = function() {
 
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 
 		filters.done();
@@ -849,7 +853,7 @@ JD.$clear = function() {
 		for (var i = 0; i < filter.length; i++)
 			filter[i]();
 
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 
 		self.next(0);
@@ -928,9 +932,9 @@ JD.$drop = TD.$drop = function() {
 	}
 
 	self.pending_drops = false;
-	var remove = [self.filename, self.filenameBackup, self.filenameLog];
+	var remove = [self.filename, self.filenamebackup, self.filenamelog];
 	remove.wait((filename, next) => Fs.unlink(filename, next), function() {
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 		self.next(0);
 	}, 5);
@@ -1194,12 +1198,12 @@ TD.$append = function() {
 			var builder = items[i];
 			var serialized = self.stringify(builder.payload, true);
 			data += serialized + NEWLINE;
-			if (self.inmemory && CACHEITEMS[self.id].length)
+			if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 				CACHEITEMS[self.id].push(self.parseData(serialized));
 		}
 
 		Fs.appendFile(self.filename, data, function(err) {
-			err && F.error(err, 'Table insert: ' + self.name);
+			err && F.error(err, 'Table insert: ' + self.filename);
 
 			var diff = Date.now() - now;
 
@@ -1238,7 +1242,7 @@ TD.$reader = function() {
 	filters.cancelable = false;
 	filters.inmemory = false;
 
-	if (self.inmemory && CACHEITEMS[self.id].length) {
+	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
 		filters.inmemory = true;
 		filters.compare(CACHEITEMS[self.id]);
 		filters.done();
@@ -1284,7 +1288,7 @@ TD.$reader = function() {
 	};
 
 	fs.$callback = function() {
-		if (memory)
+		if (self.id && memory)
 			CACHEITEMS[self.id] = memory;
 		filters.done();
 		fs = null;
@@ -1312,7 +1316,7 @@ TD.$reader2 = function() {
 	filters.db = self;
 	filters.inmemory = false;
 
-	if (self.inmemory && CACHEITEMS[self.id].length) {
+	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
 		filters.inmemory = true;
 		filters.comparereverse(CACHEITEMS[self.id]);
 		filters.done();
@@ -1487,7 +1491,7 @@ TD.$update = function() {
 
 	fs.$callback = function() {
 
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 
 		fs = null;
@@ -1574,7 +1578,7 @@ TD.$remove = function() {
 		self.$writting = false;
 		self.next(0);
 
-		if (self.inmemory)
+		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 	};
 
@@ -1644,7 +1648,7 @@ TD.$clear = function() {
 		Fs.appendFile(self.filename, self.stringifySchema(self) + NEWLINE, function() {
 			for (var i = 0; i < filter.length; i++)
 				filter[i]();
-			if (self.inmemory)
+			if (self.id && self.inmemory)
 				CACHEITEMS[self.id] = [];
 			self.next(0);
 		});
@@ -2061,15 +2065,15 @@ function jsonparser(key, value) {
 	return typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value;
 }
 
-exports.JsonDB = function(name, directory, ext) {
-	var instance = new JsonDB(name, directory, ext);
-	INSTANCES.push(instance);
+exports.JsonDB = function(name, cache) {
+	var instance = new JsonDB(name);
+	cache && INSTANCES.push(instance);
 	return instance;
 };
 
-exports.TableDB = function(name, directory, schema, ext) {
-	var instance = new TableDB(name, directory, schema, ext);
-	INSTANCES.push(instance);
+exports.TableDB = function(name, schema, cache) {
+	var instance = new TableDB(name, schema);
+	cache && INSTANCES.push(instance);
 	return instance;
 };
 

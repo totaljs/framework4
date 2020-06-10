@@ -1,12 +1,35 @@
 const SPECIAL = { clear: 1, clean: 1, drop: 1 };
 const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
+const Path = require('path');
 
-function Database(type, name, fork, ext) {
+function makedirectory(directory, main, id) {
+
+	var val = (HASH(id, true) % 10000) + '';
+	var diff = 4 - val.length;
+
+	if (diff > 0) {
+		for (var i = 0; i < diff; i++)
+			val = '0' + val;
+	}
+
+	if (diff.length > 4)
+		val = val.substring(0, 4);
+
+	return Path.join(directory, main, val);
+}
+
+function Database(type, name, fork, onetime) {
 	var t = this;
 	t.type = type;
 	t.name = name;
+	t.directory = Path.dirname(name);
+	t.basename = Path.basename(name);
+
 	t.fork = fork || {};
+	t.onetime = onetime;
 	t.exec = function(builder) {
+
+		var name = t.name;
 
 		if (builder.options) {
 
@@ -18,12 +41,20 @@ function Database(type, name, fork, ext) {
 				}
 			}
 
+			builder.options.onetime = t.onetime;
 			builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
 
+			if (builder.options.relation) {
+				var dir = makedirectory(t.directory, t.basename + '.relations', builder.options.relation[1]);
+				name = Path.join(dir, builder.options.relation[1] + '_' + builder.options.relation[0] + '.nosql');
+				if (builder.command === 'insert')
+					PATH.mkdir(dir, true);
+				builder.options.relation = undefined;
+			}
+
 			if (fork) {
-				builder.options.type = type;
+				builder.options.type = t.type;
 				builder.options.database = name;
-				builder.options.ext = ext;
 			}
 		}
 
@@ -52,7 +83,7 @@ function Database(type, name, fork, ext) {
 
 			if (!t.fork[key]) {
 				var db = require('./textdb');
-				t.fork[key] = type === 'nosql' ? db.JsonDB(name, PATH.databases(), ext) : db.TableDB(name, PATH.databases(), CONF['table_' + name], ext);
+				t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, CONF['table_' + name], !t.onetime);
 			}
 
 			if (SPECIAL[builder.command]) {
@@ -349,8 +380,12 @@ DP.remove = function(noeval) {
 	return builder;
 };
 
-DP.drop = function() {
-	this.next({ command: 'drop' });
+DP.drop = function(noeval) {
+	var builder = new DatabaseBuilder();
+	builder.command = 'drop';
+	if (!noeval)
+		this.next(builder);
+	return builder;
 };
 
 DP.alter = function(schema, callback) {
@@ -937,6 +972,11 @@ DB.autofill = function($, allowedfields, skipfilter, defsort, maxlimit, localize
 	return self;
 };
 
+DB.relation = function(name, id) {
+	this.options.relation = [name, id];
+	return this;
+};
+
 DB.join = function(field, db) {
 
 	var self = this;
@@ -1035,8 +1075,8 @@ DB.$callbackjoin = function() {
 	};
 };
 
-exports.make = function(type, name, fork, ext) {
-	return new Database(type, name, fork, ext);
+exports.make = function(type, name, fork, special) {
+	return new Database(type, name, fork, special);
 };
 
 exports.makebuilder = function() {
