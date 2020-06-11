@@ -11231,7 +11231,7 @@ ControllerProto.callback = function(view) {
 				self.req.$language && !err.isResourceCustom && err.setResource(self.req.$language);
 				return self.content(err);
 			}
-			return is && err.unexpected ? self.view500(err) : self.view404(err);
+			return is && err.unexpected ? self.throw500(err) : self.throw404(err);
 		}
 
 		// Hack for schemas
@@ -11943,7 +11943,7 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 			return self;
 		}
 
-		self.view500(err);
+		self.throw500(err);
 		return self;
 	}
 
@@ -11971,7 +11971,7 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 		err = new Error('View "' + filename + '": ' + ex.message);
 
 		if (!partial) {
-			self.view500(err);
+			self.throw500(err);
 			return self;
 		}
 
@@ -16166,6 +16166,8 @@ function runsnapshot() {
 	stats.mode = DEBUG ? 'debug' : 'release';
 
 	main.pid = process.pid;
+	main.port = F.port;
+	main.ip = F.ip;
 	main.stats = [stats];
 
 	F.snapshotstats = function() {
