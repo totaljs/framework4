@@ -13219,7 +13219,7 @@ WebSocketClientProto.ping = function() {
  * @param {Number} code WebSocket code.
  * @return {WebSocketClient}
  */
-WebSocketClientProto.close = function(message, code) {
+WebSocketClientProto.close = function(code, message) {
 	var self = this;
 	if (!self.isClosed) {
 		self.isClosed = true;
