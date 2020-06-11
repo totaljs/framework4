@@ -225,10 +225,6 @@ TextReader.prototype.callback = function(builder) {
 	for (var i = 0; i < builder.response.length; i++)
 		builder.response[i] = builder.prepare(builder.response[i]);
 
-	// Reverse
-	if (!builder.$sortname && (self.type === 'readreverse'))
-		builder.response.reverse();
-
 	builder.logrule && builder.logrule();
 	builder.done();
 	return self;

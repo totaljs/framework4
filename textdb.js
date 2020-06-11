@@ -672,6 +672,7 @@ JD.$reader = function(items, reader) {
 		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = memory;
 
+		self.filesize = fs.stats.size;
 		self.$reading--;
 		filters.done();
 		fs = null;
@@ -720,10 +721,13 @@ JD.$reader2 = function() {
 		fs.buffercount = self.buffercount;
 
 	fs.ondocuments = function() {
-		return filters.compare(JSON.parse('[' + fs.docs + ']', jsonparser));
+		var data = JSON.parse('[' + fs.docs + ']', jsonparser);
+		data.reverse();
+		return filters.compare(data);
 	};
 
 	fs.$callback = function() {
+		self.filesize = fs.stats.size;
 		filters.done();
 		self.$reading--;
 		fs = null;
@@ -1289,6 +1293,7 @@ TD.$reader = function() {
 	fs.$callback = function() {
 		if (self.id && memory)
 			CACHEITEMS[self.id] = memory;
+		self.filesize = fs.stats.size;
 		filters.done();
 		fs = null;
 		self.$reading--;
@@ -1358,6 +1363,7 @@ TD.$reader2 = function() {
 	};
 
 	fs.$callback = function() {
+		self.filesize = fs.stats.size;
 		filters.done();
 		fs = null;
 		self.$reading--;
@@ -1400,6 +1406,7 @@ JD.$count = TD.$count = function() {
 	fs.ondocuments = NOOP;
 
 	fs.$callback = function() {
+		self.filesize = fs.stats.size;
 		self.total = fs.indexer;
 		fs = null;
 		self.$reading--;
@@ -1493,6 +1500,7 @@ TD.$update = function() {
 		if (self.id && self.inmemory)
 			CACHEITEMS[self.id] = [];
 
+		self.filesize = fs.stats.size;
 		fs = null;
 		self.$writting = false;
 		self.next(0);
@@ -1573,6 +1581,7 @@ TD.$remove = function() {
 
 	fs.$callback = function() {
 		filters.done();
+		self.filesize = fs.stats.size;
 		fs = null;
 		self.$writting = false;
 		self.next(0);

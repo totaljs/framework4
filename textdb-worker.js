@@ -165,6 +165,7 @@ function measure() {
 	var pendingwrite = 0;
 	var duration = 0;
 	var documents = 0;
+	STATS.size = 0;
 
 	for (var i = 0; i < keys.length; i++) {
 		var instance = instances[keys[i]];
@@ -173,6 +174,7 @@ function measure() {
 		if (duration < instance.duration)
 			duration = instance.duration;
 		documents += instance.total;
+		STATS.size += (instance.filesize || 0);
 	}
 
 	STATS.pendingwrite = pendingwrite;
