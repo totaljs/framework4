@@ -151,10 +151,15 @@ function prepareschema(schema) {
 	return schema.replace(/;|,/g, DELIMITER).trim();
 }
 
-// @TODO: missing locking of DB
 TD.alter = function(schema, callback) {
 
 	var self = this;
+
+	if (self.ready) {
+		self.alterlock(schema, callback);
+		return self;
+	}
+
 	var parsed = {};
 
 	if (self.$header) {
@@ -174,6 +179,16 @@ TD.alter = function(schema, callback) {
 		self.next(0);
 		callback && callback();
 	}
+};
+
+TD.alterlock = function(schema, callback) {
+	var self = this;
+	self.lock(function(unlock) {
+		self.alter(schema, function() {
+			callback && callback();
+			unlock();
+		});
+	});
 };
 
 function next_operation(self, type) {
