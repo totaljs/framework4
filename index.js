@@ -910,7 +910,7 @@ function Framework() {
 
 		debug: true,
 
-		nowarnings: process.argv.indexOf('restart') !== -1,
+		nowarnings: process.argv.indexOf('--restart') !== -1,
 		name: 'Total.js',
 		version: '1.0.0',
 		author: '',
@@ -4252,19 +4252,23 @@ global.DOWNLOAD = function(url, filename, callback) {
 		return;
 	}
 
-	url = framework_internal.preparePath(url);
+	var opt = {};
+	opt.url = framework_internal.preparePath(url);
 
 	if (!REG_HTTPHTTPS.test(url)) {
 		if (url[0] !== '/')
 			url = '/' + url;
 		if (F.isWorker)
 			throw new Error('Worker can\'t create a snapshot from the relative URL address "{0}".'.format(url));
-		url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
+
+		// Maybe unixsocket
+		if (F.unixsocket)
+			opt.unixsocket = { socket: opt.unixsocket, path: url };
+		else
+			opt.url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
 	}
 
-	var opt = {};
 	opt.custom = true;
-	opt.url = url;
 	opt.resolve = true;
 	opt.callback = function(err, response) {
 
@@ -5531,7 +5535,7 @@ F.initialize = function(http, debug, options) {
 
 	var port = options.port;
 	var ip = options.ip;
-	var listenpath = options.listenpath;
+	var unixsocket = options.unixsocket;
 
 	if (options.thread)
 		global.THREAD = options.thread;
@@ -5593,8 +5597,8 @@ F.initialize = function(http, debug, options) {
 		if (F.ip == null)
 			F.ip = '0.0.0.0';
 
-		!listenpath && (listenpath = CONF.default_listenpath);
-		F.listenpath = listenpath;
+		!unixsocket && (unixsocket = CONF.default_unixsocket);
+		F.unixsocket = unixsocket;
 
 		if (F.server) {
 			F.server.removeAllListeners();
@@ -5638,8 +5642,8 @@ F.initialize = function(http, debug, options) {
 			F.initwebsocket && F.initwebsocket();
 			F.consoledebug('HTTP listening');
 
-			if (listenpath)
-				F.server.listen(listenpath);
+			if (unixsocket)
+				F.server.listen(unixsocket);
 			else
 				F.server.listen(F.port, F.ip);
 		};
@@ -5872,9 +5876,9 @@ F.console = function() {
 
 	if (!F.isWorker) {
 
-		var hostname = '{2}://{0}:{1}/'.format(F.ip, F.port, F.isHTTPS ? 'https' : 'http');
+		var hostname = F.unixsocket ? ('http://' + F.unixsocket) : '{2}://{0}:{1}/'.format(F.ip, F.port, F.isHTTPS ? 'https' : 'http');
 
-		if (F.ip === '0.0.0.0') {
+		if (!F.unixsocket && F.ip === '0.0.0.0') {
 			var ni = Os.networkInterfaces();
 			if (ni.en0) {
 				for (var i = 0; i < ni.en0.length; i++) {

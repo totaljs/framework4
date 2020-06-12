@@ -4400,7 +4400,6 @@ var RESTP = RESTBuilder.prototype;
 RESTP.unixsocket = function(socket, path) {
 	var self = this;
 	self.options.unixsocket = { socket: socket, path: path };
-	delete self.options.url;
 	return self;
 };
 
@@ -4718,6 +4717,12 @@ RESTP.exec = function(callback) {
 
 	if (self.options.files && self.options.method === 'GET')
 		self.options.method = 'POST';
+
+	if (self.options.unixsocket && self.options.url) {
+		if (!self.options.path)
+			self.options.path = self.options.url;
+		self.options.url = undefined;
+	}
 
 	self.$callback = callback;
 

@@ -26,11 +26,11 @@
 
 const Path = require('path');
 const Fs = require('fs');
-const debugging = process.argv.indexOf('debugging') !== -1;
+const debugging = process.argv.indexOf('--watcher') !== -1;
 const Os = require('os');
 const isWindows = Os.platform().substring(0, 3).toLowerCase() === 'win';
 
-var first = process.argv.indexOf('restart') === -1;
+var first = process.argv.indexOf('--restart') === -1;
 var options = null;
 var initdelay;
 var watchercallback;
@@ -39,6 +39,7 @@ module.exports = function(opt) {
 	options = opt;
 	// options.ip = '127.0.0.1';
 	// options.port = parseInt(process.argv[2]);
+	// options.unixsocket = require('path').join(require('os').tmpdir(), 'app_name');
 	// options.config = { name: 'Total.js' };
 	// options.https = { key: Fs.readFileSync('keys/agent2-key.pem'), cert: Fs.readFileSync('keys/agent2-cert.pem')};
 	// options.sleep = 3000;
@@ -59,6 +60,27 @@ function runapp() {
 
 	!options && (options = {});
 	require('total4');
+
+	var val;
+	var tmp;
+
+	for (var i = 2; i < process.argv.length; i++) {
+		if (process.argv[i].substring(0, 2) !== '--') {
+			val = process.argv[i];
+			break;
+		}
+	}
+
+	if (val) {
+		if (val.substring(0, 7) === 'http://') {
+			tmp = require('url').parse(val);
+			options.ip = tmp.host;
+			options.port = +(tmp.port || '80');
+		} else if ((/^\d+$/).test(val))
+			options.port = +val;
+		else
+			options.unixsocket = val;
+	}
 
 	var port = parseInt(process.argv[process.argv.length - 1]);
 
@@ -383,9 +405,9 @@ function runwatching() {
 			if (first)
 				first = false;
 			else
-				arr.push('restart');
+				arr.push('--restart');
 
-			arr.push('debugging');
+			arr.push('--watcher');
 			port && arr.push(port);
 
 			app = fork(Path.join(directory, FILENAME), arr);
