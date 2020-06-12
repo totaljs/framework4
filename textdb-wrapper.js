@@ -65,22 +65,25 @@ function Database(type, name, fork, onetime) {
 				return;
 			}
 
-			if (builder.command === 'alter') {
-				t.fork['cmd_' + builder.command](builder.options, builder.$callback);
-				return;
+			switch (builder.command) {
+				case 'alter':
+					t.fork['cmd_' + builder.command](builder.options, builder.$callback);
+					break;
+				case 'lock':
+					t.fork['cmd_' + builder.command](builder.options, function() {
+						builder.$callback(() => t.fork.cmd_unlock(builder.options));
+					});
+					break;
+				case 'memory':
+					t.fork['cmd_' + builder.command](builder.options);
+					break;
+				case 'recount':
+					t.fork['cmd_' + builder.command](builder.options);
+					break;
+				default:
+					t.fork['cmd_' + builder.command](builder.options, builder.$custom ? builder.$custom() : builder.$callback);
+					break;
 			}
-
-			if (builder.command === 'memory') {
-				t.fork['cmd_' + builder.command](builder.options);
-				return;
-			}
-
-			if (builder.command === 'recount') {
-				t.fork['cmd_' + builder.command](builder.options);
-				return;
-			}
-
-			t.fork['cmd_' + builder.command](builder.options, builder.$custom ? builder.$custom() : builder.$callback);
 
 		} else {
 
@@ -92,6 +95,11 @@ function Database(type, name, fork, onetime) {
 			}
 
 			if (SPECIAL[builder.command]) {
+				t.fork[key][builder.command](builder.$callback);
+				return;
+			}
+
+			if (builder.command === 'lock') {
 				t.fork[key][builder.command](builder.$callback);
 				return;
 			}
@@ -161,6 +169,13 @@ DP.list = function() {
 	};
 	this.next(builder);
 	return builder;
+};
+
+DP.lock = function(callback) {
+	var builder = new DatabaseBuilder();
+	builder.command = 'lock';
+	builder.$callback = callback;
+	this.next(builder);
 };
 
 DP.read = DP.one = function() {

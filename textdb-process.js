@@ -111,6 +111,17 @@ function prepare(INSTANCE) {
 		INSTANCE.send2({ TYPE: 'alter', cid: id, schema: schema, builder: builder });
 	};
 
+	INSTANCE.cmd_lock = function(builder, callback) {
+		var id = COUNTER++;
+		if (callback)
+			INSTANCE.callbacks[id] = callback;
+		INSTANCE.send2({ TYPE: 'lock', cid: id, builder: builder });
+	};
+
+	INSTANCE.cmd_unlock = function(builder) {
+		INSTANCE.send2({ TYPE: 'unlock', builder: builder });
+	};
+
 	INSTANCE.cmd_clean = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)

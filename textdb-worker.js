@@ -152,6 +152,21 @@ function processcommand(msg) {
 			instance.drop();
 			setTimeout(() => process.kill(0), 10000);
 			break;
+
+		case 'lock':
+			instance.lock(function(next) {
+				instance.unlock = next;
+				process.send({ TYPE: 'response', cid: msg.cid, success: true });
+			});
+
+			break;
+
+		case 'unlock':
+			if (instance.unlock) {
+				instance.unlock();
+				instance.unlock = null;
+			}
+			break;
 	}
 }
 
