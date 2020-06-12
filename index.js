@@ -5375,7 +5375,7 @@ F.response503 = function(req, res) {
 	res.$text();
 };
 
-global.LOAD = function(debug, types, pwd, ready) {
+global.LOAD = F.load = function(debug, types, pwd, ready) {
 
 	if (typeof(types) === 'function') {
 		ready = types;
@@ -5705,11 +5705,30 @@ function connection_tunning(socket) {
 	socket.setKeepAlive(true, 10);
 }
 
-function parseport() {
-	for (var i  = 2; i < process.argv.length; i++) {
-		var v = process.argv[i];
-		if (v && (/\d+/).test(v))
-			return +v;
+function extendinitoptions(options) {
+
+	var val;
+	var tmp;
+
+	for (var i = 2; i < process.argv.length; i++) {
+		if (process.argv[i].substring(0, 2) !== '--') {
+			val = process.argv[i];
+			break;
+		}
+	}
+
+	if (val) {
+		if (val.substring(0, 7) === 'http://') {
+			tmp = require('url').parse(val);
+			if (!options.ip)
+				options.ip = tmp.host;
+			if (options.port)
+				options.port = +(tmp.port || '80');
+		} else if ((/^\d+$/).test(val)) {
+			if (!options.port)
+				options.port = +val;
+		} else if (!options.unixsocket)
+			options.unixsocket = val;
 	}
 }
 
@@ -5727,11 +5746,10 @@ global.HTTP = F.http = function(mode, options, middleware) {
 		options = null;
 	}
 
-	options == null && (options = {});
-	!options.port && (options.port = parseport());
+	if (!options)
+		options = {};
 
-	if (options.port && isNaN(options.port))
-		options.port = 0;
+	extendinitoptions(options);
 
 	if (typeof(middleware) === 'function')
 		options.middleware = middleware;
@@ -5761,11 +5779,10 @@ global.HTTPS = F.https = function(mode, options, middleware) {
 		options = null;
 	}
 
-	options == null && (options = {});
-	!options.port && (options.port = parseport());
+	if (!options)
+		options = {};
 
-	if (options.port && isNaN(options.port))
-		options.port = 0;
+	extendinitoptions(options);
 
 	if (typeof(middleware) === 'function')
 		options.middleware = middleware;
@@ -5876,7 +5893,7 @@ F.console = function() {
 
 	if (!F.isWorker) {
 
-		var hostname = F.unixsocket ? ('http://' + F.unixsocket) : '{2}://{0}:{1}/'.format(F.ip, F.port, F.isHTTPS ? 'https' : 'http');
+		var hostname = F.unixsocket ? ('Socket: ' + F.unixsocket) : '{2}://{0}:{1}/'.format(F.ip, F.port, F.isHTTPS ? 'https' : 'http');
 
 		if (!F.unixsocket && F.ip === '0.0.0.0') {
 			var ni = Os.networkInterfaces();

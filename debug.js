@@ -61,35 +61,6 @@ function runapp() {
 	!options && (options = {});
 	require('total4');
 
-	var val;
-	var tmp;
-
-	for (var i = 2; i < process.argv.length; i++) {
-		if (process.argv[i].substring(0, 2) !== '--') {
-			val = process.argv[i];
-			break;
-		}
-	}
-
-	if (val) {
-		if (val.substring(0, 7) === 'http://') {
-			tmp = require('url').parse(val);
-			options.ip = tmp.host;
-			options.port = +(tmp.port || '80');
-		} else if ((/^\d+$/).test(val))
-			options.port = +val;
-		else
-			options.unixsocket = val;
-	}
-
-	var port = parseInt(process.argv[process.argv.length - 1]);
-
-	if (!isNaN(port))
-		options.port = port;
-
-	if (port > 0 && !options.port)
-		options.port = port || 8000;
-
 	if (options.https)
 		HTTPS('debug', options);
 	else
