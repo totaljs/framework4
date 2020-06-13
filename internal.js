@@ -3131,7 +3131,7 @@ function cleanURL(url, index) {
 	return o;
 }
 
-exports.preparePath = function(path, remove) {
+exports.preparepath = function(path, remove) {
 	var root = CONF.default_root;
 	if (!root)
 		return path;

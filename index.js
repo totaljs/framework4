@@ -925,6 +925,7 @@ function Framework() {
 		directory_components: '/components/',
 		directory_views: '/views/',
 		directory_definitions: '/definitions/',
+		directory_plugins: '/plugins/',
 		directory_temp: '/tmp/',
 		directory_models: '/models/',
 		directory_schemas: '/schemas/',
@@ -1071,6 +1072,7 @@ function Framework() {
 	self.modificators2 = null;
 	self.modules = {};
 	self.models = {};
+	self.plugins = {};
 	self.sources = {};
 	self.controllers = {};
 	self.dependencies = {};
@@ -1888,7 +1890,7 @@ global.CORS = function(url, flags, credentials) {
 	if (url[url.length - 1] !== '/')
 		url += '/';
 
-	url = framework_internal.preparePath(framework_internal.encodeUnicodeURL(url.trim()));
+	url = framework_internal.preparepath(framework_internal.encodeUnicodeURL(url.trim()));
 	route.hash = url.hash();
 	route.owner = CURRENT_OWNER;
 	route.url = framework_internal.routeSplitCreate(url);
@@ -2453,7 +2455,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			funcExecute = workflow.id instanceof Array ? controller_json_workflow_multiple : controller_json_workflow;
 	}
 
-	var url2 = framework_internal.preparePath(url.trim());
+	var url2 = framework_internal.preparepath(url.trim());
 	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
 	var hash = url2.hash();
 	var routeURL = framework_internal.routeSplitCreate(url2);
@@ -2748,7 +2750,7 @@ global.MERGE = function(url) {
 		return;
 	}
 
-	url = framework_internal.preparePath(url);
+	url = framework_internal.preparepath(url);
 
 	var arr = [];
 
@@ -2801,7 +2803,7 @@ global.MAP = function(url, filename, filter) {
 	var isPackage = false;
 
 	filename = U.$normalize(filename);
-	url = framework_internal.preparePath(F.$version(url));
+	url = framework_internal.preparepath(F.$version(url));
 
 	var index = filename.indexOf('#');
 	var block;
@@ -2956,7 +2958,7 @@ F.use = function(name, url, types, first) {
 	var route;
 
 	if (url)
-		url = framework_internal.routeSplitCreate(framework_internal.preparePath(url.trim())).join('/');
+		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
 
 	if (!types || types.indexOf('web') !== -1) {
 		for (var i = 0, length = F.routes.web.length; i < length; i++) {
@@ -3090,7 +3092,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 		priority = (-10) - priority;
 	}
 
-	var url2 = framework_internal.preparePath(url.trim());
+	var url2 = framework_internal.preparepath(url.trim());
 	var routeURL = framework_internal.routeSplitCreate(url2);
 	var arr = [];
 	var reg = null;
@@ -3519,7 +3521,7 @@ global.LOCALIZE = function(url, flags, minify) {
 		}
 	}
 
-	url = framework_internal.preparePath(url.replace('.*', ''));
+	url = framework_internal.preparepath(url.replace('.*', ''));
 
 	if (minify)
 		FILE(url, F.$filelocalize, flags);
@@ -3945,6 +3947,76 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('plugins')) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/plugins/' : CONF.directory_plugins);
+			arr = [];
+			Fs.readdir(dir, function(err, items) {
+
+				if (err) {
+					resume();
+					return;
+				}
+
+				items.wait(function(plugin, next) {
+
+					dependencies.push(next => install('plugin', plugin, Path.join(dir, plugin, 'index.js'), next));
+
+					var path = PATH.root('plugins/' + plugin + CONF.directory_definitions);
+					U.ls(path, function(items) {
+
+						if (items) {
+							items.forEach(function(item) {
+								if (item.substring(item.length - 3) === '.js')
+									dependencies.push(next => install('definition', U.getName(item).replace(/\.js$/i, ''), item, next));
+							});
+						}
+
+						path = PATH.root('plugins/' + plugin + CONF.directory_operations);
+						U.ls(path, function(items) {
+
+							if (items) {
+								items.forEach(function(item) {
+									if (item.substring(item.length - 3) === '.js')
+										dependencies.push(next => install('operation', U.getName(item).replace(/\.js$/i, ''), item, next));
+								});
+							}
+
+							path = PATH.root('plugins/' + plugin + CONF.directory_schemas);
+							U.ls(path, function(items) {
+
+								if (items) {
+									items.forEach(function(item) {
+										if (item.substring(item.length - 3) === '.js')
+											dependencies.push(next => install('schema', U.getName(item).replace(/\.js$/i, ''), item, next));
+									});
+								}
+
+								path = PATH.root('plugins/' + plugin + CONF.directory_tasks);
+								U.ls(path, function(items) {
+
+									if (items) {
+										items.forEach(function(item) {
+											if (item.substring(item.length - 3) === '.js')
+												dependencies.push(next => install('task', U.getName(item).replace(/\.js$/i, ''), item, next));
+										});
+									}
+
+									next();
+								});
+							});
+						});
+					});
+
+				}, resume);
+			});
+
+			// listing(dir, 0, arr, '.js');
+			// arr.forEach(item => dependencies.push(next => install('source', item.name, item.filename, next)));
+			// resume();
+		});
+	}
+
 	var thread = global.THREAD;
 	if (thread) {
 
@@ -4110,7 +4182,17 @@ function install(type, name, filename, next) {
 	var opt = CONF[key];
 	CURRENT_OWNER = key;
 	F.dependencies[key] = m;
-	m.install && m.install(opt);
+
+	if (type === 'plugin') {
+		m.id = name;
+		F.plugins[name] = m;
+	}
+
+	if (m.install) {
+		m.install(opt);
+		delete m.install;
+	}
+
 	F.routes_sort();
 	next && setImmediate(next);
 	F.temporary.ready[key] = NOW;
@@ -4214,10 +4296,15 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 		tmp = tmp.substring(CONF.default_root.length - 1);
 
 	// component files
-	if (tmp[1] === '~') {
-		var index = tmp.indexOf('/', 2);
-		var name = tmp.substring(2, index);
-		return F.components.files[name] && F.components.files[name][tmp.substring(index + 1)] ? (PATH.temp() + tmp.substring(1)) : null;
+	switch(tmp[1]) {
+		case '~':
+			var index = tmp.indexOf('/', 2);
+			var name = tmp.substring(2, index);
+			return F.components.files[name] && F.components.files[name][tmp.substring(index + 1)] ? (PATH.temp() + tmp.substring(1)) : null;
+		case '_':
+			var index = tmp.indexOf('/', 2);
+			var name = tmp.substring(2, index);
+			return F.plugins[name] ? PATH.root('/plugins/' + name + '/public/' + tmp.substring(index + 1)) : null;
 	}
 
 	if (F.routes.mapping[url])
@@ -4232,7 +4319,7 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 		}
 	}
 
-	def = framework_internal.preparePath(def, true);
+	def = framework_internal.preparepath(def, true);
 
 	if (encode)
 		def = $decodeURIComponent(def);
@@ -4253,7 +4340,7 @@ global.DOWNLOAD = function(url, filename, callback) {
 	}
 
 	var opt = {};
-	opt.url = framework_internal.preparePath(url);
+	opt.url = framework_internal.preparepath(url);
 
 	if (!REG_HTTPHTTPS.test(url)) {
 		if (url[0] !== '/')
@@ -7930,7 +8017,7 @@ F.$public = function(name, directory, theme) {
 			filename = filename.substring(1);
 	}
 
-	return F.temporary.other[key] = framework_internal.preparePath(F.$version(filename, true));
+	return F.temporary.other[key] = framework_internal.preparepath(F.$version(filename, true));
 };
 
 F.$version = function(name, def) {
