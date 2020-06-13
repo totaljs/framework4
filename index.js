@@ -4183,9 +4183,20 @@ function install(type, name, filename, next) {
 	CURRENT_OWNER = key;
 	F.dependencies[key] = m;
 
-	if (type === 'plugin') {
-		m.id = name;
-		F.plugins[name] = m;
+	switch (type) {
+		case 'plugin':
+			m.id = name;
+			F.plugins[name] = m;
+			break;
+		case 'module':
+			F.modules[name] = m;
+			break;
+		case 'controller':
+			F.controllers[name] = m;
+			break;
+		case 'model':
+			F.models[name] = m;
+			break;
 	}
 
 	if (m.install) {

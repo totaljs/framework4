@@ -158,6 +158,49 @@ CP.yearly = function(id, callback) {
 	return builder;
 };
 
+CP.summarize = function(type, callback) {
+
+	if (typeof(type) === 'function') {
+		callback = type;
+		type = null;
+	}
+
+	var self = this;
+	var builder = self.find();
+	callback && builder.callback(callback);
+
+	switch (type) {
+		case 'yearly':
+			builder.options.scalar = 'tmp.ts=(doc.ts+\'\').substring(0,4);tmp.id=(tmp.ts+\'_\'+doc.id);if(arg[tmp.id]){arg[tmp.id].sum+=doc.sum;if(arg[tmp.id].min>doc.min)arg[tmp.id].min=doc.min;if(arg[tmp.id].max<doc.max)arg[tmp.id].max=doc.max;arg[tmp.id].count++}else{arg[tmp.id]={id:doc.id,count:1,sum:doc.sum,min:doc.min,max:doc.max,ts:+tmp.ts,date:tmp.ts,year:+tmp.ts}}';
+			break;
+		case 'monthly':
+			builder.options.scalar = 'tmp.ts=(doc.ts+\'\').substring(0,6);tmp.id=(tmp.ts+\'_\'+doc.id);if(arg[tmp.id]){arg[tmp.id].sum+=doc.sum;if(arg[tmp.id].min>doc.min)arg[tmp.id].min=doc.min;if(arg[tmp.id].max<doc.max)arg[tmp.id].max=doc.max;arg[tmp.id].count++}else{arg[tmp.id]={id:doc.id,count:1,sum:doc.sum,min:doc.min,max:doc.max,ts:+tmp.ts,date:tmp.ts,year:+tmp.ts.substring(0,4),month:+tmp.ts.substring(4)}}';
+			break;
+		default:
+			builder.options.scalar = 'if(arg[doc.id]){arg[doc.id].sum+=doc.sum;if(arg[doc.id].min>doc.min)arg[doc.id].min=doc.min;if(arg[doc.id].max<doc.max)arg[doc.id].max=doc.max;arg[doc.id].count++}else{arg[doc.id]={id:doc.id,count:1,sum:doc.sum,min:doc.min,max:doc.max}}';
+			break;
+	}
+
+	builder.options.scalararg = {};
+	builder.$custom = function() {
+		return function(err, response, meta) {
+
+			var keys = Object.keys(response);
+			var arr = [];
+
+			for (var i = 0; i < keys.length; i++) {
+				var item = response[keys[i]];
+				item.date = item.ts + '';
+				arr.push(item);
+			}
+
+			response = null;
+			builder.$callback && builder.$callback(err, arr, meta);
+		};
+	};
+	return builder;
+};
+
 CP.clear = function() {
 	this.db.clear();
 	return this;
