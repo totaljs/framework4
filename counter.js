@@ -163,8 +163,11 @@ CP.clear = function() {
 	return this;
 };
 
-CP.remove = function() {
-	return this.db.remove();
+CP.remove = function(id, callback) {
+	var builder = this.db.remove();
+	id && builder.where('id', id);
+	callback && builder.callback(callback);
+	return builder;
 };
 
 exports.make = function(name) {
