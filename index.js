@@ -1559,7 +1559,7 @@ function tablewrapper(name) {
 	var path = onetime ? name.substring(1) : PATH.databases(name + '.table');
 
 	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime);
+		return F.databases[name] = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime, CONF['table_' + name]);
 
 	if (!onetime)
 		PATH.verify('databases');

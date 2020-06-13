@@ -132,6 +132,9 @@ function Database(type, name, fork, onetime, schema) {
 				t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$callback;
 		}
 	};
+
+	if (fork && schema)
+		t.fork.cmd_alter({ schema: schema, onetime: t.onetime, type: t.type, database: name });
 }
 
 var DP = Database.prototype;
@@ -237,6 +240,9 @@ DP.find2 = function() {
 
 DP.insert = function(data, check, noeval) {
 
+	if (data && data.$clean)
+		data = data.$clean();
+
 	var self = this;
 	var bi = new DatabaseBuilder();
 	bi.command = 'insert';
@@ -324,6 +330,9 @@ DP.bulkremove = function(fn) {
 };
 
 DP.update = DP.modify = function(data, upsert, noeval) {
+
+	if (data && data.$clean)
+		data = data.$clean();
 
 	var self = this;
 	var builder = new DatabaseBuilder();

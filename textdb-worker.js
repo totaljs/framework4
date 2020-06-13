@@ -24,7 +24,7 @@ function processcommand(msg) {
 
 	if (!instance) {
 		var db = require('./textdb');
-		instance = msg.builder.type === 'nosql' ? db.JsonDB(msg.builder.database, msg.builder.onetime) : db.TableDB(msg.builder.database, null, msg.builder.onetime);
+		instance = msg.builder.type === 'nosql' ? db.JsonDB(msg.builder.database, msg.builder.onetime) : db.TableDB(msg.builder.database, msg.builder.schema, msg.builder.onetime);
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
 			instance.recount();
@@ -133,7 +133,7 @@ function processcommand(msg) {
 			break;
 
 		case 'alter':
-			instance.alter(msg.schema, err => process.send({ TYPE: 'response2', cid: msg.cid, err: err }));
+			instance.alter(msg.builder.schema, err => process.send({ TYPE: 'response2', cid: msg.cid, err: err }));
 			break;
 
 		case 'clean':
@@ -158,7 +158,6 @@ function processcommand(msg) {
 				instance.unlock = next;
 				process.send({ TYPE: 'response', cid: msg.cid, success: true });
 			});
-
 			break;
 
 		case 'unlock':

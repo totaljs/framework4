@@ -96,7 +96,7 @@ function TableDB(filename, schema, onetime) {
 			t.next(0);
 		}
 	}).on('error', function() {
-		t.alter(schema);
+		t.schema && t.alter(t.schema);
 	});
 }
 
@@ -163,27 +163,26 @@ TD.alter = function(schema, callback) {
 	var parsed = {};
 
 	if (self.$header) {
-		self.ready = true;
 		self.parseSchema(parsed, prepareschema(schema).split(DELIMITER));
-		if (self.stringifySchema(self) !== self.stringifySchema(parsed))
-			self.extend(schema, callback);
-		else
+		if (self.stringifySchema(self) === self.stringifySchema(parsed))
 			callback && callback();
-		self.next(0);
+		else
+			self.extend(schema, callback);
 	} else {
 		self.parseSchema(self, prepareschema(schema).split(DELIMITER));
 		var bschema = self.stringifySchema(self);
 		self.$header = Buffer.byteLength(bschema) + 1;
 		Fs.writeFileSync(self.filename, bschema + NEWLINE, 'utf8');
-		self.ready = true;
-		self.next(0);
 		callback && callback();
 	}
+	self.ready = true;
+	self.next(0);
 };
 
 TD.alterlock = function(schema, callback) {
 	var self = this;
 	self.lock(function(unlock) {
+		self.ready = false;
 		self.alter(schema, function() {
 			callback && callback();
 			unlock();
@@ -935,9 +934,7 @@ JD.$lock = function() {
 	var filter = self.pending_locks.splice(0);
 	filter.wait(function(fn, next) {
 		fn.call(self, next);
-	}, function() {
-		self.next(0);
-	});
+	}, () => self.next(0));
 };
 
 JD.$drop = TD.$drop = function() {
@@ -1246,7 +1243,6 @@ TD.$append = function() {
 TD.$reader = function() {
 
 	var self = this;
-
 	self.step = 4;
 
 	if (!self.pending_reader.length) {
