@@ -1568,7 +1568,7 @@ function tablewrapper(name) {
 	if (F.port && CONF.textdb_worker)
 		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	var instance = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime);
+	var instance = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime, CONF['table_' + name]);
 
 	if (!onetime)
 		F.databases[name] = instance;

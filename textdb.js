@@ -96,7 +96,7 @@ function TableDB(filename, schema, onetime) {
 			t.next(0);
 		}
 	}).on('error', function() {
-		// NOOP
+		t.alter(schema);
 	});
 }
 

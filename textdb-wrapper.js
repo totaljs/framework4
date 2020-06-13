@@ -18,12 +18,13 @@ function makedirectory(directory, main, id) {
 	return Path.join(directory, main, val);
 }
 
-function Database(type, name, fork, onetime) {
+function Database(type, name, fork, onetime, schema) {
 	var t = this;
 	t.type = type;
 	t.name = name;
 	t.directory = Path.dirname(name);
 	t.basename = Path.basename(name);
+	t.schema = schema;
 
 	t.fork = fork || {};
 	t.onetime = onetime;
@@ -91,7 +92,7 @@ function Database(type, name, fork, onetime) {
 
 			if (!t.fork[key]) {
 				var db = require('./textdb');
-				t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, CONF['table_' + name], !t.onetime);
+				t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
 			}
 
 			if (SPECIAL[builder.command]) {
@@ -1127,8 +1128,8 @@ DB.$callbackjoin = function() {
 	};
 };
 
-exports.make = function(type, name, fork, special) {
-	return new Database(type, name, fork, special);
+exports.make = function(type, name, fork, special, schema) {
+	return new Database(type, name, fork, special, schema);
 };
 
 exports.makebuilder = function() {
