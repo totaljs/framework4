@@ -121,7 +121,6 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 	var header = Buffer.alloc(HEADERSIZE, ' ');
 	var reader = isbuffer ? null : filename instanceof Readable ? filename : Fs.createReadStream(filename);
 	var writer = Fs.createWriteStream(filenameto);
-
 	var ext = framework_utils.getExtension(name);
 	var meta = { name: name, size: 0, width: 0, height: 0, ext: ext, custom: custom, type: U.getContentType(ext) };
 	var tmp;
@@ -129,23 +128,41 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 	writer.write(header, 'binary');
 
 	if (IMAGES[meta.ext]) {
-		reader.once('data', function(buffer) {
+		if (isbuffer) {
 			switch (meta.ext) {
 				case 'gif':
-					tmp = framework_image.measureGIF(buffer);
+					tmp = framework_image.measureGIF(filename);
 					break;
 				case 'png':
-					tmp = framework_image.measurePNG(buffer);
+					tmp = framework_image.measurePNG(filename);
 					break;
 				case 'jpg':
 				case 'jpeg':
-					tmp = framework_image.measureJPG(buffer);
+					tmp = framework_image.measureJPG(filename);
 					break;
 				case 'svg':
-					tmp = framework_image.measureSVG(buffer);
+					tmp = framework_image.measureSVG(filename);
 					break;
 			}
-		});
+		} else {
+			reader.once('data', function(buffer) {
+				switch (meta.ext) {
+					case 'gif':
+						tmp = framework_image.measureGIF(buffer);
+						break;
+					case 'png':
+						tmp = framework_image.measurePNG(buffer);
+						break;
+					case 'jpg':
+					case 'jpeg':
+						tmp = framework_image.measureJPG(buffer);
+						break;
+					case 'svg':
+						tmp = framework_image.measureSVG(buffer);
+						break;
+				}
+			});
+		}
 	}
 
 	if (isbuffer)
@@ -272,7 +289,14 @@ FP.clear = function(callback) {
 FP.browse = function(callback) {
 	var self = this;
 	Fs.readdir(self.directory, function(err, response) {
+
 		var files = [];
+
+		if (err) {
+			callback(null, files);
+			return;
+		}
+
 		response.wait(function(item, next) {
 			Fs.readdir(Path.join(self.directory, item), function(err, response) {
 				if (response instanceof Array) {

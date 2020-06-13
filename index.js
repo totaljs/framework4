@@ -316,7 +316,7 @@ HEADERS.response503ddos['X-Powered-By'] = 'Total.js';
 
 Object.freeze(HEADERS.authorization);
 
-var _controller = '';
+var CURRENT_CONTROLLER = '';
 var CURRENT_OWNER = '';
 var _flags;
 var _prefix;
@@ -2576,7 +2576,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.workflow = workflow;
 	r.subdomain = subdomain;
 	r.description = description;
-	r.controller = _controller ? _controller : 'unknown';
+	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
 	r.owner = CURRENT_OWNER;
 	r.urlraw = urlraw;
 	r.url = routeURL;
@@ -2648,7 +2648,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		// Appends cors route
 		isCORS && CORS(urlcache, corsflags);
-		!_controller && F.routes_sort(1);
+		!CURRENT_CONTROLLER && F.routes_sort(1);
 	}
 
 	if (isMOBILE)
@@ -3269,7 +3269,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.urlraw = urlraw;
 	r.hash = hash;
 	r.groups = flags_to_object(groups);
-	r.controller = _controller ? _controller : 'unknown';
+	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
 	r.owner = CURRENT_OWNER;
 	r.url = routeURL;
 	r.paramnames = params.length ? params : null;
@@ -3303,7 +3303,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	F.routes.websockets.push(r);
 	F.initwebsocket && F.initwebsocket();
 	EMIT('route', 'websocket', r);
-	!_controller && F.routes_sort(2);
+	!CURRENT_CONTROLLER && F.routes_sort(2);
 	return instance;
 };
 
@@ -3431,7 +3431,7 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	r.id = id;
 	r.urlraw = urlraw;
 	r.groups = flags_to_object(groups);
-	r.controller = _controller ? _controller : 'unknown';
+	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
 	r.owner = CURRENT_OWNER;
 	r.url = url;
 	r.fixedfile = fixedfile;
@@ -4181,6 +4181,7 @@ function install(type, name, filename, next) {
 	var m = require(filename);
 	var opt = CONF[key];
 	CURRENT_OWNER = key;
+	CURRENT_CONTROLLER = '';
 	F.dependencies[key] = m;
 
 	switch (type) {
@@ -4189,12 +4190,16 @@ function install(type, name, filename, next) {
 			F.plugins[name] = m;
 			break;
 		case 'module':
+			m.id = name;
 			F.modules[name] = m;
 			break;
 		case 'controller':
+			CURRENT_CONTROLLER = name;
+			m.id = name;
 			F.controllers[name] = m;
 			break;
 		case 'model':
+			m.id = name;
 			F.models[name] = m;
 			break;
 	}
@@ -12807,7 +12812,7 @@ WebSocketClientProto.$close = function(code, message) {
 	var header = SOCKET_RESPONSE.format(self.$websocket_key(self.req));
 	self.socket.write(Buffer.from(header, 'binary'));
 	self.ready = true;
-	self.close(message, code);
+	self.close(code, message);
 
 	setTimeout(function(self) {
 		self.req = null;
