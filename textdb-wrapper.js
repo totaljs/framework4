@@ -82,7 +82,7 @@ function Database(type, name, fork, onetime, schema) {
 					t.fork['cmd_' + builder.command](builder.options);
 					break;
 				default:
-					t.fork['cmd_' + builder.command](builder.options, builder.$custom ? builder.$custom() : builder.$callback);
+					t.fork['cmd_' + builder.command](builder.options, builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : builder.$callback);
 					break;
 			}
 
@@ -476,9 +476,19 @@ DB.insert = function(fn) {
 	return this;
 };
 
-DB.callback = function(callback) {
+DB.callback = function(callback, err) {
 	this.$callback = callback;
+	this.$error = err;
 	return this;
+};
+
+DB.callbackerror = function() {
+	var self = this;
+	return function(err, response) {
+		if (response == null || (response instanceof Array && !response.length))
+			err = self.$error;
+		self.$callback && self.$callback(err, response);
+	};
 };
 
 DB.param = function(value) {
