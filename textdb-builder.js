@@ -413,7 +413,8 @@ QueryBuilder.prototype.log = function(data) {
 QueryBuilder.prototype.backupitem = function(item) {
 	var self = this;
 	self.backuparg.date = new Date();
-	Fs.appendFile(self.db.filenamebackup, JSON.stringify(self.backuparg) + ' | ' + (typeof(item) === 'string' ? item : JSON.stringify(item)) + NEWLINE, errorhandling);
+	self.backuparg.body = (typeof(item) === 'string' ? item : JSON.stringify(item));
+	Fs.appendFile(self.db.filenamebackup, JSON.stringify(self.backuparg) + NEWLINE, errorhandling);
 };
 
 QueryBuilder.prototype.logitem = function() {

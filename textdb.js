@@ -268,7 +268,7 @@ TD.backup = JD.backup = function(filename, callback) {
 	return self;
 };
 
-TD.backups = JD.backups = function(callback, builder) {
+TD.backups = JD.backups = function(callback) {
 
 	var self = this;
 	var isTable = self instanceof TableDB;
@@ -277,36 +277,13 @@ TD.backups = JD.backups = function(callback, builder) {
 		builder = new QueryBuilder(self);
 
 	if (isTable && !self.ready) {
-		setTimeout((self, callback, builder) => self.backups(callback, builder), 500, self, callback, builder);
+		setTimeout((self, callback) => self.backups(callback), 500, self, callback);
 		return builder;
 	}
 
-	var stream = Fs.createReadStream(self.filenamebackup);
-	var output = [];
-	var tmp = {};
-
-	tmp.keys = self.$keys;
-
-	stream.on('data', U.streamer(NEWLINEBUF, function(item, index) {
-
-		var end = item.indexOf('|');
-		var meta = item.substring(0, end).trim().parseJSON(true);
-
-		tmp.line = item.substring(end + 1).trim();
-
-		if (isTable)
-			tmp.line = tmp.line.split('|');
-
-		meta.id = index + 1;
-		meta.item = self instanceof TableDB ? self.parseData(tmp) : tmp.line.parseJSON(true);
-
-		// @TODO: missing sorting
-		if (!builder.filterrule || builder.filterrule(meta, builder.filterarg, builder.tmp, builder.func))
-			output.push(builder.prepare(meta));
-
-	}), stream);
-
-	CLEANUP(stream, () => callback(null, output));
+	var instance = new JsonDB(self.filename + '.bk', true);
+	var builder = instance.find2();
+	callback && builder.callback(callback);
 	return builder;
 };
 
@@ -2085,13 +2062,13 @@ function jsonparser(key, value) {
 }
 
 exports.JsonDB = function(name, cache) {
-	var instance = new JsonDB(name);
+	var instance = new JsonDB(name, cache !== true);
 	cache && INSTANCES.push(instance);
 	return instance;
 };
 
 exports.TableDB = function(name, schema, cache) {
-	var instance = new TableDB(name, schema);
+	var instance = new TableDB(name, schema, cache !== true);
 	cache && INSTANCES.push(instance);
 	return instance;
 };

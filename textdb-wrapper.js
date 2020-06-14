@@ -151,6 +151,14 @@ DP.find = function() {
 	return builder;
 };
 
+DP.backups = function(callback) {
+	var builder = new DatabaseBuilder();
+	builder.command = 'backups';
+	this.next(builder);
+	callback && builder.callback(callback);
+	return builder;
+};
+
 DP.recount = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'recount';
@@ -160,7 +168,7 @@ DP.recount = function() {
 function listing(builder, items, response) {
 	var skip = builder.options.skip || 0;
 	var take = builder.options.take || 0;
-	return { page: ((skip / take) + 1), pages: response.count ? Math.ceil(response.count / take) : 0, limit: take, count: response.count, items: items || [] };
+	return { page: skip && take ? ((skip / take) + 1) : 1, pages: response.count && take ? Math.ceil(response.count / take) : response.count ? 1 : 0, limit: take, count: response.count, items: items || [] };
 }
 
 DP.list = function() {
