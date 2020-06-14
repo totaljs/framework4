@@ -345,6 +345,10 @@ DP.update = DP.modify = function(data, upsert, noeval) {
 	for (var i = 0; i < keys.length; i++) {
 		var key = keys[i];
 		var val = data[key];
+
+		if (val === undefined)
+			continue;
+
 		var cmd;
 
 		switch (key[0]) {
