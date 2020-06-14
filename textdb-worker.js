@@ -54,6 +54,17 @@ function processcommand(msg) {
 			});
 			break;
 
+		case 'backups':
+
+			reading++;
+
+			instance.backups().assign(msg.builder).callback(function(err, builder) {
+				builder.TYPE = 'response';
+				process.send(builder);
+			});
+			break;
+
+
 		case 'insert':
 
 			callback = function(err, builder) {

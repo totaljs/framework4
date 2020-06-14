@@ -129,6 +129,13 @@ function prepare(INSTANCE) {
 		INSTANCE.send2({ TYPE: 'clean', cid: id, builder: builder });
 	};
 
+	INSTANCE.cmd_backups = function(builder, callback) {
+		builder.cid = COUNTER++;
+		if (callback)
+			INSTANCE.callbacks[builder.cid] = callback;
+		INSTANCE.send2({ TYPE: 'backups', builder: builder });
+	};
+
 	INSTANCE.cmd_recount = function(builder) {
 		INSTANCE.send2({ TYPE: 'recount', builder: builder });
 	};
