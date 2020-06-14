@@ -28,7 +28,7 @@ require('./index');
 
 const Fs = require('fs');
 const Path = require('path');
-const CONSOLE = process.argv.indexOf('restart') === -1;
+const CONSOLE = process.argv.indexOf('--restart') === -1;
 const INTERNAL = { '/sitemap': 1, '/versions': 1, '/workflows': 1, '/dependencies': 1, '/config': 1, '/config-release': 1, '/config-debug': 1 };
 const isWindows = require('os').platform().substring(0, 3).toLowerCase() === 'win';
 const REGAPPEND = /\/--[a-z0-9]+/i;
