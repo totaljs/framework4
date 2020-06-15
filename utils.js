@@ -1750,6 +1750,9 @@ function validate_builder_default(name, value, entity) {
 	if (entity.type === 12)
 		return value != null && type === 'object' && !(value instanceof Array);
 
+	if (entity.type === 11)
+		return type === 'number';
+
 	// Enum + KeyValue + Custom (8+9+10)
 	if (entity.type > 7)
 		return value !== undefined;
@@ -1772,7 +1775,7 @@ function validate_builder_default(name, value, entity) {
 	}
 
 	if (type === 'number')
-		return value > 0;
+		return true;
 
 	if (type === 'string' || value instanceof Array)
 		return value.length > 0;
