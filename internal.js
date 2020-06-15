@@ -1952,7 +1952,7 @@ function view_parse(content, minify, filename, controller) {
 						if (!a) {
 							var isMeta = tmp.indexOf('\'meta\'') !== -1;
 							var isHead = tmp.indexOf('\'head\'') !== -1;
-							tmp = tmp.replace(/'(meta|head)',/g, '').replace(/(,,|,\)|\s{1,})/g, '');
+							tmp = tmp.replace(/(\s)?'(meta|head)'(\s|,)+/g, '').replace(/(,,|,\)|\s{2,})/g, '');
 							if (isMeta || isHead) {
 								var tmpimp = '';
 								if (isMeta)
