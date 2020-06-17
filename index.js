@@ -11632,37 +11632,37 @@ ControllerProto.stream = function(type, stream, download, headers, done, nocompr
 	return this;
 };
 
-ControllerProto.throw400 = function(problem) {
+ControllerProto.throw400 = ControllerProto.view400 = function(problem) {
 	return controller_error_status(this, 400, problem);
 };
 
-ControllerProto.throw401 = function(problem) {
+ControllerProto.throw401 = ControllerProto.view401 = function(problem) {
 	return controller_error_status(this, 401, problem);
 };
 
-ControllerProto.throw403 = function(problem) {
+ControllerProto.throw403 = ControllerProto.view403 = function(problem) {
 	return controller_error_status(this, 403, problem);
 };
 
-ControllerProto.throw404 = function(problem) {
+ControllerProto.throw404 = ControllerProto.view404 = function(problem) {
 	return controller_error_status(this, 404, problem);
 };
 
-ControllerProto.throw409 = function(problem) {
+ControllerProto.throw409 = ControllerProto.view409 = function(problem) {
 	return controller_error_status(this, 409, problem);
 };
 
-ControllerProto.throw500 = function(error) {
+ControllerProto.throw500 = ControllerProto.view500 = function(error) {
 	var self = this;
 	F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
 	return controller_error_status(self, 500, error);
 };
 
-ControllerProto.throw501 = function(problem) {
+ControllerProto.throw501 = ControllerProto.view501 = function(problem) {
 	return controller_error_status(this, 501, problem);
 };
 
-ControllerProto.throw503 = function(problem) {
+ControllerProto.throw503 = ControllerProto.view503 = function(problem) {
 	return controller_error_status(this, 503, problem);
 };
 
