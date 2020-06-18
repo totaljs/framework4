@@ -11627,7 +11627,7 @@ ControllerProto.filefs = function(name, id, download, headers, callback, checkme
 	options.download = download;
 	options.headers = headers;
 	options.done = callback;
-	FILESTORAGE(name).res(self.res, options, checkmeta, $file_notmodified);
+	FILESTORAGE(name).res(self.res, options, checkmeta);
 	return self;
 };
 
@@ -11639,7 +11639,7 @@ ControllerProto.imagefs = function(name, id, make, headers, callback, checkmeta)
 	options.make = make;
 	options.headers = headers;
 	options.done = callback;
-	FILESTORAGE(name).res(self.res, options, checkmeta, $file_notmodified);
+	FILESTORAGE(name).res(self.res, options, checkmeta);
 	return self;
 };
 
@@ -14463,7 +14463,7 @@ function extend_response(PROTO) {
 		options.download = download;
 		options.headers = headers;
 		options.done = callback;
-		FILESTORAGE(name).res(self, options, checkmeta, $file_notmodified);
+		FILESTORAGE(name).res(self, options, checkmeta);
 		return self;
 	};
 
@@ -14475,7 +14475,7 @@ function extend_response(PROTO) {
 		options.make = make;
 		options.headers = headers;
 		options.done = callback;
-		FILESTORAGE(name).res(self, options, checkmeta, $file_notmodified);
+		FILESTORAGE(name).res(self, options, checkmeta);
 		return self;
 	};
 
@@ -14748,7 +14748,7 @@ function extend_response(PROTO) {
 		}
 
 		if (name && RELEASE && !res.$nocache && req.headers['if-modified-since'] === name[2]) {
-			$file_notmodified(res, name);
+			F.$file_notmodified(res, name);
 			return res;
 		}
 
@@ -15270,7 +15270,7 @@ function $file_processing(res) {
 	res.$file();
 }
 
-function $file_notmodified(res, name) {
+F.$file_notmodified = function(res, name) {
 	var req = res.req;
 	var headers = HEADERS.file_lastmodified;
 

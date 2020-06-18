@@ -362,7 +362,7 @@ FP.readmeta = function(id, callback, count) {
 	return self;
 };
 
-FP.res = function(res, options, checkcustom, notmodified) {
+FP.res = function(res, options, checkcustom) {
 
 	var self = this;
 	var req = res.req;
@@ -410,7 +410,7 @@ FP.res = function(res, options, checkcustom, notmodified) {
 
 			if (!options.download && req.headers['if-modified-since'] === utc) {
 				res.extention = framework_utils.getExtension(obj.name);
-				notmodified(res, utc);
+				F.$file_notmodified(res, utc);
 			} else {
 
 				if (RELEASE && req.$key && F.temporary.path[req.$key]) {
