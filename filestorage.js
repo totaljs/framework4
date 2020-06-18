@@ -44,11 +44,20 @@ function FileDB(name, directory) {
 	t.total = 0;
 	t.size = 0;
 	t.ext = '.file';
+	t.pause = false;
 
 	ON('service', function(counter) {
 		if (counter % 10)
 			t.cache = {};
 	});
+
+	t.retrysave = function(id, name, filename, callback) {
+		t.save(id, name, filename, callback);
+	};
+
+	t.retryread = function(id, callback, nostream) {
+		t.read(id, callback, nostream);
+	};
 
 	t.storage(directory);
 }
@@ -60,6 +69,18 @@ FP.storage = function(value) {
 	self.cache = {};
 	self.directory = value;
 	self.logger = value + '/files.log';
+	return self;
+};
+
+FP.count = function(callback) {
+	var self = this;
+	NOSQL('~' + self.logger).scalar('sum', 'size').callback(function(err, response) {
+		response.size = response.sum;
+		self.size = response.size;
+		self.total = response.count;
+		response.sum = undefined;
+		callback && callback(err, response);
+	});
 	return self;
 };
 
@@ -88,6 +109,12 @@ FP.readfilename = function(id) {
 FP.save = function(id, name, filename, callback) {
 
 	var self = this;
+
+	if (self.pause) {
+		setTimeout(self.retrysave, 500, id, name, filename, callback);
+		return self;
+	}
+
 	var directory = self.makedirectory(id);
 	var filenameto = Path.join(directory, id + '.file');
 
@@ -122,7 +149,7 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 	var reader = isbuffer ? null : filename instanceof Readable ? filename : Fs.createReadStream(filename);
 	var writer = Fs.createWriteStream(filenameto);
 	var ext = framework_utils.getExtension(name);
-	var meta = { name: name, size: 0, width: 0, height: 0, ext: ext, custom: custom, type: U.getContentType(ext) };
+	var meta = { name: name, size: 0, ext: ext, custom: custom, type: U.getContentType(ext) };
 	var tmp;
 
 	writer.write(header, 'binary');
@@ -203,7 +230,6 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 					Fs.close(fd, NOOP);
 				} else {
 					meta.id = id;
-					meta.type = 'save';
 					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
 					Fs.close(fd, () => callback(null, meta));
 				}
@@ -215,6 +241,12 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 FP.read = function(id, callback, nostream) {
 
 	var self = this;
+
+	if (self.pause) {
+		setTimeout(self.retryread, 500, id, callback, nostream);
+		return self;
+	}
+
 	var filename = Path.join(self.makedirectory(id), id + '.file');
 
 	Fs.open(filename, 'r', function(err, fd) {
@@ -248,11 +280,18 @@ FP.read = function(id, callback, nostream) {
 	return self;
 };
 
+FP.browse = function(callback) {
+	var db = NOSQL('~' + this.logger).find();
+	if (callback)
+		db.$callback = callback;
+	return db;
+};
+
 FP.remove = function(id, callback) {
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
 	Fs.unlink(filename, function(err) {
-		!err && Fs.appendFile(self.logger, JSON.stringify({ type: 'remove', id: id, date: new Date() }) + '\n', NOOP);
+		NOSQL('~' + self.logger).remove().where('id', id);
 		callback && callback(err);
 	});
 	return self;
@@ -263,10 +302,12 @@ FP.clear = function(callback) {
 	var self = this;
 	var count = 0;
 
+	self.pause = true;
+
 	Fs.readdir(self.directory, function(err, response) {
 		if (err)
 			return callback(err);
-		Fs.appendFile(self.logger, JSON.stringify({ type: 'clear', date: new Date() }) + '\n', NOOP);
+		Fs.unlink(self.logger, NOOP);
 		response.wait(function(item, next) {
 			var dir = Path.join(self.directory, item);
 			Fs.readdir(dir, function(err, response) {
@@ -277,6 +318,8 @@ FP.clear = function(callback) {
 					next();
 			});
 		}, function() {
+			Fs.unlink(self.logger, NOOP);
+			self.pause = false;
 			self.cache = {};
 			callback && callback(null, count);
 		});
@@ -286,7 +329,7 @@ FP.clear = function(callback) {
 	return self;
 };
 
-FP.browse = function(callback) {
+FP.browse2 = function(callback) {
 	var self = this;
 	Fs.readdir(self.directory, function(err, response) {
 
@@ -318,7 +361,38 @@ FP.browse = function(callback) {
 	return self;
 };
 
-FP.count = function(callback) {
+FP.rebuild = function(callback) {
+
+	var self = this;
+
+	self.browse2(function(err, files) {
+
+		self.pause = true;
+
+		Fs.unlink(self.logger, NOOP);
+
+		var builder = [];
+		self.size = 0;
+		self.total = 0;
+
+		for (var i = 0; i < files.length; i++) {
+			var item = files[i];
+			self.size += item.size;
+			self.total++;
+			builder.push(JSON.stringify(item));
+		}
+
+		builder.limit(500, (items, next) => Fs.appendFile(self.logger, items.join('\n'), next), function() {
+			Fs.appendFile(self.logger, '\n', NOOP);
+			self.pause = false;
+			callback && callback();
+		});
+	});
+
+	return self;
+};
+
+FP.count2 = function(callback) {
 	var self = this;
 	var count = 0;
 	Fs.readdir(self.directory, function(err, response) {
@@ -406,7 +480,7 @@ FP.res = function(res, options, checkcustom) {
 				return;
 			}
 
-			var utc = obj.date ? new Date(+obj.date.substring(0, 4), +obj.date.substring(4, 6), +obj.date.substring(6, 8)).toUTCString() : '';
+			var utc = obj.date ? obj.date.toUTCString() : '';
 
 			if (!options.download && req.headers['if-modified-since'] === utc) {
 				res.extention = framework_utils.getExtension(obj.name);

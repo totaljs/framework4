@@ -14463,7 +14463,7 @@ function extend_response(PROTO) {
 		options.download = download;
 		options.headers = headers;
 		options.done = callback;
-		FILESTORAGE(name).res(self, options, checkmeta);
+		FILESTORAGE(name).res(self, options, checkmeta, F.$file_notmodified);
 		return self;
 	};
 
@@ -14475,7 +14475,7 @@ function extend_response(PROTO) {
 		options.make = make;
 		options.headers = headers;
 		options.done = callback;
-		FILESTORAGE(name).res(self, options, checkmeta);
+		FILESTORAGE(name).res(self, options, checkmeta, F.$file_notmodified);
 		return self;
 	};
 
