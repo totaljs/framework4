@@ -407,6 +407,9 @@ global.LOADCONFIG = function(value) {
 
 	if (config.mail_smtp || config.mail_smtp_options)
 		delete F.temporary.mail_settings;
+
+	for (var m in config)
+		CONF[m] = config[m];
 };
 
 var TMPENV = framework_utils.copy(process.env);
