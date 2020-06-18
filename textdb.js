@@ -31,7 +31,6 @@ const TextStreamReader = require('./textdb-stream');
 const QueryBuilder = require('./textdb-builder').QueryBuilder;
 const TextReader = require('./textdb-reader');
 const DELIMITER = '|';
-const NEWLINEBUF = Buffer.from('\n', 'utf8');
 
 const JSONBOOL = '":true ';
 const NEWLINE = '\n';
