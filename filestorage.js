@@ -422,13 +422,19 @@ FP.res = function(res, options, checkcustom, notmodified) {
 				res.options.stream = Fs.createReadStream(filename, BINARYREADDATA);
 				res.options.lastmodified = true;
 
+				!options.headers && (options.headers = {});
+
 				if (options.download) {
 					res.options.download = options.download === true ? obj.name : typeof(options.download) === 'function' ? options.download(obj.name, obj.type) : options.download;
-				} else {
-					!options.headers && (options.headers = {});
+				} else
 					options.headers['Last-Modified'] = utc;
+
+				if (obj.width && obj.height) {
+					options.headers['X-Width'] = obj.width;
+					options.headers['X-Height'] = obj.height;
 				}
 
+				options.headers['X-Size'] = obj.size;
 				res.options.headers = options.headers;
 				res.options.done = options.done;
 
