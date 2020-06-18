@@ -351,6 +351,64 @@ global.SESSION = function(name) {
 	return sessionwrapper(name);
 };
 
+global.LOADCONFIG = function(value) {
+	var config = value;
+	if (typeof(value) === 'string') {
+		config = value.parseConfig();
+	} else if (value instanceof Array) {
+		config = {};
+		for (var i = 0; i < value.length; i++) {
+			var item = value[i];
+			var key = item.id || item.name;
+			var val = item.value;
+			if (item.type) {
+				var type = typeof(val);
+				switch (item.type.toLowerCase()) {
+					case 'number':
+						if (type !== 'number') {
+							if (type === 'string')
+								val = val.parseFloat();
+							else
+								val = 0;
+						}
+						break;
+					case 'boolean':
+						if (type !== 'boolean')
+							val = type === 'string' ? (val === 'true' || val === 'on' || val === '1' || val === 't') : val ? true : false;
+						break;
+					case 'json':
+					case 'object':
+						if (type === 'string')
+							val = val.parseJSON(true);
+						break;
+					case 'date':
+						if (!(val instanceof Date)) {
+							if (type === 'string')
+								val = val.parseDate();
+							else if (type === 'number')
+								val = new Date(val);
+							else
+								val = null;
+						}
+						break;
+					case 'string':
+						if (type !== 'string') {
+							if (val)
+								val = val + '';
+							else
+								val = '';
+						}
+						break;
+				}
+			}
+			config[key] = val;
+		}
+	}
+
+	if (config.mail_smtp || config.mail_smtp_options)
+		delete F.temporary.mail_settings;
+};
+
 var TMPENV = framework_utils.copy(process.env);
 TMPENV.istotaljsworker = true;
 
