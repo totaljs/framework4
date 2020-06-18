@@ -351,6 +351,67 @@ global.SESSION = function(name) {
 	return sessionwrapper(name);
 };
 
+global.LOADCONFIG = function(value) {
+	var config = value;
+	if (typeof(value) === 'string') {
+		config = value.parseConfig();
+	} else if (value instanceof Array) {
+		config = {};
+		for (var i = 0; i < value.length; i++) {
+			var item = value[i];
+			var key = item.id || item.name;
+			var val = item.value;
+			if (item.type) {
+				var type = typeof(val);
+				switch (item.type.toLowerCase()) {
+					case 'number':
+						if (type !== 'number') {
+							if (type === 'string')
+								val = val.parseFloat();
+							else
+								val = 0;
+						}
+						break;
+					case 'boolean':
+						if (type !== 'boolean')
+							val = type === 'string' ? (val === 'true' || val === 'on' || val === '1' || val === 't') : val ? true : false;
+						break;
+					case 'json':
+					case 'object':
+						if (type === 'string')
+							val = val.parseJSON(true);
+						break;
+					case 'date':
+						if (!(val instanceof Date)) {
+							if (type === 'string')
+								val = val.parseDate();
+							else if (type === 'number')
+								val = new Date(val);
+							else
+								val = null;
+						}
+						break;
+					case 'string':
+						if (type !== 'string') {
+							if (val)
+								val = val + '';
+							else
+								val = '';
+						}
+						break;
+				}
+			}
+			config[key] = val;
+		}
+	}
+
+	if (config.mail_smtp || config.mail_smtp_options)
+		delete F.temporary.mail_settings;
+
+	for (var m in config)
+		CONF[m] = config[m];
+};
+
 var TMPENV = framework_utils.copy(process.env);
 TMPENV.istotaljsworker = true;
 
@@ -11632,37 +11693,37 @@ ControllerProto.stream = function(type, stream, download, headers, done, nocompr
 	return this;
 };
 
-ControllerProto.throw400 = function(problem) {
+ControllerProto.throw400 = ControllerProto.view400 = function(problem) {
 	return controller_error_status(this, 400, problem);
 };
 
-ControllerProto.throw401 = function(problem) {
+ControllerProto.throw401 = ControllerProto.view401 = function(problem) {
 	return controller_error_status(this, 401, problem);
 };
 
-ControllerProto.throw403 = function(problem) {
+ControllerProto.throw403 = ControllerProto.view403 = function(problem) {
 	return controller_error_status(this, 403, problem);
 };
 
-ControllerProto.throw404 = function(problem) {
+ControllerProto.throw404 = ControllerProto.view404 = function(problem) {
 	return controller_error_status(this, 404, problem);
 };
 
-ControllerProto.throw409 = function(problem) {
+ControllerProto.throw409 = ControllerProto.view409 = function(problem) {
 	return controller_error_status(this, 409, problem);
 };
 
-ControllerProto.throw500 = function(error) {
+ControllerProto.throw500 = ControllerProto.view500 = function(error) {
 	var self = this;
 	F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
 	return controller_error_status(self, 500, error);
 };
 
-ControllerProto.throw501 = function(problem) {
+ControllerProto.throw501 = ControllerProto.view501 = function(problem) {
 	return controller_error_status(this, 501, problem);
 };
 
-ControllerProto.throw503 = function(problem) {
+ControllerProto.throw503 = ControllerProto.view503 = function(problem) {
 	return controller_error_status(this, 503, problem);
 };
 
