@@ -186,6 +186,7 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 			}
 
 			meta.size = writer.bytesWritten - HEADERSIZE;
+			meta.date = NOW = new Date();
 
 			self.total++;
 			self.size += meta.size;
@@ -202,7 +203,6 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 					Fs.close(fd, NOOP);
 				} else {
 					meta.id = id;
-					meta.date = NOW = new Date();
 					meta.type = 'save';
 					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
 					Fs.close(fd, () => callback(null, meta));
