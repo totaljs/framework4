@@ -31,7 +31,6 @@ function Database(type, name, fork, onetime, schema) {
 	t.exec = function(builder) {
 
 		var name = t.name;
-
 		if (builder.options) {
 
 			if (builder.options.bulk) {
@@ -441,6 +440,7 @@ DP.drop = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'drop';
 	this.next(builder);
+	return builder;
 };
 
 DP.alter = function(schema, callback) {
@@ -455,7 +455,8 @@ DP.clear = function(callback) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'clear';
 	builder.$callback = callback;
-	return this.next(builder);
+	this.next(builder)
+	return builder;
 };
 
 DP.clean = function(callback) {
