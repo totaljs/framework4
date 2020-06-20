@@ -95,7 +95,7 @@ function TableDB(filename, schema, onetime) {
 			t.next(0);
 		}
 	}).on('error', function() {
-		t.schema && t.alter(t.schema);
+		schema && t.alter(schema);
 	});
 }
 
