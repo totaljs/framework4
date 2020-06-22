@@ -497,14 +497,6 @@ global.REQUEST = function(opt) {
 	// opt.onprogress(percentage)
 	// opt.ondata(chunk, percentage)
 
-	switch (opt.method) {
-		case 'GET':
-		case 'OPTIONS':
-		case 'HEAD':
-			options.post = false;
-			break;
-	}
-
 	if (opt.ondata)
 		options.ondata = opt.ondata;
 
@@ -760,7 +752,7 @@ function request_call(uri, options) {
 		opt = uri;
 
 	var connection = uri.protocol === 'https:' ? Https : Http;
-	var req = options.post ? connection.request(opt, request_response) : connection.get(opt, request_response);
+	var req = opt.method === 'GET' ? connection.get(opt, request_response) : connection.request(opt, request_response);
 
 	req.$options = options;
 	req.$uri = uri;

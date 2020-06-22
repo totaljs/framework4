@@ -92,6 +92,7 @@ const IMAGES = { jpg: 1, png: 1, gif: 1, apng: 1, jpeg: 1, heif: 1, heic: 1, web
 const KEYSLOCALIZE = { html: 1, htm: 1 };
 const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
+const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
 var PREFFILE = 'preferences.json';
 var WSCLIENTSID = 0;
@@ -1692,7 +1693,12 @@ global.PROXY = function(url, target, copypath, before, after) {
 		copypath = false;
 	}
 
-	var obj = { url: url, uri: require('url').parse(target), before: before, after: after, copypath: copypath };
+	if ((/^(https|http):\/\//).test(target))
+		target = require('url').parse(target);
+	else
+		target = { socketPath: target };
+
+	var obj = { url: url, uri: target, before: before, after: after, copypath: copypath };
 	F.routes.proxies.push(obj);
 	F._request_check_proxy = true;
 };
@@ -6354,9 +6360,7 @@ function makeproxy(proxy, req, res) {
 	if (proxy.copypath)
 		uri.path = req.url;
 
-	if (!secured)
-		uri.agent = PROXYKEEPALIVE;
-
+	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
 	proxy.before && proxy.before(uri, req, res);
 	uri.headers.host = uri.host;
 
@@ -6393,7 +6397,6 @@ function makeproxycallback(response) {
 	this.$res.writeHead(response.statusCode, response.headers);
 	response.pipe(this.$res, PROXYOPTIONS);
 }
-
 
 const TRAVELCHARS = { e: 1, E: 1 };
 

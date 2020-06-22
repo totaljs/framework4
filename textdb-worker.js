@@ -28,7 +28,7 @@ function processcommand(msg) {
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
 			instance.recount();
-			setTimeout(processcommand, 100, msg);
+			msg.TYPE && setTimeout(processcommand, 100, msg);
 			return;
 		}
 	}

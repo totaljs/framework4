@@ -34,6 +34,14 @@ exports.init = function(directory, callback) {
 		}
 	});
 
+	console.log(INSTANCE.pid);
+
+	INSTANCE.on('close', function() {
+		INSTANCE.removeAllListeners();
+		INSTANCE = null;
+		setTimeout(() => exports.init(directory), 100);
+	});
+
 	INSTANCE.send2 = function(msg) {
 		if (INSTANCE.ready)
 			INSTANCE.send(msg);
