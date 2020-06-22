@@ -35,6 +35,7 @@ const Parser = require('url');
 const Child = require('child_process');
 const Util = require('util');
 const Http = require('http');
+const Https = require('https');
 
 const ENCODING = 'utf8';
 const HEADER_CACHE = 'Cache-Control';
@@ -5927,10 +5928,9 @@ global.HTTP = F.http = function(mode, options, middleware) {
 	if (options.bundling != null)
 		F.$bundling = options.bundling;
 
-	var http = require('http');
-	extend_request(http.IncomingMessage.prototype);
-	extend_response(http.ServerResponse.prototype);
-	F.mode(http, mode, options);
+	extend_request(Http.IncomingMessage.prototype);
+	extend_response(Http.ServerResponse.prototype);
+	F.mode(Http, mode, options);
 };
 
 /**
@@ -5941,8 +5941,6 @@ global.HTTP = F.http = function(mode, options, middleware) {
  * @return {Framework}
  */
 global.HTTPS = F.https = function(mode, options, middleware) {
-
-	var http = require('http');
 
 	if (typeof(options) === 'function') {
 		middleware = options;
@@ -5957,9 +5955,9 @@ global.HTTPS = F.https = function(mode, options, middleware) {
 	if (typeof(middleware) === 'function')
 		options.middleware = middleware;
 
-	extend_request(http.IncomingMessage.prototype);
-	extend_response(http.ServerResponse.prototype);
-	F.mode(require('https'), mode, options);
+	extend_request(Http.IncomingMessage.prototype);
+	extend_response(Http.ServerResponse.prototype);
+	F.mode(Https, mode, options);
 };
 
 F.mode = function(http, name, options) {
@@ -6366,11 +6364,10 @@ function makeproxy(proxy, req, res) {
 
 	var request;
 	if (secured) {
-		var https = require('https');
 		if (uri.method === 'GET')
-			request = https.get(uri, makeproxycallback);
+			request = Https.get(uri, makeproxycallback);
 		else
-			request = https.request(uri, makeproxycallback);
+			request = Https.request(uri, makeproxycallback);
 	} else {
 		if (uri.method === 'GET')
 			request = Http.get(uri, makeproxycallback);
