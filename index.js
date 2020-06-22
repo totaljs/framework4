@@ -6126,8 +6126,8 @@ F.service = function(count) {
 	else
 		F.temporary.service.file = 1;
 
-	F.stats.performance.request = F.stats.request.request ? F.stats.request.request / F.temporary.service.request : 0;
-	F.stats.performance.file = F.stats.request.file ? F.stats.request.file / F.temporary.service.file : 0;
+	F.stats.performance.request = F.stats.request.request ? (F.stats.request.request / F.temporary.service.request).fixed(3) : 0;
+	F.stats.performance.file = F.stats.request.file ? (F.stats.request.file / F.temporary.service.file).fixed(3) : 0;
 
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};
