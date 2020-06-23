@@ -9255,6 +9255,10 @@ Controller.prototype = {
 		return this.req.body;
 	},
 
+	get buffer() {
+		return this.req.bodydata;
+	},
+
 	set body(val) {
 		this.req.body = val;
 	},
