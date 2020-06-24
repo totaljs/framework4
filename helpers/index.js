@@ -3,6 +3,7 @@
 // https://www.totaljs.com
 // ===================================================
 
+const total = 'total4';
 const options = {};
 
 // options.ip = '127.0.0.1';
@@ -15,6 +16,6 @@ const options = {};
 // options.livereload = true;
 
 if (process.argv.indexOf('--release', 1) !== -1 || process.argv.indexOf('release', 1) !== -1)
-	require('total4').http('release', options);
+	require(total).http('release', options);
 else
-	require('total4/debug')(options);
+	require(total + '/debug')(options);
