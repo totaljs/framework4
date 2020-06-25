@@ -833,7 +833,7 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 
 	if (type === 'function') {
 
-		if (value === UID) {
+		if (value === UID || value === UID16) {
 			result.type = 3;
 			result.length = 20;
 			result.raw = 'string';
