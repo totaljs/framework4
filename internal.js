@@ -922,7 +922,7 @@ function autoprefixer(value) {
 
 			// text-transform
 			var before = value.substring(index - 1, index);
-			var isPrefix = before === '-';
+			var isPrefix = before === '-' || before === '.' || before === '#';
 			if (isPrefix)
 				continue;
 
