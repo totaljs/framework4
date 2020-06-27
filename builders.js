@@ -921,6 +921,12 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 		return parseLength(lower, result);
 	}
 
+	if ((/^(name)+(\(\d+\))?$/).test(lower)) {
+		result.type = 3;
+		result.subtype = 'name';
+		return parseLength(lower, result);
+	}
+
 	if ((/^(capitalize2)+(\(\d+\))?$/).test(lower)) {
 		result.type = 3;
 		result.subtype = 'capitalize2';
@@ -2051,6 +2057,20 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 							break;
 						case 'capitalize2':
 							tmp = tmp.capitalize(true);
+							break;
+						case 'name':
+
+							tmp = tmp.split(' ')[0].capitalize(true);
+							var a = '';
+
+							for (var i = 0; i < tmp.length; i++) {
+								var c = tmp.charCodeAt(i);
+								if (c < 65 || (c > 90 && c < 97) || (c > 122 && c < 128))
+									continue;
+								a += tmp[i];
+							}
+
+							tmp = a;
 							break;
 						case 'lowercase':
 							tmp = tmp.toLowerCase();
