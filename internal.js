@@ -78,7 +78,7 @@ const REG_CSS_11 = /\$.*?(;|\}|!)/gi;
 const REG_CSS_12 = /(margin|padding):.*?(;|})/g;
 const REG_CSS_13 = /#(0{6}|1{6}|2{6}|3{6}|4{6}|5{6}|6{6}|7{6}|8{6}|9{6}|0{6}|A{6}|B{6}|C{6}|D{6}|E{6}|F{6})/gi;
 const REG_VIEW_PART = /\/\*PART.*?\*\//g;
-const AUTOVENDOR = ['filter', 'appearance', 'column-count', 'column-gap', 'column-rule', 'display', 'transform', 'transform-style', 'transform-origin', 'transition', 'user-select', 'animation', 'perspective', 'animation-name', 'animation-duration', 'animation-timing-function', 'animation-delay', 'animation-iteration-count', 'animation-direction', 'animation-play-state', 'opacity', 'background', 'background-image', 'font-smoothing', 'text-size-adjust', 'backface-visibility', 'box-sizing', 'overflow-scrolling'];
+const AUTOVENDOR = ['appearance', 'user-select', 'font-smoothing', 'text-size-adjust', 'backface-visibility'];
 const WRITESTREAM = { flags: 'w' };
 const ALLOWEDMARKUP = { G: 1, M: 1, R: 1, repository: 1, model: 1, CONF: 1, config: 1, global: 1, resource: 1, RESOURCE: 1, CONFIG: 1, author: 1, root: 1, functions: 1, NOW: 1, F: 1 };
 
@@ -892,8 +892,6 @@ function cssmarginpadding(text) {
 
 function autoprefixer(value) {
 
-	value = autoprefixer_keyframes(value);
-
 	var builder = [];
 	var index = 0;
 	var property;
@@ -920,7 +918,6 @@ function autoprefixer(value) {
 			if (end === -1)
 				continue;
 
-			// text-transform
 			var before = value.substring(index - 1, index);
 			var isPrefix = before === '-' || before === '.' || before === '#';
 			if (isPrefix)
@@ -951,18 +948,6 @@ function autoprefixer(value) {
 		var delimiter = ';';
 		var updated = plus + delimiter;
 
-		if (name === 'opacity') {
-			var opacity = plus.replace('opacity', '').replace(':', '').replace(/\s/g, '');
-			index = opacity.indexOf('!');
-			opacity = index === -1 ? (+opacity) : (+opacity.substring(0, index));
-			if (!isNaN(opacity)) {
-				updated += 'filter:alpha(opacity=' + Math.floor(opacity * 100) + ')' + (index !== -1 ? ' !important' : '');
-				value = value.replacer(replace, before + '@[[' + output.length + ']]');
-				output.push(updated);
-			}
-			continue;
-		}
-
 		if (name === 'font-smoothing') {
 			updated = plus + delimiter;
 			updated += plus.replacer('font-smoothing', '-webkit-font-smoothing') + delimiter;
@@ -972,63 +957,8 @@ function autoprefixer(value) {
 			continue;
 		}
 
-		if (name === 'background' || name === 'background-image') {
-			if (property.indexOf('repeating-linear-gradient') !== -1) {
-				updated = plus.replacer('repeating-linear-', '-webkit-repeating-linear-') + delimiter;
-				updated += plus.replacer('repeating-linear-', '-moz-repeating-linear-') + delimiter;
-				updated += plus.replacer('repeating-linear-', '-ms-repeating-linear-') + delimiter;
-				updated += plus;
-				value = value.replacer(replace, before + '@[[' + output.length + ']]');
-				output.push(updated);
-			} else if (property.indexOf('repeating-radial-gradient') !== -1) {
-				updated = plus.replacer('repeating-radial-', '-webkit-repeating-radial-') + delimiter;
-				updated += plus.replacer('repeating-radial-', '-moz-repeating-radial-') + delimiter;
-				updated += plus.replacer('repeating-radial-', '-ms-repeating-radial-') + delimiter;
-				updated += plus;
-				value = value.replacer(replace, before + '@[[' + output.length + ']]');
-				output.push(updated);
-			} else if (property.indexOf('linear-gradient') !== -1) {
-				updated = plus.replacer('linear-', '-webkit-linear-') + delimiter;
-				updated += plus.replacer('linear-', '-moz-linear-') + delimiter;
-				updated += plus.replacer('linear-', '-ms-linear-') + delimiter;
-				updated += plus;
-				value = value.replacer(replace, before + '@[[' + output.length + ']]');
-				output.push(updated);
-			} else if (property.indexOf('radial-gradient') !== -1) {
-				updated = plus.replacer('radial-', '-webkit-radial-') + delimiter;
-				updated += plus.replacer('radial-', '-moz-radial-') + delimiter;
-				updated += plus.replacer('radial-', '-ms-radial-') + delimiter;
-				updated += plus;
-				value = value.replacer(replace, before + '@[[' + output.length + ']]');
-				output.push(updated);
-			}
-			continue;
-		}
-
-		if (name === 'text-overflow') {
-			updated = plus + delimiter;
-			updated += plus.replacer('text-overflow', '-ms-text-overflow');
-			value = value.replacer(replace, before + '@[[' + output.length + ']]');
-			output.push(updated);
-			continue;
-		}
-
-		if (name === 'display') {
-			if (property.indexOf('box') !== -1) {
-				updated = plus + delimiter;
-				updated += plus.replacer('box', '-webkit-box') + delimiter;
-				updated += plus.replacer('box', '-moz-box');
-				value = value.replacer(replace, before + '@[[' + output.length + ']]');
-				output.push(updated);
-			}
-			continue;
-		}
-
 		updated += '-webkit-' + plus + delimiter;
 		updated += '-moz-' + plus;
-
-		if (name.indexOf('animation') === -1)
-			updated += delimiter + '-ms-' + plus;
 
 		value = value.replacer(replace, before + '@[[' + output.length + ']]');
 		output.push(updated);
@@ -1040,76 +970,6 @@ function autoprefixer(value) {
 
 	output = null;
 	builder = null;
-	return value;
-}
-
-function autoprefixer_keyframes(value) {
-
-	var builder = [];
-	var index = 0;
-
-	while (index !== -1) {
-
-		index = value.indexOf('@keyframes', index + 1);
-		if (index === -1)
-			continue;
-
-		var counter = 0;
-		var end = -1;
-
-		for (var indexer = index + 10; indexer < value.length; indexer++) {
-
-			if (value[indexer] === '{')
-				counter++;
-
-			if (value[indexer] !== '}')
-				continue;
-
-			if (counter > 1) {
-				counter--;
-				continue;
-			}
-
-			end = indexer;
-			break;
-		}
-
-		if (end === -1)
-			continue;
-
-		var css = value.substring(index, end + 1);
-		builder.push({ name: 'keyframes', property: css });
-	}
-
-	var output = [];
-	var length = builder.length;
-
-	for (var i = 0; i < length; i++) {
-
-		var name = builder[i].name;
-		var property = builder[i].property;
-
-		if (name !== 'keyframes')
-			continue;
-
-		var plus = property.substring(1);
-		var delimiter = '\n';
-
-		var updated = '@' + plus + delimiter;
-
-		updated += '@-webkit-' + plus + delimiter;
-		updated += '@-moz-' + plus + delimiter;
-		updated += '@-o-' + plus + delimiter;
-
-		value = value.replacer(property, '@[[' + output.length + ']]');
-		output.push(updated);
-	}
-
-	length = output.length;
-
-	for (var i = 0; i < length; i++)
-		value = value.replace('@[[' + i + ']]', output[i]);
-
 	return value;
 }
 
