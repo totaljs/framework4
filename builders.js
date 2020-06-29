@@ -5345,6 +5345,10 @@ function AuthOptions(req, res, flags, callback) {
 
 AuthOptions.prototype = {
 
+	get url() {
+		return this.req.url || '';
+	},
+
 	get language() {
 		return this.req.language || '';
 	},
