@@ -70,7 +70,6 @@ const regexpN = /\n/g;
 const regexpCHARS = /\W|_/g;
 const regexpCHINA = /[\u3400-\u9FBF]/;
 const regexpLINES = /\n|\r|\r\n/;
-const regexp0 = /\0|%00/g;
 const regexpBASE64 = /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
 const SOUNDEX = { a: '', e: '', i: '', o: '', u: '', b: 1, f: 1, p: 1, v: 1, c: 2, g: 2, j: 2, k: 2, q: 2, s: 2, x: 2, z: 2, d: 3, t: 3, l: 4, m: 5, n: 5, r: 6 };
 const ENCODING = 'utf8';
@@ -2682,19 +2681,94 @@ SP.parseJSON = function(date) {
 	} catch (e) {}
 };
 
+function parseQueryArgumentsDecode(val) {
+	try {
+		return decodeURIComponent(val);
+	} catch (e) {
+		return '';
+	}
+}
+
 SP.parseEncoded = function() {
-	var arr = this.replace(regexp0, '').split('&', CONF.default_request_maxkeys || 33);
+
+	var str = this + '&';
 	var obj = {};
-	for (var i = 0; i < arr.length; i++) {
-		var item = arr[i];
-		var index = item.indexOf('=');
-		// Max. length of key
-		if (index > 0 && index < CONF.default_request_maxkey) {
-			var k = item.substring(0, index);
-			if (obj[k] == null)
-				obj[k] = decodeURIComponent(item.substring(index + 1));
+	var key = '';
+	var val = '';
+	var is = false;
+	var decodev = false;
+	var decodek = false;
+	var count = 0;
+	var pos = 0;
+
+	for (var i = 0; i < str.length; i++) {
+		var n = str.charCodeAt(i);
+
+		if (n === 38) {
+
+			if (key) {
+				if (pos < i)
+					val += str.substring(pos, i);
+
+				if (decodev)
+					val = parseQueryArgumentsDecode(val);
+
+				if (decodek)
+					key = parseQueryArgumentsDecode(key);
+
+				obj[key] = val;
+			}
+
+			if (key)
+				key = '';
+
+			if (val)
+				val = '';
+
+			pos = i + 1;
+			is = false;
+			decodek = false;
+			decodev = false;
+
+			if ((count++) >= CONF.default_request_maxkeys)
+				break;
+
+		} else {
+
+			if (n === 61) {
+				if ((i - pos) > CONF.default_request_maxkey)
+					key = '';
+				else {
+					if (pos < i)
+						key += str.substring(pos, i);
+					pos = i + 1;
+					is = true;
+				}
+				continue;
+			}
+
+			if (n === 43) {
+				if (is)
+					val += str.substring(pos, i) + ' ';
+				else
+					key += str.substring(pos, i) + ' ';
+				pos = i + 1;
+			}
+
+			if (n === 37) {
+				if (str.charCodeAt(i + 1) === 48 && str.charCodeAt(i + 2) === 48)
+					pos = i + 3;
+				else if (is) {
+					if (!decodev)
+						decodev = true;
+				} else {
+					if (!decodev)
+						decodek = true;
+				}
+			}
 		}
 	}
+
 	return obj;
 };
 
