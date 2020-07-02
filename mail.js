@@ -630,8 +630,10 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 	var msg = obj.messages.shift();
 	var message = [];
 
-	if (global.F)
+	if (global.F) {
 		global.F.stats.other.mail++;
+		global.F.$events.mail && EMIT('mail', msg);
+	}
 
 	obj.boundary = '--totaljs' + obj.date.getTime() + obj.count;
 	obj.files = msg.files;
