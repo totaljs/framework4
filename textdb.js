@@ -878,7 +878,7 @@ JD.$clean = function() {
 	fs.divider = NEWLINE;
 
 	fs.ondocuments = function() {
-		writer.write(fs.docs + NEWLINE);
+		fs.docs && writer.write(fs.docs + NEWLINE);
 	};
 
 	fs.$callback = function() {
@@ -1594,7 +1594,7 @@ TD.$clean = function() {
 	var length = filter.length;
 
 	var fs = new TextStreamReader(self.filename);
-	var writer = Fs.createWriteStream(self.filename + '-tmp');
+	var writer = Fs.createWriteStream(self.filename + '.tmp');
 
 	writer.write(self.stringifySchema(self) + NEWLINE);
 
@@ -1609,7 +1609,7 @@ TD.$clean = function() {
 		fs.buffercount = self.buffercount;
 
 	fs.ondocuments = function() {
-		writer.write(fs.docs + NEWLINE);
+		fs.docs && writer.write(fs.docs + NEWLINE);
 	};
 
 	fs.$callback = function() {
