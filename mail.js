@@ -355,6 +355,10 @@ Message.prototype.send2 = function(callback) {
 	// Computes a hostname
 	if (!CONF.mail_smtp) {
 		var ea = (this.address_from.address || this.address_from) || '';
+
+		if (typeof(ea) !== 'string' || !ea)
+			throw new Error('Missing SMTP settings');
+
 		ea = ea.substring(ea.lastIndexOf('@') + 1);
 		if (ea)
 			ea = 'smtp.' + ea;
