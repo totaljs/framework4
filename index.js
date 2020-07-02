@@ -355,6 +355,8 @@ global.SESSION = function(name) {
 
 global.LOADCONFIG = function(value) {
 	var config = value;
+	var tmp;
+
 	if (typeof(value) === 'string') {
 		config = value.parseConfig();
 	} else if (value instanceof Array) {
@@ -375,6 +377,7 @@ global.LOADCONFIG = function(value) {
 						}
 						break;
 					case 'boolean':
+					case 'bool':
 						if (type !== 'boolean')
 							val = type === 'string' ? (val === 'true' || val === 'on' || val === '1' || val === 't') : val ? true : false;
 						break;
@@ -400,6 +403,48 @@ global.LOADCONFIG = function(value) {
 							else
 								val = '';
 						}
+						break;
+					case '[string]':
+						if (type !== 'string') {
+							if (val)
+								val = val + '';
+							else
+								val = '';
+						}
+						val = val.split(',').trim();
+						break;
+					case '[number]':
+						if (type === 'string') {
+							val = val.split(',');
+							tmp = [];
+							for (var i = 0; i < val.length; i++)
+								tmp.push(val[i].trim().parseInt());
+							val = tmp;
+						} else
+							val = [];
+						break;
+					case '[date]':
+						if (type === 'string') {
+							val = val.split(',');
+							tmp = [];
+							for (var i = 0; i < val.length; i++)
+								tmp.push(val[i].trim().parseInt());
+							val = tmp;
+						} else
+							val = [];
+						break;
+					case '[boolean]':
+					case '[bool]':
+						if (type === 'string') {
+							val = val.split(',');
+							tmp = [];
+							for (var i = 0; i < val.length; i++) {
+								var v = val[i].trim();
+								tmp.push(v === 'true' || v === 'on' || v === '1' || v === 't');
+							}
+							val = tmp;
+						} else
+							val = [];
 						break;
 				}
 			}
