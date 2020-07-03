@@ -4929,10 +4929,15 @@ function taskrunner(obj, name, callback) {
 	obj.exec(name, callback);
 }
 
-global.TASK = function(taskname, callback, options) {
+global.TASK = function(taskname, name, callback, options) {
 
 	var tmp = taskname.split('/');
-	var name = tmp[1];
+
+	if (typeof(name) !== 'string') {
+		options = callback;
+		callback = name;
+		name = tmp[1];
+	}
 
 	var obj = new TaskBuilder(options);
 	obj.taskname = tmp[0];
