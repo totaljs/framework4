@@ -68,6 +68,10 @@ function TaskBuilder($) {
 
 TaskBuilder.prototype = {
 
+	get test() {
+		return this.controller ? this.controller.test : false;
+	},
+
 	get user() {
 		return this.controller ? this.controller.user : null;
 	},
@@ -143,6 +147,10 @@ TaskBuilder.prototype = {
 const TaskBuilderProto = TaskBuilder.prototype;
 
 SchemaOptions.prototype = {
+
+	get test() {
+		return this.controller ? this.controller.test : false;
+	},
 
 	get user() {
 		return this.controller ? this.controller.user : null;
@@ -5190,6 +5198,10 @@ function OperationOptions(error, value, options, controller) {
 }
 
 OperationOptions.prototype = {
+
+	get test() {
+		return this.controller ? this.controller.test : false;
+	},
 
 	get user() {
 		return this.controller ? this.controller.user : null;
