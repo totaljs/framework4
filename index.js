@@ -332,6 +332,7 @@ var _prefix;
 !global.framework_session && (global.framework_session = require('./session'));
 
 require('./tangular');
+require('./test');
 
 function sessionwrapper(name) {
 	if (!name)
@@ -2797,75 +2798,6 @@ function remove_route_web() {
 		F.temporary.other = {};
 	}
 }
-
-function TestInterface() {
-}
-
-TestInterface.prototype.user = function(user) {
-	var self = this;
-	if (self.controller)
-		self.controller.user = user;
-	return self;
-};
-
-TestInterface.prototype.session = function(session) {
-	var self = this;
-	if (self.controller)
-		self.controller.session = session;
-	return self;
-};
-
-TestInterface.prototype.query = function(query) {
-	var self = this;
-	if (self.controller)
-		self.controller.query = query;
-	return self;
-};
-
-TestInterface.prototype.body = function(body) {
-	var self = this;
-	if (self.controller)
-		self.controller.body = body;
-	return self;
-};
-
-TestInterface.prototype.fail = function(fn) {
-	this.$callbackfail = fn;
-	return this;
-};
-
-TestInterface.prototype.data = function(fn) {
-	this.$callbackdata = fn;
-	return this;
-};
-
-TestInterface.prototype.callback = function(fn) {
-	this.$callbackdone = fn;
-	return this;
-};
-
-global.RTEST = function(url, body) {
-	var obj = new TestInterface();
-
-	obj.$callback = function(err, response) {
-		obj.$callbackdone && obj.$callbackdone(err, response);
-		if (err)
-			obj.$callbackfail && obj.$callbackfail(err);
-		else
-			obj.$callbackdata && obj.$callbackdata(response);
-		obj.$callback = NOOP;
-	};
-
-	obj.ts = Date.now();
-	obj.controller = ACTION(url, body, obj.$callback);
-
-	if (obj.controller)
-		obj.controller.test = true;
-	else
-		setImmediate(obj.$callback, new Error('Route not found'));
-
-	return obj;
-};
 
 /**
  * Get routing by name

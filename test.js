@@ -21,234 +21,137 @@
 
 /**
  * @module FrameworkTest
- * @version 3.4.0
+ * @version 4.0.0
  */
 
-var T = F.tests = {};
-T.countok = 0;
-T.countno = 0;
-T.count = 0;
-T.tests = [];
-T.current = null;
-T.results = [];
-T.running = false;
-T.immediate = null;
-T.color = {
-	green: '',
-	red: '',
-	reset: ''
-};
+function Action() {
+	var t = this;
+	t.opt = {};
+	t.$callback = function(err, value) {
 
-process.argv.forEach(function (val, index) {
-	if (index > 1) {
-		switch(val) {
-			case '-c':
-				T.color.green = '\x1b[1m\x1b[32m';
-				T.color.red = '\x1b[1m\x1b[31m';
-				T.color.reset = '\x1b[0m';
-				break;
+		if (t.opt.done && !err) {
+			t.opt.done(value);
+		} else {
+			var type = typeof(t.opt.callback);
+			if (type === 'function')
+				t.opt.callback && t.opt.callback(err, value);
+			else if (type === 'string')
+				t.fail(!!err, t.opt.callback);
+			else
+				t.fail(!!err, t.opt.name);
 		}
-	}
-});
-
-function NEXT() {
-
-	T.immediate && clearImmediate(T.immediate);
-	T.immediate = null;
-
-	var fn = T.current ? T.current.items.shift() : null;
-
-	if (fn != null) {
-		fn();
-		return;
-	}
-
-	if (T.current) {
-		T.results.push(T.current);
-		console.log('');
-	}
-
-	var test = F.tests.tests.shift();
-	if (test == null) {
-
-		console.log('===================== RESULTS ======================');
-		console.log('');
-		console.log('> Passed .........', T.countok + '/' + T.count);
-		console.log('> Failed ' + (T.countno ? '[x] .....' : '.........'), T.countno + '/' + T.count);
-		console.log('');
-
-		F.isTest = false;
-		EMIT('test_end', T);
-
-		// DONE
-		setTimeout(function() {
-			F.kill(T.countno ? 1 : 0);
-		}, 1000);
-
-	} else {
-
-		T.current = test;
-		T.current.results = [];
-
-		console.log('[ TEST: ' + test.filename.substring(PATH.tests().length) + (T.current.priority ? ' ({0}) ]'.format(T.current.priority) : ' ]'));
-		console.log('');
-
-		NEXT();
-	}
+		t.$next();
+	};
 }
 
-global.TEST = function(name, url, scope) {
+Action.prototype.done = function(fn) {
+	this.opt.done = fn;
+	return this;
+};
 
-	if (typeof(url) === 'function') {
+Action.prototype.user = function(user) {
+	var self = this;
+	self.opt.user = user;
+	return self;
+};
 
-		var fn = function() {
-			T.now = Date.now();
-			T.currentname = name;
-			T.current.count++;
-			url(NEXT);
-		};
+Action.prototype.session = function(session) {
+	var self = this;
+	self.opt.session = session;
+	return self;
+};
 
-		if (T.running)
-			T.current.items.unshift(fn);
-		else
-			T.current.items.push(fn);
+Action.prototype.query = function(query) {
+	var self = this;
+	self.opt.query = query;
+	return self;
+};
 
-		return;
-	}
+Action.prototype.body = Action.prototype.data = function(body) {
+	var self = this;
+	self.opt.body = body;
+	return self;
+};
 
-	var subdomain;
-	var method;
-	var index = url.indexOf(' ');
+Action.prototype.callback = function(fn) {
+	this.opt.callback = fn;
+	return this;
+};
 
-	if (index !== -1) {
-		method = url.substring(0, index);
-		url = url.substring(index + 1).trim();
-	}
+Action.prototype.make = function(fn) {
+	fn.call(this, this);
+	return this;
+};
 
-	url = url.replace(/\[.*?]/g, function(text) {
-		subdomain = text.replace(/\[|\]/g, '').trim();
-		return '';
-	});
+Action.prototype.run = function() {
+	var self = this;
+	self.controller = ACTION(self.opt.url, self.opt.body, self.$callback);
+	if (self.controller) {
+		if (self.opt.query)
+			self.controller.query = self.opt.query;
+		if (self.opt.user)
+			self.controller.user = self.opt.user;
+		if (self.opt.session)
+			self.controller.session = self.opt.session;
+		self.controller.test = true;
+	} else
+		self.$callback(new Error('Route not found'));
+};
 
-	if (!url.startsWith('http://', true) && !url.startsWith('https://', true))
-		url = 'http://' + (subdomain ? (subdomain + '.') : '') + F.ip + ':' + F.port + (url[0] !== '/' ? '/' : '') + url;
+function Test() {
+	var t = this;
+	t.output = [];
+	t.pending = [];
+	t.errors = 0;
 
-	var fn = function() {
-		T.now = Date.now();
-		T.currentname = name;
-		T.current.count++;
-		var builder = new RESTBuilder(url);
-		method && builder.method(method);
-		builder.header('X-Assertion-Testing', '1');
-		scope.call(builder, builder);
+	t.fail = function(is, description) {
+		if (is)
+			t.errors++;
+		t.output.push((is ? 'Failed [x]' : 'Passed [✓]') + ' ............... ' + (description || t.current));
 	};
 
-	if (T.running)
-		T.current.items.unshift(fn);
-	else
-		T.current.items.push(fn);
-};
-
-global.FAIL = function(is, description) {
-	if (arguments.length) {
-		logger(is ? true : false, T.currentname, description);
-		T.immediate && clearImmediate(T.immediate);
-		T.immediate = setImmediate(NEXT);
-	} else {
-		return function(err) {
-			FAIL(err == null);
-		};
-	}
-};
-
-global.OK = function(is, description) {
-	if (arguments.length) {
-		logger(is ? false : true, T.currentname, description);
-		T.immediate && clearImmediate(T.immediate);
-		T.immediate = setImmediate(NEXT);
-	} else {
-		return function(err) {
-			OK(err == null);
-		};
-	}
-};
-
-global.TESTUSER = function(user, flags) {
-
-	if (!T.auth)
-		T.auth = DEF.onAuthorize;
-
-	T.user = user;
-	T.flags = flags;
-
-	if (user) {
-		AUTH(function($) {
-
-			if (T.flags && T.flags.length) {
-				for (var i = 0; i < T.flags.length; i++) {
-					var f = T.flags[i];
-					if (f[0] !== '@')
-						f = '@' + f;
-					$.flags.push(f);
-				}
-			}
-
-			$.success(F.tests.user);
-		});
-	} else
-		DEF.onAuthorize = T.auth;
-};
-
-exports.load = function() {
-	var dir = PATH.tests();
-	U.ls(dir, function(files) {
-		files.waitFor(function(filename, next) {
-
-			if (F.testlist) {
-				var tn = filename.replace(dir, '').replace(/\.js$/, '');
-				if (F.testlist.indexOf(tn) === -1)
-					return next();
-			}
-
-			if (U.getExtension(filename) !== 'js')
-				return next();
-
-			T.current = { filename: filename, items: [] };
-			var m = require(filename);
-			T.current.module = m;
-			T.current.countok = 0;
-			T.current.countno = 0;
-			T.current.count = 0;
-			T.current.priority = m.priority || 0;
-			T.current.items.length && T.tests.push(T.current);
-			T.current = null;
-			next();
-		}, function() {
-			U.wait(function() {
-				return F._length_wait === 0;
-			}, function() {
-				T.tests.quicksort('priority');
-				EMIT('test_begin', T);
-				console.log('===================== TESTING ======================');
-				console.log('');
-				T.running = true;
-				T.start = Date.now();
-				NEXT();
-			});
-		});
-	});
-};
-
-function logger(fail, name, description) {
-	var time = Math.floor(Date.now() - T.now) + ' ms';
-	T.count++;
-	if (fail) {
-		T.countno++;
-		T.current.countno++;
-		console.error(T.color.red + 'Failed [x]' + T.color.reset + ' '.padRight(20, '.') + ' ' + name + (description ? (' <' + description + '>') : '') + ' [' + time + ']');
-	} else {
-		T.countok++;
-		T.current.countok++;
-		console.info(T.color.green + 'Passed' + T.color.reset + ' '.padRight(20, '.') + ' ' + name + (description ? (' <' + description + '>') : '') + ' [' + time + ']');
-	}
+	t.next = function() {
+		t.$next && clearImmediate(t.$next);
+		t.$next = null;
+		var action = t.pending.shift();
+		if (action) {
+			t.current = action.opt.name;
+			action.fail = t.fail;
+			action.$next = t.next;
+			action.run();
+		} else {
+			if (t.done instanceof Controller) {
+				t.done.status = t.errors ? 409 : 200;
+				t.done.plain(t.output.join('\n'));
+			} else if (t.done) {
+				if (t.done.controller) {
+					t.done.status = t.errors ? 409 : 200;
+					t.done.plain(t.output.join('\n'));
+					t.done.cancel();
+				} else
+					t.done(t.errors, t.output.join('\n'));
+			} else if (t.done)
+				t.done(t.errors, t.output.join('\n'));
+		}
+	};
 }
+
+Test.prototype.add = function(url, name) {
+	var self = this;
+	var action = new Action();
+	action.opt.name = name;
+	action.opt.url = url;
+	self.pending.push(action);
+	self.$next && clearImmediate(self.$next);
+	self.$next = setImmediate(self.next);
+	return action;
+};
+
+global.TEST = function(fn, done) {
+	var instance = new Test();
+	instance.done = done;
+	var add = function(url, name) {
+		return instance.add(url, name);
+	};
+	fn(add, instance.fail);
+};
