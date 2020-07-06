@@ -28,21 +28,36 @@ function Action() {
 	var t = this;
 	t.opt = {};
 	t.$callback = function(err, value) {
-
-		if (t.opt.done && !err) {
+		if (t.opt.id)
+			t.response[t.opt.id] = value;
+		if (t.opt.pass) {
+			t.$fail(t.opt.pass(err, value, t.response) != true, t.opt.name);
+		} else if (t.opt.fail) {
+			t.$fail(t.opt.fail(err, value, t.response) == true, t.opt.name);
+		} else if (t.opt.done && !err) {
 			t.opt.done(value);
 		} else {
 			var type = typeof(t.opt.callback);
 			if (type === 'function')
 				t.opt.callback && t.opt.callback(err, value);
 			else if (type === 'string')
-				t.fail(!!err, t.opt.callback);
+				t.$fail(!!err, t.opt.callback);
 			else
-				t.fail(!!err, t.opt.name);
+				t.$fail(!!err, t.opt.name);
 		}
 		t.$next();
 	};
 }
+
+Action.prototype.fail = function(fn) {
+	this.opt.fail = fn;
+	return this;
+};
+
+Action.prototype.pass = function(fn) {
+	this.opt.pass = fn;
+	return this;
+};
 
 Action.prototype.done = function(fn) {
 	this.opt.done = fn;
@@ -79,12 +94,25 @@ Action.prototype.callback = function(fn) {
 };
 
 Action.prototype.make = function(fn) {
-	fn.call(this, this);
+	this.opt.make = fn;
+	return this;
+};
+
+Action.prototype.id = function(id) {
+	this.opt.id = id;
 	return this;
 };
 
 Action.prototype.run = function() {
 	var self = this;
+
+	if (self.opt.make) {
+		if (self.opt.make.call(self, self) === false) {
+			self.$next();
+			return;
+		}
+	}
+
 	self.controller = ACTION(self.opt.url, self.opt.body, self.$callback);
 	if (self.controller) {
 		if (self.opt.query)
@@ -100,14 +128,16 @@ Action.prototype.run = function() {
 
 function Test() {
 	var t = this;
-	t.output = [];
+	t.output = { items: [], failed: 0 };
 	t.pending = [];
 	t.errors = 0;
 
 	t.fail = function(is, description) {
-		if (is)
+		if (is) {
+			t.output.failed++;
 			t.errors++;
-		t.output.push((is ? 'Failed [x]' : 'Passed [✓]') + ' ............... ' + (description || t.current));
+		}
+		t.output.items.push({ failed: is, name: (description || t.current), ts: Date.now() - t.ts });
 	};
 
 	t.next = function() {
@@ -115,23 +145,24 @@ function Test() {
 		t.$next = null;
 		var action = t.pending.shift();
 		if (action) {
+			t.ts = Date.now();
 			t.current = action.opt.name;
-			action.fail = t.fail;
+			action.$fail = t.fail;
 			action.$next = t.next;
 			action.run();
 		} else {
 			if (t.done instanceof Controller) {
 				t.done.status = t.errors ? 409 : 200;
-				t.done.plain(t.output.join('\n'));
+				t.done.view_test(t.output);
 			} else if (t.done) {
 				if (t.done.controller) {
 					t.done.status = t.errors ? 409 : 200;
-					t.done.plain(t.output.join('\n'));
+					t.done.plain(t.output);
 					t.done.cancel();
 				} else
-					t.done(t.errors, t.output.join('\n'));
+					t.done(t.errors, t.output);
 			} else if (t.done)
-				t.done(t.errors, t.output.join('\n'));
+				t.done(null, t.output);
 		}
 	};
 }
@@ -139,6 +170,7 @@ function Test() {
 Test.prototype.add = function(url, name) {
 	var self = this;
 	var action = new Action();
+	action.response = self.response;
 	action.opt.name = name;
 	action.opt.url = url;
 	self.pending.push(action);
@@ -149,9 +181,11 @@ Test.prototype.add = function(url, name) {
 
 global.TEST = function(fn, done) {
 	var instance = new Test();
+	instance.response = {};
 	instance.done = done;
 	var add = function(url, name) {
 		return instance.add(url, name);
 	};
-	fn(add, instance.fail);
+	fn && fn(add, instance.response);
+	return instance;
 };

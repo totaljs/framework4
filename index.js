@@ -995,10 +995,14 @@ const controller_error_status = function(controller, status, problem) {
 
 	controller.precache && controller.precache(null, null, null);
 	controller.req.path = EMPTYARRAY;
-	controller.req.$total_success();
-	controller.req.$total_route = F.lookup(controller.req, '#' + status, EMPTYARRAY, 0);
-	controller.req.$total_exception = problem;
-	controller.req.$total_execute(status, true);
+
+	if (controller.req.$total_success) {
+		controller.req.$total_success();
+		controller.req.$total_route = F.lookup(controller.req, '#' + status, EMPTYARRAY, 0);
+		controller.req.$total_exception = problem;
+		controller.req.$total_execute(status, true);
+	} else if (controller.$evalroutecallback)
+		controller.$evalroutecallback(problem);
 
 	return controller;
 };
@@ -1727,9 +1731,7 @@ F.stop = F.kill = function(signal) {
 		F.server.close();
 	}
 
-	// var extenddelay = F.grapdbinstance && require('./graphdb').getImportantOperations() > 0;
-	// setTimeout(() => process.exit(signal), global.TEST || extenddelay ? 2000 : 300);
-	setTimeout(() => process.exit(signal), global.TEST ? 2000 : 300);
+	setTimeout(() => process.exit(signal), 300);
 };
 
 global.PROXY = function(url, target, copypath, before, after) {
@@ -9426,6 +9428,15 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.runtest = function(url, name, callback) {
+	var self = this;
+	if (!self.TEST)
+		self.TEST = TEST(null, self, self);
+	var t = self.TEST.add(url, name);
+	callback && t.pass(callback);
+	return t;
+};
+
 ControllerProto.mail = function(address, subject, view, model, callback) {
 
 	if (typeof(model) === 'function') {
@@ -11765,7 +11776,8 @@ ControllerProto.throw409 = ControllerProto.view409 = function(problem) {
 
 ControllerProto.throw500 = ControllerProto.view500 = function(error) {
 	var self = this;
-	F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
+	if (self.req.on)
+		F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
 	return controller_error_status(self, 500, error);
 };
 
@@ -12140,6 +12152,14 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 	}
 
 	return self.$viewrender(filename, framework_internal.viewEngine(name, filename, self), model, headers, partial, isLayout, noasync, cachekey);
+};
+
+ControllerProto.view_test = function(model) {
+	var res = this.res;
+	res.options.body = VIEW('.' + PATHMODULES + 'test', model);
+	res.options.type = CT_HTML;
+	res.options.code = this.status || 200;
+	res.$text();
 };
 
 ControllerProto.view_compile = function(body, model, headers, partial, key) {
