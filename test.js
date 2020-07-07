@@ -49,6 +49,11 @@ function Action() {
 	};
 }
 
+Action.prototype.url = function(url) {
+	this.opt.url = url;
+	return this;
+};
+
 Action.prototype.fail = function(fn) {
 	this.opt.fail = fn;
 	return this;
@@ -107,7 +112,7 @@ Action.prototype.run = function() {
 	var self = this;
 
 	if (self.opt.make) {
-		if (self.opt.make.call(self, self) === false) {
+		if (self.opt.make.call(self, self, self.response) === false) {
 			self.$next();
 			return;
 		}
