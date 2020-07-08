@@ -549,6 +549,7 @@ global.REQUEST = function(opt) {
 		options.boundary = '----totaljs' + Math.random().toString(16).substring(2);
 		opt.headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
 		options.files = opt.files;
+		options.upload = true;
 
 		// Must be object { key: value }
 		if (opt.body)
