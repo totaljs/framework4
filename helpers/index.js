@@ -15,7 +15,5 @@ const options = {};
 // options.watch = ['private'];
 // options.livereload = true;
 
-if (process.argv.indexOf('--release', 1) !== -1 || process.argv.indexOf('release', 1) !== -1)
-	require(total).http('release', options);
-else
-	require(total + '/debug')(options);
+var type = process.argv.indexOf('--release', 1) !== -1 || process.argv.indexOf('release', 1) !== -1 ? 'release' : 'debug';
+require(total + '/' + type)(options);
