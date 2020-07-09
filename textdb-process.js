@@ -34,9 +34,14 @@ exports.init = function(directory, callback) {
 		}
 	});
 
-	console.log(INSTANCE.pid);
+	console.log('TextDB: ', INSTANCE.pid);
+	INSTANCE.on('error', err => console.log('TextDB error', err));
 
 	INSTANCE.on('close', function() {
+		var keys = Object.keys(INSTANCE.callbacks);
+		var err = 'TextDB worker has been detached';
+		for (var i = 0; i < keys.length; i++)
+			INSTANCE.callbacks[keys[i]](err);
 		INSTANCE.removeAllListeners();
 		INSTANCE = null;
 		setTimeout(() => exports.init(directory), 100);
