@@ -804,6 +804,8 @@ global.$ACTION = function(schema, model, callback, controller) {
 					tmp.type = '$transform';
 				else if (o.meta['hook_' + item])
 					tmp.type = '$hook';
+				else if (o.meta['task_' + item])
+					tmp.type = '$task';
 				else {
 					callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
 					return;
@@ -16186,7 +16188,11 @@ function controller_json_workflow(id) {
 			} else if (schema.meta['hook_' + w.id] !== undefined) {
 				w.type = '$hook';
 				w.name = w.id;
+			} else if (schema.meta['task_' + w.id] !== undefined) {
+				w.type = '$task';
+				w.name = w.id;
 			}
+
 		}
 
 		if (w.name)
@@ -16250,6 +16256,8 @@ function controller_json_workflow_multiple(id) {
 					op.push({ name: '$transform', id: id });
 				} else if (schema.meta['hook_' + id] !== undefined) {
 					op.push({ name: '$hook', id: id });
+				} else if (schema.meta['task_' + id] !== undefined) {
+					op.push({ name: '$task', id: id });
 				} else {
 					// not found
 					self.throw500('Schema "{0}" does not contain "{1}" operation.'.format(schema.name, id));
