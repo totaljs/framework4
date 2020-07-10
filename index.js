@@ -15121,17 +15121,14 @@ function extend_response(PROTO) {
 			return $image_nocache(res);
 
 		var req = this.req;
-		!req.$key && (req.$key = createTemporaryKey(req));
 
-		if (F.temporary.notfound[req.$key]) {
-			DEBUG && (F.temporary.notfound[req.$key] = undefined);
-			if (!F.routes.filesfallback || !F.routes.filesfallback(req, res))
-				res.throw404();
-			return res;
-		}
+		if (!req.$key)
+			req.$key = createTemporaryKey(req, 'timg_');
 
-		var key = req.$key || createTemporaryKey(req);
+		var key = req.$key;
+
 		if (F.temporary.notfound[key]) {
+			DEBUG && (F.temporary.notfound[key] = undefined);
 			if (!F.routes.filesfallback || !F.routes.filesfallback(req, res))
 				res.throw404();
 			return res;
@@ -15147,7 +15144,7 @@ function extend_response(PROTO) {
 			return res;
 		}
 
-		if (F.temporary.processing[req.$key]) {
+		if (F.temporary.processing[key]) {
 			if (req.processing > CONF.default_request_timeout) {
 				res.throw408();
 			} else {
@@ -15158,7 +15155,6 @@ function extend_response(PROTO) {
 		}
 
 		var plus = F.clusterid;
-
 		options.name = PATH.temp(plus + key);
 
 		if (options.persistent) {
@@ -15693,8 +15689,8 @@ function fsStreamRead(filename, options, callback, res) {
  * @param {ServerRequest or String} req
  * @return {String}
  */
-function createTemporaryKey(req) {
-	return (req.uri ? req.uri.pathname : req).replace(REG_TEMPORARY, '-').substring(1);
+function createTemporaryKey(req, plus) {
+	return (plus || '') + (req.uri ? req.uri.pathname : req).replace(REG_TEMPORARY, '_').substring(1);
 }
 
 F.createTemporaryKey = createTemporaryKey;
