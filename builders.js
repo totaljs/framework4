@@ -259,6 +259,10 @@ SchemaOptionsProto.redirect = function(url) {
 	return this;
 };
 
+TaskBuilderProto.clean = function() {
+	return this.value && this.value.$clean ? this.value.$clean() : this.value;
+};
+
 SchemaOptionsProto.clean = function() {
 	return this.model.$clean();
 };
