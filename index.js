@@ -615,6 +615,15 @@ global.$GET = global.$READ = function(schema, options, callback, controller) {
 	return !!o;
 };
 
+global.$TASK = function(schema, name, options, callback, controller) {
+	var o = framework_builders.getschema(schema);
+	if (o)
+		o.task2(name, options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
 global.$WORKFLOW = function(schema, name, options, callback, controller) {
 	var o = framework_builders.getschema(schema);
 	if (o)

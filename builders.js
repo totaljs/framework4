@@ -641,6 +641,7 @@ SchemaBuilderEntityProto.inherit = function(name) {
 		copy_inherit(self, 'schema', schema.schema);
 		copy_inherit(self, 'meta', schema.meta);
 		copy_inherit(self, 'transforms', schema.transforms);
+		copy_inherit(self, 'tasks', schema.tasks);
 		copy_inherit(self, 'workflows', schema.workflows);
 		copy_inherit(self, 'hooks', schema.hooks);
 		copy_inherit(self, 'operations', schema.operations);
@@ -1222,6 +1223,27 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
 };
 
 /**
+ * Add a new Task
+ * @param {String} name Transform name, optional.
+ * @param {Function(errorBuilder, model, helper, next([output]), controller)} fn
+ * @param {String} description Optional.
+ * @return {SchemaBuilderEntity}
+ */
+SchemaBuilderEntityProto.addTask = function(name, task, filter) {
+
+
+	var fn = function($) {
+		TASK(task, $.callback, $).value = $.model;
+	};
+
+	!this.tasks && (this.tasks = {});
+	this.tasks[name] = fn;
+	this.meta['task_' + name] = 1;
+	this.meta['taskfilter_' + name] = filter;
+	return this;
+};
+
+/**
  * Add a new transformation for the entity
  * @param {String} name Transform name, optional.
  * @param {Function(errorBuilder, model, helper, next([output]), controller)} fn
@@ -1317,6 +1339,7 @@ SchemaBuilderEntityProto.destroy = function() {
 	delete this.workflows;
 	delete this.operations;
 	delete this.transforms;
+	delete this.actions;
 	delete this.meta;
 	delete this.properties;
 	delete this.hooks;
@@ -2439,16 +2462,22 @@ SchemaBuilderEntityProto.$process_hook = function(model, type, name, builder, re
 	return self;
 };
 
-/**
- * Run a workflow
- * @param {String} name
- * @param {Object} model
- * @param {Object} options Custom options object, optional.
- * @param {Function(errorBuilder, output, model)} callback
- * @param {Boolean} skip Skips preparing and validation, optional.
- * @param {Object} controller Optional
- * @return {SchemaBuilderEntity}
- */
+SchemaBuilderEntityProto.task = function(name, model, options, callback, skip, controller) {
+	return this.$execute('task', name, model, options, callback, skip, controller);
+};
+
+SchemaBuilderEntityProto.task2 = function(name, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = undefined;
+	}
+
+	!callback && (callback = function(){});
+	return this.task(name, this.create(), options, callback, true, controller);
+};
+
 SchemaBuilderEntityProto.workflow = function(name, model, options, callback, skip, controller) {
 	return this.$execute('workflow', name, model, options, callback, skip, controller);
 };
@@ -3018,7 +3047,6 @@ SchemaInstance.prototype.$push = function(type, name, helper, first, async, call
 				a.callback(err, a.response);
 			}, self.$$controller);
 		};
-
 	} else if (PUSHTYPE2[type]) {
 		fn = function(next, indexer) {
 			self.$$schema[type](helper, function(err, result) {
@@ -3051,7 +3079,7 @@ SchemaInstance.prototype.$push = function(type, name, helper, first, async, call
 
 	var a = self.$$async;
 	var obj = { fn: fn, async: async, index: a.length };
-	var key = type === 'workflow' || type === 'transform' || type === 'hook' ? (type + '.' + name) : type;
+	var key = type === 'task' || type === 'workflow' || type === 'transform' || type === 'hook' ? (type + '.' + name) : type;
 
 	if (first) {
 		a.fn.unshift(obj);
@@ -3066,25 +3094,6 @@ SchemaInstance.prototype.$push = function(type, name, helper, first, async, call
 
 SchemaInstance.prototype.$next = function(type, name, helper, async) {
 	return this.$push(type, name, helper, true, async);
-};
-
-SchemaInstance.prototype.$exec = function(name, helper, callback) {
-
-	if (typeof(helper) === 'function') {
-		callback = helper;
-		helper = undefined;
-	}
-
-	var group = this.$$schema.parent.name;
-	var key = group !== 'default' ? group + '/' + this.$$schema.name : this.$$schema.name;
-	var workflow = F.workflows[key + '#' + name] || F.workflows[name];
-
-	if (workflow)
-		workflow(this, helper, callback || NOOP);
-	else
-		callback && callback(new ErrorBuilder().push('Workflow "' + name + '" not found in workflows.'));
-
-	return this;
 };
 
 SchemaInstance.prototype.$controller = function(controller) {
@@ -3257,6 +3266,28 @@ SchemaInstance.prototype.$transform = function(name, helper, callback, async) {
 
 	} else
 		this.$$schema.transform(name, this, helper, callback, undefined, this.$$controller);
+
+	return this;
+};
+
+SchemaInstance.prototype.$task = function(name, helper, callback, async) {
+
+	if (this.$$async && !this.$$async.running) {
+
+		if (typeof(helper) === 'function') {
+			async = callback;
+			callback = helper;
+			helper = null;
+		} else if (callback === true) {
+			var a = async;
+			async = true;
+			callback = a;
+		}
+
+		this.$push('task', name, helper, null, async, callback);
+
+	} else
+		this.$$schema.task(name, this, helper, callback, undefined, this.$$controller);
 
 	return this;
 };
