@@ -15123,7 +15123,7 @@ function extend_response(PROTO) {
 		var req = this.req;
 
 		if (!req.$key)
-			req.$key = createTemporaryKey(req, 'timg_');
+			req.$key = createTemporaryKey(req);
 
 		var key = req.$key;
 
@@ -15155,7 +15155,7 @@ function extend_response(PROTO) {
 		}
 
 		var plus = F.clusterid;
-		options.name = PATH.temp(plus + key);
+		options.name = PATH.temp((options.persistent ? 'timg_' : '') + plus + key);
 
 		if (options.persistent) {
 			fsFileExists(options.name, $image_persistent, res);
@@ -15689,8 +15689,8 @@ function fsStreamRead(filename, options, callback, res) {
  * @param {ServerRequest or String} req
  * @return {String}
  */
-function createTemporaryKey(req, plus) {
-	return (plus || '') + (req.uri ? req.uri.pathname : req).replace(REG_TEMPORARY, '_').substring(1);
+function createTemporaryKey(req) {
+	return (req.uri ? req.uri.pathname : req).replace(REG_TEMPORARY, '_').substring(1);
 }
 
 F.createTemporaryKey = createTemporaryKey;

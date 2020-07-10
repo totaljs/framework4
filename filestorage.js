@@ -515,6 +515,7 @@ FP.res = function(res, options, checkcustom) {
 				if (options.image) {
 					res.options.make = options.make;
 					res.options.cache = options.cache !== false;
+					res.options.persistent = false;
 					res.$image();
 				} else {
 					res.options.compress = options.nocompress ? false : true;
