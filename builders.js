@@ -529,8 +529,8 @@ function runmiddleware(opt, schema, callback, index, processor) {
 
 	var fn = schema.middlewares[index];
 
-	if (fn == null) {
-		callback.call(schema, opt);
+	if (!fn) {
+		callback.call(schema, opt, opt.model);
 		return;
 	}
 
@@ -730,72 +730,6 @@ function copy_inherit(schema, field, value) {
 SchemaBuilderEntityProto.setPrimary = function(name) {
 	this.primary = name;
 	return this;
-};
-
-/**
- * Filters current names of the schema via custom attribute
- * @param {Number/String} custom
- * @param {Object} model Optional
- * @param {Boolean} reverse Reverse results.
- * @return {Array|Object} Returns Array (with property names) if the model is undefined otherwise returns Object Name/Value.
- */
-SchemaBuilderEntityProto.filter = function(custom, model, reverse) {
-
-	if (typeof(model) === 'boolean') {
-		var tmp = reverse;
-		reverse = model;
-		model = tmp;
-	}
-
-	var output = model === undefined ? [] : {};
-	var type = typeof(custom);
-	var isSearch = type === 'string' ? custom[0] === '*' || custom[0] === '%' : false;
-	var isReg = false;
-
-	if (isSearch)
-		custom = custom.substring(1);
-	else if (type === 'object')
-		isReg = framework_utils.isRegExp(custom);
-
-	for (var prop in this.schema) {
-
-		var schema = this.schema[prop];
-		if (!schema)
-			continue;
-
-		var tv = typeof(schema.custom);
-
-		if (isSearch) {
-			if (tv === 'string') {
-				if (schema.custom.indexOf(custom) === -1) {
-					if (!reverse)
-						continue;
-				} else if (reverse)
-					continue;
-			} else
-				continue;
-		} else if (isReg) {
-			if (tv === 'string') {
-				if (!custom.test(schema.current)) {
-					if (!reverse)
-						continue;
-				} else if (reverse)
-					continue;
-			} else
-				continue;
-		} else if (schema.custom !== custom) {
-			if (!reverse)
-				continue;
-		} else if (reverse)
-			continue;
-
-		if (model === undefined)
-			output.push(prop);
-		else
-			output[prop] = model[prop];
-	}
-
-	return output;
 };
 
 function parseLength(lower, result) {
@@ -1468,7 +1402,7 @@ SchemaBuilderEntityProto.execute = function(TYPE, model, options, callback, cont
 		if (self.middlewares && self.middlewares.length)
 			runmiddleware(opt, self, self[TYPE]);
 		else
-			self[TYPE](opt);
+			self[TYPE](opt, opt.model);
 
 	}, controller ? controller.req : null);
 
@@ -1520,7 +1454,7 @@ SchemaBuilderEntityProto.get = SchemaBuilderEntityProto.read = function(options,
 	if (self.middlewares && self.middlewares.length)
 		runmiddleware(opt, self, self.onGet);
 	else
-		self.onGet(opt);
+		self.onGet(opt, opt.model);
 
 	return self;
 };
@@ -1568,7 +1502,7 @@ SchemaBuilderEntityProto.remove = function(options, callback, controller) {
 	if (self.middlewares && self.middlewares.length)
 		runmiddleware(opt, self, self.onRemove);
 	else
-		self.onRemove(opt);
+		self.onRemove(opt, opt.model);
 
 	return self;
 };
@@ -1613,7 +1547,7 @@ SchemaBuilderEntityProto.query = function(options, callback, controller) {
 	if (self.middlewares && self.middlewares.length)
 		runmiddleware(opt, self, self.onQuery);
 	else
-		self.onQuery(opt);
+		self.onQuery(opt, opt.model);
 
 	return self;
 };
@@ -2566,7 +2500,7 @@ SchemaBuilderEntityProto.hook = function(name, model, options, callback, skip, c
 			if (self.middlewares && self.middlewares.length)
 				runmiddleware(opt, self, item.fn);
 			else
-				item.fn.call(self, opt);
+				item.fn.call(self, opt, opt.model);
 
 		}, function() {
 			CONF.logger && F.ilogger(self.getLoggerName($type, name), controller, $now);
@@ -2681,7 +2615,7 @@ SchemaBuilderEntityProto.$execute = function(type, name, model, options, callbac
 		if (self.middlewares && self.middlewares.length)
 			runmiddleware(opt, self, item);
 		else
-			item.call(self, opt);
+			item.call(self, opt, opt.model);
 
 		return self;
 	}
@@ -2711,7 +2645,7 @@ SchemaBuilderEntityProto.$execute = function(type, name, model, options, callbac
 		if (self.middlewares && self.middlewares.length)
 			runmiddleware(opt, self, item);
 		else
-			item.call(self, opt);
+			item.call(self, opt, opt.model);
 
 	}, controller ? controller.req : null);
 
@@ -5097,7 +5031,7 @@ global.OPERATION = function(name, value, callback, param, controller) {
 			}
 			return self;
 		};
-		fn(self);
+		fn(self, self.value);
 	} else {
 		error.push('Operation "{0}" not found.'.format(name));
 		callback && callback(error, EMPTYOBJECT, param);
@@ -5753,10 +5687,8 @@ TaskBuilderProto.next = function() {
 		for (var i = 0; i < arguments.length; i++) {
 			self.current = arguments[i];
 			var task = self.tasks[self.current] || (self.taskname ? tasks[self.taskname] && tasks[self.taskname][self.current] : null);
-			if (task == null)
-				continue;
-			else {
-				task.call(self, self);
+			if (task) {
+				task.call(self, self, self.value);
 				return self;
 			}
 		}
