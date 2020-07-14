@@ -128,7 +128,7 @@ function Database(type, name, fork, onetime, schema) {
 				if (b)
 					b.$callback2 = builder.$callback;
 			} else
-				t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$callback;
+				t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : builder.$callback;
 		}
 	};
 
@@ -498,7 +498,7 @@ DB.callback = function(callback, err) {
 DB.callbackerror = function() {
 	var self = this;
 	return function(err, response) {
-		if (response == null || (response instanceof Array && !response.length))
+		if (response == null || response === 0 || (response instanceof Array && !response.length))
 			err = self.$error;
 		self.$callback && self.$callback(err, response);
 	};
