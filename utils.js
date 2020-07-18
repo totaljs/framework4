@@ -71,7 +71,6 @@ const regexpCHARS = /\W|_/g;
 const regexpCHINA = /[\u3400-\u9FBF]/;
 const regexpLINES = /\n|\r|\r\n/;
 const regexpBASE64 = /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
-const SOUNDEX = { a: '', e: '', i: '', o: '', u: '', b: 1, f: 1, p: 1, v: 1, c: 2, g: 2, j: 2, k: 2, q: 2, s: 2, x: 2, z: 2, d: 3, t: 3, l: 4, m: 5, n: 5, r: 6 };
 const ENCODING = 'utf8';
 const NEWLINE = '\r\n';
 const isWindows = require('os').platform().substring(0, 3).toLowerCase() === 'win';
@@ -361,7 +360,6 @@ exports.keywords = function(content, forSearch, alternative, max_count, max_leng
 	max_length = max_length || 20;
 
 	var words = [];
-	var isSoundex = alternative === 'soundex';
 
 	if (content instanceof Array) {
 		for (var i = 0, length = content.length; i < length; i++) {
@@ -413,13 +411,9 @@ exports.keywords = function(content, forSearch, alternative, max_count, max_leng
 
 		// Gets 80% length of word
 		if (alternative) {
-			if (isSoundex)
-				word = word.soundex();
-			else {
-				var size = (word.length / 100) * 80;
-				if (size > min_length + 1)
-					word = word.substring(0, size);
-			}
+			var size = (word.length / 100) * 80;
+			if (size > min_length + 1)
+				word = word.substring(0, size);
 		}
 
 		if (word.length < min_length || word.length > max_length)
@@ -4076,26 +4070,6 @@ SP.pluralize = function(zero, one, few, other) {
 SP.isBoolean = function() {
 	var self = this.toLowerCase();
 	return (self === 'true' || self === 'false') ? true : false;
-};
-
-SP.soundex = function() {
-
-	var arr = this.toLowerCase().split('');
-	var first = arr.shift();
-	var builder = first.toUpperCase();
-
-	for (var i = 0, length = arr.length; i < length; i++) {
-		var v = SOUNDEX[arr[i]];
-		if (v === undefined)
-			continue;
-		if (i) {
-			if (v !== arr[i - 1])
-				builder += v;
-		} else if (v !== SOUNDEX[first])
-			builder += v;
-	}
-
-	return (builder + '000').substring(0, 4);
 };
 
 /**
