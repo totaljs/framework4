@@ -857,7 +857,7 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 		return result;
 	}
 
-	if (value.indexOf(',') !== -1) {
+	if (value.indexOf(':') !== -1 || value.indexOf(',') !== -1) {
 		// multiple
 		result.type = 12;
 		return result;
@@ -5442,7 +5442,7 @@ global.CONVERT = function(value, schema) {
 function convertorcompile(schema, data, key) {
 	var prop = schema.split(',');
 	var cache = [];
-	for (var i = 0, length = prop.length; i < length; i++) {
+	for (var i = 0; i < prop.length; i++) {
 		var arr = prop[i].split(':');
 		var obj = {};
 
@@ -5575,6 +5575,7 @@ function convertorcompile(schema, data, key) {
 		}
 		return output;
 	};
+
 	F.convertors[key] = fn;
 	return fn(data);
 }

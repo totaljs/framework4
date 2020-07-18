@@ -4299,7 +4299,7 @@ NP.discount = function(percentage, decimals) {
 	var num = this;
 	if (decimals === undefined)
 		decimals = 2;
-	return (num - (num / 100) * percentage).floor(decimals);
+	return !num || !percentage ? num : (num - (num / 100) * percentage).floor(decimals);
 };
 
 NP.parseDate = function(plus) {
