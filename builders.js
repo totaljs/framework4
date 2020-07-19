@@ -1999,10 +1999,12 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 	var has = builder.is;
 	has && self.onError && self.onError(builder, model, type, name);
 
-	if (response !== NoOp)
-		callback(has ? builder : null, response === undefined ? model : response, model);
-	else
-		callback = null;
+	if (callback) {
+		if (response !== NoOp)
+			callback(has ? builder : null, response === undefined ? model : response, model);
+		else
+			callback = null;
+	}
 
 	return self;
 };
@@ -2125,6 +2127,9 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 		$.controller.$filterschema = opfilter;
 		$.controller.$filter = null;
 	}
+
+	if (!$.model)
+		$.model = {};
 
 	if (noprepare || $.model instanceof SchemaValue) {
 		if (nomiddleware || !self.middlewares || !self.middlewares.length)
