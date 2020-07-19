@@ -1778,10 +1778,10 @@ function validate_builder_default(name, value, entity) {
 	return true;
 }
 
-exports.validate_builder = function(model, error, schema, path, index, fields, pluspath) {
+exports.validate_builder = function(model, error, schema, path, index, $, pluspath) {
 
 	var current = path ? path + '.' : '';
-	var properties = model && model.$$keys ? model.$$keys : schema.properties;
+	var properties = $ ? ($.keys || schema.properties) : schema.properties;
 	var result;
 
 	if (!pluspath)
@@ -1793,10 +1793,6 @@ exports.validate_builder = function(model, error, schema, path, index, fields, p
 	for (var i = 0; i < properties.length; i++) {
 
 		var name = properties[i];
-
-		if (fields && fields.indexOf(name) === -1)
-			continue;
-
 		var TYPE = schema.schema[name];
 		if (!TYPE)
 			continue;

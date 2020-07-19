@@ -571,33 +571,19 @@ global.$CREATE = function(schema) {
 	return o ? o.default() : null;
 };
 
-global.$MAKE = function(schema, model, filter, callback, novalidate, argument) {
-
+global.$MAKE = function(schema, model, callback, novalidate, arg, controller) {
 	var o = framework_builders.getschema(schema);
-	var w = null;
-
-	if (typeof(filter) === 'function') {
-		var tmp = callback;
-		callback = filter;
-		filter = tmp;
-	}
-
-	if (filter instanceof Array) {
-		w = {};
-		for (var i = 0; i < filter.length; i++)
-			w[filter[i]] = i + 1;
-		filter = null;
-	} else if (filter instanceof Object) {
-		if (!(filter instanceof RegExp)) {
-			filter = null;
-			w = filter;
-		}
-	}
-
-	return o ? o.make(model, filter, callback, argument, novalidate, w) : undefined;
+	return o ? o.make(model, callback, arg, novalidate, controller) : undefined;
 };
 
 global.$QUERY = function(schema, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = null;
+	}
+
 	var o = framework_builders.getschema(schema);
 	if (o)
 		o.query(options, callback, controller);
@@ -609,7 +595,7 @@ global.$QUERY = function(schema, options, callback, controller) {
 global.$GET = global.$READ = function(schema, options, callback, controller) {
 	var o = framework_builders.getschema(schema);
 	if (o)
-		o.get(options, callback, controller);
+		o.read(options, callback, controller);
 	else
 		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
 	return !!o;
@@ -627,16 +613,7 @@ global.$TASK = function(schema, name, options, callback, controller) {
 global.$WORKFLOW = function(schema, name, options, callback, controller) {
 	var o = framework_builders.getschema(schema);
 	if (o)
-		o.workflow2(name, options, callback, controller);
-	else
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-	return !!o;
-};
-
-global.$TRANSFORM = function(schema, name, options, callback, controller) {
-	var o = framework_builders.getschema(schema);
-	if (o)
-		o.transform2(name, options, callback, controller);
+		o.workflow(name, null, options, callback, controller, true);
 	else
 		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
 	return !!o;
@@ -655,33 +632,34 @@ global.$REMOVE = function(schema, options, callback, controller) {
 		o.remove(options, callback, controller);
 	else
 		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+
 	return !!o;
 };
 
-global.$SAVE = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$save', schema, model, options, callback, controller, novalidate);
+global.$SAVE = function(schema, model, options, callback, controller, noprepare) {
+	return performschema('Save', schema, model, options, callback, controller, noprepare);
 };
 
-global.$INSERT = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$insert', schema, model, options, callback, controller, novalidate);
+global.$INSERT = function(schema, model, options, callback, controller, noprepare) {
+	return performschema('Insert', schema, model, options, callback, controller, noprepare);
 };
 
-global.$UPDATE = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$update', schema, model, options, callback, controller, novalidate);
+global.$UPDATE = function(schema, model, options, callback, controller, noprepare) {
+	return performschema('Update', schema, model, options, callback, controller, noprepare);
 };
 
-global.$PATCH = function(schema, model, options, callback, controller, novalidate) {
-	return performschema('$patch', schema, model, options, callback, controller, novalidate);
+global.$PATCH = function(schema, model, options, callback, controller, noprepare) {
+	return performschema('Patch', schema, model, options, callback, controller, noprepare);
 };
 
 // type, schema, model, options, callback, controller
-function performschema(type, schema, model, options, callback, controller, novalidate) {
+function performschema(type, schema, model, opt, callback, controller, noprepare) {
 
-	if (typeof(options) === 'function') {
-		novalidate = controller;
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
 		controller = callback;
-		callback = options;
-		options = null;
+		callback = opt;
+		opt = null;
 	}
 
 	var o = framework_builders.getschema(schema);
@@ -691,51 +669,25 @@ function performschema(type, schema, model, options, callback, controller, noval
 		return false;
 	}
 
-	var workflow = {};
-	workflow[type.substring(1)] = 1;
-
-	var req = controller ? controller.req : null;
-	var keys;
-
-	if (type === '$patch') {
-		keys = Object.keys(model);
-		if (req)
-			req.$patch = true;
-		else
-			req = { $patch: true };
-	}
-
-	o.make(model, null, function(err, model) {
-		if (err) {
-			callback && callback(err);
-		} else {
-			model.$$keys = keys;
-			model.$$controller = controller;
-			model[type](options, callback);
-			if (req && req.$patch && req.method && req.method !== 'PATCH')
-				delete req.$patch;
-		}
-	}, null, novalidate, workflow, req);
-
+	o.exec(type, null, model, opt, controller, callback, noprepare);
 	return !!o;
 }
 
-global.$ASYNC = function(schema, callback, index, controller) {
+global.$ASYNC = function(schema, model, callback, index, controller) {
 
 	if (index && typeof(index) === 'object') {
 		controller = index;
 		index = undefined;
 	}
 
-	var o = framework_builders.getschema(schema).default();
+	var o = framework_builders.getschema(schema);
 
 	if (!o) {
 		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
 		return EMPTYOBJECT;
 	}
 
-	controller && (o.$$controller = controller);
-	return o.$async(callback, index);
+	return o.async(model, callback, index, controller);
 };
 
 // GET Users/Neviem  --> @query @workflow
@@ -795,15 +747,10 @@ global.$ACTION = function(schema, model, callback, controller) {
 			}
 
 			tmp.name = item;
-			tmp.name2 = '$' + tmp.name;
 
 			if (!o.meta[item]) {
 				if (o.meta['workflow_' + item])
 					tmp.type = '$workflow';
-				else if (o.meta['transform_' + item])
-					tmp.type = '$transform';
-				else if (o.meta['hook_' + item])
-					tmp.type = '$hook';
 				else if (o.meta['task_' + item])
 					tmp.type = '$task';
 				else {
@@ -837,7 +784,7 @@ global.$ACTION = function(schema, model, callback, controller) {
 		data.meta = meta;
 		data.callback = callback;
 		data.controller = controller;
-
+		// @TODO: FIXED .make() arguments
 		meta.schema.make(model, null, performsschemaaction_async, data, null, null, req);
 	} else
 		performsschemaaction(meta, null, callback, controller);
@@ -852,38 +799,16 @@ function performsschemaaction_async(err, response, data) {
 }
 
 function performsschemaaction(meta, model, callback, controller) {
-
 	if (meta.multiple) {
-
-		if (!model)
-			model = meta.schema.default();
-
-		model.$$controller = controller;
-		var async = model.$async(callback, meta.opcallbackindex === - 1 ? null : meta.opcallbackindex);
-
-		for (var i = 0; i < meta.op.length; i++) {
-			var op = meta.op[i];
-			if (op.type)
-				async[op.type](op.name);
-			else
-				async[op.name2]();
-		}
-
+		var add = meta.schema.async(model, callback, meta.opcallbackindex, controller);
+		for (var i = 0; i < meta.op.length; i++)
+			add(op.name);
 	} else {
-
 		var op = meta.op[0];
-		if (model) {
-			model.$$controller = controller;
-			if (op.type)
-				model[op.type](op.name, EMPTYOBJECT, callback);
-			else
-				model[op.name2](EMPTYOBJECT, callback);
-		} else {
-			if (op.type)
-				meta.schema[op.type2 + '2'](op.name, EMPTYOBJECT, callback, controller);
-			else
-				meta.schema[op.name](EMPTYOBJECT, callback, controller);
-		}
+		if (op.type)
+			op.schema.exec(op.type, op.name, model, EMPTYOBJECT, controller, callback, !meta.validate);
+		else
+			op.schema.exec(op.name, null, model, EMPTYOBJECT, controller, callback, !meta.validate);
 	}
 }
 
@@ -2523,14 +2448,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 						controller_json_workflow_multiple.call(self, id);
 					else
 						controller_json_workflow.call(self, id);
-				} else {
-					this.$exec(this.route.workflow, null, function(err, response) {
-						if (err)
-							self.content(err);
-						else
-							self.view(name, response);
-					});
-				}
+				} else
+					this.throw500('Invalid schema operation');
 			};
 		})(viewname, sitemap, language, workflow);
 	} else if (typeof(funcExecute) !== 'function') {
@@ -2568,14 +2487,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 							controller_json_workflow_multiple.call(self, id);
 						else
 							controller_json_workflow.call(self, id);
-					} else {
-						self.$exec(self.route.workflow, null, function(err, response) {
-							if (err)
-								self.content(err);
-							else
-								self.view(name, response);
-						});
-					}
+					} else
+						self.throw500('Invalid schema operation');
 				};
 			})(viewname, sitemap, language);
 		} else if (workflow)
@@ -4590,11 +4503,13 @@ DEF.onSchema = function(req, route, callback) {
 		schema = GETSCHEMA(req.$schemaname);
 	}
 
-	if (req.method === 'PATCH')
-		req.$patch = true;
+	var $ = {};
+
+	if (req.method === 'PATCH' && req.body)
+		req.keys = $.keys = Object.keys(req.body);
 
 	if (schema)
-		schema.make(req.body, route.schema[2], onSchema_callback, callback, route.novalidate, route.workflow ? route.workflow.meta : null, req);
+		schema.make(req.body, onSchema_callback, callback, route.novalidate, $);
 	else
 		callback('Schema "' + req.$schemaname + '" not found.');
 };
@@ -9481,22 +9396,22 @@ ControllerProto.mail = function(address, subject, view, model, callback) {
 	return message;
 };
 
-ControllerProto.$get = ControllerProto.$read = function(helper, callback) {
+ControllerProto.$get = ControllerProto.$read = function(options, callback) {
 
-	if (callback == null && typeof(helper) === 'function') {
-		callback = helper;
-		helper = null;
+	if (typeof(options) === 'function') {
+		callback = options;
+		options = EMPTYOBJECT;
 	}
 
-	this.getSchema().get(helper, callback, this);
+	this.getSchema().read(options, callback, this);
 	return this;
 };
 
 ControllerProto.$query = function(options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	this.getSchema().query(options, callback, this);
@@ -9505,85 +9420,56 @@ ControllerProto.$query = function(options, callback) {
 
 ControllerProto.$save = function(options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$save(options, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$save(options, callback);
-	}
+	self.getSchema().save(self.body, options, callback, self);
 	return self;
 };
 
 ControllerProto.$insert = function(options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$insert(options, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$insert(options, callback);
-	}
+	self.getSchema().insert(self.body, options, callback, self);
 	return self;
 };
 
 ControllerProto.$update = function(options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$update(options, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$update(options, callback);
-	}
+	self.getSchema().update(self.body, options, callback, self);
 	return self;
 };
 
 ControllerProto.$patch = function(options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$patch(options, callback);
-	} else {
-		var model = self.getSchema().default();
-		model.$$controller = self;
-		model.$patch(options, callback);
-	}
+	self.getSchema().patch(self.body, options, callback, self);
 	return self;
 };
 
 ControllerProto.$remove = function(options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	var self = this;
@@ -9592,26 +9478,26 @@ ControllerProto.$remove = function(options, callback) {
 };
 
 ControllerProto.$workflow = function(name, options, callback) {
-	var self = this;
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$workflow(name, options, callback);
-	} else
-		self.getSchema().workflow2(name, options, callback, self);
+	var self = this;
+	var schema = self.getSchema();
+	if (self.body !== EMPTYOBJECT)
+		schema.workflow(name, self.body, options, callback, self);
+	else
+		schema.workflow2(name, options, callback, self);
 	return self;
 };
 
 ControllerProto.$workflow2 = function(name, options, callback) {
 
-	if (callback == null && typeof(options) === 'function') {
+	if (typeof(options) === 'function') {
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	var self = this;
@@ -9619,112 +9505,30 @@ ControllerProto.$workflow2 = function(name, options, callback) {
 	return self;
 };
 
-ControllerProto.$hook = function(name, options, callback) {
-	var self = this;
-
-	if (callback == null && typeof(options) === 'function') {
-		callback = options;
-		options = EMPTYOBJECT;
-	}
-
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$hook(name, options, callback);
-	} else
-		self.getSchema().hook2(name, options, callback, self);
-
-	return self;
-};
-
-ControllerProto.$hook2 = function(name, options, callback) {
-
-	if (callback == null && typeof(options) === 'function') {
-		callback = options;
-		options = EMPTYOBJECT;
-	}
-
-	var self = this;
-	self.getSchema().hook2(name, options, callback, self);
-	return self;
-};
-
-ControllerProto.$transform = function(name, options, callback) {
-
-	if (callback == null && typeof(options) === 'function') {
-		callback = options;
-		options = EMPTYOBJECT;
-	}
-
-	var self = this;
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$transform(name, options, callback);
-	} else
-		self.getSchema().transform2(name, options, callback, self);
-	return self;
-};
-
-ControllerProto.$transform2 = function(name, options, callback) {
-
-	if (callback == null && typeof(options) === 'function') {
-		callback = options;
-		options = EMPTYOBJECT;
-	}
-
-	var self = this;
-	self.getSchema().transform2(name, options, callback, self);
-	return self;
-};
-
-ControllerProto.$exec = function(name, options, callback) {
-	var self = this;
-
-	if (callback == null && typeof(options) === 'function') {
-		callback = options;
-		options = EMPTYOBJECT;
-	}
-
-	if (callback == null)
-		callback = self.callback();
-
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		self.body.$exec(name, options, callback);
-		return self;
-	}
-
-	var tmp = self.getSchema().create();
-	tmp.$$controller = self;
-	tmp.$exec(name, options, callback);
-	return self;
-};
-
 ControllerProto.$async = function(callback, index) {
 	var self = this;
-
-	if (self.body && self.body.$$schema) {
-		self.body.$$controller = self;
-		return self.body.$async(callback, index);
-	}
-
-	var model = self.getSchema().default();
-	model.$$controller = self;
-	return model.$async(callback, index);
+	return self.getSchema().async(self.body, callback, index, self);
 };
 
 ControllerProto.getSchema = function() {
 	var self = this;
 	var route = self.route;
 	if (!route.schema || !route.schema[1])
-		throw new Error('The controller\'s route does not define any schema.');
-
+		throw new Error('The controller\'s route does not defined any schema.');
 	var schemaname = self.req.$schemaname;
 	if (!schema)
 		schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
 
+	var key = 'schema_' + schemaname;
+	if (F.temporary[key])
+		return F.temporary[key];
+
 	var schema = route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
-	if (schema)
+	if (schema) {
+		F.temporary[key] = schema;
 		return schema;
+	}
+
 	throw new Error('Schema "{0}" does not exist.'.format(route.schema[1]));
 };
 
@@ -13933,10 +13737,6 @@ function extend_request(PROTO) {
 		}
 
 		route.isDELAY && res.writeContinue();
-
-		if (this.$total_schema)
-			this.body.$$controller = controller;
-
 		if (route.middleware)
 			async_middleware(0, this, res, route.middleware, subscribe_timeout_middleware, route.options, controller);
 		else
@@ -16150,71 +15950,49 @@ function controller_json_workflow(id) {
 	var w = self.route.workflow;
 
 	self.id = self.route.paramidindex === -1 ? id : self.req.split[self.route.paramidindex];
-
 	CONF.logger && (self.req.$logger = []);
 
-	if (w instanceof Object) {
+	if (!w.type) {
 
-		if (!w.type) {
-
-			// IS IT AN OPERATION?
-			if (!self.route.schema.length) {
-				OPERATION(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
-				return;
-			}
-
-			var schemaname = self.req.$schemaname;
-			if (!schemaname)
-				schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
-
-			var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
-			if (!schema) {
-				var err = 'Schema "{0}" not found.'.format(schemaname);
-				if (self.route.isDYNAMICSCHEMA)
-					self.throw404(err);
-				else
-					self.throw500(err);
-				return;
-			}
-
-			if (schema.meta[w.id] !== undefined) {
-				w.type = '$' + w.id;
-			} else if (schema.meta['workflow_' + w.id] !== undefined) {
-				w.type = '$workflow';
-				w.name = w.id;
-			} else if (schema.meta['transform_' + w.id] !== undefined) {
-				w.type = '$transform';
-				w.name = w.id;
-			} else if (schema.meta['hook_' + w.id] !== undefined) {
-				w.type = '$hook';
-				w.name = w.id;
-			} else if (schema.meta['task_' + w.id] !== undefined) {
-				w.type = '$task';
-				w.name = w.id;
-			}
-
+		// IS IT AN OPERATION?
+		if (!self.route.schema.length) {
+			OPERATION(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
+			return;
 		}
 
-		if (w.name)
-			self[w.type](w.name, self.callback(w.view));
-		else {
+		var schemaname = self.req.$schemaname;
+		if (!schemaname)
+			schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
 
-			if (w.type)
-				self[w.type](self.callback(w.view));
-			else {
-				var err = 'Schema "{0}" does not contain "{1}" operation.'.format(schema.name, w.id);
-				if (self.route.isDYNAMICSCHEMA)
-					self.throw404(err);
-				else
-					self.throw500(err);
-			}
+		var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
+		if (!schema) {
+			var err = 'Schema "{0}" not found.'.format(schemaname);
+			if (self.route.isDYNAMICSCHEMA)
+				self.throw404(err);
+			else
+				self.throw500(err);
+			return;
 		}
 
-		if (self.route.isDYNAMICSCHEMA)
-			w.type = '';
+		if (schema.meta[w.id] !== undefined) {
+			w.type = w.id;
+			w.name = '';
+		} else if (schema.meta['workflow_' + w.id] !== undefined) {
+			w.type = 'workflow';
+			w.name = w.id;
+		} else if (schema.meta['task_' + w.id] !== undefined) {
+			w.type = 'task';
+			w.name = w.id;
+		} else
+			w.type = w.id;
 
-	} else
-		self.$exec(w, null, self.callback(w.view));
+		w.schema = schema;
+	}
+
+	w.schema.exec(w.type, w.name, self.body, EMPTYOBJECT, self, w.view ? self.callback(w.view) : self.callback(), self.body === EMPTYOBJECT);
+
+	if (self.route.isDYNAMICSCHEMA)
+		w.type = '';
 }
 
 // Default action for workflow routing
@@ -16226,57 +16004,23 @@ function controller_json_workflow_multiple(id) {
 	self.id = self.route.paramidindex === -1 ? id : self.req.split[self.route.paramidindex];
 	CONF.logger && (self.req.$logger = []);
 
-	if (w instanceof Object) {
-		if (!w.type) {
+	// IS IT AN OPERATION?
+	if (!self.route.schema.length) {
+		RUN(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), null, self, w.index != null ? w.id[w.index] : null);
+		return;
+	}
 
-			// IS IT AN OPERATION?
-			if (!self.route.schema.length) {
-				RUN(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), null, self, w.index != null ? w.id[w.index] : null);
-				return;
-			}
+	var schemaname = self.req.$schemaname;
+	if (!schemaname)
+		schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + self.route.schema[1];
 
-			var schemaname = self.req.$schemaname;
-			if (!schemaname)
-				schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + self.route.schema[1];
-
-			var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
-			if (!schema) {
-				self.throw500('Schema "{0}" not found.'.format(getSchemaName(self.route.schema, self.isDYNAMICSCHEMA ? self.params : null)));
-				return;
-			}
-
-			var op = [];
-			for (var i = 0; i < w.id.length; i++) {
-				var id = w.id[i];
-				if (schema.meta[id] !== undefined) {
-					op.push({ name: '$' + id });
-				} else if (schema.meta['workflow_' + id] !== undefined) {
-					op.push({ name: '$workflow', id: id });
-				} else if (schema.meta['transform_' + id] !== undefined) {
-					op.push({ name: '$transform', id: id });
-				} else if (schema.meta['hook_' + id] !== undefined) {
-					op.push({ name: '$hook', id: id });
-				} else if (schema.meta['task_' + id] !== undefined) {
-					op.push({ name: '$task', id: id });
-				} else {
-					// not found
-					self.throw500('Schema "{0}" does not contain "{1}" operation.'.format(schema.name, id));
-					return;
-				}
-			}
-			w.async = op;
-		}
-
+	var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
+	if (schema) {
 		var async = self.$async(self.callback(w.view), w.index);
-		for (var i = 0; i < w.async.length; i++) {
-			var a = w.async[i];
-			if (a.id)
-				async[a.name](a.id);
-			else
-				async[a.name]();
-		}
+		for (var i = 0; i < w.id.length; i++)
+			async(w.id[i]);
 	} else
-		self.$exec(w, null, self.callback(w.view));
+		self.throw500('Schema "{0}" not found.'.format(getSchemaName(self.route.schema, self.isDYNAMICSCHEMA ? self.params : null)));
 }
 
 function ilogger(body) {
@@ -16346,7 +16090,6 @@ function evalroutehandleraction(controller) {
 function evalroutehandler(controller) {
 	if (!controller.route.schema || !controller.route.schema[1] || controller.req.method === 'DELETE' || controller.req.method === 'GET')
 		return evalroutehandleraction(controller);
-
 	DEF.onSchema(controller.req, controller.route, function(err, body) {
 		if (err) {
 			controller.$evalroutecallback(err, body);

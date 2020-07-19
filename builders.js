@@ -28,7 +28,6 @@
 
 const REQUIRED = 'The field "@" is invalid.';
 const DEFAULT_SCHEMA = 'default';
-const SKIP = { $$schema: 1, $$async: 1, $$repository: 1, $$controller: 1, $$workflow: 1, $$parent: 1, $$keys: 1 };
 const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
 const hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -41,6 +40,8 @@ var tasks = {};
 var transforms = { pagination: {}, error: {}, restbuilder: {} };
 var restbuilderupgrades = [];
 
+function SchemaValue() {}
+
 function SchemaOptions(error, model, options, callback, controller, name, schema) {
 	this.error = error;
 	this.value = this.model = model;
@@ -49,6 +50,7 @@ function SchemaOptions(error, model, options, callback, controller, name, schema
 	this.controller = (controller instanceof SchemaOptions || controller instanceof OperationOptions) ? controller.controller : controller;
 	this.name = name;
 	this.schema = schema;
+	this.responses = {};
 }
 
 function TaskBuilder($) {
@@ -160,20 +162,12 @@ SchemaOptions.prototype = {
 		return this.controller ? this.controller.session : null;
 	},
 
-	get keys() {
-		return this.model.$$keys;
-	},
-
-	get parent() {
-		return this.model.$$parent;
-	},
-
 	get repo() {
 		if (this.controller)
 			return this.controller.repository;
-		if (!this.model.$$repository)
-			this.model.$$repository = {};
-		return this.model.$$repository;
+		if (!this.$$repository)
+			this.$$repository = {};
+		return this.$$repository;
 	},
 
 	get sessionid() {
@@ -260,75 +254,15 @@ SchemaOptionsProto.redirect = function(url) {
 };
 
 TaskBuilderProto.clean = function() {
-	return this.value && this.value.$clean ? this.value.$clean() : this.value;
+	return this.value;
 };
 
 SchemaOptionsProto.clean = function() {
-	return this.model.$clean();
-};
-
-SchemaOptionsProto.$async = function(callback, index) {
-	return this.model.$async(callback, index);
-};
-
-SchemaOptionsProto.$workflow = function(name, helper, callback, async) {
-	return this.model.$workflow(name, helper, callback, async);
-};
-
-SchemaOptionsProto.$transform = function(name, helper, callback, async) {
-	return this.model.$transform(name, helper, callback, async);
-};
-
-SchemaOptionsProto.$hook = function(name, helper, callback, async) {
-	return this.model.$hook(name, helper, callback, async);
-};
-
-SchemaOptionsProto.$save = function(helper, callback, async) {
-	return this.model.$save(helper, callback, async);
-};
-
-SchemaOptionsProto.$insert = function(helper, callback, async) {
-	return this.model.$insert(helper, callback, async);
-};
-
-SchemaOptionsProto.$update = function(helper, callback, async) {
-	return this.model.$update(helper, callback, async);
-};
-
-SchemaOptionsProto.$patch = function(helper, callback, async) {
-	return this.model.$patch(helper, callback, async);
-};
-
-SchemaOptionsProto.$query = function(helper, callback, async) {
-	return this.model.$query(helper, callback, async);
-};
-
-SchemaOptionsProto.$delete = SchemaOptionsProto.$remove = function(helper, callback, async) {
-	return this.model.$remove(helper, callback, async);
-};
-
-SchemaOptionsProto.$get = SchemaOptionsProto.$read = function(helper, callback, async) {
-	return this.model.$get(helper, callback, async);
-};
-
-SchemaOptionsProto.push = function(type, name, helper, first) {
-	return this.model.$push(type, name, helper, first);
-};
-
-SchemaOptionsProto.next = function(type, name, helper) {
-	return this.model.$next(type, name, helper);
-};
-
-SchemaOptionsProto.output = function() {
-	return this.model.$output();
-};
-
-SchemaOptionsProto.stop = function() {
-	return this.model.$stop();
+	return this.model;
 };
 
 SchemaOptionsProto.response = function(index) {
-	return this.model.$response(index);
+	return this.responses[index];
 };
 
 SchemaOptionsProto.DB = function() {
@@ -398,34 +332,27 @@ SchemaOptionsProto.noop = function() {
 
 function SchemaBuilderEntity(name) {
 	this.name = name;
-	this.primary;
+	// this.primary;
 	this.trim = true;
 	this.schema = {};
 	this.meta = {};
 	this.properties = [];
 	this.inherits = [];
 	this.verifications = null;
-	this.resourcePrefix;
+	// this.resourcePrefix;
 	this.extensions = {};
-	this.resourceName;
-	this.transforms;
-	this.workflows;
-	this.hooks;
-	this.onDefault;
-	this.$onDefault; // Array of functions for inherits
-	this.onSave;
-	this.onInsert;
-	this.onUpdate;
-	this.onGet;
-	this.onRemove;
-	this.onQuery;
-	this.onError;
-	this.dependencies;
-	this.fields;
-	this.fields_allow;
-	this.CurrentSchemaInstance = function(){};
-	this.CurrentSchemaInstance.prototype = new SchemaInstance();
-	this.CurrentSchemaInstance.prototype.$$schema = this;
+	// this.resourceName;
+	// this.workflows;
+	// this.onSave;
+	// this.onInsert;
+	// this.onUpdate;
+	// this.onRead;
+	// this.onRemove;
+	// this.onQuery;
+	// this.onError;
+	// this.dependencies;
+	// this.fields;
+	// this.fields_allow;
 }
 
 const SchemaBuilderEntityProto = SchemaBuilderEntity.prototype;
@@ -644,11 +571,8 @@ SchemaBuilderEntityProto.inherit = function(name) {
 
 		copy_inherit(self, 'schema', schema.schema);
 		copy_inherit(self, 'meta', schema.meta);
-		copy_inherit(self, 'transforms', schema.transforms);
 		copy_inherit(self, 'tasks', schema.tasks);
 		copy_inherit(self, 'workflows', schema.workflows);
-		copy_inherit(self, 'hooks', schema.hooks);
-		copy_inherit(self, 'operations', schema.operations);
 
 		if (schema.middlewares) {
 			self.middlewares = [];
@@ -674,12 +598,6 @@ SchemaBuilderEntityProto.inherit = function(name) {
 			});
 		}
 
-		if (schema.onDefault) {
-			if (!self.$onDefault)
-				self.$onDefault = [];
-			self.$onDefault.push(schema.onDefault);
-		}
-
 		if (!self.onSave && schema.onSave)
 			self.onSave = schema.onSave;
 
@@ -689,8 +607,8 @@ SchemaBuilderEntityProto.inherit = function(name) {
 		if (!self.onUpdate && schema.onUpdate)
 			self.onUpdate = schema.onUpdate;
 
-		if (!self.onGet && schema.onGet)
-			self.onGet = schema.onGet;
+		if (!self.onRead && schema.onRead)
+			self.onRead = schema.onRead;
 
 		if (!self.onRemove && schema.onRemove)
 			self.onRemove = schema.onRemove;
@@ -992,16 +910,6 @@ SchemaBuilderEntityProto.setResource = function(name) {
 };
 
 /**
- * Set the default values for schema
- * @param {Function(propertyName, isntPreparing, entityName)} fn
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.setDefault = function(fn) {
-	this.onDefault = fn;
-	return this;
-};
-
-/**
  * Set save handler
  * @param {Function(error, model, helper, next(value), controller)} fn
  * @return {SchemaBuilderEntity}
@@ -1101,9 +1009,9 @@ SchemaBuilderEntityProto.setError = function(fn) {
  * @return {SchemaBuilderEntity}
  */
 SchemaBuilderEntityProto.setGet = SchemaBuilderEntityProto.setRead = function(fn, filter) {
-	this.onGet = fn;
-	this.meta.get = this.meta.read = 1;
-	this.meta.getfilter = this.meta.readfilter = filter;
+	this.onRead = fn;
+	this.meta.read = this.meta.read = 1;
+	this.meta.readfilter = this.meta.readfilter = filter;
 	return this;
 };
 
@@ -1169,7 +1077,6 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
  */
 SchemaBuilderEntityProto.addTask = function(name, task, filter) {
 
-
 	var fn = function($) {
 		TASK(task, $.callback, $).value = $.model;
 	};
@@ -1178,30 +1085,6 @@ SchemaBuilderEntityProto.addTask = function(name, task, filter) {
 	this.tasks[name] = fn;
 	this.meta['task_' + name] = 1;
 	this.meta['taskfilter_' + name] = filter;
-	return this;
-};
-
-/**
- * Add a new transformation for the entity
- * @param {String} name Transform name, optional.
- * @param {Function(errorBuilder, model, helper, next([output]), controller)} fn
- * @param {String} description Optional.
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.addTransform = function(name, fn, filter) {
-	!this.transforms && (this.transforms = {});
-	this.transforms[name] = fn;
-	this.meta['transform_' + name] = 1;
-	this.meta['transformfilter_' + name] = filter;
-	return this;
-};
-
-SchemaBuilderEntityProto.addTransformExtension = function(name, fn) {
-	var key = 'transform.' + name;
-	if (this.extensions[key])
-		this.extensions[key].push(fn);
-	else
-		this.extensions[key] = [fn];
 	return this;
 };
 
@@ -1229,27 +1112,6 @@ SchemaBuilderEntityProto.addWorkflowExtension = function(name, fn) {
 	return this;
 };
 
-SchemaBuilderEntityProto.addHook = function(name, fn, filter) {
-
-	if (!this.hooks)
-		this.hooks = {};
-
-	!this.hooks[name] && (this.hooks[name] = []);
-	this.hooks[name].push({ owner: F.$owner(), fn: fn });
-	this.meta['hook_' + name] = 1;
-	this.meta['hookfilter_' + name] = filter;
-	return this;
-};
-
-SchemaBuilderEntityProto.addHookExtension = function(name, fn) {
-	var key = 'hook.' + name;
-	if (this.extensions[key])
-		this.extensions[key].push(fn);
-	else
-		this.extensions[key] = [fn];
-	return this;
-};
-
 /**
  * Find an entity in current group
  * @param {String} name
@@ -1265,147 +1127,75 @@ SchemaBuilderEntityProto.find = function(name) {
 SchemaBuilderEntityProto.destroy = function() {
 	delete this.properties;
 	delete this.schema;
-	delete this.onDefault;
-	delete this.$onDefault;
 	delete this.onSave;
 	delete this.onInsert;
 	delete this.onUpdate;
 	delete this.onRead;
-	delete this.onGet;
+	delete this.onRead;
 	delete this.onRemove;
 	delete this.onQuery;
 	delete this.workflows;
-	delete this.operations;
-	delete this.transforms;
-	delete this.actions;
 	delete this.meta;
 	delete this.properties;
-	delete this.hooks;
 	delete this.onError;
 	delete this.dependencies;
 	delete this.fields;
 	delete this.fields_allow;
 };
 
-/**
- * Execute onSave delegate
- * @param {Object} model
- * @param {Object} options Custom options object, optional
- * @param {Function(err, result)} callback
- * @param {Controller} controller
- * @param {Boolean} skip Skips preparing and validation, optional
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.save = function(model, options, callback, controller, skip) {
-	return this.execute('onSave', model, options, callback, controller, skip);
-};
+SchemaBuilderEntityProto.save = function(model, opt, callback, controller, noprepare) {
 
-/**
- * Execute onInsert delegate
- * @param {Object} model
- * @param {Object} options Custom options object, optional
- * @param {Function(err, result)} callback
- * @param {Controller} controller
- * @param {Boolean} skip Skips preparing and validation, optional
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.insert = function(model, options, callback, controller, skip) {
-	return this.execute('onInsert', model, options, callback, controller, skip);
-};
-
-/**
- * Execute onUpdate delegate
- * @param {Object} model
- * @param {Object} options Custom options object, optional
- * @param {Function(err, result)} callback
- * @param {Controller} controller
- * @param {Boolean} skip Skips preparing and validation, optional
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.update = function(model, options, callback, controller, skip) {
-	return this.execute('onUpdate', model, options, callback, controller, skip);
-};
-
-SchemaBuilderEntityProto.patch = function(model, options, callback, controller, skip) {
-	return this.execute('onPatch', model, options, callback, controller, skip);
-};
-
-// @TODO: check why are here a lot of typeof()
-SchemaBuilderEntityProto.execute = function(TYPE, model, options, callback, controller, skip) {
-
-	if (typeof(callback) === 'boolean') {
-		skip = callback;
-		callback = options;
-		options = undefined;
-	} else if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
+		controller = callback;
+		callback = opt;
+		opt = null;
 	}
-
-	if (typeof(controller) === 'boolean') {
-		var tmp = skip;
-		skip = controller;
-		controller = tmp;
-	}
-
-	if (typeof(callback) !== 'function')
-		callback = function(){};
 
 	var self = this;
-	var $type;
+	self.exec('Save', name, model, opt, controller, callback, noprepare);
+	return self;
+};
 
-	switch (TYPE) {
-		case 'onInsert':
-			$type = 'insert';
-			break;
-		case 'onUpdate':
-			$type = 'update';
-			break;
-		case 'onPatch':
-			$type = 'patch';
-			break;
-		default:
-			$type = 'save';
-			break;
+SchemaBuilderEntityProto.insert = function(model, opt, callback, controller, noprepare) {
+
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
+		controller = callback;
+		callback = opt;
+		opt = null;
 	}
 
-	if (!self[TYPE])
-		return callback(new Error('Operation "{0}/{1}" not found'.format(self.name, $type)));
+	var self = this;
+	self.exec('Insert', name, model, opt, controller, callback, noprepare);
+	return self;
+};
 
-	self.$prepare(model, function(err, model) {
+SchemaBuilderEntityProto.update = function(model, opt, callback, controller, noprepare) {
 
-		if (err) {
-			callback(err, model);
-			return;
-		}
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
+		controller = callback;
+		callback = opt;
+		opt = null;
+	}
 
-		if (controller instanceof SchemaOptions || controller instanceof OperationOptions)
-			controller = controller.controller;
+	var self = this;
+	self.exec('Update', name, model, opt, controller, callback, noprepare);
+	return self;
+};
 
-		if (model && !controller && model.$$controller)
-			controller = model.$$controller;
+SchemaBuilderEntityProto.patch = function(model, opt, callback, controller, noprepare) {
 
-		var builder = new ErrorBuilder();
-		var $now;
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
+		controller = callback;
+		callback = opt;
+		opt = null;
+	}
 
-		if (CONF.logger)
-			$now = Date.now();
-
-		self.resourceName && builder.setResource(self.resourceName);
-		self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-		var opt = new SchemaOptions(builder, model, options, function(res) {
-			CONF.logger && F.ilogger(self.getLoggerName($type), controller, $now);
-			self.$process(arguments, model, $type, undefined, builder, res, callback, controller);
-		}, controller, $type, self);
-
-		if (self.middlewares && self.middlewares.length)
-			runmiddleware(opt, self, self[TYPE]);
-		else
-			self[TYPE](opt, opt.model);
-
-	}, controller ? controller.req : null);
-
+	var self = this;
+	self.exec('Patch', name, model, opt, controller, callback, noprepare);
 	return self;
 };
 
@@ -1415,47 +1205,16 @@ SchemaBuilderEntityProto.execute = function(TYPE, model, options, callback, cont
  * @param {Function(err, result)} callback
  * @return {SchemaBuilderEntity}
  */
-SchemaBuilderEntityProto.get = SchemaBuilderEntityProto.read = function(options, callback, controller) {
+SchemaBuilderEntityProto.get = SchemaBuilderEntityProto.read = function(opt, callback, controller) {
 
-	if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
+	if (typeof(opt) === 'function') {
+		controller = callback;
+		callback = opt;
+		opt = undefined;
 	}
-
-	if (typeof(callback) !== 'function')
-		callback = function(){};
 
 	var self = this;
-	var builder = new ErrorBuilder();
-	var $now;
-
-	self.resourceName && builder.setResource(self.resourceName);
-	self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-	if (controller instanceof SchemaOptions || controller instanceof OperationOptions)
-		controller = controller.controller;
-
-	if (self.meta.getfilter && controller) {
-		controller.$filterschema = self.meta.getfilter;
-		controller.$filter = null;
-	}
-
-	if (CONF.logger)
-		$now = Date.now();
-
-	var output = self.default();
-	var $type = 'get';
-
-	var opt = new SchemaOptions(builder, output, options, function(res) {
-		CONF.logger && F.ilogger(self.getLoggerName($type), controller, $now);
-		self.$process(arguments, output, $type, undefined, builder, res, callback, controller);
-	}, controller, $type, self);
-
-	if (self.middlewares && self.middlewares.length)
-		runmiddleware(opt, self, self.onGet);
-	else
-		self.onGet(opt, opt.model);
-
+	self.exec('Read', null, null, opt, controller, callback, true);
 	return self;
 };
 
@@ -1465,45 +1224,16 @@ SchemaBuilderEntityProto.get = SchemaBuilderEntityProto.read = function(options,
  * @param {Function(err, result)} callback
  * @return {SchemaBuilderEntity}
  */
-SchemaBuilderEntityProto.remove = function(options, callback, controller) {
+SchemaBuilderEntityProto.remove = function(opt, callback, controller) {
 
-	if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
+	if (typeof(opt) === 'function') {
+		controller = callback;
+		callback = opt;
+		opt = undefined;
 	}
 
 	var self = this;
-	var builder = new ErrorBuilder();
-	var $type = 'remove';
-	var $now;
-
-	if (!self.onRemove)
-		return callback(new Error('Operation "{0}/{1}" not found'.format(self.name, $type)));
-
-	if (controller instanceof SchemaOptions || controller instanceof OperationOptions)
-		controller = controller.controller;
-
-	if (self.meta.removefilter && controller) {
-		controller.$filterschema = self.meta.removefilter;
-		controller.$filter = null;
-	}
-
-	if (CONF.logger)
-		$now = Date.now();
-
-	self.resourceName && builder.setResource(self.resourceName);
-	self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-	var opt = new SchemaOptions(builder, controller ? controller.body : undefined, options, function(res) {
-		CONF.logger && F.ilogger(self.getLoggerName($type), controller, $now);
-		self.$process(arguments, undefined, $type, undefined, builder, res, callback, controller);
-	}, controller, $type, self);
-
-	if (self.middlewares && self.middlewares.length)
-		runmiddleware(opt, self, self.onRemove);
-	else
-		self.onRemove(opt, opt.model);
-
+	self.exec('Remove', null, null, opt, controller, callback, true);
 	return self;
 };
 
@@ -1513,42 +1243,17 @@ SchemaBuilderEntityProto.remove = function(options, callback, controller) {
  * @param {Function(err, result)} callback
  * @return {SchemaBuilderEntity}
  */
-SchemaBuilderEntityProto.query = function(options, callback, controller) {
-
-	if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
-	}
-
-	if (controller instanceof SchemaOptions || controller instanceof OperationOptions)
-		controller = controller.controller;
+SchemaBuilderEntityProto.query = function(opt, callback, controller) {
 
 	var self = this;
-	var builder = new ErrorBuilder();
-	var $type = 'query';
-	var $now;
 
-	if (self.meta.queryfilter && controller) {
-		controller.$filterschema = self.meta.queryfilter;
-		controller.$filter = null;
+	if (typeof(opt) === 'function') {
+		controller = callback;
+		callback = opt;
+		opt = null;
 	}
 
-	self.resourceName && builder.setResource(self.resourceName);
-	self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-	if (CONF.logger)
-		$now = Date.now();
-
-	var opt = new SchemaOptions(builder, undefined, options, function(res) {
-		CONF.logger && F.ilogger(self.getLoggerName($type), controller, $now);
-		self.$process(arguments, undefined, $type, undefined, builder, res, callback, controller);
-	}, controller, $type, self);
-
-	if (self.middlewares && self.middlewares.length)
-		runmiddleware(opt, self, self.onQuery);
-	else
-		self.onQuery(opt, opt.model);
-
+	self.exec('Query', null, null, opt, controller, callback, true);
 	return self;
 };
 
@@ -1560,11 +1265,12 @@ SchemaBuilderEntityProto.query = function(options, callback, controller) {
  * @param {ErrorBuilder} builder ErrorBuilder, INTERNAL.
  * @return {ErrorBuilder}
  */
-SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName, builder, filter, path, index) {
+SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName, $, path, index) {
 
 	var self = this;
+	var builder = $ ? $.error : null;
 
-	if (builder === undefined) {
+	if (!builder) {
 		builder = new ErrorBuilder();
 		self.resourceName && builder.setResource(self.resourceName);
 		self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
@@ -1582,15 +1288,12 @@ SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName
 	if (resourcePrefix)
 		builder.resourcePrefix = resourcePrefix;
 
-	if (filter)
-		filter = self.filter(filter);
-
 	if (path)
 		path += '.';
 	else
 		path = '';
 
-	framework_utils.validate_builder.call(self, model, builder, self, '', index, filter, path);
+	framework_utils.validate_builder.call(self, model, builder, self, '', index, $, path);
 	return builder;
 };
 
@@ -1612,39 +1315,25 @@ SchemaBuilderEntityProto.$make = function(obj) {
 	return obj;
 };
 
-SchemaBuilderEntityProto.$prepare = function(obj, callback) {
-	if (obj && typeof(obj.$save) === 'function')
-		callback(null, obj);
-	else
-		this.make(obj, (err, model) => callback(err, model));
-	return this;
+function preparecallback(err, model, arg) {
+	arg(err, model);
+}
+
+SchemaBuilderEntityProto.$prepare = function(obj, callback, $) {
+	this.make(obj, preparecallback, callback, null, $);
 };
 
-/**
- * Create a default object according the schema
- * @return {SchemaInstance}
- */
 SchemaBuilderEntityProto.default = function() {
 
 	var obj = this.schema;
 	if (obj === null)
 		return null;
 
-	var item = new this.CurrentSchemaInstance();
-	var defaults = this.onDefault || this.$onDefault ? true : false;
+	var item = new SchemaValue();
 
 	for (var property in obj) {
 
 		var type = obj[property];
-
-		if (defaults) {
-			var def = this.$ondefault(property, true, this.name);
-			if (def !== undefined) {
-				item[property] = def;
-				continue;
-			}
-		}
-
 		if (type.def !== undefined) {
 			item[property] = typeof(type.def) === 'function' ? type.def() : type.def;
 			continue;
@@ -1690,7 +1379,7 @@ SchemaBuilderEntityProto.default = function() {
 					if (tmp) {
 						item[property] = tmp.default();
 					} else {
-						F.error(new Error('Schema: "' + property + '.' + type.raw + '" not found in "' + this.parent.name + '".'));
+						F.error(new Error('Schema: "' + property + '.' + type.raw + '" not found.'));
 						item[property] = null;
 					}
 				}
@@ -1785,39 +1474,21 @@ SchemaOptionsVerify.prototype = {
 	}
 };
 
-/**
- * Create schema instance
- * @param {function|object} model
- * @param [filter]
- * @param [callback]
- * @returns {SchemaInstance}
- */
-SchemaBuilderEntityProto.make = function(model, filter, callback, argument, novalidate, workflow, req) {
+SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $) {
 
 	var self = this;
-
-	if (typeof(filter) === 'function') {
-		var tmp = callback;
-		callback = filter;
-		filter = tmp;
-	}
-
 	var verifications = [];
-	var output = self.prepare(model, null, req, verifications);
-
-	if (workflow)
-		output.$$workflow = workflow;
+	var output = self.prepare(model, null, $, verifications);
 
 	if (novalidate) {
-		callback && callback(null, output, argument);
+		callback && callback(null, output, arg);
 		return output;
 	}
 
-	var builder = self.validate(output, undefined, undefined, undefined, filter);
-
+	var builder = self.validate(output, null, null, $);
 	if (builder.is) {
 		self.onError && self.onError(builder, model, 'make');
-		callback && callback(builder, null, argument);
+		callback && callback(builder, null, arg);
 		return output;
 	} else {
 
@@ -1825,11 +1496,11 @@ SchemaBuilderEntityProto.make = function(model, filter, callback, argument, nova
 			verifications.unshift({ model: output, entity: self });
 
 		if (!verifications.length) {
-			callback && callback(null, output, argument);
+			callback && callback(null, output, arg);
 			return output;
 		}
 
-		var options = new SchemaOptionsVerify(req, builder);
+		var options = new SchemaOptionsVerify($, builder);
 
 		verifications.wait(function(item, next) {
 
@@ -1871,9 +1542,9 @@ SchemaBuilderEntityProto.make = function(model, filter, callback, argument, nova
 		}, function() {
 			if (builder.is) {
 				self.onError && self.onError(builder, model, 'make');
-				callback && callback(builder, null, argument);
+				callback && callback(builder, null, arg);
 			} else
-				callback && callback(null, output, argument);
+				callback && callback(null, output, arg);
 		});
 
 	}
@@ -1885,39 +1556,20 @@ function autotrim(context, value) {
 	return context.trim ? value.trim() : value;
 }
 
-SchemaBuilderEntityProto.$onprepare = function(name, value, index, model, req) {
+SchemaBuilderEntityProto.$onprepare = function(name, value, index, model, $) {
 	var val = value;
 	if (this.preparation && this.preparation[name])
-		val = this.preparation[name](val, model, index, req);
+		val = this.preparation[name](val, model, index, $);
 	return val === undefined ? value : val;
-};
-
-SchemaBuilderEntityProto.$ondefault = function(property, create, entity) {
-
-	var val;
-
-	if (this.onDefault) {
-		val = this.onDefault(property, create, entity);
-		if (val !== undefined)
-			return val;
-	}
-
-	if (this.$onDefault) {
-		for (var i = 0, length = this.$onDefault.length; i < length; i++) {
-			val = this.$onDefault[i](property, create, entity);
-			if (val !== undefined)
-				return val;
-		}
-	}
 };
 
 /**
  * Prepare model according to schema
  * @param {Object} model
  * @param {String|Array} [dependencies] INTERNAL.
- * @return {SchemaInstance}
+ * @return {SchemaValue}
  */
-SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verifications) {
+SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verifications) {
 
 	var self = this;
 	var obj = self.schema;
@@ -1925,20 +1577,19 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 	if (obj === null)
 		return null;
 
-	if (model == null)
+	if (model == null || model === EMPTYOBJECT)
 		return self.default();
 
 	var tmp;
 	var entity;
-	var item = new self.CurrentSchemaInstance();
-	var defaults = self.onDefault || self.$onDefault ? true : false;
-	var keys = req && req.$patch ? [] : null;
+	var item = new SchemaValue();
+	var keys = $.keys ? [] : null;
 
 	for (var property in obj) {
 
 		var val = model[property];
 
-		if (req && req.$patch && val === undefined) {
+		if ($ && $.keys && val === undefined) {
 			delete item[property];
 			continue;
 		}
@@ -1955,8 +1606,6 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 		if (val === undefined) {
 			if (type.def !== undefined)
 				val = def ? type.def() : type.def;
-			else if (defaults)
-				val = self.$ondefault(property, false, self.name);
 		}
 
 		if (val === undefined)
@@ -1975,11 +1624,11 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 					break;
 				// number: integer
 				case 1:
-					item[property] = self.$onprepare(property, framework_utils.parseInt(val, def ? type.def() : type.def), undefined, model, req);
+					item[property] = self.$onprepare(property, framework_utils.parseInt(val, def ? type.def() : type.def), undefined, model, $);
 					break;
 				// number: float
 				case 2:
-					item[property] = self.$onprepare(property, framework_utils.parseFloat(val, def ? type.def() : type.def), undefined, model, req);
+					item[property] = self.$onprepare(property, framework_utils.parseFloat(val, def ? type.def() : type.def), undefined, model, $);
 					break;
 
 				// string
@@ -2060,7 +1709,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 					if (!tmp && type.def !== undefined)
 						tmp = def ? type.def() : type.def;
 
-					item[property] = self.$onprepare(property, tmp, undefined, model, req);
+					item[property] = self.$onprepare(property, tmp, undefined, model, $);
 					break;
 
 				// boolean
@@ -2068,7 +1717,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 					tmp = val ? val.toString().toLowerCase() : null;
 					if (type.def && (tmp == null || tmp === ''))
 						tmp = def ? type.def() : type.def;
-					item[property] = self.$onprepare(property, typeof(tmp) === 'string' ? !!BOOL[tmp] : tmp == null ? false : tmp, undefined, model, req);
+					item[property] = self.$onprepare(property, typeof(tmp) === 'string' ? !!BOOL[tmp] : tmp == null ? false : tmp, undefined, model, $);
 					break;
 
 				// date
@@ -2085,12 +1734,12 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 						tmp = val;
 
 					if (framework_utils.isDate(tmp))
-						tmp = self.$onprepare(property, tmp, undefined, model, req);
+						tmp = self.$onprepare(property, tmp, undefined, model, $);
 					else {
 						if (type.def !== undefined)
 							tmp = def ? type.def() : type.def;
 						else
-							tmp = (defaults ? isUndefined(self.$ondefault(property, false, self.name), null) : null);
+							tmp = null;
 					}
 
 					item[property] = tmp;
@@ -2098,16 +1747,14 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 
 				// object
 				case 6:
-					// item[property] = self.$onprepare(property, model[property], undefined, model, req);
-					item[property] = self.$onprepare(property, val, undefined, model, req);
+					item[property] = self.$onprepare(property, val, undefined, model, $);
 					if (item[property] === undefined)
 						item[property] = null;
 					break;
 
 				// enum
 				case 8:
-					// tmp = self.$onprepare(property, model[property], undefined, model, req);
-					tmp = self.$onprepare(property, val, undefined, model, req);
+					tmp = self.$onprepare(property, val, undefined, model, $);
 					if (type.subtype === 'number' && typeof(tmp) === 'string')
 						tmp = tmp.parseFloat(null);
 					item[property] = tmp != null && type.raw.indexOf(tmp) !== -1 ? tmp : undefined;
@@ -2117,8 +1764,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 
 				// keyvalue
 				case 9:
-					// tmp = self.$onprepare(property, model[property], undefined, model, req);
-					tmp = self.$onprepare(property, val, undefined, model, req);
+					tmp = self.$onprepare(property, val, undefined, model, $);
 					item[property] = tmp != null ? type.raw[tmp] : undefined;
 					if (item[property] == null && type.def)
 						item[property] = type.def;
@@ -2128,7 +1774,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 				case 7:
 
 					if (!val) {
-						val = (type.def === undefined ? defaults ? isUndefined(self.$ondefault(property, false, self.name), null) : null : (def ? type.def() : type.def));
+						val = (type.def === undefined ? null : (def ? type.def() : type.def));
 						if (val === null) {
 							item[property] = null;
 							break;
@@ -2146,14 +1792,13 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 					entity = GETSCHEMA(type.raw);
 					if (entity) {
 
-						item[property] = entity.prepare(val, undefined, req, verifications);
-						item[property].$$parent = item;
-						item[property].$$controller = req;
+						item[property] = entity.prepare(val, undefined, $, verifications);
 
 						if (entity.verifications)
 							verifications.push({ model: item[property], entity: entity });
 
-						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, item[property], undefined, model, req) });
+						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, item[property], undefined, model, $) });
+
 					} else
 						item[property] = null;
 
@@ -2167,12 +1812,12 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 
 				// number: nullable
 				case 11:
-					item[property] = self.$onprepare(property, typeval === 'number' ? val : typeval === 'string' ? parseNumber(val) : null, undefined, model, req);
+					item[property] = self.$onprepare(property, typeval === 'number' ? val : typeval === 'string' ? parseNumber(val) : null, undefined, model, $);
 					break;
 
 				// object: convertor
 				case 12:
-					item[property] = self.$onprepare(property, val && typeval === 'object' && !(val instanceof Array) ? CONVERT(val, type.raw) : null, undefined, model, req);
+					item[property] = self.$onprepare(property, val && typeval === 'object' && !(val instanceof Array) ? CONVERT(val, type.raw) : null, undefined, model, $);
 					break;
 
 			}
@@ -2181,7 +1826,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 
 		// ARRAY:
 		if (!(val instanceof Array)) {
-			item[property] = (type.def === undefined ? defaults ? isUndefined(self.$ondefault(property, false, self.name), EMPTYARRAY) : [] : (def ? type.def() : type.def));
+			item[property] = (type.def === undefined ? [] : (def ? type.def() : type.def));
 			continue;
 		}
 
@@ -2194,15 +1839,15 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 
 			switch (type.type) {
 				case 0:
-					tmp = self.$onprepare(property, tmp, j, model, req);
+					tmp = self.$onprepare(property, tmp, j, model, $);
 					break;
 
 				case 1:
-					tmp = self.$onprepare(property, framework_utils.parseInt(tmp), j, model, req);
+					tmp = self.$onprepare(property, framework_utils.parseInt(tmp), j, model, $);
 					break;
 
 				case 2:
-					tmp = self.$onprepare(property, framework_utils.parseFloat(tmp), j, model, req);
+					tmp = self.$onprepare(property, framework_utils.parseFloat(tmp), j, model, $);
 					break;
 
 				case 3:
@@ -2252,13 +1897,13 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 							break;
 					}
 
-					tmp = self.$onprepare(property, tmp, j, model, req);
+					tmp = self.$onprepare(property, tmp, j, model, $);
 					break;
 
 				case 4:
 					if (tmp)
 						tmp = tmp.toString().toLowerCase();
-					tmp = self.$onprepare(property, BOOL[tmp], j, model, req);
+					tmp = self.$onprepare(property, BOOL[tmp], j, model, $);
 					break;
 
 				case 5:
@@ -2270,14 +1915,14 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 						tmp = new Date(tmp);
 
 					if (framework_utils.isDate(tmp))
-						tmp = self.$onprepare(property, tmp, j, model, req);
+						tmp = self.$onprepare(property, tmp, j, model, $);
 					else
 						tmp = undefined;
 
 					break;
 
 				case 6:
-					tmp = self.$onprepare(property, tmp, j, model, req);
+					tmp = self.$onprepare(property, tmp, j, model, $);
 					break;
 
 				case 7:
@@ -2285,14 +1930,12 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 					entity = GETSCHEMA(type.raw);
 
 					if (entity) {
-						tmp = entity.prepare(tmp, dependencies, req, verifications);
-						tmp.$$parent = item;
-						tmp.$$controller = req;
-						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, tmp, j, model, req) });
+						tmp = entity.prepare(tmp, dependencies, $, verifications);
+						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, tmp, j, model, $) });
 					} else
 						throw new Error('Schema "{0}" not found'.format(type.raw));
 
-					tmp = self.$onprepare(property, tmp, j, model, req);
+					tmp = self.$onprepare(property, tmp, j, model, $);
 
 					if (entity.verifications && tmp)
 						verifications.push({ model: tmp, entity: entity });
@@ -2300,13 +1943,13 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 					break;
 
 				case 11:
-					tmp = self.$onprepare(property, typeval === 'number' ? tmp : typeval === 'string' ? parseNumber(tmp) : null, j, model, req);
+					tmp = self.$onprepare(property, typeval === 'number' ? tmp : typeval === 'string' ? parseNumber(tmp) : null, j, model, $);
 					if (tmp == null)
 						continue;
 					break;
 
 				case 12:
-					tmp = self.$onprepare(property, tmp ? CONVERT(tmp, type.raw) : null, j, model, req);
+					tmp = self.$onprepare(property, tmp ? CONVERT(tmp, type.raw) : null, j, model, $);
 					if (tmp == null)
 						continue;
 					break;
@@ -2328,8 +1971,8 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, req, verificati
 		}
 	}
 
-	if (keys)
-		item.$$keys = keys;
+	if (keys && !keys.length)
+		$.empty = true;
 
 	return item;
 };
@@ -2343,33 +1986,7 @@ function parseNumber(str) {
 	return isNaN(num) ? null : num;
 }
 
-/**
- * Transform an object
- * @param {String} name
- * @param {Object} model
- * @param {Object} options Custom options object, optional.
- * @param {Function(errorBuilder, output, model)} callback
- * @param {Boolean} skip Skips preparing and validation, optional.
- * @param {Object} controller Optional
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.transform = function(name, model, options, callback, skip, controller) {
-	return this.$execute('transform', name, model, options, callback, skip, controller);
-};
-
-SchemaBuilderEntityProto.transform2 = function(name, options, callback, controller) {
-
-	if (typeof(options) === 'function') {
-		controller = callback;
-		callback = options;
-		options = undefined;
-	}
-
-	!callback && (callback = function(){});
-	return this.transform(name, this.create(), options, callback, true, controller);
-};
-
-SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, response, callback, controller) {
+SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, response, callback) {
 
 	var self = this;
 
@@ -2382,274 +1999,264 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 	var has = builder.is;
 	has && self.onError && self.onError(builder, model, type, name);
 
-	if (response !== NoOp) {
-		if (controller && response instanceof SchemaInstance && !response.$$controller)
-			response.$$controller = controller;
+	if (response !== NoOp)
 		callback(has ? builder : null, response === undefined ? model : response, model);
-	} else
+	else
 		callback = null;
 
 	return self;
 };
 
-SchemaBuilderEntityProto.$process_hook = function(model, type, name, builder, result, callback) {
+SchemaBuilderEntityProto.task = function(name, model, opt, callback, controller, noprepare) {
+
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
+		controller = callback;
+		callback = opt;
+		opt = null;
+	}
+
 	var self = this;
-	var has = builder.is;
-	has && self.onError && self.onError(builder, model, type, name);
-	callback(has ? builder : null, model, result);
+	self.exec('task', name, model, opt, controller, callback, noprepare);
 	return self;
 };
 
-SchemaBuilderEntityProto.task = function(name, model, options, callback, skip, controller) {
-	return this.$execute('task', name, model, options, callback, skip, controller);
-};
-
-SchemaBuilderEntityProto.task2 = function(name, options, callback, controller) {
-
-	if (typeof(options) === 'function') {
-		controller = callback;
-		callback = options;
-		options = undefined;
-	}
-
-	!callback && (callback = function(){});
-	return this.task(name, this.create(), options, callback, true, controller);
-};
-
-SchemaBuilderEntityProto.workflow = function(name, model, options, callback, skip, controller) {
-	return this.$execute('workflow', name, model, options, callback, skip, controller);
-};
-
-SchemaBuilderEntityProto.workflow2 = function(name, options, callback, controller) {
-
-	if (typeof(options) === 'function') {
-		controller = callback;
-		callback = options;
-		options = undefined;
-	}
-
-	!callback && (callback = function(){});
-	return this.workflow(name, this.create(), options, callback, true, controller);
-};
-
-/**
- * Run hooks
- * @param {String} name
- * @param {Object} model
- * @param {Object} helper A helper object, optional.
- * @param {Function(errorBuilder, output, model)} callback
- * @param {Boolean} skip Skips preparing and validation, optional.
- * @return {SchemaBuilderEntity}
- */
-SchemaBuilderEntityProto.hook = function(name, model, options, callback, skip, controller) {
-
+SchemaBuilderEntityProto.task2 = function(name, opt, callback, controller) {
 	var self = this;
-
-	if (typeof(name) !== 'string') {
-		callback = options;
-		options = model;
-		model = name;
-		name = 'default';
-	}
-
-	if (typeof(callback) === 'boolean') {
-		skip = callback;
-		callback = options;
-		options = undefined;
-	} else if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
-	}
-
-	if (typeof(callback) !== 'function')
-		callback = function(){};
-
-	var hook = self.hooks ? self.hooks[name] : undefined;
-
-	if (!hook || !hook.length) {
-		callback(null, model, EMPTYARRAY);
-		return self;
-	}
-
-	if (controller instanceof SchemaOptions || controller instanceof OperationOptions)
-		controller = controller.controller;
-
-	if (model && !controller && model.$$controller)
-		controller = model.$$controller;
-
-	var $type = 'hook';
-
-	if (skip === true || model instanceof SchemaInstance) {
-
-		var builder = new ErrorBuilder();
-		self.resourceName && builder.setResource(self.resourceName);
-		self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-		var output = [];
-		var $now;
-
-		if (CONF.logger)
-			$now = Date.now();
-
-		async_wait(hook, function(item, next) {
-			var opt = new SchemaOptions(builder, model, options, function(result) {
-				output.push(result == undefined ? model : result);
-				next();
-			}, controller, 'hook.' + name, self);
-
-			if (self.middlewares && self.middlewares.length)
-				runmiddleware(opt, self, item.fn);
-			else
-				item.fn.call(self, opt, opt.model);
-
-		}, function() {
-			CONF.logger && F.ilogger(self.getLoggerName($type, name), controller, $now);
-			self.$process_hook(model, $type, name, builder, output, callback);
-		}, 0);
-
-		return self;
-	}
-
-	self.$prepare(model, function(err, model) {
-
-		if (err) {
-			callback(err, model);
-			return;
-		}
-
-		var builder = new ErrorBuilder();
-		var output = [];
-		var $now;
-
-		self.resourceName && builder.setResource(self.resourceName);
-		self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-		if (CONF.logger)
-			$now = Date.now();
-
-		async_wait(hook, function(item, next) {
-			item.fn.call(self, new SchemaOptions(builder, model, options, function(res) {
-				CONF.logger && F.ilogger(self.getLoggerName($type, name), controller, $now);
-				output.push(res === undefined ? model : res);
-				next();
-			}, controller, 'hook.' + name, self));
-		}, () => self.$process_hook(model, $type, name, builder, output, callback), 0);
-
-	}, controller ? controller.req : null);
-
+	self.task(name, null, opt, callback, controller, true);
 	return self;
 };
 
-SchemaBuilderEntityProto.hook2 = function(name, options, callback, controller) {
+SchemaBuilderEntityProto.workflow = function(name, model, opt, callback, controller, noprepare) {
 
-	if (typeof(options) === 'function') {
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
 		controller = callback;
-		callback = options;
-		options = undefined;
+		callback = opt;
+		opt = null;
 	}
 
-	if (!callback)
-		callback = function(){};
-
-	return this.hook(name, this.create(), options, callback, true, controller);
+	var self = this;
+	self.exec('workflow', name, model, opt, controller, callback, noprepare);
+	return self;
 };
 
-SchemaBuilderEntityProto.$execute = function(type, name, model, options, callback, skip, controller) {
+SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
+	var self = this;
+	self.exec('workflow', name, null, opt, controller, callback, true);
+	return self;
+};
+
+SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare) {
+	var error = new ErrorBuilder();
 	var self = this;
 
-	if (typeof(name) !== 'string') {
-		callback = options;
-		options = model;
-		model = name;
-		name = 'default';
-	}
+	self.resourceName && error.setResource(self.resourceName);
+	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
 
-	if (typeof(callback) === 'boolean') {
-		skip = callback;
-		callback = options;
-		options = undefined;
-	} else if (typeof(options) === 'function') {
-		callback = options;
-		options = undefined;
-	}
-
-	if (typeof(callback) !== 'function')
-		callback = function(){};
-
-	var ref = self[type + 's'];
-	var item = ref ? ref[name] : undefined;
-	var $now;
-
-	if (!item) {
-		callback(new ErrorBuilder().push('', type.capitalize() + ' "{0}" not found.'.format(name)));
-		return self;
-	}
+	var key = type + (name ? ('.' + name) : '');
+	var now;
 
 	if (CONF.logger)
-		$now = Date.now();
+		now = Date.now();
 
-	if (controller instanceof SchemaOptions || controller instanceof OperationOptions)
-		controller = controller.controller;
+	var $ = new SchemaOptions(error, model, options, function(response) {
+		CONF.logger && F.ilogger(self.getLoggerName(type, name), $.controller, now);
+		self.$process(arguments, $.model, type, name, error, response, callback);
+	}, controller, key, self);
 
-	if (model && !controller && model.$$controller)
-		controller = model.$$controller;
+	if (type === 'patch')
+		$.keys = model ? Object.keys(model) : EMPTYARRAY;
 
-	var opfilter = self.meta[type + 'filter#' + name];
-	if (opfilter && controller) {
-		controller.$filterschema = opfilter;
-		controller.$filter = null;
+	self.perform(type, name, $, noprepare);
+};
+
+SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddleware) {
+
+	var self = this;
+	var ntype;
+
+	switch (type) {
+		case 'workflow':
+		case 'task':
+			ntype = type + 's';
+			break;
+		case 'Save':
+		case 'save':
+			ntype = 'onSave';
+			break;
+		case 'Read':
+		case 'read':
+			ntype = 'onRead';
+			break;
+		case 'Remove':
+		case 'remove':
+			ntype = 'onRemove';
+			break;
+		case 'Patch':
+		case 'patch':
+			ntype = 'onPatch';
+			break;
+		case 'Insert':
+		case 'insert':
+			ntype = 'onInsert';
+			break;
+		case 'Update':
+		case 'update':
+			ntype = 'onUpdate';
+			break;
+		case 'Query':
+		case 'query':
+			ntype = 'onQuery';
+			break;
 	}
 
-	var key = type + '.' + name;
+	var ref = self[ntype];
+	var item = ref ? (name ? ref[name] : ref) : undefined;
 
-	if (skip === true || model instanceof SchemaInstance) {
-		var builder = new ErrorBuilder();
-		self.resourceName && builder.setResource(self.resourceName);
-		self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-		var opt = new SchemaOptions(builder, model, options, function(res) {
-			CONF.logger && F.ilogger(self.getLoggerName(type, name), controller, $now);
-			self.$process(arguments, model, type, name, builder, res, callback, controller);
-		}, controller, key, self);
-
-		if (self.middlewares && self.middlewares.length)
-			runmiddleware(opt, self, item);
-		else
-			item.call(self, opt, opt.model);
-
+	if (!item) {
+		type = type.capitalize();
+		$.invalid(type + (name ? (' "' + name + '"') : '') + ' not found.');
 		return self;
 	}
 
-	self.$prepare(model, function(err, model) {
+	var opfilter = self.meta[type + 'filter' + (name ? ('#' + name) : '')];
+	if (opfilter && $.controller) {
+		$.controller.$filterschema = opfilter;
+		$.controller.$filter = null;
+	}
+
+	if (noprepare || $.model instanceof SchemaValue) {
+		if (nomiddleware || !self.middlewares || !self.middlewares.length)
+			item.call(self, $, $.model);
+		else
+			runmiddleware($, self, item);
+		return self;
+	}
+
+	self.$prepare($.model, function(err, model) {
 
 		if (err) {
-			callback(err, model);
+			$.invalid(err);
 			return;
 		}
 
-		if (controller && model instanceof SchemaInstance && !model.$$controller)
-			model.$$controller = controller;
-
-		var builder = new ErrorBuilder();
-
-		self.resourceName && builder.setResource(self.resourceName);
-		self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
-
-		var key = type + '.' + name;
-
-		var opt = new SchemaOptions(builder, model, options, function(res) {
-			CONF.logger && F.ilogger(self.getLoggerName(type, name), controller, $now);
-			self.$process(arguments, model, type, name, builder, res, callback, controller);
-		}, controller, key, self);
-
-		if (self.middlewares && self.middlewares.length)
-			runmiddleware(opt, self, item);
+		$.model = model;
+		if (nomiddleware || !self.middlewares || !self.middlewares.length)
+			item.call(self, $, $.model);
 		else
-			item.call(self, opt, opt.model);
-
-	}, controller ? controller.req : null);
+			runmiddleware($, self, item);
+	}, $);
 
 	return self;
+};
+
+SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
+
+	var self = this;
+	var error = new ErrorBuilder();
+
+	var a = {};
+	a.index = index;
+	a.indexer = -1;
+	a.controller = controller;
+	a.tasks = [];
+	a.op = [];
+	a.pending = 0;
+	a.type = '';
+
+	if (CONF.logger)
+		a.now = Date.now();
+
+	self.resourceName && error.setResource(self.resourceName);
+	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
+
+	var error = new ErrorBuilder();
+
+	var $ = new SchemaOptions(error, model, null, function(response) {
+		if (!$.initialized)
+			$.initialized = true;
+		CONF.logger && F.ilogger(self.getLoggerName(a.type, a.name), $.controller, a.now);
+		self.$process(arguments, $.model, a.type, a.name, error, response, process);
+	}, controller, null, self);
+
+	var process = function(err, response) {
+		a.pending--;
+		if (err) {
+			// STOP ERROR
+			callback(err);
+			a.tasks = null;
+			a.op = null;
+			a.controller = null;
+			a = null;
+		} else {
+			var key = a.type + (a.name ? ('_' + a.name) : '');
+			$.responses[key] = $.responses[a.indexer] = response;
+			a.next();
+		}
+	};
+
+	a.next = function() {
+
+		a.running = true;
+
+		var item = a.tasks.shift();
+		if (item) {
+
+			a.indexer++;
+			a.pending++;
+
+			var name = item.name;
+
+			if (self.meta[name]) {
+				a.type = name;
+				name = '';
+			} else if (self.meta['workflow_' + name])
+				a.type = 'workflow';
+			else if (self.meta['task_' + name])
+				a.type = 'task';
+
+			a.name = name;
+			$.name = a.type + (name ? ('.' + name) : '');
+			$.options = item.options;
+
+			var validation = $.initialized ? false : model && model !== EMPTYOBJECT && (!(model instanceof SchemaValue));
+			self.perform(a.type, name, $, !validation, $.initialized);
+
+		} else if (!a.pending) {
+			if (a.index == null) {
+				var tmp = [];
+				var max = a.indexer + 1;
+				for (var i = 0; i < max; i++)
+					tmp.push($.responses[i]);
+				callback(null, tmp);
+			} else
+				callback(null, $.responses[a.index]);
+		}
+	};
+
+	var add = function(name, options) {
+		a.tasks.push({ name: name, options: options });
+		return add;
+	};
+
+	if (model && model !== EMPTYOBJECT) {
+		if (model instanceof SchemaValue) {
+			setImmediate(a.next);
+		} else {
+			self.make(model, function(err, response) {
+				if (err)
+					callback(err);
+				else {
+					a.model = response;
+					setImmediate(a.next);
+				}
+			}, null, null, model == null);
+		}
+	} else
+		setImmediate(a.next);
+
+	return add;
 };
 
 SchemaBuilderEntityProto.getLoggerName = function(type, name) {
@@ -2665,11 +2272,6 @@ SchemaBuilderEntityProto.getLoggerName = function(type, name) {
 SchemaBuilderEntityProto.clean = function(m) {
 	return clone(m);
 };
-
-// For async operations, because SUCCESS() returns singleton instance everytime
-function copy(obj) {
-	return F.isSuccess(obj) ? { success: obj.success, value: obj.value } : obj;
-}
 
 function clone(obj) {
 
@@ -2695,10 +2297,7 @@ function clone(obj) {
 					o[i] = obj[i];
 				continue;
 			}
-			if (obj[i] instanceof SchemaInstance)
-				o[i] = obj[i].$clean();
-			else
-				o[i] = clone(obj[i]);
+			o[i] = clone(obj[i]);
 		}
 
 		return o;
@@ -2708,18 +2307,10 @@ function clone(obj) {
 
 	for (var m in obj) {
 
-		if (SKIP[m])
-			continue;
-
 		var val = obj[m];
 
 		if (val instanceof Array) {
 			o[m] = clone(val);
-			continue;
-		}
-
-		if (val instanceof SchemaInstance) {
-			o[m] = val.$clean();
 			continue;
 		}
 
@@ -2740,14 +2331,6 @@ function clone(obj) {
 
 	return o;
 }
-
-/**
- * Returns prototype of instances
- * @returns {Object}
- */
-SchemaBuilderEntityProto.instancePrototype = function() {
-	return this.CurrentSchemaInstance.prototype;
-};
 
 SchemaBuilderEntityProto.cl = function(name, value) {
 	var o = this.schema[name];
@@ -2831,470 +2414,6 @@ SchemaBuilderEntityProto.props = function() {
 };
 
 /**
- * SchemaInstance
- * @constructor
- */
-function SchemaInstance() {
-}
-
-/**
- * @type {SchemaBuilderEntity}
- */
-SchemaInstance.prototype.$$schema = null;
-
-SchemaInstance.prototype.$async = function(callback, index) {
-	var self = this;
-	!callback && (callback = function(){});
-
-	var a = self.$$async = {};
-
-	a.callback = callback;
-	a.index = index;
-	a.indexer = 0;
-	a.response = [];
-	a.fn = [];
-	a.op = [];
-	a.pending = 0;
-
-	a.next = function() {
-		a.running = true;
-		var fn = a.fn ? a.fn.shift() : null;
-		if (fn) {
-			a.pending++;
-			fn.fn(a.done, a.indexer++);
-			fn.async && a.next();
-		}
-	};
-
-	a.done = function() {
-		a.running = false;
-		a.pending--;
-		if (a.fn.length)
-			setImmediate(a.next);
-		else if (!a.pending && a.callback)
-			a.callback(null, a.index != null ? a.response[a.index] : a.response);
-	};
-
-	setImmediate(a.next);
-	return self;
-};
-
-function async_wait(arr, onItem, onCallback, index) {
-	var item = arr[index];
-	if (item)
-		onItem(item, () => async_wait(arr, onItem, onCallback, index + 1), index);
-	else
-		onCallback();
-}
-
-Object.defineProperty(SchemaInstance.prototype, '$parent', {
-	get: function() {
-		return this.$$parent;
-	},
-	set: function(value) {
-		this.$$parent = value;
-	}
-});
-
-SchemaInstance.prototype.$response = function(index) {
-	var a = this.$$async;
-	if (a) {
-
-		if (index == null)
-			return a.response;
-
-		if (typeof(index) === 'string') {
-
-			if (index === 'prev')
-				return a.response[a.response.length - 1];
-
-			index = a.op.indexOf(index);
-
-			if (index !== -1)
-				return a.response[index];
-
-		} else
-			return a.response[index];
-	}
-};
-
-SchemaInstance.prototype.$repository = function(name, value) {
-
-	if (this.$$repository === undefined) {
-		if (value === undefined)
-			return undefined;
-		this.$$repository = {};
-	}
-
-	if (value !== undefined) {
-		this.$$repository[name] = value;
-		return value;
-	}
-
-	return this.$$repository[name];
-};
-
-SchemaInstance.prototype.$index = function(index) {
-	var a = this.$$async;
-	if (a) {
-		if (typeof(index) === 'string')
-			a.index = (a.index || 0).add(index);
-		a.index = index;
-	}
-	return this;
-};
-
-SchemaInstance.prototype.$callback = function(callback) {
-	var a = this.$$async;
-	if (a)
-		a.callback = callback;
-	return this;
-};
-
-SchemaInstance.prototype.$output = function() {
-	var a = this.$$async;
-	if (a)
-		a.index = true;
-	return this;
-};
-
-SchemaInstance.prototype.$stop = function() {
-	this.async.length = 0;
-	return this;
-};
-
-const PUSHTYPE1 = { save: 1, insert: 1, update: 1, patch: 1 };
-const PUSHTYPE2 = { query: 1, get: 1, read: 1, remove: 1 };
-
-SchemaInstance.prototype.$push = function(type, name, helper, first, async, callback) {
-
-	var self = this;
-	var fn;
-
-	if (PUSHTYPE1[type]) {
-		fn = function(next, indexer) {
-			self.$$schema[type](self, helper, function(err, result) {
-				var a = self.$$async;
-				a.response && (a.response[indexer] = err ? null : copy(result));
-				if (a.index === true)
-					a.index = indexer;
-				callback && callback(err, a.response[indexer]);
-				if (!err)
-					return next();
-				next = null;
-				a.callback(err, a.response);
-			}, self.$$controller);
-		};
-	} else if (PUSHTYPE2[type]) {
-		fn = function(next, indexer) {
-			self.$$schema[type](helper, function(err, result) {
-				var a = self.$$async;
-				a.response && (a.response[indexer] = err ? null : copy(result));
-				if (a.index === true)
-					a.index = indexer;
-				callback && callback(err, a.response[indexer]);
-				if (!err)
-					return next();
-				next = null;
-				a.callback(err, a.response);
-			}, self.$$controller);
-		};
-	} else {
-		fn = function(next, indexer) {
-			self.$$schema[type](name, self, helper, function(err, result) {
-				var a = self.$$async;
-				a.response && (a.response[indexer] = err ? null : copy(result));
-				if (a.index === true)
-					a.index = indexer;
-				callback && callback(err, a.response[indexer]);
-				if (!err)
-					return next();
-				next = null;
-				a.callback(err, a.response);
-			}, self.$$controller);
-		};
-	}
-
-	var a = self.$$async;
-	var obj = { fn: fn, async: async, index: a.length };
-	var key = type === 'task' || type === 'workflow' || type === 'transform' || type === 'hook' ? (type + '.' + name) : type;
-
-	if (first) {
-		a.fn.unshift(obj);
-		a.op.unshift(key);
-	} else {
-		a.fn.push(obj);
-		a.op.push(key);
-	}
-
-	return self;
-};
-
-SchemaInstance.prototype.$next = function(type, name, helper, async) {
-	return this.$push(type, name, helper, true, async);
-};
-
-SchemaInstance.prototype.$controller = function(controller) {
-	this.$$controller = controller;
-	return this;
-};
-
-SchemaInstance.prototype.$save = function(helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('save', null, helper, null, async, callback);
-
-	} else
-		this.$$schema.save(this, helper, callback, this.$$controller);
-	return this;
-};
-
-SchemaInstance.prototype.$insert = function(helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('insert', null, helper, null, async, callback);
-
-	} else
-		this.$$schema.insert(this, helper, callback, this.$$controller);
-	return this;
-};
-
-SchemaInstance.prototype.$update = function(helper, callback, async) {
-	if (this.$$async && !this.$$async.running) {
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-		this.$push('update', null, helper, null, async, callback);
-	} else
-		this.$$schema.update(this, helper, callback, this.$$controller);
-	return this;
-};
-
-SchemaInstance.prototype.$patch = function(helper, callback, async) {
-	if (this.$$async && !this.$$async.running) {
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-		this.$push('patch', null, helper, null, async, callback);
-	} else
-		this.$$schema.patch(this, helper, callback, this.$$controller);
-	return this;
-};
-
-SchemaInstance.prototype.$query = function(helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('query', null, helper, null, async, callback);
-	} else
-		this.$$schema.query(this, helper, callback, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$read = SchemaInstance.prototype.$get = function(helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('get', null, helper, null, async, callback);
-	} else
-		this.$$schema.get(this, helper, callback, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$delete = SchemaInstance.prototype.$remove = function(helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('remove', null, helper, null, async, callback);
-
-	} else
-		this.$$schema.remove(helper, callback, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$default = function() {
-	return this.$$schema.default();
-};
-
-SchemaInstance.prototype.$destroy = function() {
-	return this.$$schema.destroy();
-};
-
-SchemaInstance.prototype.$transform = function(name, helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('transform', name, helper, null, async, callback);
-
-	} else
-		this.$$schema.transform(name, this, helper, callback, undefined, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$task = function(name, helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('task', name, helper, null, async, callback);
-
-	} else
-		this.$$schema.task(name, this, helper, callback, undefined, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$workflow = function(name, helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('workflow', name, helper, null, async, callback);
-
-	} else
-		this.$$schema.workflow(name, this, helper, callback, undefined, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$hook = function(name, helper, callback, async) {
-
-	if (this.$$async && !this.$$async.running) {
-
-		if (typeof(helper) === 'function') {
-			async = callback;
-			callback = helper;
-			helper = null;
-		} else if (callback === true) {
-			var a = async;
-			async = true;
-			callback = a;
-		}
-
-		this.$push('hook', name, helper, null, async, callback);
-
-	} else
-		this.$$schema.hook(name, this, helper, callback, undefined, this.$$controller);
-
-	return this;
-};
-
-SchemaInstance.prototype.$clean = SchemaInstance.prototype.$plain = function() {
-	return this.$$schema.clean(this);
-};
-
-SchemaInstance.prototype.$clone = function() {
-	return framework_utils.extend(new this.$$schema.CurrentSchemaInstance(), this, true);
-};
-
-SchemaInstance.prototype.$prepare = function() {
-	return this.$$schema.prepare(this);
-};
-
-SchemaInstance.prototype.$schema = function() {
-	return this.$$schema;
-};
-
-SchemaInstance.prototype.$validate = function(resourcePrefix, resourceName, builder) {
-	return this.$$schema.validate(this, resourcePrefix, resourceName, builder);
-};
-
-/**
  * ErrorBuilder
  * @class
  * @classdesc Object validation.
@@ -3341,7 +2460,7 @@ function UrlBuilder() {
 }
 
 exports.isSchema = function(obj) {
-	return obj instanceof SchemaInstance;
+	return obj instanceof SchemaValue;
 };
 
 global.EACHSCHEMA = exports.eachschema = function(group, fn) {
@@ -3448,10 +2567,6 @@ exports.prepare = function(name, model) {
 	var schema = schemas[DEFAULT_SCHEMA].get(name);
 	return schema === undefined ? null : schema.prepare(model);
 };
-
-function isUndefined(value, def) {
-	return value === undefined ? (def === EMPTYARRAY ? [] : def) : value;
-}
 
 // ======================================================
 // PROTOTYPES
