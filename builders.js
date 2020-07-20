@@ -2118,7 +2118,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 
 	if (!item) {
 		type = type.capitalize();
-		$.invalid(type + (name ? (' "' + name + '"') : '') + ' not found.');
+		$.invalid('Schema "' + self.name + '" doesn\'t contain "' + type + (name ? ('.' + name) : '') + '" operation.');
 		return self;
 	}
 
