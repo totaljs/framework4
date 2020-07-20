@@ -2464,10 +2464,6 @@ function UrlBuilder() {
 	this.builder = {};
 }
 
-exports.isSchema = function(obj) {
-	return obj instanceof SchemaValue;
-};
-
 global.EACHSCHEMA = exports.eachschema = function(group, fn) {
 
 	if (fn === undefined) {
