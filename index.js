@@ -773,19 +773,18 @@ global.$ACTION = function(schema, model, callback, controller) {
 
 	if (meta.validate) {
 
-		var req = controller ? controller.req : null;
-		if (meta.method === 'PATCH') {
-			if (!req)
-				req = {};
-			req.$patch = true;
-		}
+		var $ = {};
+
+		$.controller = controller ? controller.req : null;
+
+		if (meta.method === 'PATCH')
+			$.keys = Object.keys(data);
 
 		var data = {};
 		data.meta = meta;
 		data.callback = callback;
 		data.controller = controller;
-		// @TODO: FIXED .make() arguments
-		meta.schema.make(model, null, performsschemaaction_async, data, null, null, req);
+		meta.schema.make(model, performsschemaaction_async, data, null, $);
 	} else
 		performsschemaaction(meta, null, callback, controller);
 
