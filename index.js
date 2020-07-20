@@ -750,17 +750,14 @@ global.$ACTION = function(schema, model, callback, controller) {
 
 			if (!o.meta[item]) {
 				if (o.meta['workflow_' + item])
-					tmp.type = '$workflow';
+					tmp.type = 'workflow';
 				else if (o.meta['task_' + item])
-					tmp.type = '$task';
+					tmp.type = 'task';
 				else {
 					callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
 					return;
 				}
 			}
-
-			if (tmp.type)
-				tmp.type2 = tmp.type.substring(1);
 
 			meta.op.push(tmp);
 		}
@@ -805,9 +802,9 @@ function performsschemaaction(meta, model, callback, controller) {
 	} else {
 		var op = meta.op[0];
 		if (op.type)
-			op.schema.exec(op.type, op.name, model, EMPTYOBJECT, controller, callback, !meta.validate);
+			meta.schema.exec(op.type, op.name, model, EMPTYOBJECT, controller, callback, !meta.validate);
 		else
-			op.schema.exec(op.name, null, model, EMPTYOBJECT, controller, callback, !meta.validate);
+			meta.schema.exec(op.name, null, model, EMPTYOBJECT, controller, callback, !meta.validate);
 	}
 }
 
