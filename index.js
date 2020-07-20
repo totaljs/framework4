@@ -10957,9 +10957,6 @@ ControllerProto.$json = function(obj, id, beautify, replacer) {
 		beautify = false;
 	}
 
-	if (obj && obj.$$schema)
-		obj = obj.$clean();
-
 	var value = beautify ? JSON.stringify(obj, replacer, 4) : JSON.stringify(obj, replacer);
 	return id ? ('<script type="application/json" id="' + id + '">' + value + '</script>') : value;
 };

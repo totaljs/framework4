@@ -247,9 +247,6 @@ DP.find2 = function() {
 
 DP.insert = function(data, check, noeval) {
 
-	if (data && data.$clean)
-		data = data.$clean();
-
 	var self = this;
 	var bi = new DatabaseBuilder();
 	bi.command = 'insert';
@@ -337,9 +334,6 @@ DP.bulkremove = function(fn) {
 };
 
 DP.update = DP.modify = function(data, upsert, noeval) {
-
-	if (data && data.$clean)
-		data = data.$clean();
 
 	var self = this;
 	var builder = new DatabaseBuilder();

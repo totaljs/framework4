@@ -3731,7 +3731,7 @@ RESTP.redirect = function(value) {
 };
 
 RESTP.raw = function(value, type) {
-	var val = value && value.$clean ? value.$clean() : value;
+	var val = value;
 	if (typeof(val) !== 'string')
 		val = type === 'urlencoded' ? U.toURLEncode(val) : JSON.stringify(val);
 	this.options.type = type;
