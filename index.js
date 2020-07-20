@@ -4132,12 +4132,16 @@ F.$load = function(types, targetdirectory, callback) {
 
 	operations.async(function() {
 		var count = dependencies.length;
+		var old = DEF.onPrefLoad;
 		F.consoledebug('load dependencies ' + count + 'x');
 		dependencies.async(function() {
 			types && types.indexOf('service') === -1 && F.cache.stop();
 			F.routes_sort();
 			F.consoledebug('load dependencies {0}x (done)'.format(count));
-			callback && callback();
+			if (DEF.onPrefLoad === old)
+				callback && callback();
+			else
+				loadpreferences(callback);
 		});
 	});
 };
