@@ -106,7 +106,7 @@ FP.readfilename = function(id) {
 	return Path.join(directory, id + '.file');
 };
 
-FP.save = function(id, name, filename, callback) {
+FP.save = FP.insert = function(id, name, filename, callback) {
 
 	var self = this;
 
