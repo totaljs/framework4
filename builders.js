@@ -3090,32 +3090,34 @@ Pagination.removeTransform = function(name) {
  */
 Pagination.prototype.refresh = function(items, page, max) {
 
-	this.page = Math.max(1, +page) - 1;
+	var t = this;
 
-	if (this.page <= 0)
-		this.page = 0;
+	t.page = Math.max(1, +page) - 1;
 
-	this.items = Math.max(0, +items);
-	this.max = Math.max(1, +max);
-	this.skip = this.page * this.max;
-	this.count = Math.ceil(this.items / this.max);
-	this.take = Math.min(this.max, (this.items - this.skip));
+	if (t.page <= 0)
+		t.page = 0;
 
-	this.lastPage = this.count;
-	this.firstPage = 1;
-	this.prevPage = this.page ? this.page : 1;
-	this.nextPage = this.page + 2 < this.count - 1 ? this.page + 2 : this.count;
+	t.items = Math.max(0, +items);
+	t.max = Math.max(1, +max);
+	t.skip = t.page * t.max;
+	t.count = Math.ceil(t.items / t.max);
+	t.take = Math.min(t.max, (t.items - t.skip));
 
-	this.isPrev = this.page > 0;
-	this.isNext = this.page < this.count - 1;
+	t.lastPage = t.count;
+	t.firstPage = 1;
+	t.prevPage = t.page ? t.page : 1;
+	t.nextPage = t.page + 2 < t.count - 1 ? t.page + 2 : t.count;
 
-	this.isFirst = this.page === 0;
-	this.isLast = this.page === this.count - 1;
+	t.isPrev = t.page > 0;
+	t.isNext = t.page < t.count - 1;
 
-	this.visible = this.count > 1;
-	this.page++;
+	t.isFirst = t.page === 0;
+	t.isLast = t.page === t.count - 1;
 
-	return this;
+	t.visible = t.count > 1;
+	t.page++;
+
+	return t;
 };
 
 /**
