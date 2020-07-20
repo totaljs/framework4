@@ -473,6 +473,25 @@ global.Mail = framework_mail;
 var prefid;
 
 global.PREF = {};
+global.PREF.inc = function(name, value) {
+
+	if (value == null)
+		value = 1;
+
+	if (F.pref[name] == null)
+		PREF.set(name, value);
+	else {
+		value = F.pref[name] + value;
+		PREF.set(name, value);
+	}
+
+	return value;
+};
+
+global.PREF.rem = function(name) {
+	PREF.set(name, null);
+};
+
 global.PREF.set = function(name, value) {
 
 	if (value === undefined)
@@ -485,6 +504,7 @@ global.PREF.set = function(name, value) {
 
 	prefid && clearTimeout(prefid);
 	prefid = setTimeout(DEF.onPrefSave, 1000, F.pref);
+	return value;
 };
 
 global.CACHE = function(name, value, expire, persistent) {
@@ -581,7 +601,7 @@ global.$QUERY = function(schema, options, callback, controller) {
 	if (typeof(options) === 'function') {
 		controller = callback;
 		callback = options;
-		options = null;
+		options = EMPTYOBJECT;
 	}
 
 	var o = framework_builders.getschema(schema);
@@ -593,6 +613,13 @@ global.$QUERY = function(schema, options, callback, controller) {
 };
 
 global.$GET = global.$READ = function(schema, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
 	var o = framework_builders.getschema(schema);
 	if (o)
 		o.read(options, callback, controller);
@@ -602,6 +629,13 @@ global.$GET = global.$READ = function(schema, options, callback, controller) {
 };
 
 global.$TASK = function(schema, name, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
 	var o = framework_builders.getschema(schema);
 	if (o)
 		o.task2(name, options, callback, controller);
@@ -611,6 +645,13 @@ global.$TASK = function(schema, name, options, callback, controller) {
 };
 
 global.$WORKFLOW = function(schema, name, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
 	var o = framework_builders.getschema(schema);
 	if (o)
 		o.workflow(name, null, options, callback, controller, true);
@@ -620,6 +661,13 @@ global.$WORKFLOW = function(schema, name, options, callback, controller) {
 };
 
 global.$REMOVE = function(schema, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
 	var o = framework_builders.getschema(schema);
 
 	if (typeof(options) === 'function') {
@@ -659,7 +707,7 @@ function performschema(type, schema, model, opt, callback, controller, noprepare
 		noprepare = controller;
 		controller = callback;
 		callback = opt;
-		opt = null;
+		opt = EMPTYOBJECT;
 	}
 
 	var o = framework_builders.getschema(schema);
