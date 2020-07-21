@@ -16038,7 +16038,11 @@ function controller_json_workflow(id) {
 		w.schema = schema;
 	}
 
-	w.schema.exec(w.type, w.name, self.body, EMPTYOBJECT, self, w.view ? self.callback(w.view) : self.callback(), self.body === EMPTYOBJECT);
+	var novalidate = self.body === EMPTYOBJECT;
+	if (novalidate)
+		self.body = {};
+
+	w.schema.exec(w.type, w.name, self.body, EMPTYOBJECT, self, w.view ? self.callback(w.view) : self.callback(), novalidate);
 
 	if (self.route.isDYNAMICSCHEMA)
 		w.type = '';

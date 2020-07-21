@@ -44,7 +44,7 @@ function SchemaValue() {}
 
 function SchemaOptions(error, model, options, callback, controller, name, schema) {
 	this.error = error;
-	this.value = this.model = model;
+	this.model = model;
 	this.options = options || EMPTYOBJECT;
 	this.callback = this.next = callback;
 	this.controller = (controller instanceof SchemaOptions || controller instanceof OperationOptions) ? controller.controller : controller;
@@ -149,6 +149,10 @@ TaskBuilder.prototype = {
 const TaskBuilderProto = TaskBuilder.prototype;
 
 SchemaOptions.prototype = {
+
+	get value() {
+		return this.model;
+	},
 
 	get test() {
 		return this.controller ? this.controller.test : false;
@@ -2224,6 +2228,9 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 			a.name = name;
 			$.name = a.type + (name ? ('.' + name) : '');
 			$.options = item.options;
+
+			if (!$.model || $.model === EMPTYOBJECT)
+				$.model = {};
 
 			var validation = $.initialized ? false : model && model !== EMPTYOBJECT && (!(model instanceof SchemaValue));
 			self.perform(a.type, name, $, !validation, $.initialized);
