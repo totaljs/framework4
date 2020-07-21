@@ -12780,6 +12780,10 @@ WebSocketClient.prototype = {
 
 	get mobile() {
 		return this.req.mobile;
+	},
+
+	get online() {
+		return !this.isClosed;
 	}
 };
 
