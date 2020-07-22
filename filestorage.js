@@ -106,12 +106,12 @@ FP.readfilename = function(id) {
 	return Path.join(directory, id + '.file');
 };
 
-FP.save = FP.insert = function(id, name, filename, callback) {
+FP.save = FP.insert = function(id, name, filename, callback, custom) {
 
 	var self = this;
 
 	if (self.pause) {
-		setTimeout(self.retrysave, 500, id, name, filename, callback);
+		setTimeout(self.retrysave, 500, id, name, filename, callback, custom);
 		return self;
 	}
 
@@ -123,14 +123,14 @@ FP.save = FP.insert = function(id, name, filename, callback) {
 		name = name.substring(index + 1);
 
 	if (self.cache[directory]) {
-		self.saveforce(id, name, filename, filenameto, callback);
+		self.saveforce(id, name, filename, filenameto, callback, custom);
 	} else {
 		Fs.mkdir(directory, MKDIR, function(err) {
 			if (err)
 				callback(err);
 			else {
 				self.cache[directory] = 1;
-				self.saveforce(id, name, filename, filenameto, callback);
+				self.saveforce(id, name, filename, filenameto, callback, custom);
 			}
 		});
 	}
