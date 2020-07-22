@@ -4444,7 +4444,11 @@ global.DOWNLOAD = function(url, filename, callback) {
 	}
 
 	var opt = {};
-	opt.url = framework_internal.preparepath(url);
+
+	if (typeof(url) === 'object')
+		opt.unixsocket = url;
+	else
+		opt.url = framework_internal.preparepath(url);
 
 	if (!REG_HTTPHTTPS.test(url)) {
 		if (url[0] !== '/')
