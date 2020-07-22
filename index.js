@@ -8801,7 +8801,7 @@ FrameworkPathProto.models = function(filename) {
 	return U.combine(CONF.directory_models, filename);
 };
 
-FrameworkPathProto.temp = function(filename) {
+FrameworkPathProto.temp = FrameworkPathProto.tmp = function(filename) {
 	this.verify('temp');
 	return U.combine(CONF.directory_temp, filename);
 };
