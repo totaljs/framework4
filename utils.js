@@ -605,7 +605,7 @@ global.REQUEST = function(opt) {
 	if (opt.dhparam)
 		uri.dhparam = opt.dhparam;
 
-	if (options.resolve && (uri.hostname === 'localhost' || uri.hostname.charCodeAt(0) < 64))
+	if (options.resolve && (opt.unixsocket || (uri.hostname === 'localhost' || uri.hostname.charCodeAt(0) < 64)))
 		options.resolve = false;
 
 	if (!opt.unixsocket && CONF.default_proxy && !proxy && !PROXYBLACKLIST[uri.hostname])
