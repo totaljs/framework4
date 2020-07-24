@@ -695,6 +695,7 @@ PAP.createSocket = function(options, callback) {
 			self.requests = null;
 			self.options = null;
 		}
+
 	});
 
 	req.on('error', function(err) {
@@ -819,6 +820,14 @@ function request_process_timeout(req) {
 		options.canceled = true;
 		options.callback(exports.httpStatus(408), options.response);
 		options.callback = null;
+	}
+}
+
+function request_process_ok() {
+	var options = this.$options;
+	if (options.timeoutid) {
+		clearTimeout(options.timeoutid);
+		options.timeoutid = null;
 	}
 }
 
@@ -991,6 +1000,8 @@ function request_response(res) {
 	var encoding = res.headers['content-encoding'] || '';
 	if (encoding)
 		encoding = encoding.split(',')[0];
+
+	options.timeoutid && res.req.once('data', request_process_ok);
 
 	if (options.custom) {
 		options.timeoutid && clearTimeout(options.timeoutid);
