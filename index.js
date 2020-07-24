@@ -4436,10 +4436,10 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 	return def;
 };
 
-global.DOWNLOAD = function(url, filename, callback) {
+global.DOWNLOAD = function(url, filename, callback, timeout) {
 
 	if (!F.isLoaded && url[0] === '/') {
-		setTimeout(global.DOWNLOAD, 200, url, filename, callback);
+		setTimeout(global.DOWNLOAD, 200, url, filename, callback, timeout);
 		return;
 	}
 
@@ -4465,6 +4465,7 @@ global.DOWNLOAD = function(url, filename, callback) {
 
 	opt.custom = true;
 	opt.resolve = true;
+	opt.timeout = timeout;
 	opt.callback = function(err, response) {
 
 		if (response)
