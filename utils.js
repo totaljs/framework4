@@ -824,7 +824,7 @@ function request_process_timeout(req) {
 }
 
 function request_process_ok() {
-	var options = this.$options;
+	var options = this.req.$options;
 	if (options.timeoutid) {
 		clearTimeout(options.timeoutid);
 		options.timeoutid = null;
@@ -997,11 +997,11 @@ function request_response(res) {
 		return;
 	}
 
+	options.timeoutid && res.once('data', request_process_ok);
+
 	var encoding = res.headers['content-encoding'] || '';
 	if (encoding)
 		encoding = encoding.split(',')[0];
-
-	options.timeoutid && res.req.once('data', request_process_ok);
 
 	if (options.custom) {
 		options.timeoutid && clearTimeout(options.timeoutid);
