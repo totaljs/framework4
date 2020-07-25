@@ -502,6 +502,10 @@ DB.param = function(value) {
 	return this.options.filterarg.params.push(value) - 1;
 };
 
+DB.id = function(id) {
+	return id instanceof Array ? this.in('id', id) : this.where('id', id);
+};
+
 DB.where = function(name, operator, value) {
 
 	var self = this;
