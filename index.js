@@ -552,24 +552,6 @@ global.UID = function(type) {
 	return UIDGENERATOR.date + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date.length + (index % 2 ? 1 : 0) + 'b'; // "b" version
 };
 
-global.UIDF = function(type) {
-
-	var index;
-
-	if (type) {
-		if (UIDGENERATOR.typesnumber[type])
-			index = UIDGENERATOR.typesnumber[type] = UIDGENERATOR.typesnumber[type] + 1;
-		else {
-			UIDGENERATOR.multiplenumber = true;
-			index = UIDGENERATOR.typesnumber[type] = 1;
-		}
-	} else
-		index = UIDGENERATOR.indexnumber++;
-
-	var div = index > 1000 ? 10000 : 1000;
-	return (UIDGENERATOR.datenumber + (index / div));
-};
-
 global.ERROR = function(name) {
 	return name == null ? F.errorcallback : function(err) {
 		err && F.error(err, name);
@@ -943,8 +925,6 @@ function UIDGENERATOR_REFRESH() {
 	UIDGENERATOR.date16 = dt.toString(16);
 
 	var seconds = ((NOW.getSeconds() / 60) + '').substring(2, 4);
-	UIDGENERATOR.datenumber = +((((ticks - 1580511600000) / 1000 / 60) >> 0) + seconds); // 1580511600000 means 1.1.2020
-	UIDGENERATOR.indexnumber = 1;
 	UIDGENERATOR.index = 1;
 	UIDGENERATOR.instance = random2string();
 
