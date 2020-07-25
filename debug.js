@@ -93,6 +93,9 @@ function runwatching() {
 	const ARGV = CLONE(process.argv);
 	const PIDNAME = FILENAME.replace(/\.js$/, '.pid');
 
+	if (isRELOAD && typeof(options.livereload) === 'string')
+		options.livereload = options.livereload.replace(/^(https|http):\/\//g, '');
+
 	function copyFile(oldname, newname, callback) {
 		var writer = Fs.createWriteStream(newname);
 		callback && writer.on('finish', callback);
@@ -165,18 +168,31 @@ function runwatching() {
 		blacklist['/readme.md'] = 1;
 
 		if (isRELOAD && !watchercallback) {
-			var tmppath = Path.join(Os.tmpdir(), 'total4livereload');
-			Fs.mkdir(tmppath, function() {
-				F.console = NOOP;
-				WEBSOCKET('/', function() {
-					var self = this;
-					self.autodestroy(function() {
+			if (typeof(options.livereload) === 'string') {
+				WEBSOCKETCLIENT(function(client) {
+					client.options.type = 'text';
+					client.on('open', function() {
+						WS = client;
+					});
+					client.on('close', function() {
 						WS = null;
 					});
-					WS = self;
+					client.connect('wss://livereload.totaljs.com/?hostname=' + encodeURIComponent(options.livereload));
 				});
-				HTTP('release', { port: typeof(options.livereload) === 'number' ? options.livereload : 35729, directory: tmppath });
-			});
+			} else {
+				var tmppath = Path.join(Os.tmpdir(), 'total4livereload');
+				Fs.mkdir(tmppath, function() {
+					F.console = NOOP;
+					WEBSOCKET('/', function() {
+						var self = this;
+						self.autodestroy(function() {
+							WS = null;
+						});
+						WS = self;
+					});
+					HTTP('release', { port: typeof(options.livereload) === 'number' ? options.livereload : 35729, directory: tmppath });
+				});
+			}
 		}
 
 		try {
@@ -219,7 +235,7 @@ function runwatching() {
 		}
 
 		function livereload() {
-			isRELOAD && setTimeout2('livereload', () => WS && WS.send('reload'), 500);
+			isRELOAD && setTimeout2('livereload', () => WS && WS.send(typeof(options.livereload) === 'string' ? options.livereload : 'reload'), 500);
 		}
 
 		function isViewPublic(filename) {
