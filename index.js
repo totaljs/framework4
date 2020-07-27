@@ -7957,6 +7957,9 @@ function configure_configs(arr, rewrite) {
 				else if (subtype === 'random')
 					obj[name] = GUID(value || 10);
 				else if (subtype === 'generate') {
+					obj[name] = U.random_string(value || 10);
+					generated.push(name);
+				} else if (subtype === 'hash') {
 					obj[name] = GUID(value || 10);
 					generated.push(name);
 				} else {

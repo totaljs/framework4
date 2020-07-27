@@ -1722,6 +1722,17 @@ exports.$normalize = function(path) {
 	return isWindows ? path.replace(regexpPATH, '/') : path;
 };
 
+const RANDOM_STRING = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+
+exports.random_string = function(max) {
+	var builder = '';
+	for (var i = 0; i < max; i++) {
+		var index = Math.floor(Math.random() * RANDOM_STRING.length);
+		builder += RANDOM_STRING[index];
+	}
+	return builder;
+};
+
 exports.random = function(max, min) {
 	max = (max || 100000);
 	min = (min || 0);
