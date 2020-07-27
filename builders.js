@@ -1567,6 +1567,51 @@ SchemaBuilderEntityProto.$onprepare = function(name, value, index, model, $) {
 	return val === undefined ? value : val;
 };
 
+function toName(val) {
+
+	var a = '';
+	var p = 0;
+	var space = false;
+
+	for (var i = 0; i < val.length; i++) {
+		var c = val.charCodeAt(i);
+		if ((c < 65 || (c > 90 && c < 97) || (c > 122 && c < 128)) && c !== 32)
+			continue;
+
+		if (c === p)
+			continue;
+
+		if (a && p !== 32) {
+
+			if (c === 32) {
+				p = c;
+				space = true;
+				continue;
+			}
+
+			if (space) {
+				a += ' ';
+				space = false;
+			}
+
+			a += val[i];
+
+		} else {
+
+			if (space) {
+				a += ' ';
+				space = false;
+			}
+
+			a += val[i].toUpperCase();
+		}
+
+		p = c;
+	}
+
+	return val;
+}
+
 /**
  * Prepare model according to schema
  * @param {Object} model
@@ -1681,18 +1726,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							tmp = tmp.capitalize(true);
 							break;
 						case 'name':
-
-							tmp = tmp.split(' ')[0].capitalize(true);
-							var a = '';
-
-							for (var i = 0; i < tmp.length; i++) {
-								var c = tmp.charCodeAt(i);
-								if (c < 65 || (c > 90 && c < 97) || (c > 122 && c < 128))
-									continue;
-								a += tmp[i];
-							}
-
-							tmp = a;
+							tmp = toName(tmp);
 							break;
 						case 'lowercase':
 							tmp = tmp.toLowerCase();
@@ -1878,6 +1912,9 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							tmp = tmp.replace(REGEXP_CLEAN_PHONE, '');
 							if (tmp && !type.required && !tmp.isPhone())
 								continue;
+							break;
+						case 'name':
+							tmp = toName(tmp);
 							break;
 						case 'capitalize':
 							tmp = tmp.capitalize();
@@ -4618,6 +4655,9 @@ function convertorcompile(schema, data, key) {
 				break;
 			case 'capitalize2':
 				obj.fn = (val, obj) => $convertstring(val, obj).capitalize(true);
+				break;
+			case 'name':
+				obj.fn = (val, obj) => toName($convertstring(val, obj));
 				break;
 			case 'base64':
 				obj.fn = val => typeof(val) === 'string' ? val.isBase64() ? val : '' : '';
