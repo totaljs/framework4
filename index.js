@@ -13054,7 +13054,10 @@ WebSocketClientProto.$parse = function() {
 	var current = self.current;
 
 	// check end message
-	if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
+
+	// Fixed a problem with parsing of long messages, the code bellow 0x80 still returns 0 when the message is longer
+	// if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
+	if (!current.buffer || current.buffer.length <= 2)
 		return;
 
 	// webSocked - Opcode
