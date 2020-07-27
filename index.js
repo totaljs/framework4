@@ -7957,7 +7957,7 @@ function configure_configs(arr, rewrite) {
 				else if (subtype === 'random')
 					obj[name] = GUID(value || 10);
 				else if (subtype === 'generate') {
-					obj[name] = U.random_string(value || 10);
+					obj[name] = framework_utils.random_string(value || 10);
 					generated.push(name);
 				} else if (subtype === 'hash') {
 					obj[name] = GUID(value || 10);
@@ -7981,9 +7981,11 @@ function configure_configs(arr, rewrite) {
 
 		if (existsSync(filenameC)) {
 			gdata = Fs.readFileSync(filenameC).toString('utf8').parseJSON(true);
-			for (var i = 0; i < generated.length; i++) {
-				if (gdata[generated[i]] != null)
-					obj[generated[i]] = gdata[generated[i]];
+			if (generated) {
+				for (var i = 0; i < generated.length; i++) {
+					if (gdata[generated[i]] != null)
+						obj[generated[i]] = gdata[generated[i]];
+				}
 			}
 		}
 
