@@ -155,7 +155,9 @@ SessionProto.getcookie = function(req, opt, callback, param) {
 	// opt.options {Object} A cookie options (default: undefined)
 	// opt.ddos {Number} Enable DDOS attempts
 
-	if (req.req)
+	if (req.controller)
+		req = req.controller.req;
+	else if (req.req)
 		req = req.req;
 
 	var self = this;
@@ -178,7 +180,7 @@ SessionProto.getcookie = function(req, opt, callback, param) {
 	}
 
 	// IMPORTANT: "req.res" can be null cause of WebSocket
-	var value = DECRYPTREQ(req, token, opt.key);
+	var value = DECRYPTREQ(req, token, opt.key || opt.secret);
 	if (value && typeof(value) === 'string') {
 		value = value.split(';');
 		if (req.res && opt.expire && opt.extendcookie !== false)
@@ -245,7 +247,7 @@ SessionProto.gettoken = function(req, opt, callback, param) {
 	}
 
 	// IMPORTANT: "req.res" can be null cause of WebSocket
-	var value = DECRYPTREQ(req, token, opt.key);
+	var value = DECRYPTREQ(req, token, opt.key || opt.secret);
 	if (value && typeof(value) === 'string') {
 		value = value.split(';');
 		self.get(value[0], opt.expire, function(err, data, meta, init) {
@@ -399,7 +401,9 @@ SessionProto.setcookie = function(res, opt, callback) {
 	// opt.settings {String} Settings data for the session
 	// opt.options {Object} A cookie options (default: undefined)
 
-	if (res.res)
+	if (res.controller)
+		res = res.controller.res;
+	else if (res.res)
 		res = res.res;
 
 	if (!opt.sessionid)
@@ -410,7 +414,7 @@ SessionProto.setcookie = function(res, opt, callback) {
 			callback && callback(err);
 		} else {
 			var data = opt.sessionid + ';' + (opt.id || '');
-			var token = ENCRYPTREQ(res.req, data, opt.key, opt.strict);
+			var token = ENCRYPTREQ(res.req, data, opt.key || opt.secret, opt.strict);
 			res.cookie(opt.name, token, opt.expire, opt.options || COOKIEOPTIONS);
 			res.req.sessionid = opt.sessionid;
 			callback && callback(null, item, meta);
@@ -441,7 +445,7 @@ SessionProto.settoken = function(res, opt, callback) {
 			callback && callback(err);
 		} else {
 			var data = opt.sessionid + ';' + (opt.id || '');
-			var token = ENCRYPTREQ(res.req, data, opt.key, opt.strict);
+			var token = ENCRYPTREQ(res.req, data, opt.key || opt.secret, opt.strict);
 			res.req.sessionid = opt.sessionid;
 			callback && callback(null, token, item, meta);
 		}
