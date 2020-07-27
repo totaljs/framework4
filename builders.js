@@ -47,7 +47,7 @@ function SchemaOptions(error, model, options, callback, controller, name, schema
 	this.model = model;
 	this.options = options || EMPTYOBJECT;
 	this.callback = this.next = callback;
-	this.controller = (controller instanceof SchemaOptions || controller instanceof OperationOptions) ? controller.controller : controller;
+	this.controller = (controller instanceof SchemaOptions || controller instanceof OperationOptions || controller instanceof TaskBuilder) ? controller.controller : controller;
 	this.name = name;
 	this.schema = schema;
 	this.responses = {};
@@ -57,7 +57,8 @@ function TaskBuilder($) {
 	var t = this;
 	t.value = {};
 	t.tasks = {};
-	if ($ instanceof SchemaOptions || $ instanceof OperationOptions) {
+	t.schema = $.schema;
+	if ($ instanceof SchemaOptions || $ instanceof OperationOptions || $ instanceof TaskBuilder) {
 		t.error = $.error;
 		t.controller = $.controller;
 	} else {
@@ -1081,15 +1082,18 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
  */
 SchemaBuilderEntityProto.addTask = function(name, task, filter) {
 
+	var self = this;
+
 	var fn = function($) {
+		$.schema = self.name;
 		TASK(task, $.callback, $).value = $.model;
 	};
 
-	!this.tasks && (this.tasks = {});
-	this.tasks[name] = fn;
-	this.meta['task_' + name] = 1;
-	this.meta['taskfilter_' + name] = filter;
-	return this;
+	!self.tasks && (self.tasks = {});
+	self.tasks[name] = fn;
+	self.meta['task_' + name] = 1;
+	self.meta['taskfilter_' + name] = filter;
+	return self;
 };
 
 /**
