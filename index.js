@@ -1201,7 +1201,9 @@ function Framework() {
 
 		performance: {
 			request: 0,
+			message: 0,
 			file: 0,
+			online: 0,
 			usage: 0
 		},
 
@@ -6139,6 +6141,7 @@ F.service = function(count) {
 
 	F.stats.performance.request = F.stats.request.request ? (F.stats.request.request / F.temporary.service.request).fixed(3) : 0;
 	F.stats.performance.file = F.stats.request.file ? (F.stats.request.file / F.temporary.service.file).fixed(3) : 0;
+	F.stats.performance.message = 0;
 
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};
@@ -12917,6 +12920,7 @@ WebSocketClientProto.upgrade = function(container) {
 	self.container.$refresh();
 	F.$events.websocket_begin && EMIT('websocket_begin', self.container, self);
 	self.container.$events.open && self.container.emit('open', self);
+	F.stats.performance.online++;
 	return self;
 };
 
@@ -12930,6 +12934,7 @@ function websocket_onerror(e) {
 }
 
 function websocket_close() {
+	F.stats.performance.online--;
 	this.destroy && this.destroy();
 	this.$websocket.$onclose();
 }
@@ -13133,7 +13138,9 @@ WebSocketClientProto.$readbody = function() {
 };
 
 WebSocketClientProto.$decode = function() {
+
 	var data = this.current.body;
+	F.stats.performance.message++;
 
 	// Buffer
 	if (this.typebuffer) {
@@ -16210,6 +16217,8 @@ function runsnapshot() {
 
 	var main = {};
 	var stats = {};
+	var lastwarning = 0;
+
 	stats.id = F.id;
 	stats.version = {};
 	stats.version.node = process.version;
@@ -16232,11 +16241,13 @@ function runsnapshot() {
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
 		stats.rm = F.stats.performance.request.floor(2);  // request min
 		stats.fm = F.stats.performance.file.floor(2);     // files min
+		stats.mm = F.stats.performance.message;
 		stats.usage = F.stats.performance.usage.floor(2); // app usage in %
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
 		stats.errors = F.errors.length;
 		stats.timeouts = F.stats.response.error408;
+		stats.online = F.stats.performance.online;
 
 		if (F.isCluster) {
 			if (process.connected) {
@@ -16245,6 +16256,12 @@ function runsnapshot() {
 			}
 		} else
 			Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '\t'), NOOP);
+
+		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
+			lastwarning = NOW.getHours();
+			Fs.appendFile(process.mainModule.filename + '.overload', JSON.stringify(stats) + '\n', NOOP);
+		}
+
 	};
 
 	CONF.allow_stats_snapshot && F.snapshotstats();
