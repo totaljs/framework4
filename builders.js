@@ -57,8 +57,8 @@ function TaskBuilder($) {
 	var t = this;
 	t.value = {};
 	t.tasks = {};
-	t.schema = $.schema;
 	if ($ instanceof SchemaOptions || $ instanceof OperationOptions || $ instanceof TaskBuilder) {
+		t.schema = $.schema;
 		t.error = $.error;
 		t.controller = $.controller;
 	} else {
