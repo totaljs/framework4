@@ -4881,35 +4881,35 @@ TaskBuilderProto.next2 = function(name) {
 	};
 };
 
-TaskBuilderProto.done = function(data) {
+TaskBuilderProto.end = function(data) {
 	var self = this;
 	self.$callback && self.$callback(self.error && self.error.is ? self.error : null, data || self.value);
 	self.$done = true;
 	return self;
 };
 
-TaskBuilderProto.done2 = function(send_value) {
+TaskBuilderProto.done = function(send_value) {
 	var self = this;
 	return function(err, data) {
 		if (err)
 			self.invalid(err);
 		else
-			self.done(send_value ? data : null);
+			self.end(SUCCESS(true, send_value ? data : null));
+	};
+};
+
+TaskBuilderProto.end2 = function(send_value) {
+	var self = this;
+	return function(err, data) {
+		if (err)
+			self.invalid(err);
+		else
+			self.end(send_value ? data : null);
 	};
 };
 
 TaskBuilderProto.success = function(data) {
-	return this.done(SUCCESS(true, data));
-};
-
-TaskBuilderProto.success2 = function(send_value) {
-	var self = this;
-	return function(err, data) {
-		if (err)
-			self.invalid(err);
-		else
-			self.done(SUCCESS(true, send_value ? data : null));
-	};
+	return this.end(SUCCESS(true, data));
 };
 
 TaskBuilderProto.callback = function(fn) {
