@@ -4085,7 +4085,9 @@ global.TASK = function(taskname, name, callback, options, value) {
 
 	var obj = new TaskBuilder(options);
 	obj.taskname = tmp[0];
-	obj.value = value;
+
+	if (value)
+		obj.value = value;
 
 	if (obj.controller) {
 		obj.controller.$filterschema = null;
