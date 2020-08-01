@@ -4310,7 +4310,7 @@ NP.VAT = function(percentage, decimals, includedVAT) {
 	if (includedVAT === undefined)
 		includedVAT = true;
 
-	return !percentage || !num ? num : includedVAT ? (num / ((percentage / 100) + 1)).round(decimals) : (num * ((percentage / 100) + 1)).round(decimals);
+	return !percentage || !num ? num.round(decimals) : includedVAT ? (num / ((percentage / 100) + 1)).round(decimals) : (num * ((percentage / 100) + 1)).round(decimals);
 };
 
 NP.discount = function(percentage, decimals) {
