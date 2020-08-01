@@ -4307,9 +4307,6 @@ NP.VAT = function(percentage, decimals, includedVAT) {
 	if (type === 'undefined')
 		decimals = 2;
 
-	if (includedVAT === undefined)
-		includedVAT = true;
-
 	return !percentage || !num ? num.round(decimals) : includedVAT ? (num / ((percentage / 100) + 1)).round(decimals) : (num * ((percentage / 100) + 1)).round(decimals);
 };
 
