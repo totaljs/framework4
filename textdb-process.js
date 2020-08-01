@@ -1,11 +1,12 @@
 const Fork = require('child_process').fork;
+var CALLBACKS = {};
 var COUNTER = 1;
 var INSTANCE;
 
 exports.init = function(directory, callback) {
 
 	INSTANCE = Fork(__dirname + '/textdb-worker.js', [directory], { detached: true, serialization: 'advanced' });
-	INSTANCE.callbacks = {};
+	CALLBACKS = {};
 	INSTANCE.on('message', function(msg) {
 
 		if (COUNTER > 999999999)
@@ -21,9 +22,9 @@ exports.init = function(directory, callback) {
 				callback && callback();
 				break;
 			case 'response':
-				var cb = msg.cid ? INSTANCE.callbacks[msg.cid] : null;
+				var cb = msg.cid ? CALLBACKS[msg.cid] : null;
 				if (cb) {
-					delete INSTANCE.callbacks[msg.cid];
+					delete CALLBACKS[msg.cid];
 					msg.TYPE = undefined;
 					msg.cid = undefined;
 					var response = msg.response;
@@ -34,24 +35,28 @@ exports.init = function(directory, callback) {
 		}
 	});
 
-	console.log('TextDB: ', INSTANCE.pid);
 	INSTANCE.on('error', err => console.log('TextDB error', err));
 
 	INSTANCE.on('close', function() {
-		var keys = Object.keys(INSTANCE.callbacks);
+		var keys = Object.keys(CALLBACKS);
 		var err = 'TextDB worker has been detached';
-		for (var i = 0; i < keys.length; i++)
-			INSTANCE.callbacks[keys[i]](err);
+		for (var i = 0; i < keys.length; i++) {
+			var key = keys[i];
+			CALLBACKS[key](err);
+			delete CALLBACKS[key];
+		}
 		INSTANCE.removeAllListeners();
 		INSTANCE = null;
 		setTimeout(() => exports.init(directory), 100);
 	});
 
 	INSTANCE.send2 = function(msg) {
-		if (INSTANCE.ready)
-			INSTANCE.send(msg);
-		else
-			setTimeout(INSTANCE.send2, 100, msg);
+		if (INSTANCE) {
+			if (INSTANCE.ready)
+				INSTANCE.send(msg);
+			else
+				setTimeout(INSTANCE.send2, 100, msg);
+		}
 	};
 
 	prepare(INSTANCE);
@@ -72,7 +77,7 @@ function prepare(INSTANCE) {
 		builder.cid = COUNTER++;
 
 		if (callback)
-			INSTANCE.callbacks[builder.cid] = callback;
+			CALLBACKS[builder.cid] = callback;
 
 		INSTANCE.send2({ TYPE: 'find', builder: builder });
 	};
@@ -81,7 +86,7 @@ function prepare(INSTANCE) {
 		builder.cid = COUNTER++;
 
 		if (callback)
-			INSTANCE.callbacks[builder.cid] = callback;
+			CALLBACKS[builder.cid] = callback;
 
 		INSTANCE.send2({ TYPE: 'find2', builder: builder });
 	};
@@ -94,7 +99,7 @@ function prepare(INSTANCE) {
 		builder.cid = COUNTER++;
 
 		if (callback)
-			INSTANCE.callbacks[builder.cid] = callback;
+			CALLBACKS[builder.cid] = callback;
 
 		INSTANCE.send2({ TYPE: 'remove', builder: builder });
 	};
@@ -103,7 +108,7 @@ function prepare(INSTANCE) {
 		builder.cid = COUNTER++;
 
 		if (callback)
-			INSTANCE.callbacks[builder.cid] = callback;
+			CALLBACKS[builder.cid] = callback;
 
 		INSTANCE.send2({ TYPE: 'update', builder: builder });
 	};
@@ -112,7 +117,7 @@ function prepare(INSTANCE) {
 		builder.cid = COUNTER++;
 
 		if (callback)
-			INSTANCE.callbacks[builder.cid] = callback;
+			CALLBACKS[builder.cid] = callback;
 
 		INSTANCE.send2({ TYPE: 'insert', builder: builder });
 	};
@@ -120,14 +125,14 @@ function prepare(INSTANCE) {
 	INSTANCE.cmd_alter = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)
-			INSTANCE.callbacks[id] = callback;
+			CALLBACKS[id] = callback;
 		INSTANCE.send2({ TYPE: 'alter', cid: id, builder: builder });
 	};
 
 	INSTANCE.cmd_lock = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)
-			INSTANCE.callbacks[id] = callback;
+			CALLBACKS[id] = callback;
 		INSTANCE.send2({ TYPE: 'lock', cid: id, builder: builder });
 	};
 
@@ -138,14 +143,14 @@ function prepare(INSTANCE) {
 	INSTANCE.cmd_clean = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)
-			INSTANCE.callbacks[id] = callback;
+			CALLBACKS[id] = callback;
 		INSTANCE.send2({ TYPE: 'clean', cid: id, builder: builder });
 	};
 
 	INSTANCE.cmd_backups = function(builder, callback) {
 		builder.cid = COUNTER++;
 		if (callback)
-			INSTANCE.callbacks[builder.cid] = callback;
+			CALLBACKS[builder.cid] = callback;
 		INSTANCE.send2({ TYPE: 'backups', builder: builder });
 	};
 
@@ -156,7 +161,7 @@ function prepare(INSTANCE) {
 	INSTANCE.cmd_clear = function(builder, callback) {
 		var id = COUNTER++;
 		if (callback)
-			INSTANCE.callbacks[id] = callback;
+			CALLBACKS[id] = callback;
 		INSTANCE.send2({ TYPE: 'clear', cid: id, builder: builder });
 	};
 
