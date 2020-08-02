@@ -621,7 +621,7 @@ DB.or = function(callback) {
 	var self = this;
 	var builder = self.builder;
 	self.builder = [];
-	callback.call(builder, builder);
+	callback.call(self, self);
 	self.builder.length && builder.push('(' + self.builder.join('||') + ')');
 	self.builder = builder;
 	return self;
