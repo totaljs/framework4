@@ -1160,7 +1160,6 @@ function Framework() {
 	self.sessions = {};
 	self.flows = {};
 	self.databases = {};
-	self.databasescleaner = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
 	self.isHTTPS = false;
@@ -4729,7 +4728,6 @@ F.usage = function(detailed) {
 	var redirects = Object.keys(F.routes.redirects);
 	var commands = Object.keys(F.commands);
 	var output = {};
-	var nosqlcleaner = Object.keys(F.databasescleaner);
 	var sessions = Object.keys(F.sessions);
 	var shortcache = Object.keys(F.temporary.shortcache);
 
