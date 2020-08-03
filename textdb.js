@@ -44,7 +44,6 @@ const MAXREADERS = 3;
 const JSONBUFFER = 40;
 
 // For performing of cleaning
-// @TODO: missing implementation
 var INSTANCES = [];
 
 // Temporary
@@ -2073,10 +2072,28 @@ exports.TableDB = function(name, schema, cache) {
 };
 
 // Clears cache each hour
-process.totaldbworker && setInterval(function() {
+if (process.totaldbworker) {
+	var CLEANERTICKS = 0;
+	setInterval(function() {
 
-	var keys = Object.keys(CACHEITEMS);
-	for (var i = 0; i < keys.length; i++)
-		CACHEITEMS[keys[i]] = [];
+		var keys = Object.keys(CACHEITEMS);
+		for (var i = 0; i < keys.length; i++)
+			CACHEITEMS[keys[i]] = [];
 
-}, 60000 * 60);
+		// 12 hours
+		if (CLEANERTICKS % 12 === 0) {
+			for (var i = 0; i < INSTANCES.length; i++)
+				INSTANCES[i].clean();
+		}
+
+		CLEANERTICKS++;
+	}, 60000 * 60);
+} else {
+	ON('service', function(counter) {
+		// 12 hours
+		if (counter % 720 === 0) {
+			for (var i = 0; i < INSTANCES.length; i++)
+				INSTANCES[i].clean();
+		}
+	});
+}
