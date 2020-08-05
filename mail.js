@@ -603,13 +603,13 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 		obj.callback = null;
 		if (obj.try || err.stack.indexOf('ECONNRESET') !== -1)
 			return;
-		!obj.try && !is && F.error(err, 'mail-smtp', smtp);
+		!obj.try && !is && F.error(err, 'mail_smtp', smtp);
 		mailer.$events.error && mailer.emit('error', err, obj);
 	});
 
 	obj.socket.on('clientError', function(err) {
 		mailer.destroy(obj);
-		!obj.try && !obj.callback && F.error(err, 'mail-smtp', smtp);
+		!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
 		obj.callback && obj.callback(err);
 		obj.callback = null;
 		mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
@@ -618,7 +618,7 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 	obj.socket.setTimeout(options.timeout || 8000, function() {
 		var err = new Error(framework_utils.httpStatus(408));
 		mailer.destroy(obj);
-		!obj.try && !obj.callback && F.error(err, 'mail-smtp', smtp);
+		!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
 		obj.callback && obj.callback(err);
 		obj.callback = null;
 		mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
@@ -929,16 +929,17 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 					return;
 				}
 
-				var err = new Error(line);
+				var err = line;
 
 				mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
 				obj.messagecallback && obj.messagecallback(err, obj.instance);
 				obj.messagecallback = null;
 
-				if (obj.message) {
+				if (obj.messages.length) {
 					// a problem
 					buffer = [];
 					obj.count--;
+					console.log('SOM TU');
 					socket.emit('line', '999 TRY NEXT MESSAGE');
 				} else {
 					mailer.destroy(obj);
