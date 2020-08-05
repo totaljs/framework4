@@ -939,7 +939,6 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 					// a problem
 					buffer = [];
 					obj.count--;
-					console.log('SOM TU');
 					socket.emit('line', '999 TRY NEXT MESSAGE');
 				} else {
 					mailer.destroy(obj);
