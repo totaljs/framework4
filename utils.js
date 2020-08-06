@@ -1783,7 +1783,7 @@ function validate_builder_default(name, value, entity) {
 	}
 
 	if (type === 'number')
-		return true;
+		return value > 0;
 
 	if (type === 'string' || value instanceof Array)
 		return value.length > 0;
