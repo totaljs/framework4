@@ -479,14 +479,6 @@ function runmiddleware(opt, schema, callback, index, processor) {
 	fn(opt, processor);
 }
 
-/**
- * Define type in schema
- * @param {String|String[]} name
- * @param {Object/String} type
- * @param {Boolean} [required=false] Is required? Default: false.
- * @param {Number|String} [custom] Custom tag for search.
- * @return {SchemaBuilder}
- */
 SchemaBuilderEntityProto.define = function(name, type, required, custom) {
 
 	if (name instanceof Array) {
@@ -956,11 +948,6 @@ SchemaBuilderEntityProto.setInsertExtension = function(fn) {
 	return this;
 };
 
-/**
- * Set update handler
- * @param {Function(error, model, helper, next(value), controller)} fn
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.setUpdate = function(fn, filter) {
 	this.onUpdate = fn;
 	this.meta.update = 1;
@@ -998,21 +985,11 @@ SchemaBuilderEntityProto.setPatchExtension = function(fn) {
 	return this;
 };
 
-/**
- * Set error handler
- * @param {Function(error)} fn
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.setError = function(fn) {
 	this.onError = fn;
 	return this;
 };
 
-/**
- * Set getter handler
- * @param {Function(error, model, helper, next(value), controller)} fn
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.setGet = SchemaBuilderEntityProto.setRead = function(fn, filter) {
 	this.onRead = fn;
 	this.meta.read = this.meta.read = 1;
@@ -1029,12 +1006,6 @@ SchemaBuilderEntityProto.setGetExtension = SchemaBuilderEntityProto.setReadExten
 	return this;
 };
 
-/**
- * Set query handler
- * @param {Function(error, helper, next(value), controller)} fn
- * @param {String} description Optional.
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.setQuery = function(fn, filter) {
 	this.onQuery = fn;
 	this.meta.query = 1;
@@ -1051,12 +1022,6 @@ SchemaBuilderEntityProto.setQueryExtension = function(fn) {
 	return this;
 };
 
-/**
- * Set remove handler
- * @param {Function(error, helper, next(value), controller)} fn
- * @param {String} description Optional.
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.setRemove = function(fn, filter) {
 	this.onRemove = fn;
 	this.meta.remove = 1;
@@ -1073,13 +1038,6 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
 	return this;
 };
 
-/**
- * Add a new Task
- * @param {String} name Transform name, optional.
- * @param {Function(errorBuilder, model, helper, next([output]), controller)} fn
- * @param {String} description Optional.
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.addTask = function(name, task, filter) {
 
 	var self = this;
@@ -1096,13 +1054,22 @@ SchemaBuilderEntityProto.addTask = function(name, task, filter) {
 	return self;
 };
 
-/**
- * Add a new workflow for the entity
- * @param {String} name Workflow name, optional.
- * @param {Function(errorBuilder, model, helper, next([output]), controller)} fn
- * @param {String} description Optional.
- * @return {SchemaBuilderEntity}
- */
+SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
+
+	var self = this;
+
+	var fn = function($) {
+		$.schema = self.name;
+		OPERATION(opname, $.model, $.callback, $);
+	};
+
+	!self.operations && (self.operations = {});
+	self.operations[name] = fn;
+	self.meta['operation_' + name] = 1;
+	self.meta['operationfilter_' + name] = filter;
+	return self;
+};
+
 SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
 	!this.workflows && (this.workflows = {});
 	this.workflows[name] = fn;
@@ -1120,18 +1087,10 @@ SchemaBuilderEntityProto.addWorkflowExtension = function(name, fn) {
 	return this;
 };
 
-/**
- * Find an entity in current group
- * @param {String} name
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.find = function(name) {
 	return this.parent.get(name);
 };
 
-/**
- * Destroys current entity
- */
 SchemaBuilderEntityProto.destroy = function() {
 	delete this.properties;
 	delete this.schema;
@@ -1143,6 +1102,8 @@ SchemaBuilderEntityProto.destroy = function() {
 	delete this.onRemove;
 	delete this.onQuery;
 	delete this.workflows;
+	delete this.operations;
+	delete this.tasks;
 	delete this.meta;
 	delete this.properties;
 	delete this.onError;
@@ -1226,12 +1187,6 @@ SchemaBuilderEntityProto.get = SchemaBuilderEntityProto.read = function(opt, cal
 	return self;
 };
 
-/**
- * Execute onRemove delegate
- * @param {Object} options Custom options object, optional
- * @param {Function(err, result)} callback
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.remove = function(opt, callback, controller) {
 
 	if (typeof(opt) === 'function') {
@@ -1245,12 +1200,6 @@ SchemaBuilderEntityProto.remove = function(opt, callback, controller) {
 	return self;
 };
 
-/**
- * Execute onQuery delegate
- * @param {Object} options Custom options object, optional
- * @param {Function(err, result)} callback
- * @return {SchemaBuilderEntity}
- */
 SchemaBuilderEntityProto.query = function(opt, callback, controller) {
 
 	var self = this;
@@ -1265,14 +1214,6 @@ SchemaBuilderEntityProto.query = function(opt, callback, controller) {
 	return self;
 };
 
-/**
- * Validate a schema
- * @param {Object} model Object to validate.
- * @param {String} resourcePrefix Prefix for resource key.
- * @param {String} resourceName Resource filename.
- * @param {ErrorBuilder} builder ErrorBuilder, INTERNAL.
- * @return {ErrorBuilder}
- */
 SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName, $, path, index) {
 
 	var self = this;
@@ -1305,20 +1246,10 @@ SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName
 	return builder;
 };
 
-/**
- * Create a default object according the schema
- * @alias SchemaBuilderEntity.default()
- * @return {Object}
- */
 SchemaBuilderEntityProto.create = function() {
 	return this.default();
 };
 
-/**
- * Makes extensible object
- * @param {Object} obj
- * @return {Object}
- */
 SchemaBuilderEntityProto.$make = function(obj) {
 	return obj;
 };
@@ -2054,6 +1985,26 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 	return self;
 };
 
+SchemaBuilderEntityProto.operation = function(name, model, opt, callback, controller, noprepare) {
+
+	if (typeof(opt) === 'function') {
+		noprepare = controller;
+		controller = callback;
+		callback = opt;
+		opt = null;
+	}
+
+	var self = this;
+	self.exec('operation', name, model, opt, controller, callback, noprepare);
+	return self;
+};
+
+SchemaBuilderEntityProto.operation2 = function(name, opt, callback, controller) {
+	var self = this;
+	self.operation(name, null, opt, callback, controller, true);
+	return self;
+};
+
 SchemaBuilderEntityProto.task = function(name, model, opt, callback, controller, noprepare) {
 
 	if (typeof(opt) === 'function') {
@@ -2126,6 +2077,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	switch (type) {
 		case 'workflow':
 		case 'task':
+		case 'operation':
 			ntype = type + 's';
 			break;
 		case 'Save':
@@ -2263,6 +2215,8 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 				name = '';
 			} else if (self.meta['workflow_' + name])
 				a.type = 'workflow';
+			else if (self.meta['operation_' + name])
+				a.type = 'operation';
 			else if (self.meta['task_' + name])
 				a.type = 'task';
 
@@ -4408,10 +4362,6 @@ OperationOptions.prototype = {
 };
 
 const OperationOptionsProto = OperationOptions.prototype;
-
-SchemaOptionsProto.tasks = OperationOptionsProto.tasks = function(taskname, name, callback, options) {
-	return taskname ? TASK(taskname, name, callback, options || this) : new TaskBuilder(this);
-};
 
 OperationOptionsProto.cancel = function() {
 	var self = this;

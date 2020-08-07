@@ -626,6 +626,22 @@ global.$TASK = function(schema, name, options, callback, controller) {
 	return !!o;
 };
 
+global.$OPERATION = function(schema, name, options, callback, controller) {
+
+	if (typeof(options) === 'function') {
+		controller = callback;
+		callback = options;
+		options = EMPTYOBJECT;
+	}
+
+	var o = framework_builders.getschema(schema);
+	if (o)
+		o.operation2(name, options, callback, controller);
+	else
+		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
+	return !!o;
+};
+
 global.$WORKFLOW = function(schema, name, options, callback, controller) {
 
 	if (typeof(options) === 'function') {
@@ -781,6 +797,8 @@ global.$ACTION = function(schema, model, callback, controller) {
 			if (!o.meta[item]) {
 				if (o.meta['workflow_' + item])
 					tmp.type = 'workflow';
+				if (o.meta['operation_' + item])
+					tmp.type = 'operation';
 				else if (o.meta['task_' + item])
 					tmp.type = 'task';
 				else {
@@ -16026,6 +16044,9 @@ function controller_json_workflow(id) {
 			w.name = '';
 		} else if (schema.meta['workflow_' + w.id] !== undefined) {
 			w.type = 'workflow';
+			w.name = w.id;
+		} else if (schema.meta['operation_' + w.id] !== undefined) {
+			w.type = 'operation';
 			w.name = w.id;
 		} else if (schema.meta['task_' + w.id] !== undefined) {
 			w.type = 'task';
