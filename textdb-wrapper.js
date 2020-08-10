@@ -449,7 +449,7 @@ DP.clear = function(callback) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'clear';
 	builder.$callback = callback;
-	this.next(builder)
+	this.next(builder);
 	return builder;
 };
 
