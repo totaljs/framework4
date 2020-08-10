@@ -9619,7 +9619,7 @@ ControllerProto.component = function(name, settings, model) {
 				for (var i = 0; i < generator.components.length; i++)
 					self.repository[REPOSITORY_COMPONENTS][generator.components[i]] = 1;
 			}
-			return generator.call(self, self, self.repository, model || self.$model, self.session, self.query, self.body, self.url, REPO, DEF.helpers, self.user, CONF, F.functions, 0, self.outputPartial, self.req.files, self.req.mobile, settings || EMPTYOBJECT);
+			return generator.call(self, self, self.repository, model || self.$model, self.session, self.query, self.body, self.url, DEF.helpers, self.user, CONF, F.functions, 0, self.outputPartial, self.req.files, self.req.mobile, settings || EMPTYOBJECT);
 		}
 	}
 	return '';

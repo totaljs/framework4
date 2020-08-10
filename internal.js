@@ -1935,12 +1935,8 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		index = command.length;
 
 	var name = command.substring(0, index);
-	if (name === dynamicCommand) {
-		console.log('TOTO');
-		console.log(command);
-		console.log('');
+	if (name === dynamicCommand)
 		return '((' + command + ') + \'\').encode()';
-	}
 
 	if (name[0] === '!' && name.substring(1) === dynamicCommand)
 		return '((' + command.substring(1) + ') + \'\')';
