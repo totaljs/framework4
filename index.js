@@ -802,7 +802,7 @@ global.$ACTION = function(schema, model, callback, controller) {
 				else if (o.meta['task_' + item])
 					tmp.type = 'task';
 				else {
-					callback(ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
+					callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
 					return;
 				}
 			}
@@ -12138,7 +12138,7 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 			obj.body = self.body;
 			obj.files = self.files;
 
-			self.$viewasync.waitFor(function(item, next) {
+			self.$viewasync.wait(function(item, next) {
 
 				if (item.value) {
 					value = value.replace(item.replace, item.value);
