@@ -2073,7 +2073,7 @@ exports.TableDB = function(name, schema, cache) {
 
 // Clears cache each hour
 if (process.totaldbworker) {
-	var CLEANERTICKS = 0;
+	var CLEANERTICKS = 1;
 	setInterval(function() {
 
 		var keys = Object.keys(CACHEITEMS);
