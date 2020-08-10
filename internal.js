@@ -57,7 +57,7 @@ const REG_SKIP_1 = /\('|"/;
 const REG_SKIP_2 = /,(\s)?\w+/;
 const REG_COMPONENTS_GROUP = /('|")[a-z0-9_]+('|")/i;
 const HTTPVERBS = { get: true, post: true, options: true, put: true, delete: true, patch: true, upload: true, head: true, trace: true, propfind: true };
-const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', 'self.$script(', '$STRING(self.resource(', '$STRING(RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '$STRING(CONFIG(', '$STRING(config.', '$STRING(config[', '$STRING(CONF.', '$STRING(CONF[', '$STRING(config('];
+const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', 'self.$script(', '((self.resource(', '((RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '((CONFIG(', '((config.', '((config[', '((CONF.', '((CONF[', '((config('];
 const REG_NOTRANSLATE = /@\{notranslate\}/gi;
 const REG_NOCOMPRESS = /@\{nocompress\s\w+}/gi;
 const REG_TAGREMOVE = /[^>](\r)\n\s{1,}$/;
@@ -83,10 +83,6 @@ const WRITESTREAM = { flags: 'w' };
 const ALLOWEDMARKUP = { G: 1, M: 1, R: 1, repository: 1, model: 1, CONF: 1, config: 1, global: 1, resource: 1, RESOURCE: 1, CONFIG: 1, author: 1, root: 1, functions: 1, NOW: 1, F: 1 };
 
 var INDEXFILE = 0;
-
-global.$STRING = function(value) {
-	return value != null ? value.toString() : '';
-};
 
 global.$VIEWCACHE = [];
 global.$VIEWASYNC = 0;
@@ -1736,7 +1732,6 @@ function view_parse(content, minify, filename, controller) {
 			isFN = true;
 
 		} else if (cmd8 === 'section ' && cmd.lastIndexOf(')') === -1) {
-
 			builderTMP = builder;
 			builder = '+(function(){var $output=$EMPTY';
 			sectionName = cmd.substring(8);
@@ -1940,11 +1935,15 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		index = command.length;
 
 	var name = command.substring(0, index);
-	if (name === dynamicCommand)
-		return '$STRING(' + command + ').encode()';
+	if (name === dynamicCommand) {
+		console.log('TOTO');
+		console.log(command);
+		console.log('');
+		return '((' + command + ') + \'\').encode()';
+	}
 
 	if (name[0] === '!' && name.substring(1) === dynamicCommand)
-		return '$STRING(' + command.substring(1) + ')';
+		return '((' + command.substring(1) + ') + \'\')';
 
 	switch (name) {
 
@@ -1972,7 +1971,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return '(' + command + '?$EMPTY:$EMPTY)';
 
 		case '!cookie':
-			return '$STRING(' + command + ')';
+			return '((' + command + ') + \'\')';
 
 		case 'root':
 			var r = CONF.default_root;
@@ -1992,10 +1991,10 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'CONF':
 		case 'REPO':
 		case 'controller':
-			return view_is_assign(command) ? ('self.$set(' + command + ')') : ('$STRING(' + command + ').encode()');
+			return view_is_assign(command) ? ('self.$set(' + command + ')') : ('((' + command + ') + \'\').encode()');
 
 		case 'body':
-			return view_is_assign(command) ? ('self.$set(' + command + ')') : command.lastIndexOf('.') === -1 ? 'output' : ('$STRING(' + command + ').encode()');
+			return view_is_assign(command) ? ('self.$set(' + command + ')') : command.lastIndexOf('.') === -1 ? 'output' : ('((' + command + ') + \'\').encode()');
 
 		case 'files':
 		case 'mobile':
@@ -2015,7 +2014,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'SCHEMA':
 		case 'MODULE':
 		case 'functions':
-			return '$STRING(' + command + ').encode()';
+			return '((' + command + ') + \'\').encode()';
 
 		case '!M':
 		case '!R':
@@ -2038,17 +2037,17 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case '!function':
 		case '!MODEL':
 		case '!MODULE':
-			return '$STRING(' + command.substring(1) + ')';
+			return '((' + command.substring(1) + ') + \'\')';
 
 		case 'resource':
-			return '$STRING(self.' + command + ').encode()';
+			return '((self.' + command + ') + \'\').encode()';
 		case 'RESOURCE':
-			return '$STRING(' + command + ').encode()';
+			return '((' + command + ') + \'\').encode()';
 
 		case '!resource':
-			return '$STRING(self.' + command.substring(1) + ')';
+			return '((self.' + command.substring(1) + ') + \'\')';
 		case '!RESOURCE':
-			return '$STRING(' + command.substring(1) + ')';
+			return '((' + command.substring(1) + ') + \'\')';
 
 		case 'host':
 		case 'hostname':
@@ -2064,7 +2063,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'description':
 		case 'keywords':
 		case 'author':
-			return command.indexOf('(') === -1 ? '(repository[\'$' + command + '\'] || \'\').toString().encode()' : 'self.$' + command;
+			return command.indexOf('(') === -1 ? '((repository[\'$' + command + '\'] || \'\') + \'\').encode()' : 'self.$' + command;
 
 		case 'title2':
 			return 'self.$' + command;
@@ -2201,7 +2200,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return 'self.$' + appendModel(command);
 
 		default:
-			return DEF.helpers[name] ? ('helpers.' + view_insert_call(command)) : ('$STRING(' + (functions.indexOf(name) === -1 ? command[0] === '!' ? command.substring(1) + ')' : command + ').encode()' : command + ')'));
+			return DEF.helpers[name] ? ('helpers.' + view_insert_call(command)) : ('((' + (functions.indexOf(name) === -1 ? command[0] === '!' ? command.substring(1) : command + ') + \'\').encode()' : command + ')'));
 	}
 }
 

@@ -7051,6 +7051,7 @@ global.VIEW = function(name, model, layout, repository, language) {
 		controller.themeName = DEF.onTheme(controller);
 	else
 		controller.themeName = undefined;
+
 	return controller.view(name, model, true);
 };
 
@@ -11435,7 +11436,7 @@ ControllerProto.content = function(body, type, headers) {
 	res.$text();
 
 	if (self.precache && (!self.status || self.status === 200)) {
-		self.layout('');
+		self.layoutName = '';
 		self.precache(body, res.options.type, headers, true);
 	}
 
@@ -11946,7 +11947,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 	// package    `@some_view`
 	// theme      `=theme/view`
 
-	var key = 'view#=' + this.themeName + '/' + self._currentView + '/' + name;
+	var key = 'view_' + this.themeName + '_' + self._currentView + '_' + name;
 	var filename = F.temporary.other[key];
 	var isLayout = self.isLayout;
 
@@ -12121,7 +12122,6 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 	}
 
 	// noasync = true --> rendered inline view in view
-
 	if (self.$viewasync && self.$viewasync.length) {
 
 		var can = ((isLayout || !self.layoutName) && noasync !== true) || !!cachekey;
@@ -12151,10 +12151,13 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 				obj.next = obj.callback = function(model) {
 					if (arguments.length > 1)
 						model = arguments[1];
+
 					item.value = self.component(item.name, item.settings, model);
 					value = value.replace(item.replace, item.value);
+
 					if (isLayout && self.precache)
 						self.output = self.output.replace(item.replace, item.value);
+
 					next();
 				};
 
@@ -12168,8 +12171,9 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 					cache.components = true;
 				}
 
-				if (isLayout && self.precache && (!self.status || self.status === 200) && !partial)
-					self.precache(self.output, CT_HTML, headers, true);
+				if ((isLayout || self.layoutName === '') && self.precache && (!self.status || self.status === 200) && !partial) {
+					self.precache(self.output || (self.layoutName === '' ? value : ''), CT_HTML, headers, true);
+				}
 
 				if (isLayout || !self.layoutName) {
 
@@ -12196,6 +12200,7 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 					F.stats.response.view++;
 					return self;
 				}
+
 
 				if (partial)
 					self.outputPartial = value;
@@ -12299,7 +12304,8 @@ ControllerProto.memorize = function(key, expires, disabled, fnTo, fnFrom) {
 		return self;
 	}
 
-	self.themeName && (key += '#' + self.themeName);
+	if (self.themeName)
+		key += '_' + self.themeName;
 
 	var output = F.cache.read2(key);
 	if (!output)
@@ -12360,15 +12366,17 @@ ControllerProto.memorize = function(key, expires, disabled, fnTo, fnFrom) {
 	return self;
 };
 
+var memorize_prepare_timeout = function(self, key, expires, disabled, fnTo, fnFrom) {
+	!self.req.$total_canceled && self.memorize(key, expires, disabled, fnTo, fnFrom);
+};
+
 ControllerProto.$memorize_prepare = function(key, expires, disabled, fnTo, fnFrom) {
 
 	var self = this;
 	var pk = '$memorize' + key;
 
 	if (F.temporary.processing[pk]) {
-		setTimeout(function() {
-			!self.req.$total_canceled && self.memorize(key, expires, disabled, fnTo, fnFrom);
-		}, 500);
+		setTimeout(memorize_prepare_timeout, 500 ,self, key, expires, disabled, fnTo, fnFrom);
 		return self;
 	}
 
