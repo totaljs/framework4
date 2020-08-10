@@ -1354,6 +1354,16 @@ global.CMD = function(key, a, b, c, d) {
 	}
 };
 
+global.CMD2 = function(key, a, b, c, d) {
+	if (F.commands[key]) {
+		return function() {
+			for (var i = 0; i < F.commands[key].length; i++)
+				F.commands[key][i](a, b, c, d);
+		};
+	} else
+		return NOOP;
+};
+
 F.callback_redirect = function(url) {
 	this.url = url;
 };
