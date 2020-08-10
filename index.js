@@ -797,12 +797,12 @@ global.$ACTION = function(schema, model, callback, controller) {
 			if (!o.meta[item]) {
 				if (o.meta['workflow_' + item])
 					tmp.type = 'workflow';
-				if (o.meta['operation_' + item])
+				else if (o.meta['operation_' + item])
 					tmp.type = 'operation';
 				else if (o.meta['task_' + item])
 					tmp.type = 'task';
 				else {
-					callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
+					callback(ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
 					return;
 				}
 			}

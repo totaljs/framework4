@@ -42,7 +42,7 @@ var restbuilderupgrades = [];
 
 function SchemaValue() {}
 
-function SchemaOptions(error, model, options, callback, controller, name, schema) {
+function SchemaOptions(error, model, options, callback, controller, name, schema, key) {
 	this.error = error;
 	this.model = model;
 	this.options = options || EMPTYOBJECT;
@@ -1060,7 +1060,7 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 
 	var fn = function($) {
 		$.schema = self.name;
-		OPERATION(opname, $.model, $.callback, $);
+		OPERATION(opname, $.model, $.callback, $, self.name);
 	};
 
 	!self.operations && (self.operations = {});
@@ -2052,7 +2052,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	self.resourceName && error.setResource(self.resourceName);
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
 
-	var key = type + (name ? ('.' + name) : '');
+	var key = self.name + '.' + (name ? name : type);
 	var now;
 
 	if (CONF.logger)
@@ -4038,7 +4038,7 @@ global.TASK = function(taskname, name, callback, options, value) {
 	}
 
 	var obj = new TaskBuilder(options);
-	obj.taskname = tmp[0];
+	obj.name = tmp[0];
 
 	if (value)
 		obj.value = value;
@@ -4102,7 +4102,7 @@ global.OPERATION = function(name, value, callback, param, controller) {
 		value = EMPTYOBJECT;
 	}
 
-	if (param instanceof Controller || param instanceof OperationOptions || param instanceof SchemaOptions || param instanceof TaskBuilder || param instanceof AuthOptions || param instanceof WebSocketClient) {
+	if (controller == null && (param instanceof Controller || param instanceof OperationOptions || param instanceof SchemaOptions || param instanceof TaskBuilder || param instanceof AuthOptions || param instanceof WebSocketClient)) {
 		controller = param;
 		param = undefined;
 	}
@@ -4126,6 +4126,11 @@ global.OPERATION = function(name, value, callback, param, controller) {
 		}
 
 		var self = new OperationOptions(error, value, param, controller);
+		self.name = name;
+
+		if (param instanceof SchemaOptions)
+			self.schema = param.schema;
+
 		self.$repeat = fn.$repeat;
 		self.callback = function(value) {
 
@@ -4792,7 +4797,7 @@ TaskBuilderProto.invalid = function(err, msg) {
 	if (!self.$done) {
 		!self.error && (self.error = new ErrorBuilder());
 		self.error.push(err, msg);
-		self.done();
+		self.end();
 	}
 	return self;
 };
@@ -4810,13 +4815,13 @@ TaskBuilderProto.next = function() {
 		self.prev = self.current;
 		for (var i = 0; i < arguments.length; i++) {
 			self.current = arguments[i];
-			var task = self.tasks[self.current] || (self.taskname ? tasks[self.taskname] && tasks[self.taskname][self.current] : null);
+			var task = self.tasks[self.current] || (self.name ? tasks[self.name] && tasks[self.name][self.current] : null);
 			if (task) {
 				task.call(self, self, self.value);
 				return self;
 			}
 		}
-		self.done();
+		self.end();
 	}
 	return self;
 };
@@ -4828,7 +4833,7 @@ TaskBuilderProto.next2 = function(name) {
 			self.invalid(err);
 		else {
 			if (name == null)
-				self.done();
+				self.end();
 			else
 				self.next(name);
 		}
