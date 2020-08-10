@@ -42,7 +42,7 @@ var restbuilderupgrades = [];
 
 function SchemaValue() {}
 
-function SchemaOptions(error, model, options, callback, controller, name, schema, key) {
+function SchemaOptions(error, model, options, callback, controller, name, schema) {
 	this.error = error;
 	this.model = model;
 	this.options = options || EMPTYOBJECT;
@@ -2063,6 +2063,8 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 		self.$process(arguments, $.model, type, name, error, response, callback);
 	}, controller, key, self);
 
+	$.type = type;
+
 	if (type === 'patch')
 		$.keys = model ? Object.keys(model) : EMPTYARRAY;
 
@@ -2221,7 +2223,8 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 				a.type = 'task';
 
 			a.name = name;
-			$.name = a.type + (name ? ('.' + name) : '');
+			$.type = a.type;
+			$.name = self.name + '.' + (name ? name : a.type);
 			$.options = item.options;
 
 			if (!$.model || $.model === EMPTYOBJECT)
