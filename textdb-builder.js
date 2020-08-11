@@ -259,8 +259,8 @@ QueryBuilder.prototype.sort = function(field) {
 	if (!tmp) {
 		var index = field.lastIndexOf('_');
 		var tmp = {};
-		tmp.name = field.substring(0, index);
-		tmp.asc = field.substring(index + 1) !== 'desc';
+		tmp.name = index === -1 ? field : field.substring(0, index);
+		tmp.asc = index === -1 || field.substring(index + 1) !== 'desc';
 		SORTCACHE[field] = tmp;
 	}
 

@@ -1644,6 +1644,25 @@ global.NOSQL = function(name) {
 	return nosqlwrapper(name);
 };
 
+function inmemorywrapper(name) {
+
+	var key = 'inmemory_' + name;
+	var db = F.databases[key];
+
+	if (db)
+		return db;
+
+	PATH.verify('databases');
+	var instance = require('./textdb-wrapper').make('inmemory', name);
+	F.databases[key] = instance;
+	return instance;
+}
+
+global.INMEMORY = function(name) {
+	global.INMEMORY = inmemorywrapper;
+	return inmemorywrapper(name);
+};
+
 global.COUNTER = function(name) {
 	var key = 'counterinstance_' + name;
 	var db = F.databases[key];

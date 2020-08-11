@@ -235,7 +235,7 @@ TextReader.prototype.done = function() {
 	var self = this;
 	var diff = Date.now() - self.ts;
 
-	if (self.db) {
+	if (self.db && self.db.duration) {
 		if (self.total > 0)
 			self.db.total = self.total;
 		if (self.db.duration.push({ type: self.type, duration: diff }) > 20)
