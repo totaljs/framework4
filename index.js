@@ -1653,7 +1653,7 @@ function inmemorywrapper(name) {
 		return db;
 
 	PATH.verify('databases');
-	var instance = require('./textdb-wrapper').make('inmemory', name);
+	var instance = require('./textdb-wrapper').make('inmemory', PATH.databases(name + '.inmemory'), null);
 	F.databases[key] = instance;
 	return instance;
 }

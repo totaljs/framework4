@@ -378,6 +378,14 @@ QueryBuilder.prototype.done = function() {
 	else if (this.scalararg)
 		this.response = this.scalararg;
 
+	if (this.db.clone && (this.$TextReader.type !== 'update' && this.$TextReader.type !== 'remove')) {
+		if (this.response instanceof Array) {
+			for (var i = 0; i < this.response.length; i++)
+				this.response[i] = CLONE(this.response[i]);
+		} else
+			this.response = CLONE(this.response);
+	}
+
 	if (process.totaldbworker) {
 		meta.response = this.response;
 		this.$callback && this.$callback(null, meta);
