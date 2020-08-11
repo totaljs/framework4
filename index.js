@@ -1621,7 +1621,7 @@ function nosqlwrapper(name) {
 	var path = onetime ? name.substring(1) : PATH.databases(name + '.nosql');
 
 	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('nosql', path, F.textdbworker, !onetime);
+		return F.databases[name] = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
 
 	if (!onetime)
 		PATH.verify('databases');
@@ -1630,7 +1630,7 @@ function nosqlwrapper(name) {
 	if (F.port && CONF.textdb_worker)
 		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	var instance = require('./textdb-wrapper').make('nosql', path, F.textdbworker, !onetime);
+	var instance = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
 	if (!onetime)
 		F.databases[name] = instance;
 

@@ -19,6 +19,7 @@ function makedirectory(directory, main, id) {
 }
 
 function Database(type, name, fork, onetime, schema) {
+
 	var t = this;
 	t.type = type;
 	t.name = name;
@@ -1158,8 +1159,8 @@ DB.$callbackjoin = function() {
 	};
 };
 
-exports.make = function(type, name, fork, special, schema) {
-	return new Database(type, name, fork, special, schema);
+exports.make = function(type, name, fork, onetime, schema) {
+	return new Database(type, name, fork, onetime, schema);
 };
 
 exports.makebuilder = function() {

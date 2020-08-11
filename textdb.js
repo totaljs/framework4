@@ -56,7 +56,7 @@ function TableDB(filename, schema, onetime) {
 	t.filenamelog = filename + '.log';
 	t.filenamebackup = filename + '.bk';
 
-	if (onetime) {
+	if (!onetime) {
 		t.id = HASH(t.filename, true) + '';
 		CACHEITEMS[t.id] = [];
 	}
@@ -555,33 +555,29 @@ JD.$update = function() {
 
 	var updateflush = function(docs, doc, dindex) {
 
-		// doc = docs[dindex];
-		for (var i = dindex; i < docs.length; i++) {
+		doc = docs[dindex];
 
-			doc = docs[i];
+		var rec = fs.docsbuffer[dindex];
+		var upd = JSON.stringify(doc).replace(REGBOOL, JSONBOOL);
 
-			var rec = fs.docsbuffer[i];
-			var upd = JSON.stringify(doc).replace(REGBOOL, JSONBOOL);
+		if (upd === rec.doc)
+			return;
 
-			if (upd === rec.doc)
-				return;
+		!change && (change = true);
+		var was = true;
 
-			!change && (change = true);
-			var was = true;
-
-			if (rec.doc.length === upd.length) {
-				var b = Buffer.byteLength(upd);
-				if (rec.length === b) {
-					fs.write(upd + NEWLINE, rec.position);
-					was = false;
-				}
+		if (rec.doc.length === upd.length) {
+			var b = Buffer.byteLength(upd);
+			if (rec.length === b) {
+				fs.write(upd + NEWLINE, rec.position);
+				was = false;
 			}
+		}
 
-			if (was) {
-				var tmp = fs.remchar + rec.doc.substring(1) + NEWLINE;
-				fs.write(tmp, rec.position);
-				fs.write2(upd + NEWLINE);
-			}
+		if (was) {
+			var tmp = fs.remchar + rec.doc.substring(1) + NEWLINE;
+			fs.write(tmp, rec.position);
+			fs.write2(upd + NEWLINE);
 		}
 	};
 
@@ -1439,7 +1435,7 @@ TD.$update = function() {
 	if (self.buffercount)
 		fs.buffercount = self.buffercount;
 
-	var update = function(docs, doc, dindex, f, findex) {
+	var update = function(docs, doc, dindex, f) {
 		f.modifyrule(docs[dindex], f.modifyarg);
 		f.backuprule && f.backuprule(fs.docsbuffer[dindex].doc);
 	};
