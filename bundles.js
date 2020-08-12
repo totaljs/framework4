@@ -272,7 +272,8 @@ function cleanFiles(callback) {
 	var meta;
 
 	try {
-		meta = U.parseJSON(Fs.readFileSync(Path.join(path, 'bundle.json')).toString('utf8'), true) || {};
+
+		meta = Fs.readFileSync(Path.join(path, 'bundle.json')).toString('utf8').parseJSON(true) || {};
 
 		if (CONF.bundling === 'shallow') {
 			META.skip = true;
