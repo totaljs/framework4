@@ -13314,12 +13314,6 @@ WebSocketClientProto.$onclose = function() {
 	F.$events.websocket_end && EMIT('websocket_end', this.container, this);
 };
 
-/**
- * Sends a message
- * @param {String/Object} message
- * @param {Boolean} raw The message won't be converted e.g. to JSON.
- * @return {WebSocketClient}
- */
 WebSocketClientProto.send = function(message, raw, replacer) {
 
 	var self = this;
@@ -13332,13 +13326,13 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 		if (self.container.encodedecode === true && data)
 			data = encodeURIComponent(data);
 		if (self.deflate) {
-			self.deflatepending.push(Buffer.from(data));
+			self.deflatepending.push(Buffer.from(data, 'utf8'));
 			self.sendDeflate();
 		} else
-			self.socket.write(U.getWebSocketFrame(0, data, 0x01));
+			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, 'utf8'), 0x01));
 	} else if (message) {
 		if (self.deflate) {
-			self.deflatepending.push(Buffer.from(message));
+			self.deflatepending.push(message instanceof Buffer ? Buffer.from(message) : message);
 			self.sendDeflate();
 		} else
 			self.socket.write(U.getWebSocketFrame(0, new Int8Array(message), 0x02));
