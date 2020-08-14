@@ -114,6 +114,20 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+global.FILECACHE = function(id, expire, callback, maker, encoding) {
+	var filename = PATH.temp('filecache_' + (id + '').hash(true) + '.bin');
+	Fs.lstat(filename, function(err, stat) {
+		if (err || stat.ctime.add(expire) < NOW) {
+			maker(function(content, load) {
+				Fs.writeFile(filename, content, NOOP);
+				if (load || load == null)
+					callback(null, content);
+			}, id);
+		} else
+			Fs.readFile(filename, encoding || 'utf8', callback);
+	});
+};
+
 global.NEWCOMMAND = function(name, fn) {
 	if (F.commands[name])
 		F.commands[name].push(fn);
