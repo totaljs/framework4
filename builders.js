@@ -2046,6 +2046,7 @@ SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
 };
 
 SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare) {
+
 	var error = new ErrorBuilder();
 	var self = this;
 
@@ -2065,7 +2066,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.type = type;
 
-	if (type === 'patch')
+	if (type === 'patch' || type === 'Patch')
 		$.keys = model ? Object.keys(model) : EMPTYARRAY;
 
 	self.perform(type, name, $, noprepare);
