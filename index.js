@@ -115,17 +115,26 @@ global.REQUIRE = function(path) {
 };
 
 global.FILECACHE = function(id, expire, callback, maker, encoding) {
-	var filename = PATH.temp('filecache_' + (id + '').hash(true) + '.bin');
+
+	var filename = PATH.temp('filecache_' + (id + '').hash(true) + '.cache');
+	var isjson = !encoding || encoding === 'json';
+
 	Fs.lstat(filename, function(err, stat) {
-		if (err || stat.ctime.add(expire) < NOW) {
+		var time = stat ? stat.mtime > stat.ctime ? stat.mtime : stat.ctime : null;
+		if (err || time.add(expire) < NOW) {
 			maker(function(err, response, load) {
 				if (!err)
-					Fs.writeFile(filename, response, NOOP);
+					Fs.writeFile(filename, isjson ? response instanceof String ? response : JSON.stringify(response) : response, NOOP);
 				if (load || load == null)
 					callback(err, response);
 			}, id);
 		} else
-			Fs.readFile(filename, encoding || 'utf8', callback);
+			Fs.readFile(filename, isjson ? 'utf8' : (encoding || 'utf8'), function(err, response) {
+				if (err)
+					callback(err);
+				else
+					callback(null, isjson ? response.parseJSON(true) : response);
+			});
 	});
 };
 
@@ -956,8 +965,6 @@ function UIDGENERATOR_REFRESH() {
 
 	UIDGENERATOR.date = dt + '';
 	UIDGENERATOR.date16 = dt.toString(16);
-
-	var seconds = ((NOW.getSeconds() / 60) + '').substring(2, 4);
 	UIDGENERATOR.index = 1;
 	UIDGENERATOR.instance = random2string();
 
@@ -7174,7 +7181,8 @@ F.clear = function(callback, isInit) {
 				var filename = files[i].substring(dir.length);
 				if (plus && !filename.startsWith(plus))
 					continue;
-				(filename.indexOf('/') === -1 || filename.indexOf('.package/') !== -1) && !filename.endsWith('.jsoncache') && arr.push(files[i]);
+				if ((filename.indexOf('/') === -1 || filename.indexOf('.package/') !== -1) && !filename.endsWith('.cache'))
+					arr.push(files[i]);
 			}
 
 			files = arr;
@@ -9013,14 +9021,14 @@ FrameworkCacheProto.savepersistent = function() {
 				obj[key] = item;
 		}
 
-		Fs.writeFile(PATH.temp(F.clusterid + 'framework_cachepersist.jsoncache'), JSON.stringify(obj), NOOP);
+		Fs.writeFile(PATH.temp(F.clusterid + 'framework.cache'), JSON.stringify(obj), NOOP);
 	}, 1000, 50, this);
 	return this;
 };
 
 FrameworkCacheProto.loadpersistent = function(callback) {
 	var self = this;
-	Fs.readFile(PATH.temp(F.clusterid + 'framework_cachepersist.jsoncache'), function(err, data) {
+	Fs.readFile(PATH.temp(F.clusterid + 'framework.cache'), function(err, data) {
 		if (!err) {
 			try {
 				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
