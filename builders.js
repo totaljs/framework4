@@ -2131,7 +2131,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	if (!$.model)
 		$.model = {};
 
-	if (noprepare || $.model instanceof SchemaValue) {
+	if (noprepare) {
 		if (nomiddleware || !self.middlewares || !self.middlewares.length)
 			item.call(self, $, $.model);
 		else
