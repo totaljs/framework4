@@ -3577,7 +3577,7 @@ RESTP.maketransform = function(obj, data) {
 };
 
 RESTP.timeout = function(number) {
-	this.$timeout = number;
+	this.options.timeout = number;
 	return this;
 };
 
