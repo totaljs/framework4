@@ -459,18 +459,6 @@ function parseProxy(p) {
 	return F.temporary.other[key] = obj;
 }
 
-/**
- * Create a request to a specific URL
- * @param  {String} url URL address.
- * @param  {String Array} flags Request flags.
- * @param  {String or Object} data Request data (optional).
- * @param  {Function(error, content, statusCode, headers)} callback Callback.
- * @param  {Object} headers Custom cookies (optional, default: null).
- * @param  {Object} headers Custom headers (optional, default: null).
- * @param  {String} encoding Encoding (optional, default: UTF8)
- * @param  {Number} timeout Request timeout.
- * return {Boolean}
- */
 global.REQUEST = function(opt) {
 
 	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
