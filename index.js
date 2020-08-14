@@ -118,10 +118,11 @@ global.FILECACHE = function(id, expire, callback, maker, encoding) {
 	var filename = PATH.temp('filecache_' + (id + '').hash(true) + '.bin');
 	Fs.lstat(filename, function(err, stat) {
 		if (err || stat.ctime.add(expire) < NOW) {
-			maker(function(content, load) {
-				Fs.writeFile(filename, content, NOOP);
+			maker(function(err, response, load) {
+				if (!err)
+					Fs.writeFile(filename, response, NOOP);
 				if (load || load == null)
-					callback(null, content);
+					callback(err, response);
 			}, id);
 		} else
 			Fs.readFile(filename, encoding || 'utf8', callback);
