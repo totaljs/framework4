@@ -707,19 +707,19 @@ global.$REMOVE = function(schema, options, callback, controller) {
 };
 
 global.$SAVE = function(schema, model, options, callback, controller, noprepare) {
-	return performschema('Save', schema, model, options, callback, controller, noprepare);
+	return performschema('save', schema, model, options, callback, controller, noprepare);
 };
 
 global.$INSERT = function(schema, model, options, callback, controller, noprepare) {
-	return performschema('Insert', schema, model, options, callback, controller, noprepare);
+	return performschema('insert', schema, model, options, callback, controller, noprepare);
 };
 
 global.$UPDATE = function(schema, model, options, callback, controller, noprepare) {
-	return performschema('Update', schema, model, options, callback, controller, noprepare);
+	return performschema('update', schema, model, options, callback, controller, noprepare);
 };
 
 global.$PATCH = function(schema, model, options, callback, controller, noprepare) {
-	return performschema('Patch', schema, model, options, callback, controller, noprepare);
+	return performschema('patch', schema, model, options, callback, controller, noprepare);
 };
 
 // type, schema, model, options, callback, controller
