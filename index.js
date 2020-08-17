@@ -1243,7 +1243,8 @@ function Framework() {
 			message: 0,
 			file: 0,
 			online: 0,
-			usage: 0
+			usage: 0,
+			mail: 0
 		},
 
 		other: {
@@ -6208,6 +6209,7 @@ F.service = function(count) {
 	F.stats.performance.request = F.stats.request.request ? (F.stats.request.request / F.temporary.service.request).fixed(3) : 0;
 	F.stats.performance.file = F.stats.request.file ? (F.stats.request.file / F.temporary.service.file).fixed(3) : 0;
 	F.stats.performance.message = 0;
+	F.stats.performance.mail = 0;
 
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};

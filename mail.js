@@ -21,7 +21,7 @@
 
 /**
  * @module FrameworkMail
- * @version 3.4.3
+ * @version 4.0.0
  */
 
 'use strict';
@@ -49,6 +49,8 @@ if (!global.framework_utils)
 
 const BUF_CRLF = Buffer.from(CRLF);
 const CONCAT = [null, null];
+
+var CONNECTION;
 
 /**
  * Mailer
@@ -345,11 +347,15 @@ Message.prototype.attachment = function(filename, name, contentid) {
 };
 
 Message.prototype.send2 = function(callback) {
-	var opt =  F.temporary.mail_settings;
+
+	var opt = F.temporary.mail_settings;
+
 	if (!opt) {
 		var config = CONF.mail_smtp_options;
 		config && (opt = config);
 		F.temporary.mail_settings = opt || {};
+		if (CONNECTION)
+			mailer.destroy(CONNECTION);
 	}
 
 	// Computes a hostname
@@ -365,12 +371,14 @@ Message.prototype.send2 = function(callback) {
 		CONF.mail_smtp = ea;
 	}
 
-	mailer.send(CONF.mail_smtp, opt, this, callback);
+	this.$callback2 = callback;
+	mailer.send(CONF.mail_smtp, opt, this, null, !!F.port);
 	return this;
 };
 
 Message.prototype.send = function(smtp, options, callback) {
-	mailer.send(smtp, options, this, callback);
+	this.$callback2 = callback;
+	mailer.send(smtp, options, this);
 	return this;
 };
 
@@ -426,6 +434,9 @@ Mailer.prototype.destroy = function(obj) {
 		obj.socket2 = null;
 	}
 
+	if (obj === CONNECTION)
+		CONNECTION = null;
+
 	delete this.connections[obj.id];
 	return this;
 };
@@ -437,8 +448,17 @@ Mailer.prototype.$writeattachment = function(obj) {
 	var attachment = obj.files ? obj.files.shift() : false;
 	if (!attachment) {
 		mailer.$writeline(obj, '--' + obj.boundary + '--', '', '.');
-		obj.messagecallback && obj.messagecallback(null, obj.instance);
-		obj.messagecallback = null;
+
+		if (obj.messagecallback) {
+			obj.messagecallback(null, obj.instance);
+			obj.messagecallback = null;
+		}
+
+		if (obj.messagecallback2) {
+			obj.messagecallback2(null, obj.instance);
+			obj.messagecallback2 = null;
+		}
+
 		return this;
 	}
 
@@ -543,7 +563,7 @@ Mailer.prototype.send2 = function(messages, callback) {
 	return this.send(CONF.mail_smtp, opt, messages, callback);
 };
 
-Mailer.prototype.send = function(smtp, options, messages, callback) {
+Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 
 	if (options instanceof Array) {
 		callback = messages;
@@ -554,6 +574,21 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 		options = {};
 	}
 
+	if (cache && CONNECTION) {
+		if (messages instanceof Array) {
+			var count = messages.length;
+			F.stats.performance.mail += count;
+			for (var i = 0; i < count; i++)
+				CONNECTION.messages.push(messages[i]);
+		} else {
+			F.stats.performance.mail++;
+			CONNECTION.messages.push(messages);
+		}
+
+		CONNECTION.trytosend();
+		return self;
+	}
+
 	var self = this;
 	var id = 'abcdefghijkl' + (INDEXSENDER++);
 
@@ -561,6 +596,7 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 	var obj = self.connections[id];
 
 	obj.id = id;
+	obj.buffer = [];
 	obj.try = messages === undefined;
 	obj.messages = obj.try ? EMPTYARRAY : messages instanceof Array ? messages : [messages];
 	obj.callback = callback;
@@ -593,6 +629,18 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 		return self;
 	}
 
+	if (cache) {
+		obj.trytosend = function() {
+			if (!obj.sending && obj.messages && obj.messages.length) {
+				obj.sending = true;
+				obj.buffer = [];
+				mailer.$writemessage(obj, obj.buffer);
+				mailer.$writeline(obj, obj.buffer.shift());
+			}
+		};
+	}
+
+	obj.cached = cache;
 	obj.smtpoptions = options;
 	obj.socket.$host = smtp;
 	obj.host = smtp.substring(smtp.lastIndexOf('.', smtp.lastIndexOf('.') - 1) + 1);
@@ -604,6 +652,8 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 		if (obj.try || err.stack.indexOf('ECONNRESET') !== -1)
 			return;
 		!obj.try && !is && F.error(err, 'mail_smtp', smtp);
+		if (obj === CONNECTION)
+			CONNECTION = null;
 		mailer.$events.error && mailer.emit('error', err, obj);
 	});
 
@@ -612,18 +662,25 @@ Mailer.prototype.send = function(smtp, options, messages, callback) {
 		!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
 		obj.callback && obj.callback(err);
 		obj.callback = null;
+		if (obj === CONNECTION)
+			CONNECTION = null;
 		mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
 	});
 
-	obj.socket.setTimeout(options.timeout || 8000, function() {
-		var err = new Error(framework_utils.httpStatus(408));
-		mailer.destroy(obj);
-		!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
-		obj.callback && obj.callback(err);
-		obj.callback = null;
-		mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
-	});
+	if (!cache) {
+		obj.socket.setTimeout(options.timeout || 60000, function() {
+			var err = framework_utils.httpStatus(408);
+			mailer.destroy(obj);
+			!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
+			obj.callback && obj.callback(err);
+			obj.callback = null;
+			if (obj === CONNECTION)
+				CONNECTION = null;
+			mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
+		});
+	}
 
+	obj.sending = true;
 	obj.socket.on('connect', () => !options.secure && mailer.$send(obj, options));
 	return self;
 };
@@ -725,7 +782,6 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 
 	message.push('Content-Type: multipart/mixed; boundary="' + obj.boundary + '"');
 	message.push('');
-
 	message.push('--' + obj.boundary);
 	message.push('Content-Type: text/' + msg.type + '; charset="utf-8"');
 	message.push('Content-Transfer-Encoding: base64');
@@ -742,6 +798,7 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 
 	obj.message = message.join(CRLF);
 	obj.messagecallback = msg.$callback;
+	obj.messagecallback2 = msg.$callback2;
 	obj.instance = msg;
 
 	message = null;
@@ -769,7 +826,6 @@ Mailer.prototype.$writeline = function(obj) {
 Mailer.prototype.$send = function(obj, options, autosend) {
 
 	var self = this;
-	var buffer = [];
 	var isAuthorized = false;
 	var isAuthorization = false;
 	var command = '';
@@ -786,6 +842,8 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 		mailer.destroy(obj);
 		obj.callback && obj.callback();
 		obj.callback = null;
+		if (obj.cached)
+			CONNECTION = null;
 		line = null;
 	});
 
@@ -868,26 +926,37 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 					return;
 				}
 
-				mailer.$writeline(obj, buffer.shift());
+				mailer.$writeline(obj, obj.buffer.shift());
 
-				if (buffer.length)
+				if (obj.buffer.length)
 					return;
 
 				// NEW MESSAGE
 				if (obj.messages.length) {
-					mailer.$writemessage(obj, buffer);
-					mailer.$writeline(obj, buffer.shift());
+					obj.buffer = [];
+					mailer.$writemessage(obj, obj.buffer);
+					mailer.$writeline(obj, obj.buffer.shift());
 				} else {
+
+					obj.sending = false;
+
 					// end
-					mailer.$writeline(obj, 'QUIT');
+					if (obj.cached)
+						obj.trytosend();
+					else
+						mailer.$writeline(obj, 'QUIT');
 				}
 
 				return;
 
 			case 221: // BYE
-				mailer.destroy(obj);
+
+				if (!obj.cached)
+					mailer.destroy(obj);
+
 				obj.callback && obj.callback(null, obj.try ? true : obj.count);
 				obj.callback = null;
+
 				return;
 
 			case 334: // LOGIN
@@ -932,12 +1001,20 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 				var err = line;
 
 				mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
-				obj.messagecallback && obj.messagecallback(err, obj.instance);
-				obj.messagecallback = null;
+
+				if (obj.messagecallback) {
+					obj.messagecallback(err, obj.instance);
+					obj.messagecallback = null;
+				}
+
+				if (obj.messagecallback2) {
+					obj.messagecallback2(err, obj.instance);
+					obj.messagecallback2 = null;
+				}
 
 				if (obj.messages.length) {
 					// a problem
-					buffer = [];
+					obj.buffer = [];
 					obj.count--;
 					socket.emit('line', '999 TRY NEXT MESSAGE');
 				} else {
