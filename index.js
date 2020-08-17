@@ -8240,8 +8240,7 @@ F.lookup = function(req, url, flags, membertype) {
 			return F.temporary.other[key];
 	}
 
-	var length = F.routes.web.length;
-	for (var i = 0; i < length; i++) {
+	for (var i = 0; i < F.routes.web.length; i++) {
 
 		var route = F.routes.web[i];
 		if (route.CUSTOM) {
