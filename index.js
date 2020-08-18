@@ -7023,13 +7023,13 @@ global.INCLUDE = global.SOURCE = function(name) {
  * @param {String} subject E-mail subject.
  * @param {String} view View name.
  * @param {Object} model Optional.
- * @param {Function(err)} callback Optional.
  * @param {String} language Optional.
+ * @param {Function(err)} callback Optional.
  * @return {MailMessage}
  */
-global.MAIL = function(address, subject, view, model, callback, language) {
+global.MAIL = function(address, subject, view, model, language, callback) {
 
-	if (typeof(callback) === 'string') {
+	if (typeof(language) === 'function') {
 		var tmp = language;
 		language = callback;
 		callback = tmp;
