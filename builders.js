@@ -1122,7 +1122,7 @@ SchemaBuilderEntityProto.save = function(model, opt, callback, controller, nopre
 	}
 
 	var self = this;
-	self.exec('Save', name, model, opt, controller, callback, noprepare);
+	self.exec('save', name, model, opt, controller, callback, noprepare);
 	return self;
 };
 
@@ -1136,7 +1136,7 @@ SchemaBuilderEntityProto.insert = function(model, opt, callback, controller, nop
 	}
 
 	var self = this;
-	self.exec('Insert', name, model, opt, controller, callback, noprepare);
+	self.exec('insert', name, model, opt, controller, callback, noprepare);
 	return self;
 };
 
@@ -1150,7 +1150,7 @@ SchemaBuilderEntityProto.update = function(model, opt, callback, controller, nop
 	}
 
 	var self = this;
-	self.exec('Update', name, model, opt, controller, callback, noprepare);
+	self.exec('update', name, model, opt, controller, callback, noprepare);
 	return self;
 };
 
@@ -1164,7 +1164,7 @@ SchemaBuilderEntityProto.patch = function(model, opt, callback, controller, nopr
 	}
 
 	var self = this;
-	self.exec('Patch', name, model, opt, controller, callback, noprepare);
+	self.exec('patch', name, model, opt, controller, callback, noprepare);
 	return self;
 };
 
@@ -1183,7 +1183,7 @@ SchemaBuilderEntityProto.get = SchemaBuilderEntityProto.read = function(opt, cal
 	}
 
 	var self = this;
-	self.exec('Read', null, null, opt, controller, callback, true);
+	self.exec('read', null, null, opt, controller, callback, true);
 	return self;
 };
 
@@ -1196,7 +1196,7 @@ SchemaBuilderEntityProto.remove = function(opt, callback, controller) {
 	}
 
 	var self = this;
-	self.exec('Remove', null, null, opt, controller, callback, true);
+	self.exec('remove', null, null, opt, controller, callback, true);
 	return self;
 };
 
@@ -1210,7 +1210,7 @@ SchemaBuilderEntityProto.query = function(opt, callback, controller) {
 		opt = null;
 	}
 
-	self.exec('Query', null, null, opt, controller, callback, true);
+	self.exec('query', null, null, opt, controller, callback, true);
 	return self;
 };
 
@@ -2053,7 +2053,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	self.resourceName && error.setResource(self.resourceName);
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
 
-	var key = self.name + '.' + (name ? name : type);
+	var key = type + (name ? ('.' + name) : '');
 	var now;
 
 	if (CONF.logger)
@@ -2063,6 +2063,8 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 		CONF.logger && F.ilogger(self.getLoggerName(type, name), $.controller, now);
 		self.$process(arguments, $.model, type, name, error, response, callback);
 	}, controller, key, self);
+
+	$.ID = self.name + '.' + (name ? name : type);
 
 	$.type = type;
 
@@ -2225,7 +2227,8 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 
 			a.name = name;
 			$.type = a.type;
-			$.name = self.name + '.' + (name ? name : a.type);
+			$.ID = self.name + '.' + (name ? name : a.type);
+			$.name = a.type + (name ? ('.' + name) : '');
 			$.options = item.options;
 
 			if (!$.model || $.model === EMPTYOBJECT)
@@ -2271,7 +2274,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 };
 
 SchemaBuilderEntityProto.getLoggerName = function(type, name) {
-	return this.name + '.' + type + (name ? ('(\'' + name + '\')') : '()');
+	return this.id + '.' + type + (name ? ('(\'' + name + '\')') : '()');
 };
 
 /**
