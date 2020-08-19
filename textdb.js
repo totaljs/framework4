@@ -1612,7 +1612,7 @@ TD.$clean = function() {
 	};
 
 	writer.on('finish', function() {
-		Fs.rename(self.filename + '-tmp', self.filename, function() {
+		Fs.rename(self.filename + '.tmp', self.filename, function() {
 			for (var i = 0; i < length; i++)
 				filter[i]();
 			self.next(0);
