@@ -180,7 +180,7 @@ DEF.validators = {
 	url: /http(s)?:\/\/[^,{}\\]*$/i,
 	phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
 	zip: /^\d{5}(?:[-\s]\d{4})?$/,
-	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c$/
+	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c|^[0-9a-z]{4,18}[a-z]{2}\d{1}[01]{1}d$/
 };
 
 var PROTORES, PROTOREQ;
@@ -563,6 +563,20 @@ global.UID16 = function(type) {
 };
 
 global.UID = function(type) {
+	var index;
+	if (type) {
+		if (UIDGENERATOR.types[type])
+			index = UIDGENERATOR.types[type] = UIDGENERATOR.types[type] + 1;
+		else {
+			UIDGENERATOR.multiple = true;
+			index = UIDGENERATOR.types[type] = 1;
+		}
+	} else
+		index = UIDGENERATOR.index++;
+	return UIDGENERATOR.date36 + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date36.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
+};
+
+global.UID1 = function(type) {
 	var index;
 	if (type) {
 		if (UIDGENERATOR.types[type])
@@ -965,6 +979,7 @@ function UIDGENERATOR_REFRESH() {
 
 	UIDGENERATOR.date = dt + '';
 	UIDGENERATOR.date16 = dt.toString(16);
+	UIDGENERATOR.date36 = dt.toString(36);
 	UIDGENERATOR.index = 1;
 	UIDGENERATOR.instance = random2string();
 
