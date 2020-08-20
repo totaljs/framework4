@@ -9657,13 +9657,6 @@ ControllerProto.getSchema = function() {
 	throw new Error('Schema "{0}" does not exist.'.format(route.schema[1]));
 };
 
-/**
- * Renders component
- * @param {String} name A component name
- * @param {Object} settings Optional, settings.
- * @model {Object} settings Optional, model for the component.
- * @return {String}
- */
 ControllerProto.component = function(name, settings, model) {
 	var filename = F.components.views[name];
 	if (filename) {
@@ -9682,12 +9675,36 @@ ControllerProto.component = function(name, settings, model) {
 	return '';
 };
 
+ControllerProto.component2 = function(name, settings, callback) {
+	var self = this;
+	var component = F.components.instances[name];
+	if (component.render) {
+		var obj = {};
+		obj.repository = self.repository;
+		obj.model = self.$model;
+		obj.user = self.user;
+		obj.session = self.session;
+		obj.controller = self;
+		obj.query = self.query;
+		obj.body = self.body;
+		obj.files = self.files;
+		obj.options = obj.settings = settings;
+		obj.next = obj.callback = function(model) {
+			callback(self.component(name, settings, model));
+		};
+		component.render(obj);
+	} else
+		callback(self.component(name, settings));
+
+	return self;
+};
+
 ControllerProto.$components = function(group, settings) {
 
 	if (group) {
 		var keys = Object.keys(F.components.instances);
 		var output = [];
-		for (var i = 0, length = keys.length; i < length; i++) {
+		for (var i = 0; i < keys.length; i++) {
 			var component = F.components.instances[keys[i]];
 			if (component.group === group) {
 				if (component.render) {
@@ -9697,7 +9714,7 @@ ControllerProto.$components = function(group, settings) {
 					this.$viewasync.push({ replace: name, name: component.name, settings: settings });
 					output.push(name);
 				} else {
-					var tmp = this.component(keys[i], settings);
+					var tmp = this.component(keys[i], settings, null, true);
 					tmp && output.push(tmp);
 				}
 			}
