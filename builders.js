@@ -2091,6 +2091,8 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 			break;
 		case 'Read':
 		case 'read':
+		case 'Get':
+		case 'get':
 			ntype = 'onRead';
 			break;
 		case 'Remove':
