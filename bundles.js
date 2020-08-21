@@ -299,7 +299,7 @@ function cleanFiles(callback) {
 	}
 
 	if (meta.directories && meta.directories.length) {
-		meta.directories.quicksort('length', false);
+		meta.directories.quicksort('length');
 		for (var i = 0, length = meta.directories.length; i < length; i++) {
 			try {
 				if (!blacklist[meta.directories[i]])
