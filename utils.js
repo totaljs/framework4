@@ -4569,9 +4569,7 @@ exports.sortcomparer = function(sort) {
 						if (!vb.getTime)
 							vb = new Date(vb);
 
-						var at = va.getTime();
-						var bt = vb.getTime();
-						tmp = at > bt ? (col.desc ? -1 : 1) : at < bt ? (col.desc ? 1 : -1) : 0;
+						tmp = va > vb ? (col.desc ? -1 : 1) : va < vb ? (col.desc ? 1 : -1) : 0;
 
 						if (tmp)
 							return tmp;
