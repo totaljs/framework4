@@ -4466,6 +4466,8 @@ AP.last = function(def) {
 AP.quicksort = function(sort) {
 
 	var self = this;
+	if (self.length < 2)
+		return self;
 
 	// Backward compatibility
 	if (!sort) {
@@ -4481,13 +4483,9 @@ AP.quicksort = function(sort) {
 
 	if (arguments[1] === true)
 		sort += '_desc';
-	if (self.length)
-		shellsort(self, exports.sortcomparer(sort));
-	return self;
-};
 
-AP.orderby = function(sort) {
 	shellsort(self, exports.sortcomparer(sort));
+	return self;
 };
 
 exports.sortcomparer = function(sort) {
