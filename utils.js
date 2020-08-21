@@ -4396,8 +4396,7 @@ var AP = Array.prototype;
 AP.take = function(count) {
 	var arr = [];
 	var self = this;
-	var length = self.length;
-	for (var i = 0; i < length; i++) {
+	for (var i = 0; i < self.length; i++) {
 		arr.push(self[i]);
 		if (arr.length >= count)
 			return arr;
@@ -4413,7 +4412,7 @@ AP.take = function(count) {
  */
 AP.extend = function(obj, rewrite) {
 	var isFn = typeof(obj) === 'function';
-	for (var i = 0, length = this.length; i < length; i++) {
+	for (var i = 0; i < this.length; i++) {
 		if (isFn)
 			this[i] = obj(this[i], i);
 		else
@@ -4442,7 +4441,7 @@ AP.toObject = function(name) {
 	var self = this;
 	var obj = {};
 
-	for (var i = 0, length = self.length; i < length; i++) {
+	for (var i = 0; i < self.length; i++) {
 		var item = self[i];
 		if (name)
 			obj[item[name]] = item;
