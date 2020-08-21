@@ -4557,16 +4557,25 @@ exports.sortcomparer = function(sort) {
 						if (!va && !vb)
 							break;
 
+						if (va && !vb)
+							return col.desc ? -1 : 1;
+
+						if (!va && vb)
+							return col.desc ? 1 : -1;
+
 						if (!va.getTime)
 							va = new Date(va);
+
 						if (!vb.getTime)
 							vb = new Date(vb);
 
 						var at = va.getTime();
 						var bt = vb.getTime();
 						tmp = at > bt ? (col.desc ? -1 : 1) : at < bt ? (col.desc ? 1 : -1) : 0;
+
 						if (tmp)
 							return tmp;
+
 						break;
 				}
 			} else

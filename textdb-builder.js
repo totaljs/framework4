@@ -250,7 +250,19 @@ QueryBuilder.prototype.skip = function(skip) {
 };
 
 QueryBuilder.prototype.sort = function(sort) {
+
 	this.$sort = U.sortcomparer(sort);
+
+	if (this.$fields && this.$fields.length) {
+		// Internal hack
+		var meta = F.temporary.other['sort_' + sort];
+		for (var i = 0; i < meta.length; i++) {
+			var sort = meta[i];
+			if (this.$fields.indexOf(sort.name) === -1)
+				this.$fields.push(sort.name);
+		}
+	}
+
 	return this;
 };
 
