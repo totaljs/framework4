@@ -40,8 +40,11 @@ const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
-const COMPARER = global.Intl ? global.Intl.Collator().compare : function(a, b) {
-	return a.toASCII().localeCompare(b.toASCII());
+const COMPARER = global.Intl.Collator().compare;
+
+const COMPARER_DESC = function(a, b) {
+	var val = global.Intl.Collator().compare(a, b);
+	return val ? val * -1 : 0;
 };
 
 if (!global.framework_utils)
@@ -4461,10 +4464,23 @@ AP.last = function(def) {
 };
 
 AP.quicksort = function(sort) {
+
+	var self = this;
+
 	// Backward compatibility
+	if (!sort) {
+		self.sort(COMPARER);
+		return self;
+	}
+
+	// Backward compatibility
+	if (sort === true) {
+		self.sort(COMPARER_DESC);
+		return self;
+	}
+
 	if (arguments[1] === true)
 		sort += '_desc';
-	var self = this;
 	if (self.length)
 		shellsort(self, exports.sortcomparer(sort));
 	return self;
