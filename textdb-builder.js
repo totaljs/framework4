@@ -30,12 +30,10 @@ const Fs = require('fs');
 const NEWLINE = '\n';
 
 var PROPCACHE = {};
-var SORTCACHE = {};
 var FUNCCACHE = {};
 
 process.totaldbworker && setTimeout(function() {
 	PROPCACHE = {};
-	SORTCACHE = {};
 	FUNCCACHE = {};
 }, 60 * 1000 * 5); // 5 minutes cache
 
@@ -132,8 +130,7 @@ function QueryBuilder(db) {
 	t.func = func;
 
 	// t.$fields
-	// t.$sortname
-	// t.$sortasc
+	// t.$sort
 }
 
 QueryBuilder.prototype.assign = function(meta) {
@@ -236,7 +233,7 @@ QueryBuilder.prototype.prepare = function(doc) {
 
 QueryBuilder.prototype.push = function(item) {
 	var self = this;
-	if (self.$sortname)
+	if (self.$sort)
 		return DButils.sort(self, item);
 	self.response.push(item);
 	return true;
@@ -252,21 +249,9 @@ QueryBuilder.prototype.skip = function(skip) {
 	return this;
 };
 
-QueryBuilder.prototype.sort = function(field) {
-	var self = this;
-	var tmp = SORTCACHE[field];
-
-	if (!tmp) {
-		var index = field.lastIndexOf('_');
-		var tmp = {};
-		tmp.name = index === -1 ? field : field.substring(0, index);
-		tmp.asc = index === -1 || field.substring(index + 1) !== 'desc';
-		SORTCACHE[field] = tmp;
-	}
-
-	self.$sortname = tmp.name;
-	self.$sortasc = tmp.asc;
-	return self;
+QueryBuilder.prototype.sort = function(sort) {
+	this.$sort = U.sortcomparer(sort);
+	return this;
 };
 
 QueryBuilder.prototype.filter = function(rule, arg) {
@@ -284,8 +269,7 @@ QueryBuilder.prototype.filter = function(rule, arg) {
 			//FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', 'return ' + prepare_filter(rule));
 			FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', 'return ' + rule);
 		} catch (e) {
-			self.$sortname = null;
-			self.$sortasc = null;
+			self.$sort = null;
 			self.error = e + '';
 			self.filterrule = filterrule;
 		}

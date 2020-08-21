@@ -7,7 +7,10 @@ function TextReader(builder) {
 	self.builders = [];
 	self.canceled = 0;
 	self.total = 0;
-	builder && self.add(builder);
+	if (builder) {
+		self.add(builder);
+		self.prepare();
+	}
 }
 
 TextReader.prototype.add = function(builder) {
@@ -17,7 +20,7 @@ TextReader.prototype.add = function(builder) {
 			self.add(builder[i]);
 	} else {
 		builder.$TextReader = self;
-		if (builder.$sortname)
+		if (builder.$sort)
 			self.cancelable = false;
 		self.builders.push(builder);
 	}
@@ -63,7 +66,7 @@ TextReader.prototype.compare2 = function(docs, custom, done) {
 
 				builder.count++;
 
-				if (!builder.$sortname && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
+				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
 					continue;
 
 				!is && (is = true);
@@ -93,11 +96,9 @@ TextReader.prototype.compare2 = function(docs, custom, done) {
 TextReader.prototype.compare = function(docs) {
 
 	var self = this;
-
 	self.total += docs.length;
 
 	for (var i = 0; i < docs.length; i++) {
-
 		var doc = docs[i];
 
 		if (self.builders.length === self.canceled) {
@@ -138,13 +139,13 @@ TextReader.prototype.compare = function(docs) {
 					continue;
 				}
 
-				if (!builder.$sortname && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
+				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
 					continue;
 
 				builder.counter++;
 				builder.push(doc);
 
-				if (self.cancelable && !builder.$sortname && builder.response.length === builder.$take) {
+				if (self.cancelable && !builder.$sort && builder.response.length === builder.$take) {
 					builder.canceled = true;
 					self.canceled++;
 				}
@@ -201,13 +202,13 @@ TextReader.prototype.comparereverse = function(docs) {
 					continue;
 				}
 
-				if (!builder.$sortname && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
+				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
 					continue;
 
 				builder.counter++;
 				builder.push(doc);
 
-				if (self.cancelable && !builder.$sortname && builder.response.length === builder.$take) {
+				if (self.cancelable && !builder.$sort && builder.response.length === builder.$take) {
 					builder.canceled = true;
 					self.canceled++;
 				}
@@ -219,14 +220,29 @@ TextReader.prototype.comparereverse = function(docs) {
 TextReader.prototype.callback = function(builder) {
 	var self = this;
 
-	if (builder.$sortname && !builder.$sorted)
+	if (builder.$sort && !builder.$sorted)
 		DButils.sortfinal(builder);
+
+	if (builder.$skip && builder.$take2 && builder.response.length >= builder.$take)
+		builder.response = builder.response.splice(builder.$skip);
 
 	for (var i = 0; i < builder.response.length; i++)
 		builder.response[i] = builder.prepare(builder.response[i]);
 
 	builder.logrule && builder.logrule();
 	builder.done();
+	return self;
+};
+
+TextReader.prototype.prepare = function() {
+	var self = this;
+	for (var i = 0; i < self.builders.length; i++) {
+		var builder = self.builders[i];
+		if (builder.$take)
+			builder.$take2 = builder.$sort ? ((builder.$skip || 1) + builder.$take) : builder.$take;
+		else
+			builder.$take2 = 0;
+	}
 	return self;
 };
 

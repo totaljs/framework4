@@ -4460,83 +4460,105 @@ AP.last = function(def) {
 	return item === undefined ? def : item;
 };
 
-AP.quicksort = function(name, desc) {
-
-	var length = this.length;
-	if (!length || length === 1)
-		return this;
-
-	if (typeof(name) === 'boolean') {
-		desc = name;
-		name = undefined;
-	} else if (desc === undefined)
-		desc = false;
-	else {
-		switch (desc) {
-			case 'asc':
-			case 'ASC':
-				desc = false;
-				break;
-			case 'desc':
-			case 'DESC':
-				desc = true;
-				break;
-		}
-	}
-
+AP.quicksort = function(sort) {
+	// Backward compatibility
+	if (arguments[1] === true)
+		sort += '_desc';
 	var self = this;
-	var type = 0;
-	var field = name ? self[0][name] : self[0];
+	if (self.length)
+		shellsort(self, exports.sortcomparer(sort));
+	return self;
+};
 
-	switch (typeof(field)) {
-		case 'string':
-			if (field.isJSONDate())
-				type = 4;
-			else
-				type = 1;
-			break;
-		case 'number':
-			type = 2;
-			break;
-		case 'boolean':
-			type = 3;
-			break;
-		default:
-			if (!exports.isDate(field))
-				return self;
-			type = 4;
-			break;
+AP.orderby = function(sort) {
+	shellsort(self, exports.sortcomparer(sort));
+};
+
+exports.sortcomparer = function(sort) {
+
+	var key = 'sort_' + sort;
+	var meta = F.temporary.other[key];
+
+	if (!meta) {
+		meta = [];
+		sort = sort.replace(/\s/g, '').split(',');
+		for (var i = 0; i < sort.length; i++) {
+			var tmp = sort[i].split('_');
+			var obj = { name: tmp[0], type: null, desc: tmp[1] === 'desc' };
+			if (tmp[0].indexOf('.') !== -1)
+				obj.read = new Function('val', 'return val.' + tmp[0].replace(/\./g, '?.'));
+			meta.push(obj);
+		}
+		F.temporary.other[key] = meta;
 	}
 
-	var asc = !desc;
+	return function(a, b) {
+		for (var i = 0; i < meta.length; i++) {
+			var col = meta[i];
+			var va = col.read ? col.read(a) : a[col.name];
+			var vb = col.read ? col.read(b) : b[col.name];
 
-	shellsort(self, function(a, b) {
+			if (!col.type) {
+				if (va != null)
+					col.type = va instanceof Date ? 4 : typeof(va);
+				else if (vb != null)
+					col.type = vb instanceof Date ? 4: typeof(vb);
+				switch (col.type) {
+					case 'string':
+						col.type = 1;
+						break;
+					case 'number':
+						col.type = 2;
+						break;
+					case 'boolean':
+						col.type = 3;
+						break;
+					case 'object':
+						col.type = 5;
+						break;
+				}
+			}
 
-		var va = name ? a[name] : a;
-		var vb = name ? b[name] : b;
+			if (col.type) {
+				switch (col.type) {
+					case 1:
+						tmp = va && vb ? (col.desc ? COMPARER(vb, va) : COMPARER(va, vb)) : 0;
+						if (tmp)
+							return tmp;
+						break;
+					case 2:
+						tmp = va > vb ? (col.desc ? -1 : 1) : va < vb ? (col.desc ? 1 : -1) : 0;
+						if (tmp)
+							return tmp;
+						break;
+					case 3:
+						tmp = va === true && vb === false ? (col.desc ? -1 : 1) : va === false && vb === true ? (col.desc ? 1 : -1) : 0;
+						if (tmp)
+							return tmp;
+						break;
+					case 4:
 
-		// String
-		if (type === 1) {
-			return va && vb ? (asc ? COMPARER(va, vb) : COMPARER(vb, va)) : 0;
-		} else if (type === 2) {
-			return va > vb ? (asc ? 1 : -1) : va < vb ? (asc ? -1 : 1) : 0;
-		} else if (type === 3) {
-			return va === true && vb === false ? (asc ? 1 : -1) : va === false && vb === true ? (asc ? -1 : 1) : 0;
-		} else if (type === 4) {
-			if (!va || !vb)
+						if (!va && !vb)
+							break;
+
+						if (!va.getTime)
+							va = new Date(va);
+						if (!vb.getTime)
+							vb = new Date(vb);
+
+						var at = va.getTime();
+						var bt = vb.getTime();
+						tmp = at > bt ? (col.desc ? -1 : 1) : at < bt ? (col.desc ? 1 : -1) : 0;
+						if (tmp)
+							return tmp;
+						break;
+				}
+			} else
 				return 0;
-			if (!va.getTime)
-				va = new Date(va);
-			if (!vb.getTime)
-				vb = new Date(vb);
-			var at = va.getTime();
-			var bt = vb.getTime();
-			return at > bt ? (asc ? 1 : -1) : at < bt ? (asc ? -1 : 1) : 0;
 		}
-		return 0;
-	});
 
-	return self;
+		return 0;
+	};
 };
 
 AP.trim = function() {
