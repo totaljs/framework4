@@ -37,13 +37,19 @@ function Database(type, name, fork, onetime, schema) {
 			if (builder.options.bulk) {
 				for (var i = 0; i < builder.options.bulk.length; i++) {
 					var bulk = builder.options.bulk[i];
-					bulk.options.filter = bulk.builder.length ? bulk.builder.join('&&') : 'true';
+					bulk.options.filter = bulk.options.filter.length ? bulk.options.filter.join('&&') : 'true';
 					builder.options.bulk[i] = bulk.options;
 				}
 			}
 
 			builder.options.onetime = t.onetime;
-			builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
+			builder.options.filter = builder.options.filter.length ? builder.options.filter.join('&&') : 'true';
+
+			if (builder.options.join && builder.options.join.length) {
+				var joins = builder.options.join;
+				for (var i = 0; i < joins.length; i++)
+					joins[i].builder.options.filter = joins[i].builder.options.filter.length ? joins[i].builder.options.filter.join('&&') : 'true';
+			}
 
 			if (builder.options.relation) {
 				var dir = makedirectory(t.directory, t.basename + '.relations', builder.options.relation[1]);
@@ -476,8 +482,7 @@ DP.command = function(command, options, callback) {
 
 function DatabaseBuilder() {
 	var t = this;
-	t.builder = [];
-	t.options = { filterarg: { params: [] } };
+	t.options = { filter: [], filterarg: { params: [] } };
 	//t.joins;
 }
 
@@ -489,8 +494,13 @@ DB.insert = function(fn) {
 };
 
 DB.callback = function(callback, err) {
-	this.$callback = callback;
-	this.$error = err;
+	if (this.parent) {
+		this.parent.$callback = callback;
+		this.parent.$error = err;
+	} else {
+		this.$callback = callback;
+		this.$error = err;
+	}
 	return this;
 };
 
@@ -529,7 +539,7 @@ DB.where = function(name, operator, value) {
 			break;
 	}
 
-	self.builder.push('doc.' + name + operator + 'arg.params[' + self.param(value) + ']');
+	self.options.filter.push('doc.' + name + operator + 'arg.params[' + self.param(value) + ']');
 	return self;
 };
 
@@ -552,7 +562,7 @@ DB.rule = function(code, arg) {
 			self.options.filterarg[keys[i]] = arg[keys[i]];
 	}
 
-	self.builder.push(code);
+	self.options.filter.push(code);
 	return self;
 };
 
@@ -604,13 +614,13 @@ DB.skip = function(count) {
 
 DB.in = function(name, value) {
 	var self = this;
-	self.builder.push('func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
+	self.options.filter.push('func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
 	return self;
 };
 
 DB.notin = function(name, value) {
 	var self = this;
-	self.builder.push('!func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
+	self.options.filter.push('!func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
 	return self;
 };
 
@@ -618,17 +628,17 @@ DB.between = function(name, a, b) {
 	var self = this;
 	var ia = self.param(a);
 	var ib = self.param(b);
-	self.builder.push('(doc.' + name + '>=arg.params[' + ia + ']&&doc.' + name + '<=arg.params[' + ib + '])');
+	self.options.filter.push('(doc.' + name + '>=arg.params[' + ia + ']&&doc.' + name + '<=arg.params[' + ib + '])');
 	return self;
 };
 
 DB.or = function(callback) {
 	var self = this;
-	var builder = self.builder;
-	self.builder = [];
+	var filter = self.options.filter;
+	self.options.filter = [];
 	callback.call(self, self);
-	self.builder.length && builder.push('(' + self.builder.join('||') + ')');
-	self.builder = builder;
+	self.options.filter.length && filter.push('(' + self.options.filter.join('||') + ')');
+	self.options.filter = filter;
 	return self;
 };
 
@@ -638,19 +648,13 @@ DB.fields = function(fields) {
 	return self;
 };
 
-DB.sort = function(sort) {
-	var self = this;
-	self.options.sort = sort;
-	return self;
-};
-
 DB.month = function(name, operator, value) {
 	var self = this;
 	if (value === undefined) {
 		value = operator;
 		operator = '=';
 	}
-	self.builder.push(compare_datetype('month', name, self.param(value), operator));
+	self.options.filter.push(compare_datetype('month', name, self.param(value), operator));
 	return self;
 };
 
@@ -660,7 +664,7 @@ DB.day = function(name, operator, value) {
 		value = operator;
 		operator = '=';
 	}
-	self.builder.push(compare_datetype('day', name, self.param(value), operator));
+	self.options.filter.push(compare_datetype('day', name, self.param(value), operator));
 	return self;
 };
 
@@ -670,7 +674,7 @@ DB.year = function(name, operator, value) {
 		value = operator;
 		operator = '=';
 	}
-	self.builder.push(compare_datetype('year', name, self.param(value), operator));
+	self.options.filter.push(compare_datetype('year', name, self.param(value), operator));
 	return self;
 };
 
@@ -680,7 +684,7 @@ DB.hour = function(name, operator, value) {
 		value = operator;
 		operator = '=';
 	}
-	self.builder.push(compare_datetype('hour', name, self.param(value), operator));
+	self.options.filter.push(compare_datetype('hour', name, self.param(value), operator));
 	return self;
 };
 
@@ -690,26 +694,26 @@ DB.minute = function(name, operator, value) {
 		value = operator;
 		operator = '=';
 	}
-	self.builder.push(compare_datetype('minute', name, self.param(value), operator));
+	self.options.filter.push(compare_datetype('minute', name, self.param(value), operator));
 	return self;
 };
 
 DB.search = function(name, value, where) {
 	var self = this;
 	var paramindex = self.param(value);
-	self.builder.push('func.search(doc.' + name + ',arg.params[' + paramindex + ']' + (where == 'beg' ? ',1' : where == 'end' ? ',2' : '') + ')');
+	self.options.filter.push('func.search(doc.' + name + ',arg.params[' + paramindex + ']' + (where == 'beg' ? ',1' : where == 'end' ? ',2' : '') + ')');
 	return self;
 };
 
 DB.contains = function(name) {
 	var self = this;
-	self.builder.push('(doc.{0} instanceof Array?!!doc.{0}.length:!!doc.{0})'.format(name));
+	self.options.filter.push('(doc.{0} instanceof Array?!!doc.{0}.length:!!doc.{0})'.format(name));
 	return self;
 };
 
 DB.empty = function(name) {
 	var self = this;
-	self.builder.push('(doc.{0} instanceof Array?!doc.{0}.length:!doc.{0})'.format(name));
+	self.options.filter.push('(doc.{0} instanceof Array?!doc.{0}.length:!doc.{0})'.format(name));
 	return self;
 };
 
@@ -903,8 +907,7 @@ DB.gridfilter = function(name, obj, type, key) {
 	return builder.where(key, convert(value, type));
 };
 
-// Grid sorting
-DB.gridsort = function(sort) {
+DB.sort = DB.gridsort = function(sort) {
 	var self = this;
 	self.options.sort = sort;
 	return self;
@@ -1028,33 +1031,25 @@ DB.autofill = function($, allowedfields, skipfilter, defsort, maxlimit, localize
 	}
 
 	if (query.sort) {
-		var index = query.sort.lastIndexOf('_');
-		if (index !== -1) {
-			var name = query.sort.substring(0, index);
-			var can = true;
 
-			if (skipped && skipped[name])
-				can = false;
+		var sort = query.sort.split(',');
+		var sortvalue = '';
+		for (var i = 0; i < sort.length; i++) {
+			var index = sort[i].lastIndexOf('_');
+			var name = index > 1 ? sort[i].substring(0, index) : sort[i];
+			if ((skipped && skipped[name]) || (allowed && !allowed.meta[name]) || !schema.schema[name])
+				continue;
+			sortvalue += (sortvalue ? ',' : '') + sort[i];
+		}
 
-			if (can && allowed && !allowed.meta[name])
-				can = false;
+		if (!sortvalue && defsort)
+			sortvalue = defsort;
 
-			if (can && !allowed) {
-				if (!schema.schema[name])
-					can = false;
-			} else if (!can)
-				can = !!schema.schema[name];
-
-			if (can)
-				self.sort(name, query.sort[index + 1] === 'd');
-			else if (defsort)
-				self.gridsort(defsort);
-
-		} else if (defsort)
-			self.gridsort(defsort);
+		if (sortvalue)
+			self.sort(sortvalue);
 
 	} else if (defsort)
-		self.gridsort(defsort);
+		self.sort(defsort);
 
 	maxlimit && self.paginate(query.page, query.limit, maxlimit || 50);
 	return self;
@@ -1065,29 +1060,22 @@ DB.relation = function(name, id) {
 	return this;
 };
 
-DB.join = function(field, db) {
-
+DB.join = function(field, db, type) {
 	var self = this;
 	var builder = new DatabaseBuilder();
 	builder.command = 'find';
-
-	if (!self.joins) {
-		self.$custom = DB.$callbackjoin;
-		self.joins = [];
-	}
-
-	self.joins.push({ field: field, db: db, builder: builder, in: [] });
-
-	builder.callback = function(callback) {
-		self.$callback = callback;
-		return builder;
-	};
-
+	builder.parent = self;
+	if (!self.options.join)
+		self.options.join = [];
+	self.options.join.push({ field: field, db: db, type: type === 'inner' ? 2 : 1, builder: builder });
 	return builder;
+
 };
 
 DB.on = function(a, b) {
-	this.$on = [a, b];
+	var index = this.param(0);
+	this.options.filter.push('!!(doc.' + a + '==null?false:arg.params[' + index + '].has(doc.' + a + '))');
+	this.options.on = [a, b, index];
 	return this;
 };
 

@@ -147,10 +147,9 @@ QueryBuilder.prototype.assign = function(meta) {
 	meta.backup && self.backup(meta.backup);
 	meta.payload && (self.payload = meta.payload);
 	meta.log && self.log(meta.log);
-
+	meta.join && self.join(meta.join);
 	if (meta.filter)
-		self.filderid = meta.filter;
-
+		self.filterid = meta.filter;
 	return self;
 };
 
@@ -163,12 +162,19 @@ QueryBuilder.prototype.fields = function(value) {
 		var keys = value.split(',').trim();
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
+			var rename = key.split(' as ');
+			if (rename[1]) {
+				key = rename[0];
+				if (!self.$fieldsrename)
+					self.$fieldsrename = {};
+				self.$fieldsrename[key] = rename[1].trim();
+			}
 			if (key[0] === '-')
 				self.$fieldsremove.push(key.substring(1));
 			else
 				self.$fields.push(key);
 		}
-		tmp = { map: self.$fields.length ? self.$fields : null, rem: self.$fieldsremove.length ? self.$fieldsremove : null };
+		tmp = { rename: self.$fieldsrename, map: self.$fields.length ? self.$fields : null, rem: self.$fieldsremove.length ? self.$fieldsremove : null };
 		PROPCACHE[value] = tmp;
 		if (!self.$fields.length)
 			self.$fields = null;
@@ -206,9 +212,21 @@ QueryBuilder.prototype.prepare = function(doc) {
 	if (self.$fields) {
 		obj = {};
 		for (var i = 0; i < self.$fields.length; i++) {
-			var name = self.$fields[i];
-			obj[name] = doc[name];
+			var a = self.$fields[i];
+			var b = self.$fields[i];
+			if (self.$fieldsrename && self.$fieldsrename[a])
+				a = self.$fieldsrename[a];
+			obj[a] = doc[b];
 		}
+
+		if (self.$fields2) {
+			for (var i = 0; i < self.$fields2.length; i++) {
+				var a = self.$fields2[i];
+				if (obj[a] == null)
+					obj[a] = doc[a];
+			}
+		}
+
 	} else if (self.$fieldsremove) {
 		obj = doc;
 		for (var i = 0; i < self.$fieldsremove.length; i++)
@@ -233,7 +251,7 @@ QueryBuilder.prototype.prepare = function(doc) {
 
 QueryBuilder.prototype.push = function(item) {
 	var self = this;
-	if (self.$sort)
+	if (self.$sort && (!self.joins || self.leftjoin))
 		return DButils.sort(self, item);
 	self.response.push(item);
 	return true;
@@ -258,8 +276,12 @@ QueryBuilder.prototype.sort = function(sort) {
 		var meta = F.temporary.other['sort_' + sort];
 		for (var i = 0; i < meta.length; i++) {
 			var sort = meta[i];
-			if (this.$fields.indexOf(sort.name) === -1)
-				this.$fields.push(sort.name);
+			if (this.$fields.indexOf(sort.name) === -1 || (this.$fieldsrename && this.$fieldsrename[sort.name])) {
+				if (this.$fields2)
+					this.$fields2.push(sort.name);
+				else
+					this.$fields2 = [];
+			}
 		}
 	}
 
@@ -384,12 +406,131 @@ QueryBuilder.prototype.done = function() {
 
 	if (process.totaldbworker) {
 		meta.response = this.response;
-		this.$callback && this.$callback(null, meta);
-		this.$callback2 && this.$callback2(null, meta);
+		if (this.joins) {
+			this.executejoins(meta);
+		} else {
+			this.$callback && this.$callback(null, meta);
+			this.$callback2 && this.$callback2(null, meta);
+		}
 	} else {
-		this.$callback && this.$callback(null, this.response, meta);
-		this.$callback2 && this.$callback2(null, this.response, meta);
+		if (this.joins) {
+			this.executejoins(meta);
+		} else {
+			this.$callback && this.$callback(null, this.response, meta);
+			this.$callback2 && this.$callback2(null, this.response, meta);
+		}
 	}
+};
+
+QueryBuilder.prototype.executejoins = function(mainmeta) {
+
+	var self = this;
+
+	if (!self.response.length) {
+
+		if (process.totaldbworker) {
+			self.$callback && self.$callback(null, mainmeta);
+			self.$callback2 && self.$callback2(null, mainmeta);
+		} else {
+			self.$callback && self.$callback(null, self.response, mainmeta);
+			self.$callback2 && self.$callback2(null, self.response, mainmeta);
+		}
+
+		return;
+	}
+
+	self.joins.wait(function(item, next) {
+
+		var unique = new Set();
+		for (var i = 0; i < self.response.length; i++) {
+			var val = self.response[i][item.builder.options.on[1]];
+			if (val !== undefined)
+				unique.add(val);
+		}
+
+		item.builder.options.filterarg.params[item.builder.options.on[2]] = unique;
+
+		var tmp = item.db.split('/');
+		var db;
+
+		if (tmp[1]) {
+			if (tmp[0] === 'table')
+				db = TABLE(tmp[1]);
+			else
+				db = NOSQL(tmp[1]);
+		} else
+			db = NOSQL(tmp[0]);
+
+		var b = db.find();
+		b.options.filter = [item.builder.options.filter];
+		b.options.filterarg = item.builder.options.filterarg;
+		b.options.fields = item.builder.options.fields;
+		b.options.take = item.builder.options.take || 0;
+		b.options.skip = item.builder.options.skip || 0;
+
+		if (b.options.fields)
+			b.options.fields = item.builder.options.on[0] + ',' + b.options.fields;
+
+		b.callback(function(err, response, meta) {
+
+			for (var i = self.response.length - 1; i > -1; i--) {
+				var doc = self.response[i];
+
+				if (!item.builder.options.first)
+					doc[item.field] = [];
+
+				for (var j = 0; j < response.length; j++) {
+					if (response[j][item.builder.options.on[0]] == doc[item.builder.options.on[1]]) {
+						if (item.builder.options.first) {
+							doc[item.field] = response[j];
+							break;
+						} else
+							doc[item.field].push(response[j]);
+					}
+				}
+
+				if (!doc[item.field]) {
+					if (self.leftonly) {
+						if (!item.builder.options.first)
+							doc[item.field] = [];
+					} else
+						self.response.splice(i, 1);
+				}
+			}
+
+			mainmeta.scanned += meta.scanned;
+			mainmeta.duration += meta.duration;
+			next();
+		});
+
+	}, function() {
+
+		if (self.$fields2 && self.$fields2.length) {
+			for (var i = 0; i < self.response.length; i++) {
+				var item = self.response[i];
+				for (var j = 0; j < self.$fields2.length; j++)
+					delete item[self.$fields2[j]];
+			}
+		}
+
+		if (!self.leftonly) {
+			if (self.$skipjoin)
+				self.response.splice(0, self.$skipjoin);
+			if (self.$takejoin)
+				self.response.splice(self.$takejoin);
+		}
+
+		if (process.totaldbworker) {
+			self.$callback && self.$callback(null, mainmeta);
+			self.$callback2 && self.$callback2(null, mainmeta);
+		} else {
+			self.$callback && self.$callback(null, self.response, mainmeta);
+			self.$callback2 && self.$callback2(null, self.response, mainmeta);
+		}
+	});
+
+	// console.log('JOIN');
+	// console.log(self.response);
 };
 
 QueryBuilder.prototype.callback = function(fn) {
@@ -424,6 +565,40 @@ QueryBuilder.prototype.backupitem = function(item) {
 QueryBuilder.prototype.logitem = function() {
 	var self = this;
 	Fs.appendFile(self.db.filenameLog, self.logarg, errorhandling);
+	return self;
+};
+
+QueryBuilder.prototype.join = function(arr) {
+
+	var self = this;
+	var leftonly = true;
+	var joins = [];
+
+	for (var i = 0; i < arr.length; i++) {
+		var item = arr[i];
+
+		if (item.type === 2)
+			leftonly = false;
+
+		item.parent = self;
+		joins.push(item);
+
+		if (self.$fields && self.$fields.indexOf(item.builder.options.on[1]) === -1 || (self.$fieldsrename && self.$fieldsrename[item.builder.options.on[1]])) {
+			if (!self.$fields2)
+				self.$fields2 = [];
+			self.$fields2.push(item.builder.options.on[1]);
+		}
+	}
+
+	if (!leftonly) {
+		self.$takejoin = self.$take;
+		self.$skipjoin = self.$skip;
+		self.$take2 = self.$take = 0;
+		self.$skip = 0;
+	}
+
+	self.leftonly = leftonly;
+	self.joins = joins;
 	return self;
 };
 

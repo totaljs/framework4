@@ -623,7 +623,7 @@ JD.$reader = function(items, reader) {
 
 	filters.type = 'read';
 	filters.db = self;
-	filters.cancelable = false;
+	// filters.cancelable = false;
 	filters.inmemory = false;
 
 	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
@@ -1224,7 +1224,7 @@ TD.$reader = function() {
 	var filters = TextReader.make(self.pending_reader.splice(0));
 	filters.type = 'read';
 	filters.db = self;
-	filters.cancelable = false;
+	// filters.cancelable = false;
 	filters.inmemory = false;
 
 	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {

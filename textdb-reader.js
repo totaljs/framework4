@@ -139,8 +139,9 @@ TextReader.prototype.compare = function(docs) {
 					continue;
 				}
 
-				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
+				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter))) {
 					continue;
+				}
 
 				builder.counter++;
 				builder.push(doc);
@@ -223,7 +224,7 @@ TextReader.prototype.callback = function(builder) {
 	if (builder.$sort && !builder.$sorted)
 		DButils.sortfinal(builder);
 
-	if (builder.$skip && builder.$take2 && builder.response.length >= builder.$take)
+	if ((!builder.joins || builder.leftonly) && builder.$sort && builder.$skip && builder.$take2 && builder.response.length >= builder.$take)
 		builder.response = builder.response.splice(builder.$skip);
 
 	for (var i = 0; i < builder.response.length; i++)
