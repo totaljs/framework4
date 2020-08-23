@@ -5,7 +5,7 @@ var INSTANCE;
 
 exports.init = function(directory, callback) {
 
-	INSTANCE = Fork(__dirname + '/textdb-worker.js', [directory], { detached: true, serialization: 'advanced' });
+	INSTANCE = Fork(__dirname + '/textdb-worker.js', [F.directory], { detached: true, serialization: 'advanced' });
 	CALLBACKS = {};
 	INSTANCE.on('message', function(msg) {
 

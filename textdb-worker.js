@@ -24,7 +24,9 @@ function processcommand(msg) {
 
 	if (!instance) {
 		var db = require('./textdb');
-		instance = msg.builder.type === 'nosql' ? db.JsonDB(msg.builder.database, msg.builder.onetime) : db.TableDB(msg.builder.database, msg.builder.schema, msg.builder.onetime);
+		F.directory = process.argv[2];
+		var filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database + '.' + msg.builder.type);
+		instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, msg.builder.onetime);
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
 			instance.recount();
@@ -36,10 +38,8 @@ function processcommand(msg) {
 	var callback;
 
 	switch (msg.TYPE) {
-
 		case 'find':
 			reading++;
-
 			instance.find().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
 				process.send(builder);
@@ -55,9 +55,7 @@ function processcommand(msg) {
 			break;
 
 		case 'backups':
-
 			reading++;
-
 			instance.backups().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
 				process.send(builder);

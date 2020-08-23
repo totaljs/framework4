@@ -1657,7 +1657,6 @@ function nosqlwrapper(name) {
 
 	var onetime = name[0] === '~';
 	var path = onetime ? name.substring(1) : PATH.databases(name + '.nosql');
-
 	if (F.textdbworker)
 		return F.databases[name] = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
 

@@ -26,6 +26,7 @@ function Database(type, name, fork, onetime, schema) {
 	t.directory = Path.dirname(name);
 	t.basename = Path.basename(name);
 	t.schema = schema;
+	t.id = onetime ? name : t.basename.replace(/\.(nosql|table)$/, '');
 
 	t.fork = fork || {};
 	t.onetime = onetime;
@@ -48,7 +49,7 @@ function Database(type, name, fork, onetime, schema) {
 			if (builder.options.join && builder.options.join.length) {
 				var joins = builder.options.join;
 				for (var i = 0; i < joins.length; i++)
-					joins[i].builder.options.filter = joins[i].builder.options.filter.length ? joins[i].builder.options.filter.join('&&') : 'true';
+					joins[i].options.filter = joins[i].options.filter.length ? joins[i].options.filter.join('&&') : 'true';
 			}
 
 			if (builder.options.relation) {
@@ -61,7 +62,7 @@ function Database(type, name, fork, onetime, schema) {
 
 			if (fork) {
 				builder.options.type = t.type;
-				builder.options.database = name;
+				builder.options.database = t.onetime ? name : t.id;
 			}
 		}
 
@@ -1067,9 +1068,8 @@ DB.join = function(field, db, type) {
 	builder.parent = self;
 	if (!self.options.join)
 		self.options.join = [];
-	self.options.join.push({ field: field, db: db, type: type === 'inner' ? 2 : 1, builder: builder });
+	self.options.join.push({ field: field, db: db, type: type === 'inner' ? 2 : 1, options: builder.options });
 	return builder;
-
 };
 
 DB.on = function(a, b) {
@@ -1077,78 +1077,6 @@ DB.on = function(a, b) {
 	this.options.filter.push('!!(doc.' + a + '==null?false:arg.params[' + index + '].has(doc.' + a + '))');
 	this.options.on = [a, b, index];
 	return this;
-};
-
-DB.$callbackjoin = function() {
-	var self = this;
-	return function(err, response, meta) {
-
-		var one = response && !(response instanceof Array);
-
-		if (!response) {
-			self.$callback(null, response, meta);
-			return;
-		}
-
-		if (one)
-			response = [response];
-		else if (!response.length) {
-			self.$callback(null, response, meta);
-			return;
-		}
-
-		for (var i = 0; i < response.length; i++) {
-			for (var j = 0; j < self.joins.length; j++) {
-				var join = self.joins[j];
-				var val = response[i][join.builder.$on[1]];
-				if (val != null && join.in.indexOf(val) === -1)
-					join.in.push(val);
-			}
-		}
-
-		self.joins.wait(function(join, next) {
-
-			var first = join.builder.options.first;
-			var take = join.builder.options.take;
-			var skip = join.builder.options.skip;
-
-			if (first)
-				join.builder.options.first = undefined;
-
-			if (take)
-				join.builder.options.take = undefined;
-
-			if (skip)
-				join.builder.options.skip = undefined;
-
-			join.builder.$callback = function(err, items, m) {
-
-				for (var i = 0; i < response.length; i++) {
-					var doc = response[i];
-					var b = doc[join.builder.$on[1]];
-					doc[join.field] = b ? items.findAll(join.builder.$on[0], b) : [];
-
-					if (skip)
-						doc[join.field] = doc[join.field].skip(skip);
-
-					if (take)
-						doc[join.field] = doc[join.field].take(take);
-
-					if (first && doc[join.field])
-						doc[join.field] = doc[join.field][0] || null;
-				}
-
-				meta.counter2 = (meta.counter2 || 0) + m.counter;
-				meta.count2 = (meta.count2 || 0) + m.count;
-				meta.scanned2 = (meta.scanned2 || 0) + m.scanned;
-				meta.duration2 = (meta.duration2 || 0) + m.duration;
-				next();
-			};
-
-			join.builder.in(join.builder.$on[0], join.in);
-			join.db.next(join.builder);
-		}, () => self.$callback(null, response, meta), 5);
-	};
 };
 
 exports.make = function(type, name, fork, onetime, schema) {

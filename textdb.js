@@ -35,6 +35,7 @@ const DELIMITER = '|';
 const JSONBOOL = '":true ';
 const NEWLINE = '\n';
 const REGBOOL = /":true/g; // for updates of boolean types
+const REGDATE = /"\d{4}-\d{2}-\d{2}T[0-9.:]+Z"/g;
 const REGTESCAPE = /\||\n|\r/g;
 const REGTUNESCAPE = /%7C|%0D|%0A/g;
 const REGTESCAPETEST = /\||\n|\r/;
@@ -647,7 +648,8 @@ JD.$reader = function(items, reader) {
 	var memory = [];
 
 	fs.ondocuments = function() {
-		var docs = JSON.parse('[' + fs.docs + ']', jsonparser);
+		// var docs = JSON.parse('[' + fs.docs + ']', jsonparser);
+		var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
 		self.inmemory && memory.push.apply(memory, docs);
 		return filters.compare(docs);
 	};
@@ -706,7 +708,8 @@ JD.$reader2 = function() {
 		fs.buffercount = self.buffercount;
 
 	fs.ondocuments = function() {
-		var data = JSON.parse('[' + fs.docs + ']', jsonparser);
+		var data = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+		// var data = JSON.parse('[' + fs.docs + ']', jsonparser);
 		data.reverse();
 		return filters.compare(data);
 	};

@@ -159,6 +159,7 @@ QueryBuilder.prototype.fields = function(value) {
 	if (!tmp) {
 		self.$fieldsremove = [];
 		self.$fields = [];
+		self.$fieldsall = {};
 		var keys = value.split(',').trim();
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
@@ -167,22 +168,27 @@ QueryBuilder.prototype.fields = function(value) {
 				key = rename[0];
 				if (!self.$fieldsrename)
 					self.$fieldsrename = {};
-				self.$fieldsrename[key] = rename[1].trim();
-			}
+				self.$fieldsrename[i] = rename[1].trim();
+				self.$fieldsall[self.$fieldsrename[i]] = 1;
+			} else if (key[0] !== '-')
+				self.$fieldsall[key] = 1;
+
 			if (key[0] === '-')
 				self.$fieldsremove.push(key.substring(1));
 			else
 				self.$fields.push(key);
 		}
-		tmp = { rename: self.$fieldsrename, map: self.$fields.length ? self.$fields : null, rem: self.$fieldsremove.length ? self.$fieldsremove : null };
+		tmp = { rename: self.$fieldsrename, all: self.$fieldsall, map: self.$fields.length ? self.$fields : null, rem: self.$fieldsremove.length ? self.$fieldsremove : null };
 		PROPCACHE[value] = tmp;
 		if (!self.$fields.length)
 			self.$fields = null;
 		if (!self.$fieldsremove.length)
 			self.$fieldsremove = null;
+	} else {
+		self.$fields = tmp.map;
+		self.$fieldsall = tmp.all;
+		self.$fieldsremove = tmp.rem;
 	}
-	self.$fields = tmp.map;
-	self.$fieldsremove = tmp.rem;
 	return self;
 };
 
@@ -214,17 +220,9 @@ QueryBuilder.prototype.prepare = function(doc) {
 		for (var i = 0; i < self.$fields.length; i++) {
 			var a = self.$fields[i];
 			var b = self.$fields[i];
-			if (self.$fieldsrename && self.$fieldsrename[a])
-				a = self.$fieldsrename[a];
+			if (self.$fieldsrename && self.$fieldsrename[i])
+				a = self.$fieldsrename[i];
 			obj[a] = doc[b];
-		}
-
-		if (self.$fields2) {
-			for (var i = 0; i < self.$fields2.length; i++) {
-				var a = self.$fields2[i];
-				if (obj[a] == null)
-					obj[a] = doc[a];
-			}
 		}
 
 	} else if (self.$fieldsremove) {
@@ -251,7 +249,7 @@ QueryBuilder.prototype.prepare = function(doc) {
 
 QueryBuilder.prototype.push = function(item) {
 	var self = this;
-	if (self.$sort && (!self.joins || self.leftjoin))
+	if (self.$sort && (!self.joins || self.leftonly))
 		return DButils.sort(self, item);
 	self.response.push(item);
 	return true;
@@ -276,11 +274,12 @@ QueryBuilder.prototype.sort = function(sort) {
 		var meta = F.temporary.other['sort_' + sort];
 		for (var i = 0; i < meta.length; i++) {
 			var sort = meta[i];
-			if (this.$fields.indexOf(sort.name) === -1 || (this.$fieldsrename && this.$fieldsrename[sort.name])) {
+			if (!this.$fieldsall[sort.name]) {
+				this.$fieldsall[sort.name] = 1;
 				if (this.$fields2)
 					this.$fields2.push(sort.name);
 				else
-					this.$fields2 = [];
+					this.$fields2 = [sort.name];
 			}
 		}
 	}
@@ -369,63 +368,69 @@ QueryBuilder.prototype.scalar = function(rule, arg) {
 
 QueryBuilder.prototype.done = function() {
 
-	if (!this.$callback && !this.$callback2)
+	var self = this;
+
+	if (!self.$callback && !self.$callback2)
 		return;
 
 	var meta = {};
 
-	if (this.error)
-		meta.error = this.error;
+	if (self.error)
+		meta.error = self.error;
 
-	meta.cid = this.cid;
-	meta.count = this.count;
-	meta.counter = this.counter;
-	meta.scanned = this.scanned;
-	meta.duration = this.duration;
+	meta.cid = self.cid;
+	meta.count = self.count;
+	meta.counter = self.counter;
+	meta.scanned = self.scanned;
+	meta.duration = self.duration;
 
-	if (this.inmemory)
-		meta.inmemory = this.inmemory;
+	if (self.inmemory)
+		meta.inmemory = self.inmemory;
 
-	if (this.canceled)
+	if (self.canceled)
 		meta.canceled = true;
 
-	if (!this.$TextReader || this.$TextReader.type === 'update' || this.$TextReader.type === 'remove')
-		this.response = meta.counter;
-	else if (this.$first)
-		this.response = this.response instanceof Array ? this.response[0] : this.response;
-	else if (this.scalararg)
-		this.response = this.scalararg;
+	if (!self.$TextReader || self.$TextReader.type === 'update' || self.$TextReader.type === 'remove')
+		self.response = meta.counter;
+	else if (self.$first)
+		self.response = self.response instanceof Array ? self.response[0] : self.response;
+	else if (self.scalararg)
+		self.response = self.scalararg;
 
-	if (this.db.clone && (this.$TextReader.type !== 'update' && this.$TextReader.type !== 'remove')) {
-		if (this.response instanceof Array) {
-			for (var i = 0; i < this.response.length; i++)
-				this.response[i] = CLONE(this.response[i]);
+	if (self.db.clone && (self.$TextReader.type !== 'update' && self.$TextReader.type !== 'remove')) {
+		if (self.response instanceof Array) {
+			for (var i = 0; i < self.response.length; i++)
+				self.response[i] = CLONE(self.response[i]);
 		} else
-			this.response = CLONE(this.response);
+			self.response = CLONE(self.response);
 	}
 
 	if (process.totaldbworker) {
-		meta.response = this.response;
-		if (this.joins) {
-			this.executejoins(meta);
+		meta.response = self.response;
+		if (self.joins) {
+			self.executejoins(meta);
 		} else {
-			this.$callback && this.$callback(null, meta);
-			this.$callback2 && this.$callback2(null, meta);
+			self.$callback && self.$callback(null, meta);
+			self.$callback2 && self.$callback2(null, meta);
 		}
 	} else {
-		if (this.joins) {
-			this.executejoins(meta);
+		if (self.joins) {
+			self.executejoins(meta);
 		} else {
-			this.$callback && this.$callback(null, this.response, meta);
-			this.$callback2 && this.$callback2(null, this.response, meta);
+			self.$callback && self.$callback(null, self.response, meta);
+			self.$callback2 && self.$callback2(null, self.response, meta);
 		}
 	}
+};
+
+QueryBuilder.prototype.prepareresponse = function(response) {
+	for (var i = 0; i < response.length; i++)
+		response[i] = this.prepare(response[i]);
 };
 
 QueryBuilder.prototype.executejoins = function(mainmeta) {
 
 	var self = this;
-
 	if (!self.response.length) {
 
 		if (process.totaldbworker) {
@@ -442,13 +447,24 @@ QueryBuilder.prototype.executejoins = function(mainmeta) {
 	self.joins.wait(function(item, next) {
 
 		var unique = new Set();
-		for (var i = 0; i < self.response.length; i++) {
-			var val = self.response[i][item.builder.options.on[1]];
-			if (val !== undefined)
+
+		for (var i = self.response.length - 1; i > -1; i--) {
+			var val = self.response[i][item.options.on[1]];
+			if (val == null) {
+				if (item.type === 2)
+					self.response.splice(i, 1);
+				else
+					self.response[i][item.field] = item.options.first ? null : [];
+			} else
 				unique.add(val);
 		}
 
-		item.builder.options.filterarg.params[item.builder.options.on[2]] = unique;
+		if (!unique.size) {
+			next();
+			return;
+		}
+
+		item.options.filterarg.params[item.options.on[2]] = unique;
 
 		var tmp = item.db.split('/');
 		var db;
@@ -462,44 +478,45 @@ QueryBuilder.prototype.executejoins = function(mainmeta) {
 			db = NOSQL(tmp[0]);
 
 		var b = db.find();
-		b.options.filter = [item.builder.options.filter];
-		b.options.filterarg = item.builder.options.filterarg;
-		b.options.fields = item.builder.options.fields;
-		b.options.take = item.builder.options.take || 0;
-		b.options.skip = item.builder.options.skip || 0;
+		b.options.filter = [item.options.filter];
+		b.options.filterarg = item.options.filterarg;
+		b.options.fields = item.options.fields;
+		b.options.take = item.options.take || 0;
+		b.options.skip = item.options.skip || 0;
 
 		if (b.options.fields)
-			b.options.fields = item.builder.options.on[0] + ',' + b.options.fields;
+			b.options.fields = item.options.on[0] + ',' + b.options.fields;
 
 		b.callback(function(err, response, meta) {
 
+			var items = meta ? response : response.response;
 			for (var i = self.response.length - 1; i > -1; i--) {
 				var doc = self.response[i];
 
-				if (!item.builder.options.first)
+				if (!item.options.first)
 					doc[item.field] = [];
 
-				for (var j = 0; j < response.length; j++) {
-					if (response[j][item.builder.options.on[0]] == doc[item.builder.options.on[1]]) {
-						if (item.builder.options.first) {
-							doc[item.field] = response[j];
+				for (var j = 0; j < items.length; j++) {
+					if (items[j][item.options.on[0]] == doc[item.options.on[1]]) {
+						if (item.options.first) {
+							doc[item.field] = items[j];
 							break;
 						} else
-							doc[item.field].push(response[j]);
+							doc[item.field].push(items[j]);
 					}
 				}
 
 				if (!doc[item.field]) {
 					if (self.leftonly) {
-						if (!item.builder.options.first)
+						if (!item.options.first)
 							doc[item.field] = [];
 					} else
 						self.response.splice(i, 1);
 				}
 			}
 
-			mainmeta.scanned += meta.scanned;
-			mainmeta.duration += meta.duration;
+			mainmeta.scanned += meta ? meta.scanned : response.scanned;
+			mainmeta.duration += meta ? meta.duration : response.duration;
 			next();
 		});
 
@@ -528,9 +545,6 @@ QueryBuilder.prototype.executejoins = function(mainmeta) {
 			self.$callback2 && self.$callback2(null, self.response, mainmeta);
 		}
 	});
-
-	// console.log('JOIN');
-	// console.log(self.response);
 };
 
 QueryBuilder.prototype.callback = function(fn) {
@@ -583,11 +597,14 @@ QueryBuilder.prototype.join = function(arr) {
 		item.parent = self;
 		joins.push(item);
 
-		if (self.$fields && self.$fields.indexOf(item.builder.options.on[1]) === -1 || (self.$fieldsrename && self.$fieldsrename[item.builder.options.on[1]])) {
-			if (!self.$fields2)
-				self.$fields2 = [];
-			self.$fields2.push(item.builder.options.on[1]);
+		if (self.$fieldsall && !self.$fieldsall[item.options.on[1]]) {
+			self.$fieldsall[item.options.on[1]] = 1;
+			if (self.$fields2)
+				self.$fields2.push(item.options.on[1]);
+			else
+				self.$fields2 = [item.options.on[1]];
 		}
+
 	}
 
 	if (!leftonly) {

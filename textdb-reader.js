@@ -139,9 +139,8 @@ TextReader.prototype.compare = function(docs) {
 					continue;
 				}
 
-				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter))) {
+				if (!builder.$sort && (!builder.joins || builder.leftonly) && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
 					continue;
-				}
 
 				builder.counter++;
 				builder.push(doc);
@@ -203,7 +202,7 @@ TextReader.prototype.comparereverse = function(docs) {
 					continue;
 				}
 
-				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
+				if (!builder.$sort && (!builder.joins || builder.leftonly) && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
 					continue;
 
 				builder.counter++;
@@ -224,8 +223,12 @@ TextReader.prototype.callback = function(builder) {
 	if (builder.$sort && !builder.$sorted)
 		DButils.sortfinal(builder);
 
-	if ((!builder.joins || builder.leftonly) && builder.$sort && builder.$skip && builder.$take2 && builder.response.length >= builder.$take)
-		builder.response = builder.response.splice(builder.$skip);
+	if ((!builder.joins || builder.leftonly) && builder.$sort && builder.$take2 && builder.response.length >= builder.$take) {
+		if (builder.$skip)
+			builder.response = builder.response.splice(builder.$skip, builder.$take);
+		else
+			builder.response = builder.response.splice(0, builder.$take);
+	}
 
 	for (var i = 0; i < builder.response.length; i++)
 		builder.response[i] = builder.prepare(builder.response[i]);
