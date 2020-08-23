@@ -145,7 +145,7 @@ function Database(type, name, fork, onetime, schema) {
 	};
 
 	if (fork && schema)
-		t.fork.cmd_alter({ schema: schema, onetime: t.onetime, type: t.type, database: name });
+		t.fork.cmd_alter({ schema: schema, onetime: t.onetime, type: t.type, database: t.id });
 }
 
 var DP = Database.prototype;
