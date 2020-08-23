@@ -26,7 +26,7 @@ function processcommand(msg) {
 		var db = require('./textdb');
 		F.directory = process.argv[2];
 		var filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database + '.' + msg.builder.type);
-		instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, msg.builder.onetime);
+		instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, !msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, !msg.builder.onetime);
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
 			instance.recount();
