@@ -3434,7 +3434,7 @@ function RESTBuilder(url) {
 	this.$transform = transforms.restbuilder_default;
 	this.$persistentcookies = false;
 
-	this.options = { url: url, timeout: 10000, method: 'GET', headers: { 'user-agent': 'Total.js/v' + F.version_header, accept: 'application/json, text/plain, text/plain, text/xml', resolve: true }};
+	this.options = { url: url, timeout: 10000, method: 'GET', resolve: true, headers: { 'user-agent': 'Total.js/v' + F.version_header, accept: 'application/json, text/plain, text/plain, text/xml' }};
 
 	// this.$flags;
 	// this.$data = {};
@@ -3875,7 +3875,7 @@ RESTP.exec = function(callback) {
 	return REQUEST(self.options);
 };
 
-function exec_callback(err, response) {
+function exec_callback(err, response, host) {
 
 	var self = response.builder;
 
