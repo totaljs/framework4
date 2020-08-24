@@ -16356,6 +16356,7 @@ function runsnapshot() {
 		stats.errors = F.errors.length;
 		stats.timeouts = F.stats.response.error408;
 		stats.online = F.stats.performance.online;
+		stats.uptime = F.cache.count;
 
 		if (F.isCluster) {
 			if (process.connected) {
