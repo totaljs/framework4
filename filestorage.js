@@ -106,12 +106,12 @@ FP.readfilename = function(id) {
 	return Path.join(directory, id + '.file');
 };
 
-FP.save = FP.insert = function(id, name, filename, callback, custom) {
+FP.save = FP.insert = function(id, name, filename, callback, custom, expire) {
 
 	var self = this;
 
 	if (self.pause) {
-		setTimeout(self.retrysave, 500, id, name, filename, callback, custom);
+		setTimeout(self.retrysave, 500, id, name, filename, callback, custom, expire);
 		return self;
 	}
 
@@ -123,14 +123,14 @@ FP.save = FP.insert = function(id, name, filename, callback, custom) {
 		name = name.substring(index + 1);
 
 	if (self.cache[directory]) {
-		self.saveforce(id, name, filename, filenameto, callback, custom);
+		self.saveforce(id, name, filename, filenameto, callback, custom, expire);
 	} else {
 		Fs.mkdir(directory, MKDIR, function(err) {
 			if (err)
 				callback(err);
 			else {
 				self.cache[directory] = 1;
-				self.saveforce(id, name, filename, filenameto, callback, custom);
+				self.saveforce(id, name, filename, filenameto, callback, custom, expire);
 			}
 		});
 	}
@@ -138,7 +138,7 @@ FP.save = FP.insert = function(id, name, filename, callback, custom) {
 	return self;
 };
 
-FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
+FP.saveforce = function(id, name, filename, filenameto, callback, custom, expire) {
 
 	if (!callback)
 		callback = NOOP;
@@ -230,6 +230,8 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom) {
 					Fs.close(fd, NOOP);
 				} else {
 					meta.id = id;
+					if (expire)
+						meta.expire = NOW.add(expire);
 					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
 					Fs.close(fd, () => callback(null, meta));
 				}
@@ -294,6 +296,36 @@ FP.remove = function(id, callback) {
 		NOSQL('~' + self.logger).remove().where('id', id);
 		callback && callback(err);
 	});
+	return self;
+};
+
+FP.clean = function(callback) {
+	var self = this;
+	var db = NOSQL('~' + self.logger);
+
+	db.find().where('expire', '<', NOW).callback(function(err, files) {
+
+		if (err || !files || !files.length) {
+			callback && callback(err, 0);
+			return;
+		}
+
+		var id = [];
+		for (var i = 0; i < files.length; i++)
+			id.push(files[i].id);
+
+		db.remove().in('id', id);
+
+		files.wait(function(item, next) {
+			var filename = Path.join(self.makedirectory(item.id), item.id + '.file');
+			Fs.unlink(filename, next);
+		}, function() {
+			FP.count();
+			db.clean();
+			callback && callback(err, files.length);
+		});
+	});
+
 	return self;
 };
 
