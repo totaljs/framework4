@@ -26,7 +26,7 @@ function Database(type, name, fork, onetime, schema) {
 	t.directory = Path.dirname(name);
 	t.basename = Path.basename(name);
 	t.schema = schema;
-	t.id = onetime ? name : t.basename.replace(/\.(nosql|table)$/, '');
+	t.id = onetime ? name : t.basename;
 
 	t.fork = fork || {};
 	t.onetime = onetime;

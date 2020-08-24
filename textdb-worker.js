@@ -19,13 +19,13 @@ function processcommand(msg) {
 	if (!msg || !msg.builder)
 		return;
 
-	var key = msg.builder.type + '_' + msg.builder.database;
+	var key = msg.builder.database;
 	var instance = instances[key];
 
 	if (!instance) {
 		var db = require('./textdb');
 		F.directory = process.argv[2];
-		var filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database + '.' + msg.builder.type);
+		var filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database);
 		instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, !msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, !msg.builder.onetime);
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
