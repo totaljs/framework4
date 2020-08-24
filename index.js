@@ -757,23 +757,6 @@ function performschema(type, schema, model, opt, callback, controller, noprepare
 	return !!o;
 }
 
-global.$ASYNC = function(schema, model, callback, index, controller) {
-
-	if (index && typeof(index) === 'object') {
-		controller = index;
-		index = undefined;
-	}
-
-	var o = framework_builders.getschema(schema);
-
-	if (!o) {
-		callback && callback(new Error('Schema "{0}" not found.'.format(getSchemaName(schema))));
-		return EMPTYOBJECT;
-	}
-
-	return o.async(model, callback, index, controller);
-};
-
 // GET Users/Neviem  --> @query @workflow
 global.$ACTION = function(schema, model, callback, controller) {
 
