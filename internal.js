@@ -708,35 +708,10 @@ HFP.copy = function(filename, callback) {
 	return self;
 };
 
-HFP.$$rename = HFP.$$move = function(filename) {
-	var self = this;
-	return function(callback) {
-		return self.rename(filename, callback);
-	};
-};
-
-HFP.$$copy = function(filename) {
-	var self = this;
-	return function(callback) {
-		return self.copy(filename, callback);
-	};
-};
-
-HFP.readSync = function() {
-	return Fs.readFileSync(this.path);
-};
-
 HFP.read = function(callback) {
 	var self = this;
 	Fs.readFile(self.path, callback);
 	return self;
-};
-
-HFP.$$read = function() {
-	var self = this;
-	return function(callback) {
-		self.read(callback);
-	};
 };
 
 HFP.md5 = function(callback) {
@@ -761,13 +736,6 @@ HFP.md5 = function(callback) {
 	});
 
 	return self;
-};
-
-HFP.$$md5 = function() {
-	var self = this;
-	return function(callback) {
-		self.md5(callback);
-	};
 };
 
 HFP.stream = function(options) {
@@ -796,26 +764,18 @@ HFP.image = function(im) {
 	return framework_image.init(this.path, im, this.width, this.height);
 };
 
-HFP.fs = function(storagename, custom, callback, id) {
-	if (typeof(custom) === 'function') {
-		id = callback;
-		callback = custom;
-		custom = null;
-	}
-	var storage = FILESTORAGE(storagename);
-	var stream = Fs.createReadStream(this.path);
-	return id ? storage.update(id, this.filename, stream, custom, callback) : storage.insert(this.filename, stream, custom, callback);
-};
+HFP.fs = function(storage, id, custom, expire, callback) {
 
-HFP.nosql = function(name, custom, callback, id) {
 	if (typeof(custom) === 'function') {
-		id = callback;
 		callback = custom;
 		custom = null;
+		expire = null;
+	} else if (typeof(expire) === 'function') {
+		callback = expire;
+		expire = null;
 	}
-	var storage = NOSQL(name).binary;
-	var stream = Fs.createReadStream(this.path);
-	return id ? storage.update(id, this.filename, stream, custom, callback) : storage.insert(this.filename, stream, custom, callback);
+
+	FILESTORAGE(storage).save(id, this.filename, this.path, callback, custom, expire);
 };
 
 // *********************************************************************************
