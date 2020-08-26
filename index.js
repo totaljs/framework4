@@ -16341,10 +16341,11 @@ function runsnapshot() {
 		stats.date = NOW;
 		stats.textdb = F.stats.textdb;
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
-		stats.rm = F.stats.performance.request.floor(2);  // request min
-		stats.fm = F.stats.performance.file.floor(2);     // files min
-		stats.wm = F.stats.performance.message;           // websocket messages min
-		stats.mm = F.stats.performance.mail;              // mail min
+
+		stats.rm = F.temporary.service.request || 0;      // request min
+		stats.fm = F.temporary.service.file || 0;         // files min
+		stats.wm = F.temporary.service.message || 0;      // websocket messages min
+		stats.mm = F.temporary.service.mail || 0;         // mail min
 		stats.usage = F.stats.performance.usage.floor(2); // app usage in %
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
