@@ -6210,18 +6210,13 @@ F.service = function(count) {
 	var keys;
 	var releasegc = false;
 
-	if (F.temporary.service.request)
-		F.temporary.service.request++;
-	else
-		F.temporary.service.request = 1;
+	F.temporary.service.request = F.stats.performance.request;
+	F.temporary.service.file = F.stats.performance.file;
+	F.temporary.service.message = F.stats.performance.message;
+	F.temporary.service.mail = F.stats.performance.mail;
 
-	if (F.temporary.service.file)
-		F.temporary.service.file++;
-	else
-		F.temporary.service.file = 1;
-
-	F.stats.performance.request = F.stats.request.request ? (F.stats.request.request / F.temporary.service.request).fixed(3) : 0;
-	F.stats.performance.file = F.stats.request.file ? (F.stats.request.file / F.temporary.service.file).fixed(3) : 0;
+	F.stats.performance.request = 0;
+	F.stats.performance.file = 0;
 	F.stats.performance.message = 0;
 	F.stats.performance.mail = 0;
 
