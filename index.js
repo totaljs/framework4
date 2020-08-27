@@ -2609,7 +2609,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			if (name.indexOf(':') !== -1) {
 				var tmp = name.split(':');
 				name = tmp[0];
-				type = tmp[1];
+				type = tmp[1].toLowerCase();
 			} else if (name === 'uid')
 				type = 'uid';
 
@@ -3236,7 +3236,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 			if (name.indexOf(':') !== -1) {
 				var tmp = name.split(':');
 				name = tmp[0];
-				type = tmp[1];
+				type = tmp[1].toLowerCase();
 			}
 
 			params.push(name);
