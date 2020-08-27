@@ -53,7 +53,6 @@ function chunkysort(builder, item) {
 
 	tmp = length / 2 >> 0;
 	sort = builder.$sort(item, builder.response[tmp]);
-
 	if (sort !== -1)
 		beg = tmp + 1;
 
@@ -64,7 +63,7 @@ function chunkysort(builder, item) {
 			for (var j = length - 1; j > i; j--)
 				builder.response[j] = builder.response[j - 1];
 			builder.response[i] = item;
+			return true;
 		}
-		return true;
 	}
 }
