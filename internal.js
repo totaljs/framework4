@@ -629,25 +629,43 @@ exports.routeCompareFlags2 = function(req, route, membertype) {
 	return (route.isROLE && hasRoles) ? isRole ? 1 : -1 : 1;
 };
 
-/**
- * Create arguments for controller's action
- * @param {String Array} routeUrl
- * @param {Object} route
- * @return {String Array}
- */
-exports.routeParam = function(routeUrl, route) {
+exports.routeParameters = function(routeUrl, route) {
 
 	if (!route || !routeUrl || !route.param.length)
 		return EMPTYARRAY;
 
 	var arr = [];
+	var is = false;
 
-	for (var i = 0, length = route.param.length; i < length; i++) {
+	for (var i = 0; i < route.param.length; i++) {
 		var value = routeUrl[route.param[i]];
+		var name = route.paramnames[route.param[i]];
+		switch (route.paramtypes[name]) {
+			case 'uid':
+				if (!value.isUID())
+					is = true;
+				break;
+			case 'number':
+				value = +value;
+				if (isNaN(value)) {
+					is = true;
+					value = 0;
+				}
+				break;
+			case 'boolean':
+				value = value === 'true' || value === '1';
+				break;
+			case 'date':
+				value = value.length > 6 ? value.indexOf('-') === -1 ? value.parseDate('yyyyMMddHHmm') : value.parseDate('yyyy-MM-dd-HHmm') : null;
+				if (value == null || !value.getTime)
+					is = true;
+				break;
+		}
+
 		arr.push(value === '/' ? '' : value);
 	}
 
-	return arr;
+	return { values: arr, error: is };
 };
 
 function HttpFile() {

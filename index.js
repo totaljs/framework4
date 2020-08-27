@@ -2592,40 +2592,32 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var routeURL = framework_internal.routeSplitCreate(url2);
 	var arr = [];
 	var params = [];
-	var reg = null;
-	var regIndex = null;
 	var dynamicidindex = -1;
+	var paramtypes = {};
 
 	if (url.indexOf('{') !== -1) {
 		routeURL.forEach(function(o, i) {
+
 			if (o.substring(0, 1) !== '{')
 				return;
 
 			arr.push(i);
 
-			var sub = o.substring(1, o.length - 1);
 			var name = o.substring(1, o.length - 1).trim();
+			var type = 'string';
 
-			if (name === 'id')
+			if (name.indexOf(':') !== -1) {
+				var tmp = name.split(':');
+				name = tmp[0];
+				type = tmp[1];
+			} else if (name === 'uid')
+				type = 'uid';
+
+			if (name === 'id' || name === 'uid')
 				dynamicidindex = i;
 
 			params.push(name);
-
-			if (sub[0] !== '/')
-				return;
-
-			var index = sub.lastIndexOf('/');
-			if (index === -1)
-				return;
-
-			if (!reg) {
-				reg = {};
-				regIndex = [];
-			}
-
-			params[params.length - 1] = 'regexp' + (regIndex.length + 1);
-			reg[i] = new RegExp(sub.substring(1, index), sub.substring(index + 1));
-			regIndex.push(i);
+			paramtypes[name] = type;
 		});
 
 		priority -= arr.length + 1;
@@ -2678,7 +2670,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	if (isBINARY && !isRaw) {
 		isBINARY = false;
-		console.warn('F.route() skips "binary" flag because the "raw" flag is not defined.');
+		console.warn('ROUTE() skips "binary" flag because the "raw" flag is not defined.');
 	}
 
 	if (workflow && workflow.id) {
@@ -2714,6 +2706,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.param = arr;
 	r.paramidindex = isDYNAMICSCHEMA ? dynamicidindex : -1;
 	r.paramnames = params.length ? params : null;
+	r.paramtypes = r.paramnames ? paramtypes : null;
 	r.flags = flags || EMPTYARRAY;
 	r.flags2 = flags_to_object(flags);
 	r.method = method;
@@ -2748,8 +2741,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isDYNAMICSCHEMA = isDYNAMICSCHEMA;
 	r.CUSTOM = CUSTOM;
 	r.options = options;
-	r.regexp = reg;
-	r.regexpIndexer = regIndex;
 	r.type = 'web';
 	r.remove = remove_route_web;
 
@@ -3226,11 +3217,10 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	var url2 = framework_internal.preparepath(url.trim());
 	var routeURL = framework_internal.routeSplitCreate(url2);
 	var arr = [];
-	var reg = null;
-	var regIndex = null;
 	var hash = url2.hash();
 	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
 	var params = [];
+	var paramtypes = {};
 
 	if (url.indexOf('{') !== -1) {
 		routeURL.forEach(function(o, i) {
@@ -3240,26 +3230,17 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 			arr.push(i);
 
-			var sub = o.substring(1, o.length - 1);
 			var name = o.substring(1, o.length - 1).trim();
+			var type = 'string';
 
-			params.push(name);
-
-			if (sub[0] !== '/')
-				return;
-
-			var index = sub.lastIndexOf('/');
-			if (index === -1)
-				return;
-
-			if (!reg) {
-				reg = {};
-				regIndex = [];
+			if (name.indexOf(':') !== -1) {
+				var tmp = name.split(':');
+				name = tmp[0];
+				type = tmp[1];
 			}
 
-			params[params.length - 1] = 'regexp' + (regIndex.length + 1);
-			reg[i] = new RegExp(sub.substring(1, index), sub.substring(index + 1));
-			regIndex.push(i);
+			params.push(name);
+			paramtypes[name] = type;
 		});
 	}
 
@@ -3404,6 +3385,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.owner = CURRENT_OWNER;
 	r.url = routeURL;
 	r.paramnames = params.length ? params : null;
+	r.paramtypes = r.paramnames ? paramtypes : null;
 	r.param = arr;
 	r.subdomain = subdomain;
 	r.priority = priority;
@@ -3428,8 +3410,6 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.middleware = middleware ? middleware : null;
 	r.options = options;
 	r.isPARAM = arr.length > 0;
-	r.regexp = reg;
-	r.regexpIndexer = regIndex;
 	r.type = 'websocket';
 	F.routes.websockets.push(r);
 	F.initwebsocket && F.initwebsocket();
@@ -4892,7 +4872,6 @@ F.usage = function(detailed) {
 	output.errors = F.errors;
 	output.files = staticFiles;
 	output.helpers = helpers;
-	output.nosqlcleaner = nosqlcleaner;
 	output.other = Object.keys(F.temporary.other);
 	output.resources = resources;
 	output.commands = commands;
@@ -6962,12 +6941,18 @@ F.$websocketcontinue_process = function(route, req, path) {
 			return;
 		}
 
+		var params = framework_internal.routeParameters(route.param.length ? req.split : req.path, route);
+		if (params.error) {
+			socket.$close(4000, '400: invalid parameters');
+			return;
+		}
+
 		var connection = new WebSocket(path, route.controller, id);
 		connection.encodedecode = CONF.default_websocket_encodedecode === true;
 		connection.route = route;
 		connection.options = route.options;
 		F.connections[id] = connection;
-		route.onInitialize.apply(connection, framework_internal.routeParam(route.param.length ? req.split : req.path, route));
+		route.onInitialize.call(connection, params.values[0], params.values[1], params.values[2], params.values[3], params.values[4], params.values[5]);
 		setImmediate(next_upgrade_continue, socket, connection);
 	};
 
@@ -8325,22 +8310,9 @@ F.lookupaction = function(req, url) {
 			continue;
 		}
 
-		if (route.isPARAM && route.regexp) {
-			var skip = false;
-			for (var j = 0, l = route.regexpIndexer.length; j < l; j++) {
-				var p = req.path[route.regexpIndexer[j]];
-				if (p === undefined || !route.regexp[route.regexpIndexer[j]].test(p)) {
-					skip = true;
-					break;
-				}
-			}
-			if (skip)
-				continue;
-		}
 		return route;
 	}
 };
-
 
 F.lookup_websocket = function(req, url, membertype) {
 
@@ -8367,26 +8339,6 @@ F.lookup_websocket = function(req, url, membertype) {
 				if (!framework_internal.routeCompare(req.path, route.url, false))
 					continue;
 			}
-		}
-
-		if (route.isPARAM && route.regexp) {
-			var skip = false;
-			for (var j = 0, l = route.regexpIndexer.length; j < l; j++) {
-
-				var p = req.path[route.regexpIndexer[j]];
-				if (p === undefined) {
-					skip = true;
-					break;
-				}
-
-				if (!route.regexp[route.regexpIndexer[j]].test(p)) {
-					skip = true;
-					break;
-				}
-			}
-
-			if (skip)
-				continue;
 		}
 
 		if (route.flags && route.flags.length) {
@@ -9431,8 +9383,11 @@ Controller.prototype = {
 		var names = route.paramnames;
 		if (names) {
 			var obj = {};
-			for (var i = 0; i < names.length; i++)
-				obj[names[i]] = this.req.split[route.param[i]];
+			for (var i = 0; i < names.length; i++) {
+				var val = this.req.split[route.param[i]];
+				var type = route.paramtypes[i];
+				obj[names[i]] = type === 'number' ? val.parseInt() : type === 'boolean' ? val.parseBoolean() : type === 'date' ? val.parseDate() : val;
+			}
 			this.$params = obj;
 			return obj;
 		} else {
@@ -13895,9 +13850,12 @@ function extend_request(PROTO) {
 				F.temporary.other[this.uri.pathname] = this.path;
 
 			if (this.$total_route.param.length) {
-				var params = framework_internal.routeParam(this.split, this.$total_route);
-				controller.id = params[0];
-				this.$total_route.execute.apply(controller, params);
+				var params = framework_internal.routeParameters(this.split, this.$total_route);
+				controller.id = params.values[0];
+				if (params.error)
+					controller.throw400('Invalid parameters');
+				else
+					this.$total_route.execute.call(controller, params.values[0], params.values[1], params.values[2], params.values[3], params.values[4], params.values[5]);
 			} else
 				this.$total_route.execute.call(controller);
 
@@ -15299,7 +15257,7 @@ F.$file_notmodified = function(res, name) {
 	res.end();
 	F.stats.response.notmodified++;
 	response_end(res);
-}
+};
 
 function $file_nocompress(stream, next, res) {
 
@@ -16216,9 +16174,13 @@ F.ilogger = function(name, req, ts) {
 };
 
 function evalroutehandleraction(controller) {
-	if (controller.route.isPARAM)
-		controller.route.execute.apply(controller, framework_internal.routeParam(controller.req.split, controller.route));
-	else
+	if (controller.route.isPARAM) {
+		var params = framework_internal.routeParameters(controller.req.split, controller.route);
+		if (params.error)
+			controller.throw400('Invalid parameters');
+		else
+			controller.route.execute.call(controller, params.values[0], params.values[1], params.values[2], params.values[3], params.values[4], params.values[5]);
+	} else
 		controller.route.execute.call(controller);
 }
 

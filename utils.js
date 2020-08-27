@@ -3559,7 +3559,7 @@ SP.isBase64 = function() {
 SP.isUID = function() {
 	var str = this;
 
-	if (str.length < 12)
+	if (str.length < 12 && str.length > 25)
 		return false;
 
 	var is = DEF.validators.uid.test(str);
