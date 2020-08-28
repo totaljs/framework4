@@ -9027,6 +9027,7 @@ FrameworkCacheProto.recycle = function() {
 	CONF.allow_cache_snapshot && this.save();
 	F.service(this.count);
 	CONF.allow_stats_snapshot && F.snapshotstats();
+	F.temporary.service.usage = 0;
 	measure_usage();
 	return this;
 };
@@ -16291,7 +16292,7 @@ function runsnapshot() {
 		stats.fm = F.temporary.service.file || 0;         // files min
 		stats.wm = F.temporary.service.message || 0;      // websocket messages min
 		stats.mm = F.temporary.service.mail || 0;         // mail min
-		stats.usage = F.stats.performance.usage.floor(2); // app usage in %
+		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
 		stats.errors = F.errors.length;
@@ -16323,7 +16324,10 @@ function measure_usage_response() {
 	var diff = (Date.now() - lastusagedate) - 50;
 	if (diff > 50)
 		diff = 50;
-	F.stats.performance.usage = diff <= 2 ? 0 : (diff / 50) * 100;
+	var val = diff <= 2 ? 0 : (diff / 50) * 100;
+	if (F.temporary.service.usage < val)
+		F.temporary.service.usage = val;
+	F.stats.performance.usage = val;
 }
 
 function measure_usage() {
