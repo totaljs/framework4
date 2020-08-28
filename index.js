@@ -1231,7 +1231,7 @@ function Framework() {
 		internal: {}, // controllers/modules names for the routing
 		ready: {},
 		ddos: {},
-		service: { redirect: 0, request: 0, file: 0 }
+		service: { redirect: 0, request: 0, file: 0, usage: 0 }
 	};
 
 	self.stats = {
