@@ -57,7 +57,7 @@ const REG_SKIP_1 = /\('|"/;
 const REG_SKIP_2 = /,(\s)?\w+/;
 const REG_COMPONENTS_GROUP = /('|")[a-z0-9_]+('|")/i;
 const HTTPVERBS = { get: true, post: true, options: true, put: true, delete: true, patch: true, upload: true, head: true, trace: true, propfind: true };
-const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', 'self.$script(', '((self.resource(', '((RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '((CONFIG(', '((config.', '((config[', '((CONF.', '((CONF[', '((config('];
+const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', '((self.resource(', '((RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '((CONFIG(', '((config.', '((config[', '((CONF.', '((CONF[', '((config('];
 const REG_NOTRANSLATE = /@\{notranslate\}/gi;
 const REG_NOCOMPRESS = /@\{nocompress\s\w+}/gi;
 const REG_TAGREMOVE = /[^>](\r)\n\s{1,}$/;
@@ -284,7 +284,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 			tmp.$data = undefined;
 			tmp.$is = undefined;
 			tmp.$step = undefined;
-			F.$events.upload_end && F.emit('upload_end', req, tmp);
+			F.$events.upload_end && EMIT('upload_end', req, tmp);
 			return;
 		}
 
@@ -339,7 +339,7 @@ function parse_multipart_header(header) {
 	if (tmp)
 		arr[0] = tmp;
 	else
-		arr[0] = 'undefined_' + (Math.floor(Math.random() * 100000)).toString();
+		arr[0] = 'undefined_' + (Math.floor(Math.random() * 100000));
 
 	find = ' filename="';
 	length = find.length;
@@ -1698,7 +1698,7 @@ function view_parse(content, minify, filename, controller) {
 			if (cmd[1] === '%') {
 				var t = CONF[cmd.substring(2, cmd.length - 1)];
 				if (t != null)
-					builder += '+' + DELIMITER + (t.toString()).replace(/'/g, "\\'") + DELIMITER;
+					builder += '+' + DELIMITER + (t + '').replace(/'/g, "\\'") + DELIMITER;
 			} else
 				builder += '+' + DELIMITER + (new Function('self', 'return self.$import(' + cmd[0] + '!' + cmd.substring(1) + ')'))(controller) + DELIMITER;
 		} else if (cmd7 === 'compile' && cmd.lastIndexOf(')') === -1) {
@@ -1871,7 +1871,7 @@ function view_parse(content, minify, filename, controller) {
 		fn = eval(fn);
 		fn.components = keys;
 	} catch (e) {
-		throw new Error(filename + ': ' + e.message.toString());
+		throw new Error(filename + ': ' + (e.message + ''));
 	}
 	return fn;
 }
@@ -2078,15 +2078,13 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'favicon':
 		case 'js':
 		case 'css':
-		case 'script':
-		case 'absolute':
 			return 'self.$' + command + (command.indexOf('(') === -1 ? '()' : '');
 
 		case 'components':
 
 			var group = command.match(REG_COMPONENTS_GROUP);
 			if (group && group.length) {
-				group = group[0].toString().replace(/'|"'/g, '');
+				group = (group[0] + '').replace(/'|"'/g, '');
 				components[group] = 1;
 			}
 
@@ -2154,12 +2152,6 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'header':
 		case 'options':
 		case 'readonly':
-		case 'canonical':
-		case 'dns':
-		case 'next':
-		case 'prefetch':
-		case 'prerender':
-		case 'prev':
 			return 'self.$' + command;
 
 		case 'now':

@@ -908,7 +908,7 @@ global.SUCCESS = function(success, value) {
 	var err;
 
 	if (success instanceof Error) {
-		err = success.toString();
+		err = (success + '');
 		success = false;
 	} else if (success instanceof framework_builders.ErrorBuilder) {
 		if (success.hasError()) {
@@ -1014,7 +1014,7 @@ function Framework() {
 	self.$id = null; // F.id ==> property
 	self.version = 4000;
 	self.version_header = '4.0.0';
-	self.version_node = process.version.toString();
+	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
 	self.pref = global.PREF;
 	global.CONF = {
@@ -1191,6 +1191,7 @@ function Framework() {
 	self.tests = [];
 	self.convertors = {};
 	self.errors = [];
+	self.timeouts = [];
 	self.server = null;
 	self.port = 0;
 	self.ip = '';
@@ -1235,6 +1236,8 @@ function Framework() {
 	};
 
 	self.stats = {
+
+		error: 0,
 
 		performance: {
 			request: 0,
@@ -1427,15 +1430,7 @@ F.refresh = function() {
 
 F.prototypes = function(fn) {
 	var proto = {};
-	proto.Chunker = framework_utils.Chunker.prototype;
 	proto.Controller = Controller.prototype;
-	proto.Database = framework_nosql.Database.prototype;
-	proto.DatabaseBinary = framework_nosql.DatabaseBinary.prototype;
-	proto.DatabaseBuilder = framework_nosql.DatabaseBuilder.prototype;
-	proto.DatabaseBuilder2 = framework_nosql.DatabaseBuilder2.prototype;
-	proto.DatabaseCounter = framework_nosql.DatabaseCounter.prototype;
-	proto.DatabaseStorage = framework_nosql.DatabaseStorage.prototype;
-	proto.DatabaseTable = framework_nosql.DatabaseTable.prototype;
 	proto.ErrorBuilder = framework_builders.ErrorBuilder.prototype;
 	proto.HttpFile = framework_internal.HttpFile.prototype;
 	proto.HttpRequest = PROTOREQ;
@@ -1444,20 +1439,20 @@ F.prototypes = function(fn) {
 	proto.Message = Mail.Message.prototype;
 	proto.MiddlewareOptions = MiddlewareOptions.prototype;
 	proto.OperationOptions = framework_builders.OperationOptions.prototype;
+	proto.SchemaOptions = framework_builders.SchemaOptions.prototype;
+	proto.TaskOptions = framework_builders.TaskBuilder.prototype;
+	proto.AuthOptions = framework_builders.AuthOptions.prototype;
 	proto.Page = framework_builders.Page.prototype;
 	proto.Pagination = framework_builders.Pagination.prototype;
 	proto.RESTBuilder = framework_builders.RESTBuilder.prototype;
 	proto.RESTBuilderResponse = framework_builders.RESTBuilderResponse.prototype;
-	proto.SchemaBuilder = framework_builders.SchemaBuilder.prototype;
-	proto.SchemaOptions = framework_builders.SchemaOptions.prototype;
 	proto.UrlBuilder = framework_builders.UrlBuilder.prototype;
 	proto.WebSocket = WebSocket.prototype;
 	proto.WebSocketClient = WebSocketClient.prototype;
-	proto.AuthOptions = framework_builders.AuthOptions.prototype;
 	fn.call(proto, proto);
 };
 
-global.ON = F.on = function(name, fn) {
+global.ON = function(name, fn) {
 
 	if (name === 'init' || name === 'ready' || name === 'load') {
 		if (F.isLoaded) {
@@ -1498,7 +1493,7 @@ global.ON = F.on = function(name, fn) {
 		F.$events[name] = [fn];
 };
 
-global.EMIT = F.emit = function(name, a, b, c, d, e, f, g) {
+global.EMIT = function(name, a, b, c, d, e, f, g) {
 
 	var evt = F.$events[name];
 	if (evt) {
@@ -1536,7 +1531,7 @@ F.removeListener = function(name, fn) {
 
 F.removeAllListeners = function(name) {
 	if (name)
-		F.$events[name] = undefined;
+		delete F.$events[name];
 	else
 		F.$events = {};
 };
@@ -1547,19 +1542,6 @@ F.removeAllListeners = function(name) {
  */
 F.$owner = function() {
 	return CURRENT_OWNER;
-};
-
-F.isSuccess = function(obj) {
-	return obj === SUCCESSHELPER;
-};
-
-/**
- * Get a controller
- * @param {String} name
- * @return {Object}
- */
-F.controller = function(name) {
-	return F.controllers[name] || null;
 };
 
 Mail.use = function(smtp, options, callback) {
@@ -1887,7 +1869,7 @@ global.RESIZE = function(url, fn, flags) {
 	var ext = url.match(/\*.\*$|\*?\.(jpg|png|gif|jpeg|heif|heic|apng)$/gi);
 	if (ext) {
 		url = url.replace(ext, '');
-		switch (ext.toString().toLowerCase()) {
+		switch ((ext. + '').toLowerCase()) {
 			case '*.*':
 				extensions['*'] = true;
 				break;
@@ -1898,7 +1880,7 @@ global.RESIZE = function(url, fn, flags) {
 			case '*.heic':
 			case '*.apng':
 			case '*.jpeg':
-				extensions[ext.toString().toLowerCase().replace(/\*/g, '').substring(1)] = true;
+				extensions[(ext + '').toLowerCase().replace(/\*/g, '').substring(1)] = true;
 				break;
 		}
 	}
@@ -2391,7 +2373,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				continue;
 			}
 
-			var flag = flags[i].toString().toLowerCase();
+			var flag = (flags[i] + '').toLowerCase();
 			if (flag.startsWith('http://') || flag.startsWith('https://')) {
 				corsflags.push(flag);
 				continue;
@@ -3297,7 +3279,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 			continue;
 		}
 
-		flag = flag.toString().toLowerCase();
+		flag = (flag + '').toLowerCase();
 
 		// Origin
 		if (flag.startsWith('http://') || flag.startsWith('https://')) {
@@ -3728,11 +3710,10 @@ F.error = function(err, name, uri) {
 		return F.errorcallback;
 
 	if (err) {
-		if (F.errors) {
-			NOW = new Date();
-			F.errors.push({ error: err.stack, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW });
-			F.errors.length > 50 && F.errors.shift();
-		}
+		F.stats.error++;
+		NOW = new Date();
+		if (F.errors.push({ error: err.stack, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW }) > 5)
+			F.errors.shift();
 		DEF.onError(err, name, uri);
 	}
 };
@@ -3741,16 +3722,12 @@ F.errorcallback = function(err) {
 	err && F.error(err);
 };
 
-global.PRINTLN = function(msg) {
-	console.log('------>', '[' + new Date().format('yyyy-MM-dd HH:mm:ss') + ']', msg);
-};
-
 /**
  * Get a module
  * @param {String} name
  * @return {Object}
  */
-global.MODULE = F.module = function(name) {
+global.MODULE = function(name) {
 	return F.modules[name] || null;
 };
 
@@ -4377,7 +4354,7 @@ F.register = function(path) {
  */
 DEF.onError = function(err, name, uri) {
 	NOW = new Date();
-	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + err.toString() + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack);
+	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack);
 };
 
 /*
@@ -4719,7 +4696,7 @@ global.AUDIT = function(name, $, type, message) {
 
 global.LOGGER = function() {
 	NOW = new Date();
-	var dt = NOW.getFullYear() + '-' + (NOW.getMonth() + 1).toString().padLeft(2, '0') + '-' + NOW.getDate().toString().padLeft(2, '0') + ' ' + NOW.getHours().toString().padLeft(2, '0') + ':' + NOW.getMinutes().toString().padLeft(2, '0') + ':' + NOW.getSeconds().toString().padLeft(2, '0');
+	var dt = NOW.getFullYear() + '-' + ((NOW.getMonth() + 1) + '').padLeft(2, '0') + '-' + (NOW.getDate() + '').padLeft(2, '0') + ' ' + (NOW.getHours() + '').padLeft(2, '0') + ':' + (NOW.getMinutes() + '').padLeft(2, '0') + ':' + (NOW.getSeconds() + '').padLeft(2, '0');
 	var str = '';
 	var length = arguments.length;
 
@@ -5151,7 +5128,7 @@ function compile_gzip(arr, callback) {
 
 	// GZIP compression
 
-	var filename = PATH.temp('file' + arr[0].hash().toString().replace('-', '0') + '.gz');
+	var filename = PATH.temp('file' + (arr[0].hash() + '').replace('-', '0') + '.gz');
 	arr.push(filename);
 
 	var reader = Fs.createReadStream(arr[0]);
@@ -5722,18 +5699,6 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 				F.removeAllListeners('load');
 				F.removeAllListeners('ready');
 
-				if (F.isTest) {
-					F.console();
-					F.test();
-					return;
-				}
-
-				// Because this is worker
-				// setTimeout(function() {
-				// 	if (!F.isTest)
-				// 		delete F.test;
-				// }, 5000);
-
 			}, 500);
 
 			if (CONF.allow_debug) {
@@ -5781,12 +5746,6 @@ F.initialize = function(http, debug, options) {
 
 	global.DEBUG = debug;
 	global.RELEASE = !debug;
-
-	if (options.tests) {
-		F.testlist = options.tests;
-		for (var i = 0; i < F.testlist.length; i++)
-			F.testlist[i] = F.testlist[i].replace(/\.js$/, '');
-	}
 
 	F.$bundle(function() {
 
@@ -5907,17 +5866,6 @@ F.initialize = function(http, debug, options) {
 					F.removeAllListeners('ready');
 					runsnapshot();
 				}, 500);
-
-				if (F.isTest) {
-					var sleep = options.sleep || options.delay || 1000;
-					setTimeout(F.test, sleep);
-					return;
-				}
-
-				setTimeout(function() {
-					if (!F.isTest)
-						delete F.test;
-				}, 5000);
 			});
 		}, true);
 	});
@@ -6433,7 +6381,7 @@ function makeproxy(proxy, req, res) {
 function makeproxyerror(err) {
 	MODELERROR.code = 503;
 	MODELERROR.status = U.httpStatus(503, false);
-	MODELERROR.error = err.toString();
+	MODELERROR.error = err + '';
 	this.$res.writeHead(503, HEADERS.response503);
 	this.$res.end(VIEW('.' + PATHMODULES + 'error', MODELERROR));
 }
@@ -7102,20 +7050,6 @@ global.VIEWCOMPILE = function(body, model, layout, repository, language) {
 };
 
 /**
- * Load tests
- * @private
- * @param {Boolean} stop Stop framework after end.
- * @param {String Array} names Test names, optional.
- * @param {Function()} cb
- * @return {Framework}
- */
-F.test = function() {
-	F.isTest = true;
-	configure_configs('config-test', true);
-	require('./test').load();
-};
-
-/**
  * Clear temporary directory
  * @param {Function} callback
  * @param {Boolean} isInit Private argument.
@@ -7263,7 +7197,7 @@ global.ENCRYPT = function(value, key, isUnique) {
 	if (type === 'function')
 		value = value();
 	else if (type === 'number')
-		value = value.toString();
+		value = (value + '');
 	else if (type === 'object')
 		value = JSON.stringify(value);
 
@@ -8050,7 +7984,7 @@ function configure_configs(arr, rewrite) {
 	U.extend(CONF, obj, rewrite);
 
 	if (!CONF.secret_uid)
-		CONF.secret_uid = (CONF.name).crc32(true).toString();
+		CONF.secret_uid = (CONF.name).crc32(true) + '';
 
 	tmp = CONF.mail_smtp_options;
 	if (typeof(tmp) === 'string' && tmp) {
@@ -8173,7 +8107,7 @@ F.$versionprepare = function(html) {
 	if (match) {
 		for (var i = 0, length = match.length; i < length; i++) {
 
-			var src = match[i].toString();
+			var src = match[i] + '';
 			var end = 5;
 
 			// href
@@ -9865,57 +9799,6 @@ ControllerProto.meta = function() {
 	return self;
 };
 
-ControllerProto.$dns = function() {
-
-	var builder = '';
-	var length = arguments.length;
-
-	for (var i = 0; i < length; i++)
-		builder += '<link rel="dns-prefetch" href="' + this._preparehostname(arguments[i]) + '" />';
-
-	this.head(builder);
-	return '';
-};
-
-ControllerProto.$prefetch = function() {
-
-	var builder = '';
-	var length = arguments.length;
-
-	for (var i = 0; i < length; i++)
-		builder += '<link rel="prefetch" href="' + this._preparehostname(arguments[i]) + '" />';
-
-	this.head(builder);
-	return '';
-};
-
-ControllerProto.$prerender = function() {
-
-	var builder = '';
-	var length = arguments.length;
-
-	for (var i = 0; i < length; i++)
-		builder += '<link rel="prerender" href="' + this._preparehostname(arguments[i]) + '" />';
-
-	this.head(builder);
-	return '';
-};
-
-ControllerProto.$next = function(value) {
-	this.head('<link rel="next" href="' + this._preparehostname(value) + '" />');
-	return '';
-};
-
-ControllerProto.$prev = function(value) {
-	this.head('<link rel="prev" href="' + this._preparehostname(value) + '" />');
-	return '';
-};
-
-ControllerProto.$canonical = function(value) {
-	this.head('<link rel="canonical" href="' + this._preparehostname(value) + '" />');
-	return '';
-};
-
 ControllerProto.$meta = function() {
 	var self = this;
 
@@ -10172,10 +10055,6 @@ ControllerProto.$sitemap = function(name) {
 	return '';
 };
 
-ControllerProto.module = function(name) {
-	return F.module(name);
-};
-
 ControllerProto.layout = function(name) {
 	var self = this;
 	self.layoutName = name;
@@ -10249,7 +10128,7 @@ ControllerProto.place = function(name) {
 		var val = arguments[i];
 
 		if (val)
-			val = val.toString();
+			val = val + '';
 		else
 			val = '';
 
@@ -10323,7 +10202,7 @@ function querystring_encode(value, def, key) {
 		return querystring_encode(value[0], def) + (tmp ? tmp : '');
 	}
 
-	return value != null ? value instanceof Date ? encodeURIComponent(value.format()) : typeof(value) === 'string' ? encodeURIComponent(value) : value.toString() : def || '';
+	return value != null ? value instanceof Date ? encodeURIComponent(value.format()) : typeof(value) === 'string' ? encodeURIComponent(value) : (value + '') : def || '';
 }
 
 // @{href({ key1: 1, key2: 2 })}
@@ -10484,12 +10363,12 @@ ControllerProto.$textarea = function(model, name, attr) {
 				builder += ' ' + key + '="' + key + ATTR_END;
 				break;
 			default:
-				builder += ' ' + key + '="' + attr[key].toString().encode() + ATTR_END;
+				builder += ' ' + key + '="' + (attr[key] + '').encode() + ATTR_END;
 				break;
 		}
 	}
 
-	return model === undefined ? (builder + '></textarea>') : (builder + '>' + ((model[name] || attr.value) || '') + '</textarea>');
+	return model == null ? (builder + '></textarea>') : (builder + '>' + ((model[name] || attr.value) || '') + '</textarea>');
 };
 
 ControllerProto.$input = function(model, type, name, attr) {
@@ -10543,7 +10422,7 @@ ControllerProto.$input = function(model, type, name, attr) {
 		value = model[name];
 
 		if (type === 'checkbox') {
-			if (value == '1' || value === 'true' || value === true || value === 'on')
+			if (value == '1' || value === 'true' || value === 'on' || value === true)
 				builder += ' checked="checked"';
 			value = val || '1';
 		}
@@ -10566,13 +10445,6 @@ ControllerProto.$input = function(model, type, name, attr) {
 
 	builder += ' />';
 	return attr.label ? ('<label>' + builder + ' <span>' + attr.label + '</span></label>') : builder;
-};
-
-ControllerProto._preparehostname = function(value) {
-	if (!value)
-		return value;
-	var tmp = value.substring(0, 5);
-	return tmp !== 'http:' && tmp !== 'https' && (tmp[0] !== '/' || tmp[1] !== '/') ? this.host(value) : value;
 };
 
 ControllerProto.head = function() {
@@ -10736,71 +10608,12 @@ ControllerProto.$options = function(arr, selected, name, value, disabled) {
  * @private
  * @return {String}
  */
-ControllerProto.$script = function() {
-	return arguments.length === 1 ? this.$js(arguments[0]) : this.$js.apply(this, arguments);
-};
-
-/**
- * Append <script> TAG
- * @private
- * @return {String}
- */
 ControllerProto.$js = function() {
 	var self = this;
 	var builder = '';
 	for (var i = 0; i < arguments.length; i++)
 		builder += self.public_js(arguments[i], true);
 	return builder;
-};
-
-/**
- * Append <script> or <style> TAG
- * @private
- * @return {String}
- */
-ControllerProto.$absolute = function(files, base) {
-
-	var self = this;
-	var builder;
-	var ftype;
-
-	if (!base)
-		base = self.hostname();
-
-	if (files instanceof Array) {
-
-		ftype = U.getExtension(files[0]);
-		builder = '';
-
-		for (var i = 0, length = files.length; i < length; i++) {
-			switch (ftype) {
-				case 'js':
-				case 'mjs':
-					builder += self.public_js(files[i], true, base);
-					break;
-				case 'css':
-					builder += self.public_css(files[i], true, base);
-					break;
-				default:
-					builder += self.public(files[i], base);
-					break;
-			}
-		}
-
-		return builder;
-	}
-
-	ftype = U.getExtension(files);
-
-	switch (ftype) {
-		case 'js':
-		case 'mjs':
-			return self.public_js(files, true, base);
-		case 'css':
-			return self.public_css(files, true, base);
-	}
-
-	return self.public(files, base);
 };
 
 var $importmergecache = {};
@@ -11482,7 +11295,7 @@ ControllerProto.plain = function(body, headers) {
 			body = body.$clean();
 		body = body ? JSON.stringify(body, null, 4) : '';
 	} else
-		body = body ? body.toString() : '';
+		body = body ? (body + '') : '';
 
 	res.options.body = body;
 	res.$text();
@@ -11664,7 +11477,7 @@ ControllerProto.throw409 = ControllerProto.view409 = function(problem) {
 ControllerProto.throw500 = ControllerProto.view500 = function(error) {
 	var self = this;
 	if (self.req.on)
-		F.error(error instanceof Error ? error : new Error((error || '').toString()), self.name, self.req.uri);
+		F.error(error instanceof Error ? error : (error + ''), self.name, self.req.uri);
 	return controller_error_status(self, 500, error);
 };
 
@@ -13311,7 +13124,7 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 		return self;
 
 	if (self.type !== 1) {
-		var data = self.type === 3 ? (raw ? message : JSON.stringify(message, replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer) : message.toString();
+		var data = self.type === 3 ? (raw ? message : JSON.stringify(message, replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer) : (message + '');
 		if (self.container.encodedecode === true && data)
 			data = encodeURIComponent(data);
 		if (self.deflate) {
@@ -13777,6 +13590,10 @@ function extend_request(PROTO) {
 			F.stats.response[key]++;
 			status !== 500 && F.$events.error && EMIT('error', this, res, this.$total_exception);
 			F.$events[key] && EMIT(key, this, res, this.$total_exception);
+			if (status === 408) {
+				if (self.timeouts.push({ url: this.url, date: NOW = new Date() }) > 5)
+					self.timeouts.shift();
+			}
 		}
 
 		if (!route) {
@@ -15514,7 +15331,7 @@ process.on('unhandledRejection', function(e) {
 
 process.on('uncaughtException', function(e) {
 
-	var err = e.toString();
+	var err = e + '';
 
 	if (err.indexOf('listen EADDRINUSE') !== -1) {
 		process.send && process.send('total:eaddrinuse');
@@ -15763,7 +15580,7 @@ function prepare_error(e) {
 	else if (e instanceof ErrorBuilder)
 		return e.plain();
 	else if (DEBUG)
-		return e.stack ? e.stack : e.toString();
+		return e.stack ? e.stack : (e + '');
 }
 
 function prepare_filename(name) {
@@ -16275,6 +16092,7 @@ function runsnapshot() {
 	stats.pid = process.pid;
 	stats.thread = global.THREAD;
 	stats.mode = DEBUG ? 'debug' : 'release';
+	stats.overload = 0;
 
 	main.pid = process.pid;
 	main.port = F.port;
@@ -16287,7 +16105,6 @@ function runsnapshot() {
 		stats.date = NOW;
 		stats.textdb = F.stats.textdb;
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
-
 		stats.rm = F.temporary.service.request || 0;      // request min
 		stats.fm = F.temporary.service.file || 0;         // files min
 		stats.wm = F.temporary.service.message || 0;      // websocket messages min
@@ -16295,10 +16112,16 @@ function runsnapshot() {
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
-		stats.errors = F.errors.length;
+		stats.errors = F.stats.error;
 		stats.timeouts = F.stats.response.error408;
 		stats.online = F.stats.performance.online;
 		stats.uptime = F.cache.count;
+
+		var err = F.errors[F.errors.length - 1];
+		var timeout = F.timeouts[F.timeouts.length - 1];
+
+		stats.lasterror = err;
+		stats.lasttimeout = timeout;
 
 		if (F.isCluster) {
 			if (process.connected) {
@@ -16310,6 +16133,7 @@ function runsnapshot() {
 
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
 			lastwarning = NOW.getHours();
+			stats.overload++;
 			Fs.appendFile(process.mainModule.filename + '.overload', JSON.stringify(stats) + '\n', NOOP);
 		}
 

@@ -4774,6 +4774,7 @@ exports.Pagination = Pagination;
 exports.Page = Page;
 exports.UrlBuilder = UrlBuilder;
 exports.SchemaOptions = SchemaOptions;
+exports.TaskBuilder = TaskBuilder;
 exports.OperationOptions = OperationOptions;
 exports.RESTBuilderResponse = RESTBuilderResponse;
 exports.AuthOptions = AuthOptions;
