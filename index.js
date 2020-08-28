@@ -1869,7 +1869,7 @@ global.RESIZE = function(url, fn, flags) {
 	var ext = url.match(/\*.\*$|\*?\.(jpg|png|gif|jpeg|heif|heic|apng)$/gi);
 	if (ext) {
 		url = url.replace(ext, '');
-		switch ((ext. + '').toLowerCase()) {
+		switch ((ext + '').toLowerCase()) {
 			case '*.*':
 				extensions['*'] = true;
 				break;
@@ -13591,8 +13591,8 @@ function extend_request(PROTO) {
 			status !== 500 && F.$events.error && EMIT('error', this, res, this.$total_exception);
 			F.$events[key] && EMIT(key, this, res, this.$total_exception);
 			if (status === 408) {
-				if (self.timeouts.push({ url: this.url, date: NOW = new Date() }) > 5)
-					self.timeouts.shift();
+				if (F.timeouts.push((NOW = new Date()).toJSON() + ' - ' + this.url) > 5)
+					F.timeouts.shift();
 			}
 		}
 
@@ -16120,8 +16120,14 @@ function runsnapshot() {
 		var err = F.errors[F.errors.length - 1];
 		var timeout = F.timeouts[F.timeouts.length - 1];
 
-		stats.lasterror = err;
+		stats.lasterror = err ? (err.date.toJSON() + ' - ' + err.error) : undefined;
 		stats.lasttimeout = timeout;
+
+		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
+			lastwarning = NOW.getHours();
+			stats.overload++;
+			Fs.appendFile(process.mainModule.filename + '.overload', JSON.stringify(stats) + '\n', NOOP);
+		}
 
 		if (F.isCluster) {
 			if (process.connected) {
@@ -16130,12 +16136,6 @@ function runsnapshot() {
 			}
 		} else
 			Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '\t'), NOOP);
-
-		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
-			lastwarning = NOW.getHours();
-			stats.overload++;
-			Fs.appendFile(process.mainModule.filename + '.overload', JSON.stringify(stats) + '\n', NOOP);
-		}
 
 	};
 
