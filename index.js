@@ -13591,7 +13591,7 @@ function extend_request(PROTO) {
 			status !== 500 && F.$events.error && EMIT('error', this, res, this.$total_exception);
 			F.$events[key] && EMIT(key, this, res, this.$total_exception);
 			if (status === 408) {
-				if (F.timeouts.push((NOW = new Date()).toJSON() + ' - ' + this.url) > 5)
+				if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.url) > 5)
 					F.timeouts.shift();
 			}
 		}
@@ -16120,7 +16120,7 @@ function runsnapshot() {
 		var err = F.errors[F.errors.length - 1];
 		var timeout = F.timeouts[F.timeouts.length - 1];
 
-		stats.lasterror = err ? (err.date.toJSON() + ' - ' + err.error) : undefined;
+		stats.lasterror = err ? (err.date.toJSON() + ' ' + err.error) : undefined;
 		stats.lasttimeout = timeout;
 
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
