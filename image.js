@@ -172,6 +172,7 @@ ImageProto.measure = function(callback) {
 		return;
 	}
 
+	F.stats.performance.open++;
 	var extension = self.filename.substring(index).toLowerCase();
 	var stream = require('fs').createReadStream(self.filename, { start: 0, end: extension === '.jpg' ? 40000 : 24 });
 
@@ -247,6 +248,7 @@ ImageProto.save = function(filename, callback, writer) {
 		if (!middleware)
 			return callback(null, true);
 
+		F.stats.performance.open++;
 		var reader = Fs.createReadStream(filename);
 		var writer = Fs.createWriteStream(filename + '_');
 
@@ -322,6 +324,7 @@ ImageProto.stream = function(type, writer) {
 	if (!type)
 		type = self.outputType;
 
+	F.stats.performance.open++;
 	var cmd = spawn(CMD_CONVERT[self.cmdarg], self.arg(self.filename ? wrap(self.filename) : '-', (type ? type + ':' : '') + '-'), SPAWN_OPT);
 	if (self.currentStream) {
 		if (self.currentStream instanceof Buffer)

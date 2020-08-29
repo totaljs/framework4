@@ -143,6 +143,8 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom, expire
 	if (!callback)
 		callback = NOOP;
 
+	F.stats.performance.open++;
+
 	var isbuffer = filename instanceof Buffer;
 	var self = this;
 	var header = Buffer.alloc(HEADERSIZE, ' ');
@@ -250,7 +252,7 @@ FP.read = function(id, callback, nostream) {
 	}
 
 	var filename = Path.join(self.makedirectory(id), id + '.file');
-
+	F.stats.performance.open++;
 	Fs.open(filename, 'r', function(err, fd) {
 
 		if (err) {
@@ -271,6 +273,7 @@ FP.read = function(id, callback, nostream) {
 			meta.id = id;
 
 			if (!nostream) {
+				F.stats.performance.open++;
 				meta.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
 				CLEANUP(meta.stream, () => Fs.close(fd, NOOP));
 			}
@@ -454,6 +457,7 @@ FP.readmeta = function(id, callback, count) {
 
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
 
+	F.stats.performance.open++;
 	var stream = Fs.createReadStream(filename, HEADERSIZE);
 	stream.on('error', err => callback(err));
 	stream.on('data', function(buffer) {
@@ -481,6 +485,7 @@ FP.res = function(res, options, checkcustom) {
 	var id = options.id || '';
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
 
+	F.stats.performance.open++;
 	var stream = Fs.createReadStream(filename, BINARYREADMETA);
 
 	stream.on('error', function() {
@@ -524,6 +529,7 @@ FP.res = function(res, options, checkcustom) {
 					return res;
 				}
 
+				F.stats.performance.open++;
 				res.options.type = obj.type;
 				res.options.stream = Fs.createReadStream(filename, BINARYREADDATA);
 				res.options.lastmodified = true;
@@ -571,6 +577,7 @@ FP.readbase64 = function(id, callback, count) {
 		return self;
 	}
 
+	F.stats.performance.open++;
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
 	var stream = Fs.createReadStream(filename, BINARYREADMETA);
 	stream.on('error', err => callback(err));
@@ -578,6 +585,7 @@ FP.readbase64 = function(id, callback, count) {
 		var json = buffer.toString('utf8').replace(REGCLEAN, '');
 		if (json) {
 			var meta = JSON.parse(json, jsonparser);
+			F.stats.performance.open++;
 			meta.stream = Fs.createReadStream(filename, BINARYREADDATABASE64);
 			callback(null, meta);
 			CLEANUP(stream);
