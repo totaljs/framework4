@@ -1082,7 +1082,7 @@ function Framework() {
 		default_request_maxlength: 10,
 		default_websocket_maxlength: 2,
 		default_websocket_encodedecode: false,
-		default_maxopenfiles: 0,
+		default_maxopenfiles: 100,
 		default_timezone: 'utc',
 		default_root: '',
 		default_response_maxage: '11111111',
@@ -1243,6 +1243,7 @@ function Framework() {
 			request: 0,
 			message: 0,
 			file: 0,
+			open: 0,
 			online: 0,
 			usage: 0,
 			mail: 0
@@ -4712,7 +4713,10 @@ global.LOGGER = function() {
 	}
 
 	PATH.verify('logs');
-	U.queue('LOGGER', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next));
+	U.queue('LOGGER', 5, function(next) {
+		F.stats.performance.open++;
+		Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next);
+	});
 };
 
 global.LOGMAIL = function(address, subject, body, callback) {
@@ -4872,7 +4876,10 @@ DEF.onPrefLoad = function(next) {
 
 DEF.onAudit = function(name, data) {
 	PATH.verify('logs');
-	U.queue('LOGGER', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), JSON.stringify(data) + '\n', next));
+	U.queue('LOGGER', 5, function(next) {
+		F.stats.performance.open++;
+		Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), JSON.stringify(data) + '\n', next);
+	});
 };
 
 /**
@@ -5131,6 +5138,7 @@ function compile_gzip(arr, callback) {
 	var filename = PATH.temp('file' + (arr[0].hash() + '').replace('-', '0') + '.gz');
 	arr.push(filename);
 
+	F.stats.performance.open++;
 	var reader = Fs.createReadStream(arr[0]);
 	var writer = Fs.createWriteStream(filename);
 
@@ -5508,6 +5516,7 @@ F.exists = function(req, res, max, callback) {
 	}
 
 	U.queue('F.exists', max, function(next) {
+		F.stats.performance.open++;
 		fsFileExists(filename, function(e) {
 			if (e) {
 				res.options.filename = filename;
@@ -6120,16 +6129,6 @@ F.service = function(count) {
 	var keys;
 	var releasegc = false;
 
-	F.temporary.service.request = F.stats.performance.request;
-	F.temporary.service.file = F.stats.performance.file;
-	F.temporary.service.message = F.stats.performance.message;
-	F.temporary.service.mail = F.stats.performance.mail;
-
-	F.stats.performance.request = 0;
-	F.stats.performance.file = 0;
-	F.stats.performance.message = 0;
-	F.stats.performance.mail = 0;
-
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};
 
@@ -6414,6 +6413,7 @@ F.$requestcontinue = function(req, res, headers) {
 	if (req.isStaticFile) {
 
 		tmp = F.temporary.shortcache[req.uri.pathname];
+		F.stats.performance.file++;
 
 		if (!tmp) {
 			// Stops path travelsation outside of "public" directory
@@ -6442,6 +6442,8 @@ F.$requestcontinue = function(req, res, headers) {
 
 		return;
 	}
+
+	F.stats.performance.request++;
 
 	if (!PERF[req.method]) {
 		req.$total_status(404);
@@ -8960,6 +8962,19 @@ FrameworkCacheProto.recycle = function() {
 	persistent && this.savepersistent();
 	CONF.allow_cache_snapshot && this.save();
 	F.service(this.count);
+
+	F.temporary.service.request = F.stats.performance.request;
+	F.temporary.service.file = F.stats.performance.file;
+	F.temporary.service.message = F.stats.performance.message;
+	F.temporary.service.mail = F.stats.performance.mail;
+	F.temporary.service.open = F.stats.performance.open;
+
+	F.stats.performance.request = 0;
+	F.stats.performance.file = 0;
+	F.stats.performance.open = 0;
+	F.stats.performance.message = 0;
+	F.stats.performance.mail = 0;
+
 	CONF.allow_stats_snapshot && F.snapshotstats();
 	F.temporary.service.usage = 0;
 	measure_usage();
@@ -15346,6 +15361,7 @@ process.on('uncaughtException', function(e) {
 
 function fsFileRead(filename, callback, a, b, c) {
 	U.queue('FILES', CONF.default_maxopenfiles, function(next) {
+		F.stats.performance.open++;
 		Fs.readFile(filename, function(err, result) {
 			next();
 			callback(err, result, a, b, c);
@@ -15355,6 +15371,7 @@ function fsFileRead(filename, callback, a, b, c) {
 
 function fsFileExists(filename, callback, a, b, c) {
 	U.queue('FILES', CONF.default_maxopenfiles, function(next) {
+		F.stats.performance.open++;
 		Fs.lstat(filename, function(err, stats) {
 			next();
 			callback(!err && stats.isFile(), stats ? stats.size : 0, stats ? stats.isFile() : false, stats, a, b, c);
@@ -15384,6 +15401,7 @@ function fsStreamRead(filename, options, callback, res) {
 		opt = HEADERS.fsStreamRead;
 
 	U.queue('FILES', CONF.default_maxopenfiles, function(next) {
+		F.stats.performance.open++;
 		var stream = Fs.createReadStream(filename, opt);
 		stream.on('error', NOOP);
 		callback(stream, next, res);
@@ -15936,7 +15954,10 @@ function controller_json_workflow_multiple(id) {
 
 function ilogger(body) {
 	PATH.verify('logs');
-	U.queue('F.ilogger', 5, (next) => Fs.appendFile(U.combine(CONF.directory_logs, 'logger.log'), body, next));
+	U.queue('F.ilogger', 5, function(next) {
+		F.stats.performance.open++;
+		Fs.appendFile(U.combine(CONF.directory_logs, 'logger.log'), body, next);
+	});
 }
 
 F.ilogger = function(name, req, ts) {
@@ -16104,11 +16125,16 @@ function runsnapshot() {
 		var memory = process.memoryUsage();
 		stats.date = NOW;
 		stats.textdb = F.stats.textdb;
+
+		if (stats.textdb)
+			stats.textdb.size = (stats.textdb.size / 1024 / 1024).floor(2);
+
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
 		stats.rm = F.temporary.service.request || 0;      // request min
 		stats.fm = F.temporary.service.file || 0;         // files min
 		stats.wm = F.temporary.service.message || 0;      // websocket messages min
 		stats.mm = F.temporary.service.mail || 0;         // mail min
+		stats.om = F.temporary.service.open || 0;         // open files min
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;

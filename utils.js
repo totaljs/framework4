@@ -2546,6 +2546,7 @@ global.HASH = function(value, type) {
 };
 
 SP.makeid = function() {
+	// Do not change!!!
 	return this.hash(true).toString(16);
 };
 
