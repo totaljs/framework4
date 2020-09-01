@@ -1246,7 +1246,9 @@ function Framework() {
 			open: 0,
 			online: 0,
 			usage: 0,
-			mail: 0
+			mail: 0,
+			dbrm: 0,
+			dbwm: 0
 		},
 
 		other: {
