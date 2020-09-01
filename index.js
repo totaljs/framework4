@@ -8968,7 +8968,11 @@ FrameworkCacheProto.recycle = function() {
 	F.temporary.service.message = F.stats.performance.message;
 	F.temporary.service.mail = F.stats.performance.mail;
 	F.temporary.service.open = F.stats.performance.open;
+	F.temporary.service.dbrm = F.stats.performance.dbrm;
+	F.temporary.service.dbwm = F.stats.performance.dbwm;
 
+	F.stats.performance.dbrm = 0;
+	F.stats.performance.dbwm = 0;
 	F.stats.performance.request = 0;
 	F.stats.performance.file = 0;
 	F.stats.performance.open = 0;
@@ -16135,6 +16139,8 @@ function runsnapshot() {
 		stats.wm = F.temporary.service.message || 0;      // websocket messages min
 		stats.mm = F.temporary.service.mail || 0;         // mail min
 		stats.om = F.temporary.service.open || 0;         // open files min
+		stats.dbrm = F.temporary.service.dbrm || 0;       // db read
+		stats.dbwm = F.temporary.service.dbwm || 0;       // db write
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
