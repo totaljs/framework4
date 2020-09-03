@@ -114,6 +114,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		options.headers.Cookie = tmp.join(', ');
 	}
 
+	F.stats.performance.online++;
 	self.req = (secured ? Https : Http).get(options);
 	self.req.$main = self;
 
@@ -184,6 +185,7 @@ function websocket_close() {
 	var ws = this.$websocket;
 	ws.closed = true;
 	ws.$onclose();
+	F.stats.performance.online--;
 	ws.options.reconnect && setTimeout(function(ws) {
 		ws.isClosed = false;
 		ws._isClosed = false;
