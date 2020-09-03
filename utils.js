@@ -467,6 +467,9 @@ global.REQUEST = function(opt) {
 	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
 
+	if (global.F)
+		global.F.stats.performance.external++;
+
 	if (opt.headers)
 		opt.headers = exports.extend({}, opt.headers);
 	else

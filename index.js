@@ -1248,7 +1248,8 @@ function Framework() {
 			usage: 0,
 			mail: 0,
 			dbrm: 0,
-			dbwm: 0
+			dbwm: 0,
+			external: 0
 		},
 
 		other: {
@@ -6359,6 +6360,7 @@ function makeproxy(proxy, req, res) {
 	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
 	proxy.before && proxy.before(uri, req, res);
 	uri.headers.host = uri.host;
+	F.stats.performance.external++;
 
 	var request;
 	if (secured) {
@@ -8972,7 +8974,9 @@ FrameworkCacheProto.recycle = function() {
 	F.temporary.service.open = F.stats.performance.open;
 	F.temporary.service.dbrm = F.stats.performance.dbrm;
 	F.temporary.service.dbwm = F.stats.performance.dbwm;
+	F.temporary.service.external = F.stats.performance.external;
 
+	F.stats.performance.external = 0;
 	F.stats.performance.dbrm = 0;
 	F.stats.performance.dbwm = 0;
 	F.stats.performance.request = 0;
@@ -16138,6 +16142,7 @@ function runsnapshot() {
 		stats.rm = F.temporary.service.request || 0;      // request min
 		stats.fm = F.temporary.service.file || 0;         // files min
 		stats.wm = F.temporary.service.message || 0;      // websocket messages min
+		stats.em = F.temporary.service.external || 0;     // external requests min
 		stats.mm = F.temporary.service.mail || 0;         // mail min
 		stats.om = F.temporary.service.open || 0;         // open files min
 		stats.dbrm = F.temporary.service.dbrm || 0;       // db read
