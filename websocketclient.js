@@ -99,6 +99,9 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	if (self.options.rejectUnauthorized || self.options.rejectunauthorized)
 		options.rejectUnauthorized = true;
 
+	self.typebuffer = self.options.type === 'buffer';
+	self.istext = self.options.type !== 'binary' && !self.typebuffer;
+
 	var keys = Object.keys(self.headers);
 	for (var i = 0, length = keys.length; i < length; i++)
 		options.headers[keys[i]] = self.headers[keys[i]];
@@ -131,7 +134,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		self.socket = socket;
 		self.socket.$websocket = self;
 
-		var compress = (response.headers['sec-websocket-extensions'] || '').indexOf('-deflate') !== -1;
+		var compress = self.options.compress && (response.headers['sec-websocket-extensions'] || '').indexOf('-deflate') !== -1;
 		var digest = Crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', 'binary').digest('base64');
 
 		if (response.headers['sec-websocket-accept'] !== digest) {
@@ -260,10 +263,11 @@ WebSocketClientProto.free = function() {
  */
 WebSocketClientProto.$ondata = function(data) {
 
-	if (this.isClosed)
+	var self = this;
+	if (self.isClosed)
 		return;
 
-	var current = this.current;
+	var current = self.current;
 	if (data) {
 		if (current.buffer) {
 			CONCAT[0] = current.buffer;
@@ -273,7 +277,7 @@ WebSocketClientProto.$ondata = function(data) {
 			current.buffer = data;
 	}
 
-	if (!this.$parse())
+	if (!self.$parse())
 		return;
 
 	if (!current.final && current.type !== 0x00)
@@ -285,55 +289,61 @@ WebSocketClientProto.$ondata = function(data) {
 		case 0x01:
 
 			// text
-			if (this.inflate) {
-				current.final && this.parseInflate();
+			if (self.inflate) {
+				current.final && self.parseInflate();
 			} else {
-				tmp = this.$readbody();
-				if (current.body)
-					current.body += tmp;
-				else
-					current.body = tmp;
-				current.final && this.$decode();
-			}
-
-			break;
-
-		case 0x02:
-			// binary
-			if (this.inflate) {
-				current.final && this.parseInflate();
-			} else {
-				tmp = this.$readbody();
+				tmp = self.$readbody();
 				if (current.body) {
 					CONCAT[0] = current.body;
 					CONCAT[1] = tmp;
 					current.body = Buffer.concat(CONCAT);
 				} else
 					current.body = tmp;
-				current.final && this.$decode();
+				current.final && self.$decode();
+			}
+
+			break;
+
+		case 0x02:
+
+			// binary
+			if (self.inflate) {
+				current.final && self.parseInflate();
+			} else {
+				tmp = self.$readbody();
+				if (current.body) {
+					CONCAT[0] = current.body;
+					CONCAT[1] = tmp;
+					current.body = Buffer.concat(CONCAT);
+				} else
+					current.body = tmp;
+				current.final && self.$decode();
 			}
 
 			break;
 
 		case 0x08:
-			this.closemessage = current.buffer.slice(4).toString('utf8');
-			this.closecode = current.buffer[2] << 8 | current.buffer[3];
+			// close
+			self.closemessage = current.buffer.slice(4).toString(ENCODING);
+			self.closecode = current.buffer[2] << 8 | current.buffer[3];
 
-			if (this.closemessage && this.options.encodedecode)
-				this.closemessage = $decodeURIComponent(this.closemessage);
+			if (self.closemessage && self.options.encodedecode)
+				self.closemessage = $decodeURIComponent(self.closemessage);
 
-			this.close(true);
+			self.close();
 			break;
 
 		case 0x09:
 			// ping, response pong
-			this.socket.write(U.getWebSocketFrame(0, 'PONG', 0x0A));
+			self.socket.write(U.getWebSocketFrame(0, 'PONG', 0x0A));
 			current.buffer = null;
 			current.inflatedata = null;
+			self.$ping = true;
 			break;
 
-		case 0x0A:
+		case 0x0a:
 			// pong
+			self.$ping = true;
 			current.buffer = null;
 			current.inflatedata = null;
 			break;
@@ -341,7 +351,7 @@ WebSocketClientProto.$ondata = function(data) {
 
 	if (current.buffer) {
 		current.buffer = current.buffer.slice(current.length, current.buffer.length);
-		current.buffer.length && this.$ondata();
+		current.buffer.length && self.$ondata();
 	}
 };
 
@@ -363,8 +373,9 @@ WebSocketClientProto.$parse = function() {
 	var self = this;
 	var current = self.current;
 
-	// check end message
-	if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
+	// Fixed a problem with parsing of long messages, the code bellow 0x80 still returns 0 when the message is longer
+	// if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
+	if (!current.buffer || current.buffer.length <= 2)
 		return;
 
 	// webSocked - Opcode
@@ -380,11 +391,20 @@ WebSocketClientProto.$parse = function() {
 	var length = U.getMessageLength(current.buffer, F.isLE);
 	// index for data
 
+	// Solving a problem with The value "-1" is invalid for option "size"
+	if (length <= 0)
+		return;
+
 	var index = current.buffer[1] & 0x7f;
 	index = ((index === 126) ? 4 : (index === 127 ? 10 : 2)) + (current.isMask ? 4 : 0);
 
 	// total message length (data + header)
 	var mlength = index + length;
+
+	if (this.options.length && mlength > this.options.length) {
+		this.close('Frame is too large', 1009);
+		return;
+	}
 
 	// Check length of data
 	if (current.buffer.length < mlength)
@@ -425,59 +445,56 @@ WebSocketClientProto.$parse = function() {
 };
 
 WebSocketClientProto.$readbody = function() {
-
 	var current = this.current;
 	var length = current.data.length;
-	var buf;
-
-	if (current.type === 1) {
-
-		buf = Buffer.alloc(length);
-		for (var i = 0; i < length; i++)  {
-			if (current.isMask)
-				buf[i] = current.data[i] ^ current.mask[i % 4];
-			else
-				buf[i] = current.data[i];
-		}
-
-		return buf.toString('utf8');
-
-	} else {
-
-		buf = Buffer.alloc(length);
-		for (var i = 0; i < length; i++) {
-			// does frame contain mask?
-			if (current.isMask)
-				buf[i] = current.data[i] ^ current.mask[i % 4];
-			else
-				buf[i] = current.data[i];
-		}
-		return buf;
+	var buf = Buffer.alloc(length);
+	for (var i = 0; i < length; i++) {
+		// does frame contain mask?
+		if (current.isMask)
+			buf[i] = current.data[i] ^ current.mask[i % 4];
+		else
+			buf[i] = current.data[i];
 	}
-
+	return buf;
 };
 
 WebSocketClientProto.$decode = function() {
+
 	var data = this.current.body;
+	F.stats.performance.message++;
+
+	// Buffer
+	if (this.typebuffer) {
+		this.emit('message', data);
+		return;
+	}
 
 	switch (this.options.type) {
 
-		case 'buffer': // Buffer
-		case 'binary': // Binary
+		case 'binary':
+		case 'buffer':
 			this.emit('message', data);
 			break;
 
 		case 'json': // JSON
+
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
-			this.options.encodedecode && (data = $decodeURIComponent(data));
-			data.isJSON() && this.emit('message', DEF.parsers.json(data));
+
+			if (this.options.encodedecode === true)
+				data = $decodeURIComponent(data);
+
+			if (data.isJSON()) {
+				var tmp = data.parseJSON(true);
+				if (tmp !== undefined)
+					this.emit('message', tmp);
+			}
 			break;
 
 		default: // TEXT
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
-			this.emit('message', this.options.encodedecode ? $decodeURIComponent(data) : data);
+			this.emit('message', this.options.encodedecode === true ? $decodeURIComponent(data) : data);
 			break;
 	}
 
@@ -507,6 +524,12 @@ WebSocketClientProto.parseInflate = function() {
 			self.inflatechunks = null;
 			self.inflatelock = false;
 
+
+			if (self.options.length && data.length > self.options.length) {
+				self.close('Frame is too large', 1009);
+				return;
+			}
+
 			if (self.current.body) {
 				CONCAT[0] = self.current.body;
 				CONCAT[1] = data;
@@ -514,7 +537,8 @@ WebSocketClientProto.parseInflate = function() {
 			} else
 				self.current.body = data;
 
-			!buf.$continue && self.$decode();
+			if (!buf.$continue)
+				self.$decode();
 			self.parseInflate();
 		});
 	}
@@ -560,32 +584,35 @@ WebSocketClientProto.$onclose = function() {
  */
 WebSocketClientProto.send = function(message, raw, replacer) {
 
-	if (this.isClosed)
-		return this;
+	var self = this;
 
-	var t = this.options.type;
+	if (self.isClosed || self.closed)
+		return false;
 
-	if (t !== 'binary' && t !== 'buffer') {
-		var data = t === 'json' ? (raw ? message : JSON.stringify(message, replacer)) : ((message == null ? '' : message) + '');
-
-		if (this.options.encodedecode && data)
+	var type = self.options.type;
+	if (self.istext) {
+		var data = type === 'json' ? (raw ? message : JSON.stringify(message, replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer) : (message + '');
+		if (self.options.encodedecode === true && data)
 			data = encodeURIComponent(data);
-
-		if (this.deflate) {
-			this.deflatepending.push(Buffer.from(data, ENCODING));
-			this.sendDeflate();
+		if (self.deflate) {
+			self.deflatepending.push(Buffer.from(data, ENCODING));
+			self.sendDeflate();
 		} else
-			this.socket.write(U.getWebSocketFrame(0, data, 0x01));
-
+			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, ENCODING), 0x01));
 	} else if (message) {
-		if (this.deflate) {
-			this.deflatepending.push(message);
-			this.sendDeflate();
+
+		if (!(message instanceof Buffer))
+			message = Buffer.from(message, ENCODING);
+
+		if (self.deflate) {
+			self.deflatepending.push(message);
+			self.sendDeflate();
 		} else
-			this.socket.write(U.getWebSocketFrame(0, message, 0x02));
+			self.socket.write(U.getWebSocketFrame(0, message, 0x02));
 	}
 
-	return this;
+	F.stats.response.websocket++;
+	return true;
 };
 
 /**
@@ -596,16 +623,10 @@ WebSocketClientProto.send = function(message, raw, replacer) {
  */
 WebSocketClientProto.sendcustom = function(type, message) {
 
-	if (this.isClosed)
-		return this;
+	if (this.isClosed || this.closed)
+		return false;
 
-	if (type === 'binary' || type === 'buffer') {
-		if (this.deflate) {
-			this.deflatepending.push(message);
-			this.sendDeflate();
-		} else
-			this.socket.write(U.getWebSocketFrame(0, message, 0x02));
-	} else {
+	if (this.istext) {
 		var data = (message == null ? '' : message) + '';
 		if (this.options.encodedecode && data)
 			data = encodeURIComponent(data);
@@ -614,9 +635,19 @@ WebSocketClientProto.sendcustom = function(type, message) {
 			this.sendDeflate();
 		} else
 			this.socket.write(U.getWebSocketFrame(0, data, 0x01));
+	} else {
+
+		if (!(message instanceof Buffer))
+			message = Buffer.from(message);
+
+		if (this.deflate) {
+			this.deflatepending.push(message);
+			this.sendDeflate();
+		} else
+			this.socket.write(U.getWebSocketFrame(0, message, 0x02));
 	}
 
-	return this;
+	return true;
 };
 
 WebSocketClientProto.sendDeflate = function() {
@@ -650,7 +681,7 @@ WebSocketClientProto.sendDeflate = function() {
  */
 WebSocketClientProto.ping = function() {
 	if (!this.isClosed) {
-		this.socket.write(U.getWebSocketFrame(0, '', 0x09));
+		this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09));
 		this.$ping = false;
 	}
 	return this;
@@ -673,17 +704,19 @@ function websocket_deflate(data) {
  * @return {WebSocketClient}
  */
 WebSocketClientProto.close = function(message, code) {
-
+	var self = this;
 	if (message !== true) {
-		this.options.reconnect = 0;
+		self.options.reconnect = 0;
 	} else
 		message = undefined;
 
-	if (!this.isClosed) {
-		this.isClosed = true;
-		this.socket.end(U.getWebSocketFrame(code || 1000,  message ? (this.options.encodedecode ? encodeURIComponent(message) : message) : '', 0x08));
+	if (!self.isClosed) {
+		self.isClosed = true;
+		if (message && self.options.encodedecode)
+			message = encodeURIComponent(message);
+		self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08));
 	}
-	return this;
+	return self;
 };
 
 function $decodeURIComponent(value) {

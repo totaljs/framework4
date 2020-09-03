@@ -129,7 +129,7 @@ global.FILECACHE = function(id, expire, callback, maker, encoding) {
 					callback(err, response);
 			}, id);
 		} else
-			Fs.readFile(filename, isjson ? 'utf8' : (encoding || 'utf8'), function(err, response) {
+			Fs.readFile(filename, isjson ? ENCODING : (encoding || ENCODING), function(err, response) {
 				if (err)
 					callback(err);
 				else
@@ -3779,7 +3779,7 @@ F.$bundle = function(callback) {
 
 		url.wait(function(item, next) {
 			var filename = PATH.root(CONF.directory_bundles) + item.replace('.url', '.bundle');
-			var link = Fs.readFileSync(PATH.root(CONF.directory_bundles) + item).toString('utf8');
+			var link = Fs.readFileSync(PATH.root(CONF.directory_bundles) + item).toString(ENCODING);
 			F.consoledebug('Download bundle: ' + link);
 			DOWNLOAD(link, filename, function(err) {
 				err && F.error(err, 'Bundle: ' + link);
@@ -4871,7 +4871,7 @@ DEF.onPrefSave = function(val) {
 DEF.onPrefLoad = function(next) {
 	Fs.readFile(U.combine(CONF.directory_databases, PREFFILE), function(err, data) {
 		if (data)
-			next(data.toString('utf8').parseJSON(true));
+			next(data.toString(ENCODING).parseJSON(true));
 		else
 			next();
 	});
@@ -5209,7 +5209,7 @@ global.RESTORE = function(filename, target, callback, filter) {
 			return;
 
 		index++;
-		item = data.slice(0, index - 1).toString('utf8').trim();
+		item = data.slice(0, index - 1).toString(ENCODING).trim();
 		data = data.slice(index);
 		type = 1;
 		parser.next();
@@ -5461,7 +5461,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 								return next();
 							}
 
-							writer.write(item.substring(length).padRight(padding) + ':#\n', 'utf8');
+							writer.write(item.substring(length).padRight(padding) + ':#\n', ENCODING);
 							next();
 						}, function() {
 							for (var i = 0; i < f.length; i++)
@@ -5491,7 +5491,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 
 				}).on('end', function() {
 					data.length && writer.write(data.toString('base64'));
-					writer.write('\n', 'utf8');
+					writer.write('\n', ENCODING);
 					counter++;
 					setImmediate(next);
 				});
@@ -7265,7 +7265,7 @@ global.DECRYPT = function(value, key, jsonConvert) {
 		try {
 			CONCAT[0] = decipher.update(Buffer.from(value || '', 'hex'));
 			CONCAT[1] = decipher.final();
-			response = Buffer.concat(CONCAT).toString('utf8');
+			response = Buffer.concat(CONCAT).toString(ENCODING);
 		} catch (e) {
 			response = null;
 		}
@@ -7821,9 +7821,9 @@ function configure_configs(arr, rewrite) {
 		index = name.indexOf('(');
 
 		if (value.substring(0, 7) === 'base64 ' && value.length > 8)
-			value = Buffer.from(value.substring(7).trim(), 'base64').toString('utf8');
+			value = Buffer.from(value.substring(7).trim(), 'base64').toString(ENCODING);
 		else if (value.substring(0, 4) === 'hex ' && value.length > 6)
-			value = Buffer.from(value.substring(4).trim(), 'hex').toString('utf8');
+			value = Buffer.from(value.substring(4).trim(), 'hex').toString(ENCODING);
 
 		if (index !== -1) {
 			subtype = name.substring(index + 1, name.indexOf(')')).trim().toLowerCase();
@@ -7970,7 +7970,7 @@ function configure_configs(arr, rewrite) {
 		var gdata;
 
 		if (existsSync(filenameC)) {
-			gdata = Fs.readFileSync(filenameC).toString('utf8').parseJSON(true);
+			gdata = Fs.readFileSync(filenameC).toString(ENCODING).parseJSON(true);
 			if (generated) {
 				for (var i = 0; i < generated.length; i++) {
 					if (gdata[generated[i]] != null)
@@ -8525,7 +8525,7 @@ global.UPDATE = function(versions, callback, pauseserver, noarchive) {
 		};
 
 		var fn = new Function('$', response);
-		fn(opt, response.toString('utf8'));
+		fn(opt, response.toString(ENCODING));
 
 	}, function() {
 		var err = errorbuilder.length ? errorbuilder : null;
@@ -8885,7 +8885,7 @@ FrameworkCacheProto.load = function(callback) {
 	Fs.readFile(PATH.databases(F.clusterid + 'cache.json'), function(err, data) {
 		if (!err) {
 			try {
-				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
+				data = JSON.parse(data.toString(ENCODING), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
 				self.items = data;
 			} catch (e) {}
 		}
@@ -8916,7 +8916,7 @@ FrameworkCacheProto.loadpersistent = function(callback) {
 	Fs.readFile(PATH.temp(F.clusterid + 'framework.cache'), function(err, data) {
 		if (!err) {
 			try {
-				data = JSON.parse(data.toString('utf8'), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
+				data = JSON.parse(data.toString(ENCODING), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
 				var keys = Object.keys(data);
 				for (var i = 0, length = keys.length; i < length; i++) {
 					var key = keys[i];
@@ -12679,7 +12679,7 @@ WebSocketClientProto.$close = function(code, message) {
 	var header = SOCKET_RESPONSE.format(self.$websocket_key(self.req));
 	self.socket.write(Buffer.from(header, 'binary'));
 	self.ready = true;
-	self.close(code, message);
+	self.close(message, code);
 
 	setTimeout(function(self) {
 		self.req = null;
@@ -12742,8 +12742,8 @@ WebSocketClientProto.prepare = function(flags, protocols, allow, length) {
 				self.close('Invalid data', 1003);
 			}
 		});
-		self.inflate.on('data', websocket_inflate);
 
+		self.inflate.on('data', websocket_inflate);
 		self.deflatepending = [];
 		self.deflatelock = false;
 		self.deflate = Zlib.createDeflateRaw(WEBSOCKET_COMPRESS_OPTIONS);
@@ -12883,7 +12883,7 @@ WebSocketClientProto.$ondata = function(data) {
 
 		case 0x08:
 			// close
-			self.closemessage = current.buffer.slice(4).toString('utf8');
+			self.closemessage = current.buffer.slice(4).toString(ENCODING);
 			self.closecode = current.buffer[2] << 8 | current.buffer[3];
 
 			if (self.closemessage && self.container.encodedecode)
@@ -12931,8 +12931,6 @@ WebSocketClientProto.$parse = function() {
 
 	var self = this;
 	var current = self.current;
-
-	// check end message
 
 	// Fixed a problem with parsing of long messages, the code bellow 0x80 still returns 0 when the message is longer
 	// if (!current.buffer || current.buffer.length <= 2 || ((current.buffer[0] & 0x80) >> 7) !== 1)
@@ -13033,7 +13031,6 @@ WebSocketClientProto.$decode = function() {
 	switch (this.type) {
 
 		case 1: // BINARY
-			// this.container.emit('message', this, new Uint8Array(data).buffer);
 			this.container.$events.message && this.container.emit('message', this, data);
 			break;
 
@@ -13153,16 +13150,16 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 		if (self.container.encodedecode === true && data)
 			data = encodeURIComponent(data);
 		if (self.deflate) {
-			self.deflatepending.push(Buffer.from(data, 'utf8'));
+			self.deflatepending.push(Buffer.from(data, ENCODING));
 			self.sendDeflate();
 		} else
-			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, 'utf8'), 0x01));
+			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, ENCODING), 0x01));
 	} else if (message) {
 		if (self.deflate) {
-			self.deflatepending.push(message instanceof Buffer ? Buffer.from(message) : message);
+			self.deflatepending.push(message);
 			self.sendDeflate();
 		} else
-			self.socket.write(U.getWebSocketFrame(0, new Int8Array(message), 0x02));
+			self.socket.write(U.getWebSocketFrame(0, message, 0x02));
 	}
 
 	return self;
@@ -13211,8 +13208,15 @@ WebSocketClientProto.ping = function() {
  * @param {Number} code WebSocket code.
  * @return {WebSocketClient}
  */
-WebSocketClientProto.close = function(code, message) {
+WebSocketClientProto.close = function(message, code) {
 	var self = this;
+
+	if (typeof(message) === 'number') {
+		var tmp = message;
+		message = code;
+		code = tmp;
+	}
+
 	if (!self.isClosed) {
 		self.isClosed = true;
 		if (self.ready) {
@@ -13970,7 +13974,7 @@ function extend_request(PROTO) {
 		var data = [];
 		req.on('data', chunk => data.push(chunk));
 		req.on('end', function() {
-			builder.push(Buffer.concat(data).toString('utf8'));
+			builder.push(Buffer.concat(data).toString(ENCODING));
 			callback(null, builder.join('\n'));
 		});
 	};
