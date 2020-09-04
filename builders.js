@@ -3748,8 +3748,10 @@ RESTP.raw = function(value, type) {
 	return this;
 };
 
-RESTP.plain = function() {
+RESTP.plain = function(val) {
 	this.$plain = true;
+	this.options.body = val;
+	this.options.type = 'plain';
 	return this;
 };
 

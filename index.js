@@ -6351,25 +6351,35 @@ function makeproxy(proxy, req, res) {
 
 	var secured = proxy.uri.protocol === 'https:';
 	var uri = proxy.uri;
-	uri.headers = req.headers;
+
 	uri.method = req.method;
+	uri.headers = req.headers;
 
 	if (proxy.copypath)
 		uri.path = req.url;
 
+	if (uri.headers.connection)
+		delete uri.headers.connection;
+
+	if (uri.headers['content-type'])
+		delete uri.headers['content-type'];
+
 	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
+	delete uri.headers.host;
+
 	proxy.before && proxy.before(uri, req, res);
-	uri.headers.host = uri.host;
 	F.stats.performance.external++;
 
 	var request;
+	var get = uri.method === 'GET' || uri.method === 'HEAD' || uri.method === 'OPTIONS';
+
 	if (secured) {
-		if (uri.method === 'GET')
+		if (get)
 			request = Https.get(uri, makeproxycallback);
 		else
 			request = Https.request(uri, makeproxycallback);
 	} else {
-		if (uri.method === 'GET')
+		if (get)
 			request = Http.get(uri, makeproxycallback);
 		else
 			request = Http.request(uri, makeproxycallback);
@@ -6378,7 +6388,11 @@ function makeproxy(proxy, req, res) {
 	request.on('error', makeproxyerror);
 	request.$res = res;
 	request.$proxy = proxy;
-	req.pipe(request, PROXYOPTIONS);
+
+	if (get)
+		request.end();
+	else
+		req.pipe(request, PROXYOPTIONS);
 }
 
 function makeproxyerror(err) {
