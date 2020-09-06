@@ -95,6 +95,8 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
+
+var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
 var WSCLIENTSID = 0;
 
@@ -3695,7 +3697,6 @@ F.$notModified = function(req, res, date) {
 		res.writeHead(304, HEADERS.responseNotModified);
 		res.end();
 		F.stats.response.notmodified++;
-		F.reqstats(false);
 		req.bodydata = null;
 		return true;
 	}
@@ -5835,11 +5836,13 @@ F.initialize = function(http, debug, options) {
 			CONF.allow_performance && F.server.on('connection', connection_tunning);
 			F.initwebsocket && F.initwebsocket();
 			F.consoledebug('HTTP listening');
+			setInterval(clear_pending_requests, 5000);
 
 			if (unixsocket)
 				F.server.listen(unixsocket);
 			else
 				F.server.listen(F.port, F.ip);
+
 		};
 
 		// clears static files
@@ -5912,6 +5915,34 @@ function extendinitoptions(options) {
 				options.port = +val;
 		} else if (!options.unixsocket)
 			options.unixsocket = val;
+	}
+}
+
+
+function clear_pending_requests() {
+
+	var index = 0;
+	F.stats.request.pending = 0;
+
+	while (true) {
+		var req = TIMEOUTS[index];
+		if (req) {
+			if (req.success || req.res.success) {
+				TIMEOUTS.splice(index, 1);
+				continue;
+			} else if (req.$total_timeout <= 0) {
+				req.controller && req.controller.precache && req.controller.precache(null, null, null);
+				req.$total_cancel();
+				TIMEOUTS.splice(index, 1);
+				continue;
+			} else {
+				F.stats.request.pending++;
+				req.$total_timeout -= 5;
+			}
+		} else
+			break;
+
+		index++;
 	}
 }
 
@@ -6333,7 +6364,7 @@ F.listener = function(req, res) {
 	else if (DEF.onLocale)
 		req.$language = DEF.onLocale(req, res, req.isStaticFile);
 
-	F.reqstats(true);
+	req.on('aborted', onrequesterror);
 
 	if (F._length_request_middleware)
 		async_middleware(0, req, res, F.routes.request, requestcontinue_middleware);
@@ -6345,6 +6376,12 @@ function requestcontinue_middleware(req, res)  {
 	if (req.$total_middleware)
 		req.$total_middleware = null;
 	F.$requestcontinue(req, res, req.headers);
+}
+
+function onrequesterror() {
+	this.success = true;
+	if (this.res)
+		this.res.$aborted = true;
 }
 
 function makeproxy(proxy, req, res) {
@@ -6773,7 +6810,6 @@ F.$cors = function(req, res, fn, arg) {
 	if (stop) {
 		fn = null;
 		F.$events.request_end && EMIT('request_end', req, res);
-		F.reqstats(false);
 		F.stats.request.blocked++;
 		res.writeHead(404);
 		res.end();
@@ -6785,7 +6821,6 @@ F.$cors = function(req, res, fn, arg) {
 
 	fn = null;
 	F.$events.request_end && EMIT('request_end', req, res);
-	F.reqstats(false);
 	res.writeHead(200);
 	res.end();
 };
@@ -6932,17 +6967,6 @@ F.$websocketcontinue_process = function(route, req, path) {
 function next_upgrade_continue(socket, connection) {
 	socket.upgrade(connection);
 }
-
-F.reqstats = function(beg) {
-
-	if (beg)
-		F.stats.request.pending++;
-	else
-		F.stats.request.pending--;
-
-	if (F.stats.request.pending < 0)
-		F.stats.request.pending = 0;
-};
 
 /**
  * Get a model
@@ -8879,7 +8903,6 @@ FrameworkCacheProto.init = function(notimer) {
 		self.load(() => self.loadpersistent());
 	else
 		self.loadpersistent();
-
 	return self;
 };
 
@@ -8922,6 +8945,7 @@ FrameworkCacheProto.savepersistent = function() {
 		}
 
 		Fs.writeFile(PATH.temp(F.clusterid + 'framework.cache'), JSON.stringify(obj), NOOP);
+
 	}, 1000, 50, this);
 	return this;
 };
@@ -9138,11 +9162,6 @@ FrameworkCacheProto.fn = function(name, fnCache, fnCallback, options) {
 
 	return self;
 };
-
-function subscribe_timeout(req) {
-	req.controller && req.controller.precache && req.controller.precache(null, null, null);
-	req.$total_cancel();
-}
 
 function subscribe_timeout_middleware(req) {
 	if (req.$total_middleware)
@@ -11678,7 +11697,6 @@ ControllerProto.close = function(end) {
 	if (self.type) {
 		self.isConnected = false;
 		self.res.success = true;
-		F.reqstats(false);
 		F.$events.request_end && EMIT('request_end', self.req, self.res);
 		self.type = 0;
 		end && self.res.end();
@@ -11693,7 +11711,6 @@ ControllerProto.close = function(end) {
 		return self;
 
 	self.res.success = true;
-	F.reqstats(false);
 	F.$events.request_end && EMIT('request_end', self.req, self.res);
 	end && self.res.end();
 	self.req.bodydata = null;
@@ -13560,7 +13577,8 @@ function extend_request(PROTO) {
 	};
 
 	PROTO.$total_success = function() {
-		this.$total_timeout && clearTimeout(this.$total_timeout);
+		// this.$total_timeout && clearTimeout(this.$total_timeout);
+		// request_cleartimeout(this);
 		this.$total_canceled = true;
 		if (this.controller) {
 			this.controller.res.controller = null;
@@ -13605,7 +13623,6 @@ function extend_request(PROTO) {
 		else
 			F.stats.request['error' + status]++;
 
-		F.reqstats(false);
 		this.res.writeHead(status);
 		this.res.end(U.httpStatus(status));
 		F.$events.request_end && EMIT('request_end', this, this.res);
@@ -13677,11 +13694,15 @@ function extend_request(PROTO) {
 		this.controller = controller;
 
 		if (!this.$total_canceled && route.timeout) {
-			this.$total_timeout && clearTimeout(this.$total_timeout);
-			this.$total_timeout = setTimeout(subscribe_timeout, route.timeout, this);
+			if (!this.$total_timeout)
+				TIMEOUTS.push(this);
+			this.$total_timeout = route.timeout / 1000;
+			// this.$total_timeout && clearTimeout(this.$total_timeout);
+			// this.$total_timeout = setTimeout(subscribe_timeout, route.timeout, this);
 		}
 
 		route.isDELAY && res.writeContinue();
+
 		if (route.middleware)
 			async_middleware(0, this, res, route.middleware, subscribe_timeout_middleware, route.options, controller);
 		else
@@ -13749,12 +13770,14 @@ function extend_request(PROTO) {
 
 	PROTO.$total_cancel = function() {
 		F.stats.response.timeout++;
-		clearTimeout(this.$total_timeout);
+		// clearTimeout(this.$total_timeout);
 		if (this.controller) {
 			this.controller.isTimeout = true;
 			this.controller.isCanceled = true;
-			this.$total_route = F.lookup(this, '#408', EMPTYARRAY, 0);
-			this.$total_execute(408, true);
+			// this.$total_route = F.lookup(this, '#408', EMPTYARRAY, 0);
+			// this.$total_execute(408, true);
+			this.$total_route = F.lookup(this, '#503', EMPTYARRAY, 0);
+			this.$total_execute(503, true);
 		}
 	};
 
@@ -15324,7 +15347,6 @@ function $image_filename(exists, size, isFile, stats, res) {
 
 function response_end(res) {
 
-	F.reqstats(false);
 	res.success = true;
 
 	if (CONF.allow_reqlimit && F.temporary.ddos[res.req.ip])
@@ -15335,7 +15357,9 @@ function response_end(res) {
 
 	res.req.clear(true);
 	res.req.bodydata = null;
-	res.controller && res.req.$total_success();
+
+	if (res.controller)
+		res.req.$total_success();
 
 	if (res.options.callback) {
 		res.options.callback();
@@ -15348,7 +15372,8 @@ function response_end(res) {
 	}
 
 	// res.options = EMPTYOBJECT;
-	res.controller = null;
+	if (res.controller)
+		res.controller = null;
 }
 
 // Handle errors of decodeURIComponent
