@@ -3695,7 +3695,7 @@ F.$notModified = function(req, res, date) {
 		res.writeHead(304, HEADERS.responseNotModified);
 		res.end();
 		F.stats.response.notmodified++;
-		F.reqstats(false, req.isStaticFile);
+		F.reqstats(false);
 		req.bodydata = null;
 		return true;
 	}
@@ -6333,7 +6333,7 @@ F.listener = function(req, res) {
 	else if (DEF.onLocale)
 		req.$language = DEF.onLocale(req, res, req.isStaticFile);
 
-	F.reqstats(true, true);
+	F.reqstats(true);
 
 	if (F._length_request_middleware)
 		async_middleware(0, req, res, F.routes.request, requestcontinue_middleware);
@@ -6584,7 +6584,6 @@ F.$requestcontinue = function(req, res, headers) {
 	req.flags = flags;
 
 	F.$events.request_begin && EMIT('request_begin', req, res);
-
 	var isCORS = (F._length_cors || F.routes.corsall) && req.headers.origin != null;
 
 	switch (first) {
@@ -6774,7 +6773,7 @@ F.$cors = function(req, res, fn, arg) {
 	if (stop) {
 		fn = null;
 		F.$events.request_end && EMIT('request_end', req, res);
-		F.reqstats(false, false);
+		F.reqstats(false);
 		F.stats.request.blocked++;
 		res.writeHead(404);
 		res.end();
@@ -6786,7 +6785,7 @@ F.$cors = function(req, res, fn, arg) {
 
 	fn = null;
 	F.$events.request_end && EMIT('request_end', req, res);
-	F.reqstats(false, false);
+	F.reqstats(false);
 	res.writeHead(200);
 	res.end();
 };
@@ -6935,10 +6934,12 @@ function next_upgrade_continue(socket, connection) {
 }
 
 F.reqstats = function(beg) {
+
 	if (beg)
 		F.stats.request.pending++;
 	else
 		F.stats.request.pending--;
+
 	if (F.stats.request.pending < 0)
 		F.stats.request.pending = 0;
 };
@@ -11677,7 +11678,7 @@ ControllerProto.close = function(end) {
 	if (self.type) {
 		self.isConnected = false;
 		self.res.success = true;
-		F.reqstats(false, false);
+		F.reqstats(false);
 		F.$events.request_end && EMIT('request_end', self.req, self.res);
 		self.type = 0;
 		end && self.res.end();
@@ -11692,7 +11693,7 @@ ControllerProto.close = function(end) {
 		return self;
 
 	self.res.success = true;
-	F.reqstats(false, false);
+	F.reqstats(false);
 	F.$events.request_end && EMIT('request_end', self.req, self.res);
 	end && self.res.end();
 	self.req.bodydata = null;
@@ -13604,7 +13605,7 @@ function extend_request(PROTO) {
 		else
 			F.stats.request['error' + status]++;
 
-		F.reqstats(false, false);
+		F.reqstats(false);
 		this.res.writeHead(status);
 		this.res.end(U.httpStatus(status));
 		F.$events.request_end && EMIT('request_end', this, this.res);
@@ -13749,12 +13750,12 @@ function extend_request(PROTO) {
 	PROTO.$total_cancel = function() {
 		F.stats.response.timeout++;
 		clearTimeout(this.$total_timeout);
-		if (!this.controller)
-			return;
-		this.controller.isTimeout = true;
-		this.controller.isCanceled = true;
-		this.$total_route = F.lookup(this, '#408', EMPTYARRAY, 0);
-		this.$total_execute(408, true);
+		if (this.controller) {
+			this.controller.isTimeout = true;
+			this.controller.isCanceled = true;
+			this.$total_route = F.lookup(this, '#408', EMPTYARRAY, 0);
+			this.$total_execute(408, true);
+		}
 	};
 
 	PROTO.$total_validate = function(route, next, code) {
@@ -14752,17 +14753,15 @@ function extend_response(PROTO) {
 		if (req.method === 'HEAD') {
 			res.writeHead(options.code || 200, headers);
 			res.end();
-			response_end(res);
 		} else if (compress) {
 			res.writeHead(options.code || 200, headers);
 			Zlib.gzip(!options.encoding || options.encoding === 'binary' ? options.body : options.body.toString(options.encoding), (err, buffer) => res.end(buffer));
-			response_end(res);
 		} else {
 			res.writeHead(options.code || 200, headers);
 			res.end(!options.encoding || options.encoding === 'binary' ? options.body : options.body.toString(options.encoding));
-			response_end(res);
 		}
 
+		response_end(res);
 		return res;
 	};
 
@@ -14839,14 +14838,13 @@ function extend_response(PROTO) {
 			res.on('error', () => options.stream.close());
 			options.stream.pipe(Zlib.createGzip(GZIPSTREAM)).pipe(res);
 			framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
-			response_end(res);
 		} else {
 			res.writeHead(options.code || 200, headers);
 			framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
 			options.stream.pipe(res);
-			response_end(res);
 		}
 
+		response_end(res);
 		return res;
 	};
 
@@ -15200,7 +15198,6 @@ function $image_nocache(res) {
 
 	// FILENAME
 	fsFileExists(options.filename, function(e) {
-
 		if (e) {
 			PATH.verify('temp');
 			var image = framework_image.load(options.filename);
@@ -15327,7 +15324,7 @@ function $image_filename(exists, size, isFile, stats, res) {
 
 function response_end(res) {
 
-	F.reqstats(false, res.req.isStaticFile);
+	F.reqstats(false);
 	res.success = true;
 
 	if (CONF.allow_reqlimit && F.temporary.ddos[res.req.ip])
