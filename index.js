@@ -1078,6 +1078,7 @@ function Framework() {
 		default_proxy: '',
 		default_request_maxkeys: 33,
 		default_request_maxkey: 25,
+		default_cookies_samesite: 'none',
 
 		// default maximum request size / length
 		// default 10 kB
@@ -5921,28 +5922,29 @@ function extendinitoptions(options) {
 
 function clear_pending_requests() {
 
-	var index = 0;
 	F.stats.request.pending = 0;
+
+	if (!TIMEOUTS.length)
+		return;
+
+	var index = 0;
 
 	while (true) {
 		var req = TIMEOUTS[index];
 		if (req) {
 			if (req.success || req.res.success) {
 				TIMEOUTS.splice(index, 1);
-				continue;
 			} else if (req.$total_timeout <= 0) {
 				req.controller && req.controller.precache && req.controller.precache(null, null, null);
 				req.$total_cancel();
 				TIMEOUTS.splice(index, 1);
-				continue;
 			} else {
 				F.stats.request.pending++;
-				req.$total_timeout -= 5;
+				req.$total_timeout -= 5; // 5 seconds
+				index++;
 			}
 		} else
-			break;
-
-		index++;
+			return;
 	}
 }
 
@@ -13770,7 +13772,6 @@ function extend_request(PROTO) {
 
 	PROTO.$total_cancel = function() {
 		F.stats.response.timeout++;
-		// clearTimeout(this.$total_timeout);
 		if (this.controller) {
 			this.controller.isTimeout = true;
 			this.controller.isCanceled = true;
@@ -14039,7 +14040,7 @@ function extend_response(PROTO) {
 	 * Add a cookie into the response
 	 * @param {String} name
 	 * @param {Object} value
-	 * @param {Date/String} expires
+	 * @param {String} expires
 	 * @param {Object} options Additional options.
 	 * @return {Response}
 	 */
@@ -14054,7 +14055,7 @@ function extend_response(PROTO) {
 		var builder = [cookiename + value];
 		var type = typeof(expires);
 
-		if (expires && !U.isDate(expires) && type === 'object') {
+		if (expires && type === 'object') {
 			options = expires;
 			expires = options.expires || options.expire || null;
 		}
@@ -14074,18 +14075,17 @@ function extend_response(PROTO) {
 		if (options.httpOnly || options.httponly || options.HttpOnly)
 			builder.push('HttpOnly');
 
-		var same = options.security || options.samesite || options.sameSite;
-		if (same) {
-			switch (same) {
-				case 1:
-					same = 'lax';
-					break;
-				case 2:
-					same = 'strict';
-					break;
-			}
-			builder.push('SameSite=' + same);
+		var same = options.security || options.samesite || CONF.default_cookies_samesite;
+		switch (same) {
+			case 1:
+				same = 'lax';
+				break;
+			case 2:
+				same = 'strict';
+				break;
 		}
+
+		builder.push('SameSite=' + same);
 
 		var arr = self.getHeader('set-cookie') || [];
 
@@ -14242,15 +14242,6 @@ function extend_response(PROTO) {
 		return res;
 	};
 
-	/**
-	 * Response a custom content
-	 * @param {Number} code
-	 * @param {String} body
-	 * @param {String} type
-	 * @param {Boolean} compress Disallows GZIP compression. Optional, default: true.
-	 * @param {Object} headers Optional, additional headers.
-	 * @return {Response}
-	 */
 	PROTO.content = function(code, body, type, compress, headers) {
 
 		if (typeof(compress) === 'object') {
@@ -14804,11 +14795,6 @@ function extend_response(PROTO) {
 
 		if (res.headersSent)
 			return res;
-
-		/*
-		if (options.type.lastIndexOf('/') === -1)
-			options.type = U.getContentType(options.type);
-		*/
 
 		var accept = req.headers['accept-encoding'] || '';
 		!accept && isGZIP(req) && (accept = 'gzip');
