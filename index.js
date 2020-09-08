@@ -380,6 +380,31 @@ global.SESSION = function(name) {
 	return sessionwrapper(name);
 };
 
+global.LOADRESOURCE = function(name, value) {
+
+	var filename = PATH.temp(name + '.resource');
+
+	if (typeof(value) === 'string') {
+		Fs.writeFile(filename, value, function() {
+			delete F.resources[name];
+		});
+		return;
+	}
+
+	var builder = [];
+
+	for (var i = 0; i < value.length; i++) {
+		var item = value[i];
+		var key = item.id || item.key || item.name;
+		var val = item.value || item.text || item.body;
+		key && builder.push(key.padRight(25, ' ') + ': ' + (val == null ? '' : val));
+	}
+
+	Fs.writeFile(filename, builder.join('\n'), function() {
+		delete F.resources[name];
+	});
+};
+
 global.LOADCONFIG = function(value) {
 	var config = value;
 	var tmp;
@@ -390,8 +415,8 @@ global.LOADCONFIG = function(value) {
 		config = {};
 		for (var i = 0; i < value.length; i++) {
 			var item = value[i];
-			var key = item.id || item.name;
-			var val = item.value;
+			var key = item.id || item.key || item.name;
+			var val = item.value || item.body;
 			if (item.type) {
 				var type = typeof(val);
 				switch (item.type.toLowerCase()) {
@@ -6188,10 +6213,6 @@ F.service = function(count) {
 		// Clears command cache
 		Image.clear();
 
-		var dt = NOW.add('-5 minutes');
-		for (var key in F.databases)
-			F.databases[key] && F.databases[key].inmemorylastusage < dt && F.databases[key].release();
-
 		releasegc = true;
 		CONF.allow_debug && F.consoledebug('clear temporary cache');
 
@@ -7370,12 +7391,17 @@ global.RESOURCE = function(name, key) {
 	var body = '';
 	var filename;
 	if (routes) {
-		for (var i = 0, length = routes.length; i < length; i++) {
+		for (var i = 0; i < routes.length; i++) {
 			filename = routes[i];
 			if (existsSync(filename))
 				body += (body ? '\n' : '') + Fs.readFileSync(filename).toString(ENCODING);
 		}
 	}
+
+	// check temp directory
+	filename = PATH.temp(name + '.resource');
+	if (existsSync(filename))
+		body += (body ? '\n' : '') + Fs.readFileSync(filename).toString(ENCODING);
 
 	var filename = U.combine(CONF.directory_resources, name + '.resource');
 	var empty = false;
