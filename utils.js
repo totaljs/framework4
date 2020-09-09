@@ -37,6 +37,7 @@ const Zlib = require('zlib');
 const Tls = require('tls');
 const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
+const SKIPBODYENCRYPTOR = { ':': 1, '"': 1, '[': 1, ']': 1, '\'': 1, '_': 1, '{': 1, '}': 1, '&': 1, '=': 1, '+': 1, '-': 1, '\\': 1, '/': 1, ',': 1 };
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -3896,6 +3897,59 @@ SP.decrypt = function(key, secret) {
 	return counter !== (val.length + key.length) ? null : val;
 };
 
+exports.encrypt_body = function(value, key) {
+
+	var builder = [];
+	var index = 0;
+	var length = key.length;
+
+	for (var i = 0; i < value.length; i++) {
+
+		if (SKIPBODYENCRYPTOR[value[i]]) {
+			builder.push(value[i]);
+			continue;
+		}
+
+		if (index === length)
+			index = 0;
+
+		var a = value.charCodeAt(i) + 2;
+		var b = key.charCodeAt(index++);
+		var t = (a + b).toString(36);
+		builder.push(t.length + t);
+	}
+
+	return builder.join('');
+};
+
+exports.decrypt_body = function(value, key) {
+
+	var index = 0;
+	var length = key.length;
+	var builder = [];
+
+	for (var i = 0; i < value.length; i++) {
+
+		var c = value[i];
+
+		if (SKIPBODYENCRYPTOR[c]) {
+			builder.push(c);
+			continue;
+		}
+
+		if (index === length)
+			index = 0;
+
+		var l = +value.charAt(i);
+		var code = parseInt(value.substring(i + 1, i + 1 + l), 36);
+		var b = key.charCodeAt(index++);
+		builder.push(String.fromCharCode(code - b - 2));
+		i += l;
+	}
+
+	return builder.join('');
+};
+
 exports.encryptUID = function(val, key) {
 
 	var num = typeof(val) === 'number';
@@ -5204,6 +5258,11 @@ function queue_next(name) {
 function queue_next_callback(fn, name) {
 	fn(() => queue_next(name));
 }
+
+exports.json2replacer = function(key, value) {
+	if (value != null)
+		return value;
+};
 
 /**
  * Queue list

@@ -346,6 +346,7 @@ function SchemaBuilderEntity(name) {
 	this.verifications = null;
 	// this.resourcePrefix;
 	this.extensions = {};
+
 	// this.resourceName;
 	// this.workflows;
 	// this.onSave;
@@ -361,6 +362,16 @@ function SchemaBuilderEntity(name) {
 }
 
 const SchemaBuilderEntityProto = SchemaBuilderEntity.prototype;
+
+SchemaBuilderEntityProto.encrypt = function() {
+	this.$jsonencrypt = true;
+	return this;
+};
+
+SchemaBuilderEntityProto.compress = function() {
+	this.$jsoncompress = true;
+	return this;
+};
 
 SchemaBuilderEntityProto.allow = function() {
 	var self = this;
@@ -2826,7 +2837,7 @@ ErrorBuilder.prototype.replace = function(search, newvalue) {
  */
 ErrorBuilder.prototype.json = function(beautify, replacer) {
 	var items = this.prepare().items;
-	return beautify ? JSON.stringify(items, replacer, '\t') : JSON.stringify(items, replacer);
+	return beautify ? JSON.stringify(items, replacer, '\t') : JSON.stringify(items, replacer === true ? framework_utils.json2replacer : replacer);
 };
 
 ErrorBuilder.prototype.plain = function() {
@@ -2843,7 +2854,7 @@ ErrorBuilder.prototype.plain = function() {
  * @return {String}
  */
 ErrorBuilder.prototype.JSON = function(beautify, replacer) {
-	return this.json(beautify, replacer);
+	return this.json(beautify, replacer === true ? framework_utils.json2replacer : replacer);
 };
 
 /**

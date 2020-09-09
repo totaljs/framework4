@@ -21,7 +21,7 @@
 
 /**
  * @module WebSocketClient
- * @version 3.4.4
+ * @version 4.0.0
  */
 
 if (!global.framework_utils)
@@ -486,6 +486,9 @@ WebSocketClientProto.$decode = function() {
 			if (this.options.encodedecode === true)
 				data = $decodeURIComponent(data);
 
+			if (this.options.encrypt)
+				data = framework_utils.decrypt_data(data, this.options.encrypt);
+
 			if (data.isJSON()) {
 				var tmp = data.parseJSON(true);
 				if (tmp !== undefined)
@@ -496,7 +499,14 @@ WebSocketClientProto.$decode = function() {
 		default: // TEXT
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
-			this.emit('message', this.options.encodedecode === true ? $decodeURIComponent(data) : data);
+
+			if (this.options.encodedecode === true)
+				data = $decodeURIComponent(data);
+
+			if (this.options.encrypt)
+				data = framework_utils.decrypt_data(data, this.options.encrypt);
+
+			this.emit('message', data);
 			break;
 	}
 
@@ -593,7 +603,11 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 
 	var type = self.options.type;
 	if (self.istext) {
-		var data = type === 'json' ? (raw ? message : JSON.stringify(message, replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer) : (message + '');
+		var data = type === 'json' ? (raw ? message : JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer) : (message + '');
+
+		if (self.options.encrypt)
+			data = framework_utils.encrypt_data(data, self.options.encrypt);
+
 		if (self.options.encodedecode === true && data)
 			data = encodeURIComponent(data);
 		if (self.deflate) {
@@ -630,6 +644,8 @@ WebSocketClientProto.sendcustom = function(type, message) {
 
 	if (this.istext) {
 		var data = (message == null ? '' : message) + '';
+		if (self.options.encrypt)
+			data = framework_utils.encrypt_data(data, self.options.encrypt);
 		if (this.options.encodedecode && data)
 			data = encodeURIComponent(data);
 		if (this.deflate) {

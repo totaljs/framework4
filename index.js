@@ -1054,6 +1054,7 @@ function Framework() {
 		author: '',
 		secret: self.syshash,
 		secret_uid: self.syshash.substring(10),
+		secret_encryption: null,
 
 		'security.txt': 'Contact: mailto:support@totaljs.com\nContact: https://www.totaljs.com/contact/',
 		etag_version: '',
@@ -4596,9 +4597,11 @@ DEF.onSchema = function(req, route, callback) {
 	if (req.method === 'PATCH' && req.body)
 		req.keys = $.keys = Object.keys(req.body);
 
-	if (schema)
+	if (schema) {
+		req.$jsoncompress = schema.$jsoncompress;
+		req.$jsonencrypt = schema.$jsonencrypt;
 		schema.make(req.body, onSchema_callback, callback, route.novalidate, $);
-	else
+	} else
 		callback('Schema "' + req.$schemaname + '" not found.');
 };
 
@@ -6572,6 +6575,7 @@ F.$requestcontinue = function(req, res, headers) {
 	var first = method[0];
 
 	if (first === 'P' || first === 'D') {
+
 		multipart = req.headers['content-type'] || '';
 		req.bodydata = Buffer.alloc(0);
 		var index = multipart.indexOf(';', 6);
@@ -10932,7 +10936,7 @@ ControllerProto.$json = function(obj, id, beautify, replacer) {
 		beautify = false;
 	}
 
-	var value = beautify ? JSON.stringify(obj, replacer, 4) : JSON.stringify(obj, replacer);
+	var value = beautify ? JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4) : JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
 	return id ? ('<script type="application/json" id="' + id + '">' + value + '</script>') : value;
 };
 
@@ -11071,14 +11075,6 @@ ControllerProto.helper = function(name) {
 	return helper.apply(this, params);
 };
 
-/**
- * Response JSON
- * @param {Object} obj
- * @param {Object} headers Custom headers, optional.
- * @param {Boolean} beautify Beautify JSON.
- * @param {Function(key, value)} replacer JSON replacer.
- * @return {Controller}
- */
 ControllerProto.json = function(obj, headers, beautify, replacer) {
 
 	var self = this;
@@ -11128,10 +11124,20 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 		if (obj && obj.$$schema)
 			obj = obj.$clean();
 
+		if (self.req.$jsoncompress && !replacer)
+			replacer = true;
+
 		if (beautify)
-			obj = JSON.stringify(obj, replacer, 4);
+			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4);
 		else
-			obj = JSON.stringify(obj, replacer);
+			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
+
+		if (self.req.$jsonencrypt && CONF.secret_encryption) {
+			obj = framework_utils.decrypt_body(obj, CONF.secret_encryption);
+			if (!res.options.headers)
+				res.options.headers = headers = {};
+			headers['X-Encrypted'] = 'a';
+		}
 	}
 
 	F.stats.response.json++;
@@ -11158,7 +11164,6 @@ ControllerProto.success = function(is, value) {
 		}
 		this.json(SUCCESS(is == null ? true : is, value));
 	}
-
 	return this;
 };
 
@@ -11224,9 +11229,16 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 			obj = obj.$clean();
 
 		if (beautify)
-			obj = JSON.stringify(obj, replacer, 4);
+			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4);
 		else
-			obj = JSON.stringify(obj, replacer);
+			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
+
+		if (self.req.$jsonencrypt && CONF.secret_encryption) {
+			obj = framework_utils.decrypt_body(obj, CONF.secret_encryption);
+			if (!res.options.headers)
+				res.options.headers = headers = {};
+			headers['X-Encrypted'] = 'a';
+		}
 	}
 
 	res.options.body = name + '(' + obj + ')';
@@ -11380,7 +11392,7 @@ ControllerProto.plain = function(body, headers) {
 	else if (type === 'object') {
 		if (body && body.$$schema)
 			body = body.$clean();
-		body = body ? JSON.stringify(body, null, 4) : '';
+		body = body ? JSON.stringify(body, self.req.$jsoncompress ? framework_utils.json2replacer : null, 4) : '';
 	} else
 		body = body ? (body + '') : '';
 
@@ -11684,7 +11696,7 @@ ControllerProto.sse = function(data, eventname, id, retry) {
 	}
 
 	if (typeof(data) === 'object')
-		data = JSON.stringify(data);
+		data = JSON.stringify(data, self.req.$jsoncompress ? framework_utils.json2replacer : null);
 	else
 		data = data.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 
@@ -12470,7 +12482,7 @@ WebSocketProto.send = function(message, comparer, replacer, params) {
 		if (data === undefined) {
 			if (conn.type === 3) {
 				raw = true;
-				data = JSON.stringify(message, replacer);
+				data = JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer);
 			} else
 				data = message;
 		}
@@ -13102,6 +13114,9 @@ WebSocketClientProto.$decode = function() {
 			if (this.container.encodedecode === true)
 				data = $decodeURIComponent(data);
 
+			if (this.container.$encrypt)
+				data = framework_utils.decrypt_data(data, CONF.secret_encryption);
+
 			if (data.isJSON()) {
 				var tmp = data.parseJSON(true);
 				if (tmp !== undefined && this.container.$events.message)
@@ -13110,9 +13125,17 @@ WebSocketClientProto.$decode = function() {
 			break;
 
 		default: // TEXT
+
 			if (data instanceof Buffer)
 				data = data.toString(ENCODING);
-			this.container.$events.message && this.container.emit('message', this, this.container.encodedecode === true ? $decodeURIComponent(data) : data);
+
+			if (this.container.encodedecode === true)
+				data = $decodeURIComponent(data);
+
+			if (this.container.$encrypt)
+				data = framework_utils.decrypt_data(data, CONF.secret_encryption);
+
+			this.container.$events.message && this.container.emit('message', this, data);
 			break;
 	}
 
@@ -13206,7 +13229,11 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 		return self;
 
 	if (self.type !== 1) {
-		var data = self.type === 3 ? (raw ? message : JSON.stringify(message, replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer) : (message + '');
+		var data = self.type === 3 ? (raw ? message : JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer) : (message + '');
+
+		if (self.container.$encrypt)
+			data = framework_utils.encrypt_data(data, CONF.secret_encryption);
+
 		if (self.container.encodedecode === true && data)
 			data = encodeURIComponent(data);
 		if (self.deflate) {
@@ -13884,6 +13911,8 @@ function extend_request(PROTO) {
 			return;
 		}
 
+		var tmp;
+
 		if (route.isXML) {
 
 			if (this.$type !== 2) {
@@ -13892,7 +13921,12 @@ function extend_request(PROTO) {
 			}
 
 			try {
-				this.body = DEF.parsers.xml(this.bodydata.toString(ENCODING));
+				tmp = this.bodydata.toString(ENCODING);
+
+				if (this.headers['x-encrypted'] && CONF.secret_encryption)
+					tmp = framework_utils.decrypt_body(tmp, CONF.secret_encryption);
+
+				this.body = DEF.parsers.xml(tmp);
 				this.$total_prepare();
 			} catch (err) {
 				F.error(err, null, this.uri);
@@ -13915,13 +13949,24 @@ function extend_request(PROTO) {
 
 		if (this.$type === 1) {
 			try {
-				this.body = DEF.parsers.json(this.bodydata.toString(ENCODING));
+				tmp = this.bodydata.toString(ENCODING);
+
+				if (this.headers['x-encrypted'] && CONF.secret_encryption)
+					tmp = framework_utils.decrypt_body(tmp, CONF.secret_encryption);
+
+				this.body = DEF.parsers.json(tmp);
 			} catch (e) {
 				this.$total_400('Invalid JSON data.');
 				return;
 			}
-		} else
-			this.body = DEF.parsers.urlencoded(this.bodydata.toString(ENCODING));
+		} else {
+			tmp = this.bodydata.toString(ENCODING);
+
+			if (this.headers['x-encrypted'] && CONF.secret_encryption)
+				tmp = framework_utils.decrypt_body(tmp, CONF.secret_encryption);
+
+			this.body = DEF.parsers.urlencoded(tmp);
+		}
 
 		route.schema && (this.$total_schema = true);
 		this.$total_prepare();
@@ -14426,11 +14471,6 @@ function extend_response(PROTO) {
 		return this.image(filename, make, headers, callback);
 	};
 
-	/**
-	 * Response JSON
-	 * @param {Object} obj
-	 * @return {Response}
-	 */
 	PROTO.json = function(obj) {
 		var res = this;
 		F.stats.response.json++;
