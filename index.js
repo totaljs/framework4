@@ -9437,6 +9437,12 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.encrypt = function() {
+	if (this.req)
+		this.req.$jsonencrypt = true;
+	return this;
+};
+
 ControllerProto.runtest = function(url, name, callback) {
 	var self = this;
 	if (!self.TEST)
