@@ -494,15 +494,18 @@ DB.insert = function(fn) {
 	return this;
 };
 
+DB.error = DB.err = function(err) {
+	this.$error = err;
+	return this;
+};
 
-DB.done = function($, callback, err) {
+DB.done = function($, callback, param) {
 	this.$callback = function(err, response) {
 		if (err)
 			$.invalid(err);
 		else
-			callback(response);
+			callback(response, param);
 	};
-	this.$error = err;
 	return this;
 };
 
