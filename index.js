@@ -4597,11 +4597,9 @@ DEF.onSchema = function(req, route, callback) {
 	if (req.method === 'PATCH' && req.body)
 		req.keys = $.keys = Object.keys(req.body);
 
-	if (schema) {
-		req.$jsoncompress = schema.$jsoncompress;
-		req.$jsonencrypt = schema.$jsonencrypt;
+	if (schema)
 		schema.make(req.body, onSchema_callback, callback, route.novalidate, $);
-	} else
+	else
 		callback('Schema "' + req.$schemaname + '" not found.');
 };
 
@@ -11128,9 +11126,6 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 		F.stats.response.errorbuilder++;
 	} else {
 
-		if (obj && obj.$$schema)
-			obj = obj.$clean();
-
 		if (self.req.$jsoncompress && !replacer)
 			replacer = true;
 
@@ -11396,11 +11391,9 @@ ControllerProto.plain = function(body, headers) {
 
 	if (body == null)
 		body = '';
-	else if (type === 'object') {
-		if (body && body.$$schema)
-			body = body.$clean();
+	else if (type === 'object')
 		body = body ? JSON.stringify(body, self.req.$jsoncompress ? framework_utils.json2replacer : null, 4) : '';
-	} else
+	else
 		body = body ? (body + '') : '';
 
 	res.options.body = body;
@@ -16030,6 +16023,9 @@ function controller_json_workflow(id) {
 	if (w.schema.$jsonencrypt && self.req)
 		self.req.$jsonencrypt = true;
 
+	if (w.schema.$jsoncompress)
+		self.req.$jsoncompress = true;
+
 	var novalidate = self.body === EMPTYOBJECT;
 	if (novalidate)
 		self.body = {};
@@ -16064,6 +16060,9 @@ function controller_json_workflow_multiple(id) {
 
 		if (schema.$jsonencrypt)
 			self.req.$jsonencrypt = true;
+
+		if (schema.$jsoncompress)
+			self.req.$jsoncompress = true;
 
 		var async = self.$async(self.callback(w.view), w.index);
 		for (var i = 0; i < w.id.length; i++)
