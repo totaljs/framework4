@@ -6833,6 +6833,7 @@ F.$cors = function(req, res, fn, arg) {
 		res.setHeader(name, headers['access-control-request-headers'] || '*');
 
 	cors && cors.age && res.setHeader('Access-Control-Max-Age', cors.age);
+	res.setHeader('Access-Control-Expose-Headers', '*');
 
 	if (stop) {
 		fn = null;
@@ -16026,6 +16027,9 @@ function controller_json_workflow(id) {
 		w.schema = schema;
 	}
 
+	if (w.schema.$jsonencrypt && self.req)
+		self.req.$jsonencrypt = true;
+
 	var novalidate = self.body === EMPTYOBJECT;
 	if (novalidate)
 		self.body = {};
@@ -16057,6 +16061,10 @@ function controller_json_workflow_multiple(id) {
 
 	var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
 	if (schema) {
+
+		if (schema.$jsonencrypt)
+			self.req.$jsonencrypt = true;
+
 		var async = self.$async(self.callback(w.view), w.index);
 		for (var i = 0; i < w.id.length; i++)
 			async(w.id[i]);
