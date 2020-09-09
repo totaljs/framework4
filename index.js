@@ -11139,7 +11139,7 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
 
 		if (self.req.$jsonencrypt && CONF.secret_encryption) {
-			obj = framework_utils.decrypt_body(obj, CONF.secret_encryption);
+			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
 			if (!res.options.headers)
 				res.options.headers = headers = {};
 			headers['X-Encrypted'] = 'a';
@@ -11240,7 +11240,7 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
 
 		if (self.req.$jsonencrypt && CONF.secret_encryption) {
-			obj = framework_utils.decrypt_body(obj, CONF.secret_encryption);
+			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
 			if (!res.options.headers)
 				res.options.headers = headers = {};
 			headers['X-Encrypted'] = 'a';
@@ -12401,6 +12401,11 @@ WebSocket.prototype = {
 
 
 const WebSocketProto = WebSocket.prototype;
+
+WebSocketProto.encrypt = function() {
+	this.$encrypt = true;
+	return this;
+};
 
 WebSocketProto.emit = function(name, a, b, c, d, e, f, g) {
 	var evt = this.$events[name];
