@@ -2152,6 +2152,22 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		return;
 	}
 
+
+	if (url.indexOf('--') === -1) {
+		if (url.indexOf('.') !== -1) {
+			tmp = url.split('.');
+			if (tmp[1].length < 6) {
+				FILE(url, funcExecute, flags);
+				return;
+			}
+		}
+
+		if ((/^(\+|-){0,}(WS|WSS|SOCKET)\s/).test(url)) {
+			WEBSOCKET(url, funcExecute, flags, length);
+			return;
+		}
+	}
+
 	if (typeof(flags) === 'number') {
 		length = flags;
 		flags = null;
@@ -3504,6 +3520,8 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	}
 
 	if (typeof(fnValidation) === 'string') {
+
+		urlraw = fnValidation = fnValidation.replace(/^get\s/i, '');
 
 		if (fnValidation === '/')
 			fnValidation = '';
