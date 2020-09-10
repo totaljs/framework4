@@ -15062,7 +15062,7 @@ function extend_response(PROTO) {
 			res.end();
 		} else {
 
-			if (self.req.$bodyencrypt && CONF.secret_encryption && typeof(options.body) === 'string') {
+			if (req.$bodyencrypt && CONF.secret_encryption && typeof(options.body) === 'string') {
 				options.body = framework_utils.encrypt_body(options.body, CONF.secret_encryption);
 				if (!res.options.headers)
 					res.options.headers = headers = {};
