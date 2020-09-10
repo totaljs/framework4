@@ -9454,9 +9454,9 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
-ControllerProto.encrypt = function() {
+ControllerProto.encrypt = function(value) {
 	if (this.req)
-		this.req.$jsonencrypt = true;
+		this.req.$bodyencrypt = value == null || value === true;
 	return this;
 };
 
@@ -11144,20 +11144,13 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 		F.stats.response.errorbuilder++;
 	} else {
 
-		if (self.req.$jsoncompress && !replacer)
+		if (self.req.$bodycompress && !replacer)
 			replacer = true;
 
 		if (beautify)
 			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4);
 		else
 			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
-
-		if (self.req.$jsonencrypt && CONF.secret_encryption) {
-			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
-			if (!res.options.headers)
-				res.options.headers = headers = {};
-			headers['X-Encrypted'] = 'a';
-		}
 	}
 
 	F.stats.response.json++;
@@ -11253,7 +11246,7 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 		else
 			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
 
-		if (self.req.$jsonencrypt && CONF.secret_encryption) {
+		if (self.req.$bodyencrypt && CONF.secret_encryption) {
 			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
 			if (!res.options.headers)
 				res.options.headers = headers = {};
@@ -11410,7 +11403,7 @@ ControllerProto.plain = function(body, headers) {
 	if (body == null)
 		body = '';
 	else if (type === 'object')
-		body = body ? JSON.stringify(body, self.req.$jsoncompress ? framework_utils.json2replacer : null, 4) : '';
+		body = body ? JSON.stringify(body, self.req.$bodycompress ? framework_utils.json2replacer : null, 4) : '';
 	else
 		body = body ? (body + '') : '';
 
@@ -11714,7 +11707,7 @@ ControllerProto.sse = function(data, eventname, id, retry) {
 	}
 
 	if (typeof(data) === 'object')
-		data = JSON.stringify(data, self.req.$jsoncompress ? framework_utils.json2replacer : null);
+		data = JSON.stringify(data, self.req.$bodycompress ? framework_utils.json2replacer : null);
 	else
 		data = data.replace(/\n/g, '\\n').replace(/\r/g, '\\r');
 
@@ -12414,8 +12407,8 @@ WebSocket.prototype = {
 
 const WebSocketProto = WebSocket.prototype;
 
-WebSocketProto.encrypt = function() {
-	this.$encrypt = true;
+WebSocketProto.encrypt = function(value) {
+	this.$encrypt = value === true || value == null;
 	return this;
 };
 
@@ -15068,6 +15061,14 @@ function extend_response(PROTO) {
 			res.writeHead(options.code || 200, headers);
 			res.end();
 		} else {
+
+			if (self.req.$bodyencrypt && CONF.secret_encryption && typeof(options.body) === 'string') {
+				options.body = framework_utils.encrypt_body(options.body, CONF.secret_encryption);
+				if (!res.options.headers)
+					res.options.headers = headers = {};
+				headers['X-Encrypted'] = 'a';
+			}
+
 			if (gzip) {
 				res.writeHead(options.code || 200, headers);
 				Zlib.gzip(options.body instanceof Buffer ? options.body : Buffer.from(options.body), (err, data) => res.end(data, res.options.encoding || ENCODING));
@@ -16038,11 +16039,11 @@ function controller_json_workflow(id) {
 		w.schema = schema;
 	}
 
-	if (w.schema.$jsonencrypt && self.req)
-		self.req.$jsonencrypt = true;
+	if (w.schema.$bodyencrypt && self.req)
+		self.req.$bodyencrypt = true;
 
-	if (w.schema.$jsoncompress)
-		self.req.$jsoncompress = true;
+	if (w.schema.$bodycompress)
+		self.req.$bodycompress = true;
 
 	var novalidate = self.body === EMPTYOBJECT;
 	if (novalidate)
@@ -16076,11 +16077,11 @@ function controller_json_workflow_multiple(id) {
 	var schema = self.route.isDYNAMICSCHEMA ? framework_builders.findschema(schemaname) : GETSCHEMA(schemaname);
 	if (schema) {
 
-		if (schema.$jsonencrypt)
-			self.req.$jsonencrypt = true;
+		if (schema.$bodyencrypt)
+			self.req.$bodyencrypt = true;
 
-		if (schema.$jsoncompress)
-			self.req.$jsoncompress = true;
+		if (schema.$bodycompress)
+			self.req.$bodycompress = true;
 
 		var async = self.$async(self.callback(w.view), w.index);
 		for (var i = 0; i < w.id.length; i++)

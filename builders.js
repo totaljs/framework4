@@ -363,13 +363,13 @@ function SchemaBuilderEntity(name) {
 
 const SchemaBuilderEntityProto = SchemaBuilderEntity.prototype;
 
-SchemaBuilderEntityProto.encrypt = function() {
-	this.$jsonencrypt = true;
+SchemaBuilderEntityProto.encrypt = function(value) {
+	this.$bodyencrypt = value == null || value === true;
 	return this;
 };
 
-SchemaBuilderEntityProto.compress = function() {
-	this.$jsoncompress = true;
+SchemaBuilderEntityProto.compress = function(value) {
+	this.$bodycompress = value == null || value === true;
 	return this;
 };
 
@@ -384,10 +384,11 @@ SchemaBuilderEntityProto.allow = function() {
 	if (arr.length === 1)
 		arr = arr[0].split(',').trim();
 
-	for (var i = 0, length = arr.length; i < length; i++) {
-		if (arr[i] instanceof Array)
-			arr[i].forEach(item => self.fields_allow.push(item));
-		else
+	for (var i = 0; i < arr.length; i++) {
+		if (arr[i] instanceof Array) {
+			for (var j = 0; j < arr[i].length; j++)
+				self.fields_allow.push(arr[i][j]);
+		} else
 			self.fields_allow.push(arr[i]);
 	}
 	return self;
