@@ -74,6 +74,11 @@ exports.make = function(callback) {
 	blacklist[CONF.directory_logs] = 1;
 	blacklist['/node_modules/'] = 1;
 	blacklist['/debug.pid'] = 1;
+	blacklist['/debug.json'] = 1;
+	blacklist['/release.json'] = 1;
+	blacklist['/release.pid'] = 1;
+	blacklist['/index.pid'] = 1;
+	blacklist['/index.json'] = 1;
 	blacklist['/package-lock.json'] = 1;
 
 	var Files = [];
