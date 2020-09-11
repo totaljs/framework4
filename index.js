@@ -12706,6 +12706,10 @@ WebSocketClient.prototype = {
 		return this.req.query;
 	},
 
+	get ua() {
+		return this.req ? this.req.ua : null;
+	},
+
 	get query() {
 		return this.req.query;
 	},
