@@ -1,1 +1,0 @@
-exports.ok = 2;
