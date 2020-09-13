@@ -270,10 +270,6 @@ SchemaOptionsProto.response = function(index) {
 	return this.responses[index];
 };
 
-SchemaOptionsProto.DB = function() {
-	return F.database(this.error);
-};
-
 SchemaOptionsProto.successful = function(callback) {
 	var self = this;
 	return function(err, a, b, c) {

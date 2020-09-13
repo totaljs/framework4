@@ -13507,15 +13507,6 @@ function extend_request(PROTO) {
 		}
 	});
 
-	/**
-	 * Signature request (user-agent + ip + referer + current URL + custom key)
-	 * @param {String} key Custom key.
-	 * @return {Request}
-	 */
-	PROTO.signature = function(key) {
-		return ENCRYPT((this.headers['user-agent'] || '') + '#' + this.ip + '#' + this.url + '#' + (key || ''), 'request-signature', false);
-	};
-
 	PROTO.localize = function() {
 		DEF.onLocale && (this.$language = DEF.onLocale(this, this.res, this.isStaticFile));
 		return this.$language;
@@ -13525,8 +13516,8 @@ function extend_request(PROTO) {
 	 * Disable HTTP cache for current request
 	 * @return {Request}
 	 */
-	PROTO.noCache = PROTO.nocache = function() {
-		this.res && this.res.noCache();
+	PROTO.nocache = function() {
+		this.res && this.res.nocache();
 		return this;
 	};
 

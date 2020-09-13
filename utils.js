@@ -1567,11 +1567,11 @@ exports.parseInt = function(obj, def) {
 	return type === 'number' ? obj : (type !== 'string' ? obj.toString() : obj).parseInt(def);
 };
 
-exports.parseBool = exports.parseBoolean = function(obj, def) {
+exports.parseBoolean = function(obj, def) {
 	if (obj == null)
 		return def === undefined ? false : def;
 	var type = typeof(obj);
-	return type === 'boolean' ? obj : type === 'number' ? obj > 0 : (type !== 'string' ? obj.toString() : obj).parseBool(def);
+	return type === 'boolean' ? obj : type === 'number' ? obj > 0 : (type !== 'string' ? obj.toString() : obj).parseBoolean(def);
 };
 
 /**
@@ -2456,12 +2456,6 @@ if (!SP.trim) {
 	};
 }
 
-if (!SP.replaceAt) {
-	SP.replaceAt = function(index, character) {
-		return this.substr(0, index) + character + this.substr(index + character.length);
-	};
-}
-
 /**
  * Checks if the string starts with the text
  * @see {@link http://docs.totaljs.com/SP/#SP.startsWith|Documentation}
@@ -3299,33 +3293,6 @@ SP.parseDateExpiration = function() {
 	return dt;
 };
 
-SP.contains = function(value, mustAll) {
-	var str = this;
-
-	if (typeof(value) === 'string')
-		return str.indexOf(value, typeof(mustAll) === 'number' ? mustAll : 0) !== -1;
-
-	for (var i = 0, length = value.length; i < length; i++) {
-		var exists = str.indexOf(value[i]) !== -1;
-		if (mustAll) {
-			if (!exists)
-				return false;
-		} else if (exists)
-			return true;
-	}
-
-	return mustAll;
-};
-
-/**
- * Same functionality as as String.localeCompare() but this method works with latin.
- * @param {String} value
- * @return {Number}
- */
-SP.localeCompare2 = function(value) {
-	return COMPARER(this, value);
-};
-
 var configurereplace = function(text) {
 	var val = CONF[text.substring(1, text.length - 1)];
 	return val == null ? '' : val;
@@ -3483,14 +3450,6 @@ SP.decode = function() {
 		var code = s[2].toLowerCase() === 'x' ? parseInt(s.substr(3), 16) : parseInt(s.substr(2));
 		return !code || code < -32768 || code > 65535 ? '' : String.fromCharCode(code);
 	});
-};
-
-SP.urlEncode = function() {
-	return encodeURIComponent(this);
-};
-
-SP.urlDecode = function() {
-	return decodeURIComponent(this);
 };
 
 SP.arg = function(obj, encode, def) {
@@ -3717,7 +3676,7 @@ SP.parseFloat2 = function(def) {
 	return num ? +num[0].toString().replace(/,/g, '.') : (def === undefined ? 0 : def);
 };
 
-SP.parseBool = SP.parseBoolean = function() {
+SP.parseBoolean = function() {
 	var self = this.toLowerCase();
 	return self === 'true' || self === '1' || self === 'on';
 };
@@ -4463,23 +4422,6 @@ AP.take = function(count) {
 };
 
 /**
- * Extend objects in Array
- * @param {Object} obj
- * @param {Boolean} rewrite Default: false.
- * @return {Array} Returns self
- */
-AP.extend = function(obj, rewrite) {
-	var isFn = typeof(obj) === 'function';
-	for (var i = 0; i < this.length; i++) {
-		if (isFn)
-			this[i] = obj(this[i], i);
-		else
-			this[i] = exports.extend(this[i], obj, rewrite);
-	}
-	return this;
-};
-
-/**
  * First item in array
  * @param {Object} def Default value.
  * @return {Object}
@@ -4909,47 +4851,6 @@ AP.limit = function(max, fn, callback, index) {
 	}, index, index + max);
 
 	return self;
-};
-
-/**
- * Get unique elements from Array
- * @return {[type]} [description]
- */
-AP.unique = function(property) {
-
-	var self = this;
-	var result = [];
-	var sublength = 0;
-
-	for (var i = 0, length = self.length; i < length; i++) {
-		var value = self[i];
-
-		if (!property) {
-			result.indexOf(value) === -1 && result.push(value);
-			continue;
-		}
-
-		if (sublength === 0) {
-			result.push(value);
-			sublength++;
-			continue;
-		}
-
-		var is = true;
-		for (var j = 0; j < sublength; j++) {
-			if (result[j][property] === value[property]) {
-				is = false;
-				break;
-			}
-		}
-
-		if (is) {
-			result.push(value);
-			sublength++;
-		}
-	}
-
-	return result;
 };
 
 ArrayBuffer.prototype.toBuffer = function() {
