@@ -16321,6 +16321,17 @@ function measure_usage() {
 	setTimeout(measure_usage_response, 50);
 }
 
+NEWCOMMAND('clear_viewscache', function() {
+	global.$VIEWCACHE = [];
+	var keys = Object.keys(F.temporary.other);
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		if (key.substring(0, 4) === 'view')
+			delete F.temporary.other[key];
+	}
+	F.cache.removeAll('$view');
+});
+
 // Because of controller prototypes
 // It's used in VIEW() and VIEWCOMPILE()
 const EMPTYCONTROLLER = new Controller('', null, null, '');
