@@ -16330,6 +16330,7 @@ NEWCOMMAND('clear_viewscache', function() {
 			delete F.temporary.other[key];
 	}
 	F.cache.removeAll('$view');
+	F.temporary.views = {};
 });
 
 // Because of controller prototypes
