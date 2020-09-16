@@ -3762,7 +3762,7 @@ F.error = function(err, name, uri) {
 	if (err) {
 		F.stats.error++;
 		NOW = new Date();
-		if (F.errors.push({ error: err.stack, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW }) > 5)
+		if (F.errors.push({ error: err.stack ? err.stack : err, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW }) > 5)
 			F.errors.shift();
 		DEF.onError(err, name, uri);
 	}
@@ -4404,7 +4404,7 @@ F.register = function(path) {
  */
 DEF.onError = function(err, name, uri) {
 	NOW = new Date();
-	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack);
+	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack ? err.stack : err);
 };
 
 /*
@@ -16282,7 +16282,7 @@ function runsnapshot() {
 		var err = F.errors[F.errors.length - 1];
 		var timeout = F.timeouts[F.timeouts.length - 1];
 
-		stats.lasterror = err ? (err.date.toJSON() + ' ' + (err.error ? err.error : err.plain ? err.plain() : err)) : undefined;
+		stats.lasterror = err ? (err.date.toJSON() + ' ' + (err.error ? err.error : err)) : undefined;
 		stats.lasttimeout = timeout;
 
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
