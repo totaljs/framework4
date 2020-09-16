@@ -16282,7 +16282,7 @@ function runsnapshot() {
 		var err = F.errors[F.errors.length - 1];
 		var timeout = F.timeouts[F.timeouts.length - 1];
 
-		stats.lasterror = err ? (err.date.toJSON() + ' ' + (err.error ? err.error : err)) : undefined;
+		stats.lasterror = err ? (err.date.toJSON() + ' ' + (err.error ? err.error : err.plain ? err.plain() : err)) : undefined;
 		stats.lasttimeout = timeout;
 
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
