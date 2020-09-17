@@ -1104,7 +1104,7 @@ function Framework() {
 		default_proxy: '',
 		default_request_maxkeys: 33,
 		default_request_maxkey: 25,
-		default_cookies_samesite: 'none',
+		default_cookies_samesite: 'lax',
 
 		// default maximum request size / length
 		// default 10 kB
