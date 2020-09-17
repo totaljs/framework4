@@ -1104,7 +1104,8 @@ function Framework() {
 		default_proxy: '',
 		default_request_maxkeys: 33,
 		default_request_maxkey: 25,
-		default_cookies_samesite: 'lax',
+		default_cookies_samesite: 'Lax',
+		default_cookies_secure: false,
 
 		// default maximum request size / length
 		// default 10 kB
@@ -14152,7 +14153,9 @@ function extend_response(PROTO) {
 		expires && builder.push('Expires=' + expires.toUTCString());
 		options.domain && builder.push('Domain=' + options.domain);
 		options.path && builder.push('Path=' + options.path);
-		options.secure && builder.push('Secure');
+
+		if (options.secure == true || (options.secure == null && CONF.default_cookies_secure))
+			builder.push('Secure');
 
 		if (options.httpOnly || options.httponly || options.HttpOnly)
 			builder.push('HttpOnly');
@@ -14160,10 +14163,10 @@ function extend_response(PROTO) {
 		var same = options.security || options.samesite || CONF.default_cookies_samesite;
 		switch (same) {
 			case 1:
-				same = 'lax';
+				same = 'Lax';
 				break;
 			case 2:
-				same = 'strict';
+				same = 'Strict';
 				break;
 		}
 
