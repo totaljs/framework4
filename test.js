@@ -158,7 +158,10 @@ function Test() {
 		} else {
 			if (t.done instanceof Controller) {
 				t.done.status = t.errors ? 409 : 200;
-				t.done.view_test(t.output);
+				if (t.done.req.xhr)
+					t.done.json(t.output);
+				else
+					t.done.view_test(t.output);
 			} else if (t.done) {
 				if (t.done.controller) {
 					t.done.status = t.errors ? 409 : 200;
