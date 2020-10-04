@@ -95,6 +95,7 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
+const NOVALIDATESCHEMA = { GET: 1, DELETE: 1, OPTIONS: 1, HEAD: 1 };
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -16209,7 +16210,7 @@ global.ACTION = function(url, data, callback) {
 	req.headers = { 'user-agent': 'Total.js/v' + F.version_header };
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routeSplit(req.uri.pathname);
-	req.body = data || {};
+	req.body = data || EMPTYOBJECT;
 	// req.query = params ? F.onParseQuery(params) : {};
 	req.query = params ? DEF.parser.urlencoded(params) : {};
 	req.files = EMPTYARRAY;
