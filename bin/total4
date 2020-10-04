@@ -322,9 +322,9 @@ function convert4(a) {
 		}
 
 		if (key[1] === '-')
-			key = 'T' + ((+key.substring(1)) >>> 0).toString(16);
+			key = 'T' + ((+key.substring(1)) >>> 0).toString(36);
 		else
-			key = 'T' + (+key.substring(1)).toString(16);
+			key = 'T' + (+key.substring(1)).toString(36);
 
 		output.push(key.padRight(index, ' ') + ' : ' + line.substring(index + 2).trim());
 	}

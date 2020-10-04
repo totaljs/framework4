@@ -145,7 +145,7 @@ exports.make = function(callback) {
 							return false;
 
 						if (INTERNAL[p] || U.getExtension(p) === 'resource' || mergeme) {
-							var hash = p.hash(true).toString(16);
+							var hash = p.hash(true).toString(36);
 							Merge.push({ name: p, filename: Path.join(target, p + hash), type: mergeme });
 							META.files.push(p + hash);
 							return p + hash;

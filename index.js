@@ -7454,7 +7454,7 @@ global.TRANSLATE = function(language, text) {
 	if (text[0] === '#' && text[1] !== ' ')
 		return RESOURCE(language, text.substring(1));
 
-	var value = RESOURCE(language, 'T' + text.hash(true).toString(16));
+	var value = RESOURCE(language, 'T' + text.hash(true).toString(36));
 	return value ? value : text;
 };
 
