@@ -149,6 +149,12 @@ TaskBuilder.prototype = {
 
 const TaskBuilderProto = TaskBuilder.prototype;
 
+TaskBuilderProto.encrypt = function(value) {
+	if (this.req)
+		this.req.$bodyencrypt = value == null || value === true;
+	return this;
+};
+
 SchemaOptions.prototype = {
 
 	get value() {
@@ -4386,6 +4392,12 @@ OperationOptions.prototype = {
 };
 
 const OperationOptionsProto = OperationOptions.prototype;
+
+OperationOptionsProto.encrypt = function(value) {
+	if (this.req)
+		this.req.$bodyencrypt = value == null || value === true;
+	return this;
+};
 
 OperationOptionsProto.cancel = function() {
 	var self = this;
