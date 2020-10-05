@@ -3687,6 +3687,9 @@ F.$filelocalize = function(req, res, nominify) {
 	// options.headers
 	// options.download
 
+	if (CONF.secret_encryption)
+		req.$bodyencrypt = true;
+
 	DEF.onLocale && (req.$language = DEF.onLocale(req, res, req.isStaticFile));
 
 	var key = 'locate_' + (req.$language ? req.$language : 'default') + '_' + (req.$key || req.url);
