@@ -11250,8 +11250,8 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 
 		if (self.req.$bodyencrypt && CONF.secret_encryption) {
 			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
-			if (!res.options.headers)
-				res.options.headers = headers = {};
+			if (!headers)
+				headers = headers = {};
 			headers['X-Encrypted'] = 'a';
 		}
 	}
@@ -15063,8 +15063,8 @@ function extend_response(PROTO) {
 
 			if (req.$bodyencrypt && CONF.secret_encryption && typeof(options.body) === 'string') {
 				options.body = framework_utils.encrypt_body(options.body, CONF.secret_encryption);
-				if (!res.options.headers)
-					res.options.headers = headers = {};
+				if (!headers)
+					headers = headers = {};
 				headers['X-Encrypted'] = 'a';
 			}
 
