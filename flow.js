@@ -191,6 +191,7 @@ MP.send = function(outputindex) {
 
 	if (self.processed === 0) {
 		self.processed = 1;
+		self.stats.pending--;
 		self.schema.stats.pending--;
 		self.schema.stats.output++;
 		self.schema.stats.duration = now - self.duration2;
@@ -225,8 +226,22 @@ MP.send = function(outputindex) {
 				message.cache = schema.cache;
 				message.options = message.config = schema.config;
 				message.duration2 = now;
+
+				var tid = message.fromid + '__' + message.fromindex;
+
+				if (self.stats.traffic[tid])
+					self.stats.traffic[tid]++;
+				else
+					self.stats.traffic[tid] = 1;
+
 				schema.stats.input++;
 				schema.stats.pending++;
+				self.stats.messages++;
+				self.stats.pending++;
+				self.mm++;
+
+				message.count = self.stats.messages;
+
 				self.$events.message && self.emit('message', message);
 				self.main.$events.message && self.main.emit('message', message);
 				setImmediate(sendmessage, next, message);
@@ -249,6 +264,7 @@ MP.destroy = function() {
 
 	if (self.processed === 0) {
 		self.processed = 1;
+		self.stats.pending--;
 		self.schema.stats.pending--;
 		self.schema.stats.output++;
 		self.schema.stats.duration = Date.now() - self.duration2;
@@ -275,10 +291,28 @@ function Flow(name) {
 	t.name = name;
 	t.meta = {};
 	t.meta.components = {};
-	t.meta.messages = 0;
 	t.meta.flow = {};
 	t.meta.cache = {};
+	t.stats = { messages: 0, pending: 0, traffic: {}, mm: 0 };
+	t.mm = 0;
 	t.$events = {};
+
+	var counter = 1;
+
+	t.$interval = setInterval(function(t) {
+
+		if (t.mm)
+			t.stats.traffic = {};
+
+		if (counter % 20 === 0) {
+			t.stats.mm = t.mm;
+			t.mm = 0;
+			counter = 1;
+		} else
+			counter++;
+
+	}, 3000, t);
+
 	new framework_utils.EventEmitter2(t);
 }
 
@@ -316,9 +350,11 @@ FP.register = function(name, declaration, config) {
 FP.destroy = function() {
 	var self = this;
 	self.unregister();
+	clearInterval(self.$interval);
 	setTimeout(function() {
 		self.emit('destroy');
 		self.meta = null;
+		self.$interval = null;
 		self.$events = null;
 	}, 500);
 	delete F.flows[self.name];
@@ -434,7 +470,6 @@ FP.trigger = function(path, data, controller, events) {
 			message.repo = {};
 			message.main = self;
 			message.data = data;
-			message.count = self.meta.messages++;
 
 			message.from = null;
 			message.fromid = null;
@@ -454,6 +489,20 @@ FP.trigger = function(path, data, controller, events) {
 
 			schema.stats.input++;
 			schema.stats.pending++;
+
+			self.stats.pending++;
+			self.stats.messages++;
+			self.mm++;
+
+			message.count = self.stats.messages;
+
+			var tid = message.fromid + '__' + message.fromindex;
+
+			if (self.stats.traffic[tid])
+				self.stats.traffic[tid]++;
+			else
+				self.stats.traffic[tid] = 1;
+
 			setImmediate(sendmessage, instance, message, true);
 			return message;
 		}
