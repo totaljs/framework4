@@ -520,7 +520,8 @@ function parse(html) {
 		var body = html.substring(beg, end);
 		var beg = body.indexOf('>') + 1;
 
-		var be = body.substring(8, beg - 1) === 'total';
+		var tmp = body.substring(8, beg - 1);
+		var be = tmp === 'total' || tmp === 'flow';
 		body = body.substring(beg);
 		body = body.trim();
 
