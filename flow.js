@@ -223,7 +223,7 @@ MP.send = function(outputindex) {
 				message.tocomponent = schema.component;
 				message.toschema = message.schema = schema;
 				message.cache = schema.cache;
-				message.options = schema.options;
+				message.options = message.config = schema.config;
 				message.duration2 = now;
 				schema.stats.input++;
 				schema.stats.pending++;
@@ -264,7 +264,7 @@ MP.destroy = function() {
 	self.fromschema = null;
 	self.toschema = null;
 	self.data = null;
-	self.options = null;
+	self.options = self.config = null;
 	self.duration = null;
 	self.duration2 = null;
 	self.$events = null;
@@ -284,7 +284,7 @@ function Flow(name) {
 
 var FP = Flow.prototype;
 
-FP.register = function(name, declaration, options) {
+FP.register = function(name, declaration, config) {
 	var self = this;
 
 	if (typeof(declaration) === 'string')
@@ -300,8 +300,9 @@ FP.register = function(name, declaration, options) {
 		prev.disconnect && prev.disconnect();
 	}
 
-	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, options: options || {} };
+	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {} };
 	declaration(curr);
+	curr.config = CLONE(curr.config);
 	self.meta.components[name] = curr;
 	self.$events.register && self.emit('register', name, curr);
 	curr.install && !prev && curr.install();
@@ -309,7 +310,7 @@ FP.register = function(name, declaration, options) {
 	curr.destroy = function() {
 		self.unregister(name);
 	};
-	return self;
+	return curr;
 };
 
 FP.destroy = function() {
@@ -355,7 +356,7 @@ FP.use = function(schema, callback) {
 		schema = schema.parseJSON(true);
 
 	// schema.COMPONENT_ID.component = 'condition';
-	// schema.COMPONENT_ID.options = {};
+	// schema.COMPONENT_ID.config = {};
 	// schema.COMPONENT_ID.connections = { '0': [{ id: 'COMPONENT_ID', index: '2' }] }
 
 	var err = new ErrorBuilder();
@@ -376,13 +377,13 @@ FP.use = function(schema, callback) {
 			schema[key].stats = { pending: 0, input: 0, output: 0, duration: 0 };
 			schema[key].cache = {};
 
-			if (!schema[key].options)
-				schema[key].options = CLONE(component.options);
+			if (!schema[key].config)
+				schema[key].config = CLONE(component.config);
 
 			if (!component)
 				err.push(key, '"' + instance.component + '" component not found.');
 
-			component.configure && component.configure.call(schema[key], schema[key], schema[key].options);
+			component.configure && component.configure.call(schema[key], schema[key], schema[key].config);
 		}
 
 		self.meta.flow = schema;
@@ -448,7 +449,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.toschema = message.schema = schema;
 			message.cache = instance.cache;
 
-			message.config = message.options = schema.options;
+			message.config = message.options = schema.config;
 			message.processed = 0;
 
 			schema.stats.input++;
@@ -487,6 +488,138 @@ FP.make = function(fn) {
 	var self = this;
 	fn.call(self, self);
 	return self;
+};
+
+function parse(html) {
+
+	var beg = -1;
+	var end = -1;
+
+	var body_be = '';
+	var body_style = '';
+	var body_template = '';
+	var body_settings = '';
+	var body_fe = '';
+
+	var body_style = '';
+	var body_template = '';
+	var body_settings = '';
+	var body_body = '';
+	var raw = html;
+
+	while (true) {
+
+		beg = html.indexOf('<script', end);
+		if (beg === -1)
+			break;
+
+		end = html.indexOf('</script>', beg);
+		if (end === -1)
+			break;
+
+		var body = html.substring(beg, end);
+		var beg = body.indexOf('>') + 1;
+
+		var be = body.substring(8, beg - 1) === 'total';
+		body = body.substring(beg);
+		body = body.trim();
+
+		if (be)
+			body_be = body;
+		else
+			body_fe = body;
+
+		end += 9;
+	}
+
+	beg = raw.indexOf('<style');
+	if (beg !== -1) {
+		end = raw.indexOf('</style>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 8), '');
+		body_style = tmp.trim();
+	}
+
+	beg = raw.indexOf('<template');
+	if (beg !== -1) {
+		end = raw.indexOf('</template>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 11), '');
+		body_template = tmp.trim();
+	}
+
+	beg = raw.indexOf('<body');
+	if (beg !== -1) {
+		end = raw.indexOf('</body>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 7), '');
+		body_body = tmp.trim();
+	}
+
+	beg = raw.indexOf('<settings');
+	if (beg !== -1) {
+		end = raw.indexOf('</settings>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 11), '');
+		body_settings = tmp.trim();
+	}
+
+	var com = {};
+
+	com.settings = body_settings;
+	com.css = body_style;
+	com.template = body_template;
+	com.html = body_body;
+	com.be = body_be;
+	com.js = body_fe;
+
+	// new Function('exports', body_script)(com);
+	return com;
+}
+
+FP.add = function(name, body) {
+	var self = this;
+	var meta = parse(body);
+	meta.id = name;
+	var fn = new Function('exports', meta.be);
+	delete meta.be;
+	var component = self.register(meta.id, fn);
+	component.ui = meta;
+	return component;
+};
+
+FP.components = function(prepare_export) {
+
+	var self = this;
+	var keys = Object.keys(self.meta.components);
+	var arr = [];
+
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var com = self.meta.components[key];
+		if (prepare_export) {
+
+			var obj = {};
+			obj.id = com.id;
+			obj.name = com.name;
+			obj.css = com.ui.css;
+			obj.js = com.ui.js;
+			obj.icon = com.icon;
+			obj.config = com.config;
+			obj.html = com.ui.html;
+			obj.template = com.ui.template;
+			obj.settings = com.ui.settings;
+			obj.inputs = com.inputs;
+			obj.outputs = com.outputs;
+			obj.group = com.group;
+
+			arr.push(obj);
+
+		} else
+			arr.push(com);
+	}
+
+	return arr;
 };
 
 exports.make = function(name) {
