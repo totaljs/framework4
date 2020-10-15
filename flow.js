@@ -284,7 +284,7 @@ function Flow(name) {
 
 var FP = Flow.prototype;
 
-FP.register = function(name, declaration) {
+FP.register = function(name, declaration, options) {
 	var self = this;
 
 	if (typeof(declaration) === 'string')
@@ -300,7 +300,7 @@ FP.register = function(name, declaration) {
 		prev.disconnect && prev.disconnect();
 	}
 
-	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {} };
+	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, options: options || {} };
 	declaration(curr);
 	self.meta.components[name] = curr;
 	self.$events.register && self.emit('register', name, curr);
@@ -376,10 +376,13 @@ FP.use = function(schema, callback) {
 			schema[key].stats = { pending: 0, input: 0, output: 0, duration: 0 };
 			schema[key].cache = {};
 
+			if (!schema[key].options)
+				schema[key].options = CLONE(component.options);
+
 			if (!component)
 				err.push(key, '"' + instance.component + '" component not found.');
 
-			component.options && component.options.call(schema[key], schema[key].options);
+			component.configure && component.configure.call(schema[key], schema[key], schema[key].options);
 		}
 
 		self.meta.flow = schema;
@@ -445,7 +448,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.toschema = message.schema = schema;
 			message.cache = instance.cache;
 
-			message.options = schema.options;
+			message.config = message.options = schema.options;
 			message.processed = 0;
 
 			schema.stats.input++;
