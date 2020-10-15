@@ -1969,14 +1969,31 @@ function jsonparser(key, value) {
  * @param {Hexa} type
  * @return {Buffer}
  */
-exports.getWebSocketFrame = function(code, message, type, compress) {
+exports.getWebSocketFrame = function(code, message, type, compress, mask) {
+
+	if (mask)
+		mask = Math.random(999999);
+
 	var messageBuffer = getWebSocketFrameMessageBytes(code, message);
 	var lengthBuffer = getWebSocketFrameLengthBytes(messageBuffer.length);
-	var frameBuffer = Buffer.alloc(1 + lengthBuffer.length + messageBuffer.length);
+	var lengthMask = mask ? 4 : 0;
+	var frameBuffer = Buffer.alloc(1 + lengthBuffer.length + messageBuffer.length + lengthMask);
+
 	frameBuffer[0] = 0x80 | type;
-	compress && (frameBuffer[0] |= 0x40);
+
+	if (compress)
+		frameBuffer[0] |= 0x40;
+
 	lengthBuffer.copy(frameBuffer, 1, 0, lengthBuffer.length);
-	messageBuffer.copy(frameBuffer, lengthBuffer.length + 1, 0, messageBuffer.length);
+
+	if (mask) {
+		frameBuffer[1] |= 0x80;
+		frameBuffer.writeInt32BE(mask, lengthBuffer.length + 1);
+		for (var i = 0; i < messageBuffer.length; i++)
+			messageBuffer[i] = messageBuffer[i] ^ mask[i % 4];
+	}
+
+	messageBuffer.copy(frameBuffer, lengthBuffer.length + 1 + lengthMask, 0, messageBuffer.length);
 	return frameBuffer;
 };
 

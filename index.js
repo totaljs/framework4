@@ -12939,8 +12939,6 @@ WebSocketClientProto.$ondata = function(data) {
 	if (!current.final && current.type !== 0x00)
 		current.type2 = current.type;
 
-	var tmp;
-
 	switch (current.type === 0x00 ? current.type2 : current.type) {
 		case 0x01:
 
@@ -12948,13 +12946,12 @@ WebSocketClientProto.$ondata = function(data) {
 			if (self.inflate) {
 				current.final && self.parseInflate();
 			} else {
-				tmp = self.$readbody();
 				if (current.body) {
 					CONCAT[0] = current.body;
-					CONCAT[1] = tmp;
+					CONCAT[1] = current.data;
 					current.body = Buffer.concat(CONCAT);
 				} else
-					current.body = tmp;
+					current.body = current.data;
 				current.final && self.$decode();
 			}
 
@@ -12966,13 +12963,12 @@ WebSocketClientProto.$ondata = function(data) {
 			if (self.inflate) {
 				current.final && self.parseInflate();
 			} else {
-				tmp = self.$readbody();
 				if (current.body) {
 					CONCAT[0] = current.body;
-					CONCAT[1] = tmp;
+					CONCAT[1] = current.data;
 					current.body = Buffer.concat(CONCAT);
 				} else
-					current.body = tmp;
+					current.body = current.data;
 				current.final && self.$decode();
 			}
 
@@ -13091,27 +13087,20 @@ WebSocketClientProto.$parse = function() {
 			// Does the buffer continue?
 			buf.$continue = current.final === false;
 			this.inflatepending.push(buf);
+
 		} else {
+
 			current.data = Buffer.alloc(length);
 			current.buffer.copy(current.data, 0, index, mlength);
+
+			if (current.isMask) {
+				for (var i = 0; i < length; i++)
+					current.data[i] = current.data[i] ^ current.mask[i % 4];
+			}
 		}
 	}
 
 	return true;
-};
-
-WebSocketClientProto.$readbody = function() {
-	var current = this.current;
-	var length = current.data.length;
-	var buf = Buffer.alloc(length);
-	for (var i = 0; i < length; i++) {
-		// does frame contain mask?
-		if (current.isMask)
-			buf[i] = current.data[i] ^ current.mask[i % 4];
-		else
-			buf[i] = current.data[i];
-	}
-	return buf;
 };
 
 WebSocketClientProto.$decode = function() {
@@ -13265,13 +13254,13 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 			self.deflatepending.push(Buffer.from(data, ENCODING));
 			self.sendDeflate();
 		} else
-			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, ENCODING), 0x01));
+			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, ENCODING), 0x01, false, self.masking));
 	} else if (message) {
 		if (self.deflate) {
 			self.deflatepending.push(message);
 			self.sendDeflate();
 		} else
-			self.socket.write(U.getWebSocketFrame(0, message, 0x02));
+			self.socket.write(U.getWebSocketFrame(0, message, 0x02, false, self.masking));
 	}
 
 	return self;
@@ -13295,7 +13284,7 @@ WebSocketClientProto.sendDeflate = function() {
 				data = data.slice(0, data.length - 4);
 				self.deflatelock = false;
 				self.deflatechunks = null;
-				self.socket.write(U.getWebSocketFrame(0, data, self.type === 1 ? 0x02 : 0x01, true));
+				self.socket.write(U.getWebSocketFrame(0, data, self.type === 1 ? 0x02 : 0x01, true, self.masking));
 				self.sendDeflate();
 			}
 		});
