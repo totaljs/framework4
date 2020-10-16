@@ -890,6 +890,21 @@ FP.add = function(name, body) {
 	return component;
 };
 
+FP.instances = function(fn) {
+
+	var self = this;
+	var keys = Object.keys(self.meta.flow);
+
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var instance = self.meta.flow[key];
+		if (instance.ready)
+			fn(instance);
+	}
+
+	return self;
+};
+
 FP.components = function(prepare_export) {
 
 	var self = this;
