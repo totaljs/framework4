@@ -1718,12 +1718,24 @@ exports.$normalize = function(path) {
 };
 
 const RANDOM_STRING = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+const RANDOM_NUMBER = '0123456789';
 
 exports.random_string = function(max) {
 	var builder = '';
 	for (var i = 0; i < max; i++) {
 		var index = Math.floor(Math.random() * RANDOM_STRING.length);
 		builder += RANDOM_STRING[index];
+	}
+	return builder;
+};
+
+exports.random_number = function(max) {
+	var builder = '';
+	for (var i = 0; i < max; i++) {
+		var index = Math.floor(Math.random() * RANDOM_NUMBER.length);
+		if (!i && !index)
+			index++;
+		builder += RANDOM_NUMBER[index];
 	}
 	return builder;
 };

@@ -1581,7 +1581,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 	var tmp;
 	var entity;
 	var item = new SchemaValue();
-	var keys = $.keys ? [] : null;
+	var keys = $ && $.keys ? [] : null;
 
 	for (var property in obj) {
 

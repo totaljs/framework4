@@ -644,6 +644,132 @@ global.$MAKE = function(schema, model, callback, novalidate, arg, controller) {
 	return o ? o.make(model, callback, arg, novalidate, controller) : undefined;
 };
 
+function makefake(type, max) {
+
+	if (max > 30)
+		max = 30;
+	else if (!max)
+		max = 10;
+
+	switch (type) {
+		case 'email':
+			return (U.random_string(10) + '@' + U.random_string(8) + '.com').toLowerCase();
+		case 'phone':
+			return '+421' + U.random_number(9);
+		case 'zip':
+			return U.random_number(5);
+		case 'number':
+			return U.random(100);
+		case 'float':
+			return U.random(100) * (U.random(20, 2) / 100);
+		case 'name':
+			return (U.random_string(6) + ' ' + U.random_string(10)).toLowerCase().capitalize();
+		case 'lowercase':
+			return U.random_string(max).toLowerCase();
+		case 'uppercase':
+			return U.random_string(max).toUpperCase();
+		case 'capitalize':
+		case 'capitalize2':
+			return U.random_string(max).toLowerCase().capitalize();
+		case 'url':
+			return 'https://' + U.random_string(10).toLowerCase() + '.com';
+		case 'json':
+			return '{"{0}":{1},"{2}":"{3}"}'.format(U.random_string(5).toLowerCase(), U.random(1000, 1), U.random_string(5), U.random_string(10));
+		case 'string':
+			return U.random_string(max ? (max / 2) : 12);
+		case 'base64':
+			return Buffer.alloc(U.random(10, 1)).toString('utf8');
+		case 'uid':
+			return UID('fake');
+		case 'uid16':
+			return UID16('fake');
+		case 'date':
+			return new Date().add('-' + U.random(30) + ' days');
+		case 'boolean':
+			return U.random(10) % 2 === 0;
+		case 'object':
+			var tmp = {};
+			tmp[U.random_string(5).toLowerCase()] = U.random_number(10);
+			return tmp;
+	}
+}
+
+global.FAKE = function(schema, onlyrequired) {
+
+	var o = framework_builders.getschema(schema);
+	var keys = Object.keys(o.schema);
+	var output = {};
+
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var type = o.schema[key];
+
+		if (onlyrequired && !type.required)
+			continue;
+
+		if (type.isArray)
+			output[key] = [];
+
+		if (type.type !== 8 && type.subtype) {
+			switch(type.subtype) {
+				case 'email':
+				case 'phone':
+				case 'zip':
+				case 'name':
+				case 'capitalize':
+				case 'capitalize2':
+				case 'lowercase':
+				case 'uppercase':
+				case 'base64':
+				case 'json':
+				case 'url':
+				case 'uid':
+				case 'uid16':
+				case 'number2':
+					if (type.isArray) {
+						for (var j = 0; j < 2; j++)
+							output[key].push(makefake(type.subtype));
+					} else
+						output[key] = makefake(type.subtype);
+					break;
+			}
+		} else {
+			switch (type.type) {
+				case 1:
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+				case 6:
+					var t = type.type === 1 ? 'float' : type.type === 2 ? 'number' : type.type === 4 ? 'boolean' : type.type === 5 ? 'date' : type.type === 6 ? 'object' : 'string';
+					if (type.isArray) {
+						for (var j = 0; j < 2; j++)
+							output[key].push(makefake(t, type.length));
+					} else
+						output[key] = makefake(t, type.length);
+					break;
+				case 7:
+					if (type.isArray) {
+						for (var j = 0; j < 2; j++)
+							output[key].push(FAKE(type.raw));
+					} else
+						output[key] = FAKE(type.raw);
+					break;
+				case 8:
+					output[key] = type.raw[U.random(type.raw.length - 1)];
+					break;
+				case 9:
+					var tmp = Object.keys(type.raw);
+					output[key] = tmp[U.random(tmp.length - 1)];
+					break;
+			}
+
+		}
+	}
+
+	return output;
+};
+
 global.$QUERY = function(schema, options, callback, controller) {
 
 	if (typeof(options) === 'function') {
