@@ -28,23 +28,22 @@ function Action() {
 	var t = this;
 	t.opt = {};
 	t.$callback = function(err, value) {
+
+		t.opt.log && t.opt.log(err, value);
+
 		if (t.opt.id)
 			t.response[t.opt.id] = value;
+
 		if (t.opt.pass) {
-			t.$fail(t.opt.pass(err, value, t.response) != true, t.opt.name);
+			t.$fail(t.opt.pass(err, value, t.response) != true, t.opt.name, err);
 		} else if (t.opt.fail) {
-			t.$fail(t.opt.fail(err, value, t.response) == true, t.opt.name);
-		} else if (t.opt.done && !err) {
+			t.$fail(t.opt.fail(err, value, t.response) == true, t.opt.name, err);
+		} else if (t.opt.done && !err)
 			t.opt.done(value);
-		} else {
-			var type = typeof(t.opt.callback);
-			if (type === 'function')
-				t.opt.callback && t.opt.callback(err, value);
-			else if (type === 'string')
-				t.$fail(!!err, t.opt.callback);
-			else
-				t.$fail(!!err, t.opt.name);
-		}
+		else
+			t.$fail(!!err, t.opt.name, err);
+
+		t.opt.callback && t.opt.callback(err, value);
 		t.$next();
 	};
 }
@@ -84,6 +83,12 @@ Action.prototype.session = function(session) {
 Action.prototype.query = function(query) {
 	var self = this;
 	self.opt.query = query;
+	return self;
+};
+
+Action.prototype.log = function(fn) {
+	var self = this;
+	self.opt.log = fn;
 	return self;
 };
 
@@ -137,12 +142,12 @@ function Test() {
 	t.pending = [];
 	t.errors = 0;
 
-	t.fail = function(is, description) {
+	t.fail = function(is, description, err) {
 		if (is) {
 			t.output.failed++;
 			t.errors++;
 		}
-		t.output.items.push({ failed: is, name: (description || t.current), ts: Date.now() - t.ts });
+		t.output.items.push({ failed: is, name: (description || t.current), error: err ? (err instanceof ErrorBuilder ? err.plain() : (err + '')) : null, ts: Date.now() - t.ts });
 	};
 
 	t.next = function() {
