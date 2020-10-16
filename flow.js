@@ -449,7 +449,7 @@ FP.ondebug = function(a, b, c, d) {
 
 FP.ontrigger = function(outputindex, data) {
 	// this instance
-	this.main.trigger(this.id + (outputindex == null ? '' : '__', data));
+	this.main.trigger(this.id + (outputindex == null ? '' : ('__' + outputindex), data));
 };
 
 FP.use = function(schema, callback) {
