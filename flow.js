@@ -232,12 +232,12 @@ MP.send = function(outputindex) {
 				var message = self.clone();
 
 				message.used++;
-				message.instance = next;
+				message.instance = schema;
 				message.from = self.to;
 				message.fromid = self.toid;
 				message.fromindex = outputindex;
 				message.fromcomponent = self.instance.component;
-				message.to = message.schema = next;
+				message.to = message.schema = schema;
 				message.toid = output.id;
 				message.toindex = inputindex;
 				message.index = inputindex;
@@ -621,10 +621,14 @@ FP.use = function(schema, callback) {
 			if (instance.options) {
 				instance.config = instance.options;
 				delete instance.options;
-			} else {
-				var tmp = component.config || component.options;
-				instance.config = tmp ? CLONE(tmp) : {};
 			}
+
+			var tmp = component.config;
+			if (tmp)
+				instance.config = instance.config ? U.extend(CLONE(tmp), instance.config) : CLONE(tmp);
+
+			if (!instance.config)
+				instance.config = {};
 
 			component.make && component.make.call(instance, instance);
 
@@ -890,19 +894,20 @@ FP.add = function(name, body) {
 	return component;
 };
 
-FP.instances = function(fn) {
+FP.instances = function() {
 
 	var self = this;
 	var keys = Object.keys(self.meta.flow);
+	var arr = [];
 
 	for (var i = 0; i < keys.length; i++) {
 		var key = keys[i];
 		var instance = self.meta.flow[key];
 		if (instance.ready)
-			fn(instance);
+			arr.push(instance);
 	}
 
-	return self;
+	return arr;
 };
 
 FP.components = function(prepare_export) {
