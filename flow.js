@@ -449,17 +449,17 @@ FP.clean = function() {
 
 FP.onstatus = function(a, b, c, d) {
 	// this instance
-	this.$events.status && this.emit('status', this, a, b, c, d);
+	this.main.$events.status && this.main.emit('status', this, a, b, c, d);
 };
 
 FP.onerror = function(a, b, c, d) {
 	// this instance
-	this.$events.error && this.emit('error', this, a, b, c, d);
+	this.main.$events.error && this.main.emit('error', this, a, b, c, d);
 };
 
 FP.ondebug = function(a, b, c, d) {
 	// this instance
-	this.$events.debug && this.emit('debug', this, a, b, c, d);
+	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
 FP.ontrigger = function(outputindex, data, controller, events) {
