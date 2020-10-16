@@ -169,6 +169,14 @@ MP.clone = function() {
 	return obj;
 };
 
+MP.destroy = function() {
+	var self = this;
+	self.processed = 0;
+	self.main.stats.pending--;
+	self.instance.stats.pending--;
+	return self;
+};
+
 MP.send = function(outputindex) {
 
 	var self = this;
@@ -176,8 +184,8 @@ MP.send = function(outputindex) {
 	var count = 0;
 
 	if (outputindex == null) {
-		if (self.schema.connections) {
-			outputs = Object.keys(self.schema.connections);
+		if (self.instance.connections) {
+			outputs = Object.keys(self.instance.connections);
 			for (var i = 0; i < outputs.length; i++)
 				count += self.send(outputs[i]);
 		}
@@ -187,14 +195,14 @@ MP.send = function(outputindex) {
 	var meta = self.main.meta;
 	var now = Date.now();
 
-	outputs = self.schema.connections ? (self.schema.connections[outputindex] || EMPTYARRAY) : EMPTYARRAY;
+	outputs = self.instance.connections ? (self.instance.connections[outputindex] || EMPTYARRAY) : EMPTYARRAY;
 
 	if (self.processed === 0) {
 		self.processed = 1;
 		self.main.stats.pending--;
-		self.schema.stats.pending--;
-		self.schema.stats.output++;
-		self.schema.stats.duration = now - self.duration2;
+		self.instance.stats.pending--;
+		self.instance.stats.output++;
+		self.instance.stats.duration = now - self.duration2;
 	}
 
 	if (!self.main.$can(false, self.toid, outputindex))
@@ -202,10 +210,12 @@ MP.send = function(outputindex) {
 
 	var tid = self.toid + '__' + outputindex;
 
-	if (self.main.stats.traffic[tid])
+	if (self.main.stats.traffic[tid]) {
 		self.main.stats.traffic[tid]++;
-	else
+	} else {
 		self.main.stats.traffic[tid] = 1;
+		self.main.stats.traffic.priority.push(tid);
+	}
 
 	for (var i = 0; i < outputs.length; i++) {
 		var output = outputs[i];
@@ -222,17 +232,16 @@ MP.send = function(outputindex) {
 				var message = self.clone();
 
 				message.used++;
-				message.instance = schema;
+				message.instance = next;
 				message.from = self.to;
 				message.fromid = self.toid;
 				message.fromindex = outputindex;
-				message.fromcomponent = self.schema.component;
-				message.fromschema = self.toschema;
-				message.to = next;
+				message.fromcomponent = self.instance.component;
+				message.to = message.schema = next;
 				message.toid = output.id;
 				message.toindex = inputindex;
+				message.index = inputindex;
 				message.tocomponent = schema.component;
-				message.toschema = message.schema = schema;
 				message.cache = schema.cache;
 				message.options = message.config = schema.config;
 				message.duration2 = now;
@@ -240,13 +249,13 @@ MP.send = function(outputindex) {
 				schema.stats.input++;
 				schema.stats.pending++;
 
-				// self.main.stats.messages++;
+				self.main.stats.messages++;
 				self.main.stats.pending++;
 				self.main.mm++;
 
 				self.$events.message && self.emit('message', message);
 				self.main.$events.message && self.main.emit('message', message);
-				setImmediate(sendmessage, next, message);
+				setImmediate(sendmessage, next, message, true);
 				count++;
 			}
 		}
@@ -279,8 +288,6 @@ MP.destroy = function() {
 	self.main = null;
 	self.from = null;
 	self.to = null;
-	self.fromschema = null;
-	self.toschema = null;
 	self.data = null;
 	self.options = self.config = null;
 	self.duration = null;
@@ -295,25 +302,33 @@ function Flow(name) {
 	t.meta.components = {};
 	t.meta.flow = {};
 	t.meta.cache = {};
-	t.stats = { messages: 0, pending: 0, traffic: {}, mm: 0 };
+	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0 };
 	t.mm = 0;
 	t.$events = {};
 
 	var counter = 1;
 
-	t.$interval = setInterval(function(t) {
+	setImmediate(function(t) {
+		if (t.interval !== 0) {
+			t.$interval = setInterval(function(t) {
 
-		if (t.mm)
-			t.stats.traffic = {};
+				var is = t.mm;
 
-		if (counter % 20 === 0) {
-			t.stats.mm = t.mm;
-			t.mm = 0;
-			counter = 1;
-		} else
-			counter++;
+				if (counter % 20 === 0) {
+					t.stats.mm = t.mm;
+					t.mm = 0;
+					counter = 1;
+				} else
+					counter++;
 
-	}, 3000, t);
+				t.$events.stats && t.emit('stats', t.stats);
+
+				if (is)
+					t.stats.traffic = { priority: [] };
+
+			}, t.interval || 3000, t);
+		}
+	}, t);
 
 	new framework_utils.EventEmitter2(t);
 }
@@ -447,9 +462,81 @@ FP.ondebug = function(a, b, c, d) {
 	this.$events.debug && this.emit('debug', this, a, b, c, d);
 };
 
-FP.ontrigger = function(outputindex, data) {
+FP.ontrigger = function(outputindex, data, controller, events) {
 	// this instance
-	this.main.trigger(this.id + (outputindex == null ? '' : ('__' + outputindex), data));
+
+	var schema = this;
+	var self = schema.main;
+	if (schema && schema.ready && schema.component) {
+		var instance = self.meta.components[schema.component];
+		if (instance && instance.connected && !instance.disabled) {
+
+			var conn = schema.connections[outputindex];
+			if (conn && conn.length) {
+
+				for (var i = 0; i < conn.length; i++) {
+
+					var m = conn[i];
+					var target = self.meta.flow[m.id];
+					if (!target)
+						continue;
+
+					instance = self.meta.components[target.component];
+					if (!instance)
+						continue;
+
+					var message = new Message();
+
+					message.$events = events || {};
+					message.duration = message.duration2 = Date.now();
+					message.controller = controller;
+					message.instance = target;
+
+					message.used = 1;
+					message.repo = {};
+					message.main = self;
+					message.data = data;
+
+					message.from = schema;
+					message.fromid = schema.id;
+					message.fromindex = outputindex;
+					message.fromcomponent = schema.component;
+
+					message.to = message.schema = target;
+					message.toid = m.id;
+					message.toindex = m.index;
+					message.index = m.index;
+					message.tocomponent = target.component;
+					message.cache = target.cache;
+
+					message.config = message.options = target.config;
+					message.processed = 0;
+
+					schema.stats.input++;
+					schema.stats.pending++;
+
+					message.main.stats.pending++;
+					message.main.stats.messages++;
+					message.main.mm++;
+
+					message.count = message.main.stats.messages;
+
+					if (message.fromid) {
+						var tid = message.fromid + '__' + message.fromindex;
+						if (message.main.stats.traffic[tid])
+							message.main.stats.traffic[tid]++;
+						else {
+							message.main.stats.traffic[tid] = 1;
+							message.main.stats.traffic.priority.push(tid);
+						}
+					}
+
+					setImmediate(sendmessage, instance, message, true);
+				}
+			}
+		}
+	}
+
 };
 
 FP.use = function(schema, callback) {
@@ -541,6 +628,12 @@ FP.use = function(schema, callback) {
 
 			component.make && component.make.call(instance, instance);
 
+			instance.status = self.onstatus;
+			instance.debug = self.ondebug;
+			instance.throw = self.onerror;
+			instance.send = self.ontrigger;
+			instance.main = self;
+
 			if (component.open) {
 				component.open.call(instance, instance, (function(instance) {
 					return function() {
@@ -553,10 +646,6 @@ FP.use = function(schema, callback) {
 			} else
 				instance.ready = true;
 
-			instance.status = self.onstatus;
-			instance.debug = self.ondebug;
-			instance.throw = self.onerror;
-			instance.send = self.ontrigger;
 			self.meta.flow[key] = instance;
 
 			next();
@@ -595,7 +684,7 @@ function sendmessage(instance, message, event) {
 		message.main.$events.message && message.main.emit('message', message);
 	}
 
-	instance.message(message);
+	instance.message.call(message.instance, message);
 }
 
 FP.$can = function(isinput, id, index) {
@@ -611,8 +700,10 @@ FP.$can = function(isinput, id, index) {
 FP.trigger = function(path, data, controller, events) {
 
 	path = path.split(D);
+
 	var self = this;
 	var inputindex = path.length === 1 ? 0 : path[1];
+
 	var schema = self.meta.flow[path[0]];
 	if (schema && schema.ready && schema.component) {
 		var instance = self.meta.components[schema.component];
@@ -634,13 +725,12 @@ FP.trigger = function(path, data, controller, events) {
 			message.fromid = null;
 			message.fromindex = null;
 			message.fromcomponent = null;
-			message.fromschema = null;
 
-			message.to = instance;
+			message.to = message.schema = instance;
 			message.toid = path[0];
 			message.toindex = inputindex;
+			message.index = inputindex;
 			message.tocomponent = instance.id;
-			message.toschema = message.schema = schema;
 			message.cache = instance.cache;
 
 			message.config = message.options = schema.config;
@@ -659,8 +749,10 @@ FP.trigger = function(path, data, controller, events) {
 				var tid = message.fromid + '__' + message.fromindex;
 				if (message.main.stats.traffic[tid])
 					message.main.stats.traffic[tid]++;
-				else
+				else {
 					message.main.stats.traffic[tid] = 1;
+					message.main.stats.traffic.priority.push(tid);
+				}
 			}
 
 			setImmediate(sendmessage, instance, message, true);
