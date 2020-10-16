@@ -200,6 +200,13 @@ MP.send = function(outputindex) {
 	if (!self.main.$can(false, self.toid, outputindex))
 		return count;
 
+	var tid = self.toid + '__' + outputindex;
+
+	if (self.main.stats.traffic[tid])
+		self.main.stats.traffic[tid]++;
+	else
+		self.main.stats.traffic[tid] = 1;
+
 	for (var i = 0; i < outputs.length; i++) {
 		var output = outputs[i];
 
@@ -207,14 +214,15 @@ MP.send = function(outputindex) {
 			continue;
 
 		var schema = meta.flow[output.id];
-		if (schema && schema.component && self.main.$can(true, output.id, output.index)) {
+		if (schema && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.message) {
+			if (next && next.message && next.connected && !next.disabled) {
 
 				var inputindex = output.index;
 				var message = self.clone();
 
 				message.used++;
+				message.instance = schema;
 				message.from = self.to;
 				message.fromid = self.toid;
 				message.fromindex = outputindex;
@@ -229,21 +237,12 @@ MP.send = function(outputindex) {
 				message.options = message.config = schema.config;
 				message.duration2 = now;
 
-				var tid = message.fromid + '__' + message.fromindex;
-
-				if (self.main.stats.traffic[tid])
-					self.main.stats.traffic[tid]++;
-				else
-					self.main.stats.traffic[tid] = 1;
-
 				schema.stats.input++;
 				schema.stats.pending++;
 
-				self.main.stats.messages++;
+				// self.main.stats.messages++;
 				self.main.stats.pending++;
 				self.main.mm++;
-
-				message.count = self.main.stats.messages;
 
 				self.$events.message && self.emit('message', message);
 				self.main.$events.message && self.main.emit('message', message);
@@ -337,13 +336,12 @@ FP.register = function(name, declaration, config) {
 		prev.disconnect && prev.disconnect();
 	}
 
-	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {} };
+	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {} };
 	declaration(curr);
-	curr.config = CLONE(curr.config);
+	curr.config = CLONE(curr.config || curr.options);
 	self.meta.components[name] = curr;
 	self.$events.register && self.emit('register', name, curr);
-	curr.install && !prev && curr.install();
-	curr.connect && curr.connect();
+	curr.install && !prev && curr.install.call(curr, curr);
 	curr.destroy = function() {
 		self.unregister(name);
 	};
@@ -352,40 +350,106 @@ FP.register = function(name, declaration, config) {
 
 FP.destroy = function() {
 	var self = this;
-	self.unregister();
+
 	clearInterval(self.$interval);
-	setTimeout(function() {
+	self.$interval = null;
+
+	self.unregister(null, function() {
 		self.emit('destroy');
 		self.meta = null;
-		self.$interval = null;
 		self.$events = null;
-	}, 500);
+	});
+
 	delete F.flows[self.name];
 };
 
-FP.unregister = function(name) {
+FP.cleanforce = function() {
+
+	var self = this;
+	var keys = Object.keys(self.meta.flow);
+
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var instance = self.meta.flow[key];
+		if (instance.connections) {
+			var keys2 = Object.keys(instance.connections);
+			for (var j = 0; j < keys2.length; j++) {
+				var key2 = keys2[j];
+				var conn = instance.connections[key2];
+				var arr = conn.remove(c => self.meta.flow[c.id] == null);
+				if (arr.length)
+					instance.connections[key2] = arr;
+				else
+					delete instance.connections[key2];
+			}
+		}
+	}
+
+	return self;
+};
+
+FP.unregister = function(name, callback) {
 
 	var self = this;
 
 	if (name == null) {
-		var keys = Object.keys(self.meta.components);
-		for (var i = 0; i < keys.length; i++)
-			self.unregister(self.meta.components[keys[i]]);
+		Object.keys(self.meta.components).wait(function(key, next) {
+			self.unregister(key, next);
+		}, callback);
 		return self;
 	}
 
 	var curr = self.meta.components[name];
 	if (curr) {
 		self.$events.unregister && self.emit('unregister', name, curr);
-		curr.connected = false;
-		curr.disabled = true;
-		curr.destroy = null;
-		curr.cache = null;
-		curr.disconnect && curr.disconnect();
-		curr.uninstall && curr.uninstall();
-		delete self.meta.components[name];
-	}
+		Object.keys(self.meta.flow).wait(function(key, next) {
+			var instance = self.meta.flow[key];
+			if (instance.component === name) {
+				instance.ready = false;
+				curr.close && curr.close.call(instance, instance);
+				delete self.meta.flow[key];
+			}
+			next();
+		}, function() {
+			curr.connected = false;
+			curr.disabled = true;
+			curr.uninstall && curr.uninstall.call(curr, curr);
+			curr.destroy = null;
+			curr.cache = null;
+			delete self.meta.components[name];
+			callback && callback();
+			self.clean();
+		});
+	} else
+		callback && callback();
+
 	return self;
+};
+
+FP.clean = function() {
+	var self = this;
+	setTimeout2(self.name, () => self.cleanforce(), 1000);
+	return self;
+};
+
+FP.onstatus = function(a, b, c, d) {
+	// this instance
+	this.$events.status && this.emit('status', this, a, b, c, d);
+};
+
+FP.onerror = function(a, b, c, d) {
+	// this instance
+	this.$events.error && this.emit('error', this, a, b, c, d);
+};
+
+FP.ondebug = function(a, b, c, d) {
+	// this instance
+	this.$events.debug && this.emit('debug', this, a, b, c, d);
+};
+
+FP.ontrigger = function(outputindex, data) {
+	// this instance
+	this.main.trigger(this.id + (outputindex == null ? '' : '__', data));
 };
 
 FP.use = function(schema, callback) {
@@ -402,35 +466,125 @@ FP.use = function(schema, callback) {
 
 	if (schema) {
 
+		// var keys = Object.keys(self.meta.flow);
 		var keys = Object.keys(schema);
-		for (var i = 0; i < keys.length; i++) {
-			var key = keys[i];
-			if (key === 'paused')
-				continue;
+		var ts = Date.now();
 
+		keys.wait(function(key, next) {
+
+			if (key === 'paused') {
+				next();
+				return;
+			}
+
+			var current = self.meta.flow[key];
 			var instance = schema[key];
-			if (!instance.component)
-				continue;
+
+			// Not defined component
+			if (!instance.component) {
+				if (current) {
+					err.push(key, '"' + instance.id + '" identifier does not have defined component.');
+					current.close && current.close.call(current, current);
+					delete self.meta.flow[key];
+					next();
+					return;
+				}
+			}
 
 			var component = self.meta.components[instance.component];
-			schema[key].stats = { pending: 0, input: 0, output: 0, duration: 0 };
-			schema[key].cache = {};
 
-			if (!schema[key].config)
-				schema[key].config = CLONE(component.config);
+			// Component not found
+			if (!component) {
+				if (current) {
+					err.push(key, '"' + instance.component + '" component not found.');
+					current.close && current.close.call(current, current);
+					delete self.meta.flow[key];
+					next();
+					return;
+				}
+			}
 
-			if (!component)
-				err.push(key, '"' + instance.component + '" component not found.');
+			if (current) {
+				if (current.component === instance.component) {
 
-			component.configure && component.configure.call(schema[key], schema[key], schema[key].config);
-		}
+					// Updated config and connections
+					current.config = instance.config || instance.options;
+					current.connections = instance.connections;
+					current.ts = ts;
 
-		self.meta.flow = schema;
-	} else
+					// Reconfigure
+					component.configure && component.configure.call(current, current, current.config);
+					next();
+					return;
+
+				} else {
+					// Components are different, closes current
+					current.ready = false;
+					current.close && current.close.call(current, current);
+					delete self.meta.flow[key];
+				}
+			}
+
+			instance.stats = { pending: 0, input: 0, output: 0, duration: 0 };
+			instance.cache = {};
+			instance.id = key;
+			instance.ts = ts;
+			instance.module = component;
+
+			if (instance.options) {
+				instance.config = instance.options;
+				delete instance.options;
+			} else {
+				var tmp = component.config || component.options;
+				instance.config = tmp ? CLONE(tmp) : {};
+			}
+
+			component.make && component.make.call(instance, instance);
+
+			if (component.open) {
+				component.open.call(instance, instance, (function(instance) {
+					return function() {
+						if (instance) {
+							instance.ready = true;
+							delete instance.open;
+						}
+					};
+				})(instance));
+			} else
+				instance.ready = true;
+
+			instance.status = self.onstatus;
+			instance.debug = self.ondebug;
+			instance.throw = self.onerror;
+			instance.send = self.ontrigger;
+			self.meta.flow[key] = instance;
+
+			next();
+
+		}, function() {
+
+			self.$events.schema && self.emit('schema', self.meta.flow);
+			callback && callback(err.length ? err : null);
+
+			var keys = Object.keys(self.meta.flow);
+			for (var i = 0; i < keys.length; i++) {
+				var key = keys[i];
+				var instance = self.meta.flow[key];
+				var component = self.meta.components[instance.component];
+				if (instance.ts !== ts) {
+					component.ready = false;
+					component.close && component.close.call(instance, instance);
+					delete self.meta.flow[key];
+				}
+			}
+
+		});
+
+	} else {
 		err.push('schema', 'Flow schema is invalid.');
+		callback && callback(err);
+	}
 
-	self.$events.schema && self.emit('schema', schema);
-	callback && callback(err.length ? err : null);
 	return self;
 };
 
@@ -455,19 +609,21 @@ FP.$can = function(isinput, id, index) {
 
 // path = ID__INPUTINDEX
 FP.trigger = function(path, data, controller, events) {
+
 	path = path.split(D);
 	var self = this;
 	var inputindex = path.length === 1 ? 0 : path[1];
 	var schema = self.meta.flow[path[0]];
-	if (schema && schema.component) {
+	if (schema && schema.ready && schema.component) {
 		var instance = self.meta.components[schema.component];
-		if (instance && instance.message && self.$can(true, path[0], path[1])) {
+		if (instance && instance.message && instance.connected && !instance.disabled && self.$can(true, path[0], path[1])) {
 
 			var message = new Message();
 
 			message.$events = events || {};
 			message.duration = message.duration2 = Date.now();
 			message.controller = controller;
+			message.instance = schema;
 
 			message.used = 1;
 			message.repo = {};
@@ -499,12 +655,13 @@ FP.trigger = function(path, data, controller, events) {
 
 			message.count = message.main.stats.messages;
 
-			var tid = message.fromid + '__' + message.fromindex;
-
-			if (message.main.stats.traffic[tid])
-				message.main.stats.traffic[tid]++;
-			else
-				message.main.stats.traffic[tid] = 1;
+			if (message.fromid) {
+				var tid = message.fromid + '__' + message.fromindex;
+				if (message.main.stats.traffic[tid])
+					message.main.stats.traffic[tid]++;
+				else
+					message.main.stats.traffic[tid] = 1;
+			}
 
 			setImmediate(sendmessage, instance, message, true);
 			return message;
