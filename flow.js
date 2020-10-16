@@ -191,7 +191,7 @@ MP.send = function(outputindex) {
 
 	if (self.processed === 0) {
 		self.processed = 1;
-		self.stats.pending--;
+		self.main.stats.pending--;
 		self.schema.stats.pending--;
 		self.schema.stats.output++;
 		self.schema.stats.duration = now - self.duration2;
@@ -210,8 +210,10 @@ MP.send = function(outputindex) {
 		if (schema && schema.component && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
 			if (next && next.message) {
+
 				var inputindex = output.index;
 				var message = self.clone();
+
 				message.used++;
 				message.from = self.to;
 				message.fromid = self.toid;
@@ -229,18 +231,19 @@ MP.send = function(outputindex) {
 
 				var tid = message.fromid + '__' + message.fromindex;
 
-				if (self.stats.traffic[tid])
-					self.stats.traffic[tid]++;
+				if (self.main.stats.traffic[tid])
+					self.main.stats.traffic[tid]++;
 				else
-					self.stats.traffic[tid] = 1;
+					self.main.stats.traffic[tid] = 1;
 
 				schema.stats.input++;
 				schema.stats.pending++;
-				self.stats.messages++;
-				self.stats.pending++;
-				self.mm++;
 
-				message.count = self.stats.messages;
+				self.main.stats.messages++;
+				self.main.stats.pending++;
+				self.main.mm++;
+
+				message.count = self.main.stats.messages;
 
 				self.$events.message && self.emit('message', message);
 				self.main.$events.message && self.main.emit('message', message);
@@ -264,7 +267,7 @@ MP.destroy = function() {
 
 	if (self.processed === 0) {
 		self.processed = 1;
-		self.stats.pending--;
+		self.main.stats.pending--;
 		self.schema.stats.pending--;
 		self.schema.stats.output++;
 		self.schema.stats.duration = Date.now() - self.duration2;
@@ -490,18 +493,18 @@ FP.trigger = function(path, data, controller, events) {
 			schema.stats.input++;
 			schema.stats.pending++;
 
-			self.stats.pending++;
-			self.stats.messages++;
-			self.mm++;
+			message.main.stats.pending++;
+			message.main.stats.messages++;
+			message.main.mm++;
 
-			message.count = self.stats.messages;
+			message.count = message.main.stats.messages;
 
 			var tid = message.fromid + '__' + message.fromindex;
 
-			if (self.stats.traffic[tid])
-				self.stats.traffic[tid]++;
+			if (message.main.stats.traffic[tid])
+				message.main.stats.traffic[tid]++;
 			else
-				self.stats.traffic[tid] = 1;
+				message.main.stats.traffic[tid] = 1;
 
 			setImmediate(sendmessage, instance, message, true);
 			return message;
