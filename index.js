@@ -396,8 +396,8 @@ global.LOADRESOURCE = function(name, value) {
 
 	for (var i = 0; i < value.length; i++) {
 		var item = value[i];
-		var key = item.id || item.key || item.name;
-		var val = item.value || item.text || item.body;
+		var key = item.id || item.key || item.code;
+		var val = item.value || item.name || item.text || item.body;
 		key && builder.push(key.padRight(25, ' ') + ': ' + (val == null ? '' : val));
 	}
 
