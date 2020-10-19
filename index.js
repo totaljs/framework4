@@ -648,13 +648,13 @@ function makefakename(name) {
 
 	var value = '';
 
-	if (name === 'firstname' || name === 'givenname' || name === 'nick' || name === 'alias' || name === 'fullname' || name === 'name')
+	if (name === 'firstname' || name === 'givenname' || name === 'nick' || name === 'alias' || name === 'fullname')
 		value = ['Peter', 'Joseph', 'James', 'Lena', 'Thomas', 'Lucy'].random(true);
 
 	if (name === 'middlename' || name === 'fullname')
 		value = (value ? (value + ' ') : '') + ['Theodora', 'Benito', 'Carlene', 'Simpson', 'Alannah', 'Keith'].random(true);
 
-	if (name === 'lastname' || name === 'surname' || name === 'fullname' || name === 'name')
+	if (name === 'lastname' || name === 'surname' || name === 'fullname')
 		value = (value ? (value + ' ') : '') + ['Walker', 'Parker', 'Taylor', 'Turner', 'Miller', 'Cooper'].random(true);
 
 	if (name === 'company' || name === 'organization')
