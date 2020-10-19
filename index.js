@@ -644,7 +644,35 @@ global.$MAKE = function(schema, model, callback, novalidate, arg, controller) {
 	return o ? o.make(model, callback, arg, novalidate, controller) : undefined;
 };
 
-function makefake(type, max) {
+function makefakename(name) {
+
+	var value = '';
+
+	if (name === 'firstname' || name === 'givenname' || name === 'nick' || name === 'alias' || name === 'fullname' || name === 'name')
+		value = ['Peter', 'Joseph', 'James', 'Lena', 'Thomas', 'Lucy'].random(true);
+
+	if (name === 'middlename' || name === 'fullname')
+		value = (value ? (value + ' ') : '') + ['Theodora', 'Benito', 'Carlene', 'Simpson', 'Alannah', 'Keith'].random(true);
+
+	if (name === 'lastname' || name === 'surname' || name === 'fullname' || name === 'name')
+		value = (value ? (value + ' ') : '') + ['Walker', 'Parker', 'Taylor', 'Turner', 'Miller', 'Cooper'].random(true);
+
+	if (name === 'company' || name === 'organization')
+		value = ['Total Avengers', 'Google', 'Microsoft', 'Apple', 'Samsung', 'Eset'].random(true);
+
+	if (name === 'languageid' || name === 'language')
+		value = ['en', 'de', 'sk', 'fr', 'ru', 'es'].random(true);
+
+	if (name === 'countryid' || name === 'country')
+		value = ['SVK', 'USA', 'FRA', 'GBR', 'ESP', 'RUS'].random(true);
+
+	if (name === 'currencyid' || name === 'currency')
+		value = ['EUR', 'USD', 'GBP', 'RUB', 'CHF', 'LYD'].random(true);
+
+	return value;
+}
+
+function makefake(type, max, name) {
 
 	if (max > 30)
 		max = 30;
@@ -659,24 +687,26 @@ function makefake(type, max) {
 		case 'zip':
 			return U.random_number(5);
 		case 'number':
+			if (name === 'age')
+				return U.random(50, 18);
 			return U.random(100);
 		case 'float':
 			return U.random(100) * (U.random(20, 2) / 100);
 		case 'name':
-			return (U.random_string(6) + ' ' + U.random_string(10)).toLowerCase().capitalize();
+			return makefakename(name) || ((U.random_string(6) + ' ' + U.random_string(10)).toLowerCase().capitalize());
 		case 'lowercase':
 			return U.random_string(max).toLowerCase();
 		case 'uppercase':
 			return U.random_string(max).toUpperCase();
 		case 'capitalize':
 		case 'capitalize2':
-			return U.random_string(max).toLowerCase().capitalize();
+			return makefakename(name) || U.random_string(max).toLowerCase().capitalize();
 		case 'url':
 			return 'https://' + U.random_string(10).toLowerCase() + '.com';
 		case 'json':
 			return '{"{0}":{1},"{2}":"{3}"}'.format(U.random_string(5).toLowerCase(), U.random(1000, 1), U.random_string(5), U.random_string(10));
 		case 'string':
-			return U.random_string(max ? (max / 2) : 12);
+			return makefakename(name) || U.random_string(max ? (max / 2) : 12);
 		case 'base64':
 			return Buffer.alloc(U.random(10, 1)).toString('utf8');
 		case 'uid':
@@ -684,7 +714,10 @@ function makefake(type, max) {
 		case 'uid16':
 			return UID16('fake');
 		case 'date':
-			return new Date().add('-' + U.random(30) + ' days');
+			var dt = new Date().add('-' + U.random(30) + ' days');
+			if (name === 'dtbirth' || name === 'birthdate')
+				dt.setFullYear(U.random(2000, 1970));
+			return dt;
 		case 'boolean':
 			return U.random(10) % 2 === 0;
 		case 'object':
@@ -728,9 +761,9 @@ global.FAKE = function(schema, onlyrequired) {
 				case 'number2':
 					if (type.isArray) {
 						for (var j = 0; j < 2; j++)
-							output[key].push(makefake(type.subtype));
+							output[key].push(makefake(type.subtype, 0, key));
 					} else
-						output[key] = makefake(type.subtype);
+						output[key] = makefake(type.subtype, 0, key);
 					break;
 			}
 		} else {
@@ -744,9 +777,9 @@ global.FAKE = function(schema, onlyrequired) {
 					var t = type.type === 1 ? 'float' : type.type === 2 ? 'number' : type.type === 4 ? 'boolean' : type.type === 5 ? 'date' : type.type === 6 ? 'object' : 'string';
 					if (type.isArray) {
 						for (var j = 0; j < 2; j++)
-							output[key].push(makefake(t, type.length));
+							output[key].push(makefake(t, type.length, key));
 					} else
-						output[key] = makefake(t, type.length);
+						output[key] = makefake(t, type.length, key);
 					break;
 				case 7:
 					if (type.isArray) {
