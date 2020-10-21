@@ -798,8 +798,8 @@ var authbuiltin = function(opt) {
 
 		if (expired.length && opt.onfree) {
 			var meta = {};
-			meta.sessions = expired;
-			meta.users = expired.length ? Object.keys(users_expired) : EMPTYARRAY;
+			meta.sessions = expired.length ? expired : null;
+			meta.users = expired.length ? Object.keys(users_expired) : null;
 			opt.onfree && opt.onfree(meta);
 		}
 
