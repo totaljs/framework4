@@ -5103,6 +5103,7 @@ global.LOGGER = function() {
 	var dt = NOW.getFullYear() + '-' + ((NOW.getMonth() + 1) + '').padLeft(2, '0') + '-' + (NOW.getDate() + '').padLeft(2, '0') + ' ' + (NOW.getHours() + '').padLeft(2, '0') + ':' + (NOW.getMinutes() + '').padLeft(2, '0') + ':' + (NOW.getSeconds() + '').padLeft(2, '0');
 	var str = '';
 	var length = arguments.length;
+	var name = arguments[0];
 
 	for (var i = 1; i < length; i++) {
 		var val = arguments[i];
@@ -5118,7 +5119,7 @@ global.LOGGER = function() {
 	PATH.verify('logs');
 	U.queue('LOGGER', 5, function(next) {
 		F.stats.performance.open++;
-		Fs.appendFile(U.combine(CONF.directory_logs, arguments[0] + '.log'), dt + ' | ' + str + '\n', next);
+		Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), dt + ' | ' + str + '\n', next);
 	});
 };
 
