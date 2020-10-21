@@ -624,8 +624,165 @@ global.ERROR = function(name) {
 	};
 };
 
+var authbuiltin = function(opt) {
+
+	// opt.secret {String}
+	// opt.ddos {Number}
+	// opt.expire {String}
+	// opt.cookie {String} A cookie name
+	// opt.header {String} A header name
+	// opt.options {Object} A cookie options
+
+	// Delegates
+	// opt.onddos = function($)
+	// opt.onread = function({ sessionid: String, userid: String, ua: String }, callback(USER_DATA), $)
+	// opt.onfree = function({ sessions: Array, users: Array })
+
+	opt.sessions = {};
+	opt.blocked = {};
+
+	if (!opt.cleaner)
+		opt.cleaner = 5;
+
+	if (!opt.secret)
+		opt.secret = F.secret;
+
+	opt.sign = function(sessionid, userid) {
+		return (sessionid + '-' + userid + '-' + Date.now().toString(36)).encrypt(opt.secret);
+	};
+
+	opt.authcookie = function($, sessionid, userid, expiration, options) {
+		if (!options)
+			options = opt.options;
+		$.cookie && $.cookie(opt.cookie, opt.sign(sessionid, userid), expiration, options);
+	};
+
+	if (!opt.expire)
+		opt.expire = '5 minutes';
+
+	DEF.onAuthorize = framework_builders.AuthOptions.wrap(function($) {
+
+		var sessionid = opt.cookie ? $.cookie(opt.cookie) : null;
+		if (!sessionid && opt.header)
+			sessionid = $.headers[opt.header];
+
+		if (!sessionid) {
+			$.invalid();
+			return;
+		}
+
+		var session = opt.sessions[sessionid];
+		if (session) {
+			if (session.ua === $.ua) {
+				$.req.sessionid = meta.sessionid;
+				$.success(session.data);
+			} else {
+				$.invalid();
+				sessionid = null;
+			}
+			return;
+		}
+
+		if (opt.ddos && opt.blocked[$.ip] > opt.ddos) {
+			opt.onddos && opt.onddos($);
+			$.invalid();
+			return;
+		}
+
+		if (!sessionid) {
+			if (opt.ddos) {
+				if (opt.blocked[$.ip])
+					opt.blocked[$.ip]++;
+				else
+					opt.blocked[$.ip] = 1;
+			}
+			return;
+		}
+
+		var id = sessionid.decrypt(opt.secret);
+		if (!id) {
+
+			if (opt.ddos) {
+				if (opt.blocked[$.ip])
+					opt.blocked[$.ip]++;
+				else
+					opt.blocked[$.ip] = 1;
+			}
+
+			opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+			$.invalid();
+			return;
+		}
+
+		id = id.split('-');
+
+		var meta = { ip: $.req.ip, ua: $.ua, sessionid: id[0], userid: id[1] };
+
+		opt.onread(meta, function(err, data) {
+
+			if (!err && data) {
+
+				data.expire = NOW.add(opt.expire);
+				opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua };
+				$.req.sessionid = meta.sessionid;
+				$.success(data);
+
+			} else {
+
+				if (opt.ddos) {
+					if (opt.ddos[$.ip])
+						opt.ddos[$.ip]++;
+					else
+						opt.ddos[$.ip] = 1;
+				}
+
+				opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+				$.invalid();
+			}
+
+		}, $);
+
+	});
+
+	ON('service', function(counter) {
+
+		if (counter % opt.cleaner)
+			return;
+
+		var keys = Object.keys(opt.sessions);
+		var expired = [];
+		var users = [];
+
+		for (var i = 0; i < keys.length; i++) {
+			var key = keys[i];
+			var session = opt.sessions[key];
+			if (session.dtexpire < NOW) {
+				expired.push(session.id);
+				users.push(session.userid);
+				delete SESSION[key];
+			}
+		}
+
+		if (expired.length && opt.onfree) {
+			var meta = {};
+			meta.sessions = expired;
+			meta.users = users;
+			opt.onfree && opt.onfree(meta);
+		}
+
+		opt.blocked = {};
+
+	});
+
+	return opt;
+};
+
 global.AUTH = function(fn) {
-	DEF.onAuthorize = framework_builders.AuthOptions.wrap(fn);
+
+	if (typeof(fn) === 'function')
+		DEF.onAuthorize = framework_builders.AuthOptions.wrap(fn);
+	else
+		authbuiltin(fn);
 };
 
 global.WEBSOCKETCLIENT = function(callback) {
@@ -14301,7 +14458,9 @@ function extend_response(PROTO) {
 		if (!options)
 			options = {};
 
-		options.path = options.path || '/';
+		if (!options.path)
+			options.path = '/';
+
 		expires && builder.push('Expires=' + expires.toUTCString());
 		options.domain && builder.push('Domain=' + options.domain);
 		options.path && builder.push('Path=' + options.path);
