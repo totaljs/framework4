@@ -637,6 +637,7 @@ var authbuiltin = function(opt) {
 	// opt.onddos = function($)
 	// opt.onread = function({ sessionid: String, userid: String, ua: String }, callback(USER_DATA), $)
 	// opt.onfree = function({ sessions: Array, users: Array })
+	// opt.onlogout = function(sessionid, userid)
 
 	opt.sessions = {};
 	opt.blocked = {};
@@ -646,6 +647,27 @@ var authbuiltin = function(opt) {
 
 	if (!opt.secret)
 		opt.secret = F.secret;
+
+	opt.logout = function(id) {
+		var keys = Object.keys(opt.sessions);
+		for (var i = 0; i < keys.length; i++) {
+			var session = opt.sessions[keys[i]];
+			if (session.sessionid === id) {
+				delete opt.sessions[keys[i]];
+				opt.onlogout && opt.onlogout(session);
+				break;
+			}
+		}
+	};
+
+	opt.refresh = function(userid) {
+		var keys = Object.keys(opt.sessions);
+		for (var i = 0; i < keys.length; i++) {
+			var session = opt.sessions[keys[i]];
+			if (session.userid === userid)
+				delete opt.sessions[keys[i]];
+		}
+	};
 
 	opt.sign = function(sessionid, userid) {
 		return (sessionid + '-' + userid + '-' + Date.now().toString(36)).encrypt(opt.secret);
@@ -751,22 +773,33 @@ var authbuiltin = function(opt) {
 
 		var keys = Object.keys(opt.sessions);
 		var expired = [];
-		var users = [];
+		var users_expired = {};
+		var users_live = {};
 
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
 			var session = opt.sessions[key];
 			if (session.dtexpire < NOW) {
 				expired.push(session.id);
-				users.push(session.userid);
-				delete SESSION[key];
+				delete opt.sessions[key];
+				users_expired[session.userid] = 1;
+			} else
+				users_live[session.userid] = 1;
+		}
+
+		if (expired.length) {
+			keys = Object.keys(users_expired);
+			for (var i = 0; i < keys.length; i++) {
+				var key = keys[i];
+				if (users_live[key])
+					delete users_expired[key];
 			}
 		}
 
 		if (expired.length && opt.onfree) {
 			var meta = {};
 			meta.sessions = expired;
-			meta.users = users;
+			meta.users = expired.length ? Object.keys(users_expired) : EMPTYARRAY;
 			opt.onfree && opt.onfree(meta);
 		}
 
