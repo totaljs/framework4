@@ -648,14 +648,23 @@ var authbuiltin = function(opt) {
 	if (!opt.secret)
 		opt.secret = F.secret;
 
-	opt.logout = function(id) {
-		var keys = Object.keys(opt.sessions);
-		for (var i = 0; i < keys.length; i++) {
-			var session = opt.sessions[keys[i]];
-			if (session.sessionid === id) {
-				delete opt.sessions[keys[i]];
-				opt.onlogout && opt.onlogout(session);
-				break;
+	opt.logout = function($) {
+
+		var id = $;
+
+		if (typeof(id) === 'object')
+			id = $.sessionid;
+
+		if (id) {
+			var keys = Object.keys(opt.sessions);
+			for (var i = 0; i < keys.length; i++) {
+				var session = opt.sessions[keys[i]];
+				if (session.sessionid === id) {
+					delete opt.sessions[keys[i]];
+					opt.onlogout && opt.onlogout(session);
+					opt.cookie && $.cookie && $.cookie(opt.cookie, '', '-1 day');
+					return true;
+				}
 			}
 		}
 	};
@@ -752,10 +761,10 @@ var authbuiltin = function(opt) {
 			} else {
 
 				if (opt.ddos) {
-					if (opt.ddos[$.ip])
-						opt.ddos[$.ip]++;
+					if (opt.blocked[$.ip])
+						opt.blocked[$.ip]++;
 					else
-						opt.ddos[$.ip] = 1;
+						opt.blocked[$.ip] = 1;
 				}
 
 				opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
