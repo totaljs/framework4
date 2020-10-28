@@ -8548,7 +8548,7 @@ F.$public = function(name, directory, theme) {
 			filename = filename.substring(1);
 	}
 
-	return F.temporary.other[key] = framework_internal.preparepath(F.$version(filename, true));
+	return F.temporary.other[key] = F.$version(framework_internal.preparepath(filename), true);
 };
 
 F.$version = function(name, def) {
