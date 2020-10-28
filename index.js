@@ -8091,6 +8091,9 @@ function configure_versions(arr, clean) {
 		var key = str.substring(0, index).trim();
 		var filename = str.substring(index + len).trim();
 
+		if (CONF.default_root)
+			key = U.join(CONF.default_root, key);
+
 		if (filename === 'auto') {
 
 			if (ismap)
