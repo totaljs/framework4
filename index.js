@@ -3316,7 +3316,7 @@ global.MAP = function(url, filename, filter) {
 	var isPackage = false;
 
 	filename = U.$normalize(filename);
-	url = framework_internal.preparepath(F.$version(url));
+	url = F.$version(framework_internal.preparepath(url));
 
 	var index = filename.indexOf('#');
 	var block;
