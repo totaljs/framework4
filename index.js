@@ -95,7 +95,6 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
-const NOVALIDATESCHEMA = { GET: 1, DELETE: 1, OPTIONS: 1, HEAD: 1 };
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
