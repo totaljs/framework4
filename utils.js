@@ -3967,6 +3967,26 @@ exports.decryptUID = function(val, key) {
 	return exports.encryptUID(raw, key) === val ? raw : null;
 };
 
+exports.encryptCrypto = function(type, key, value) {
+	if (!F.temporary.keys[key])
+		F.temporary.keys[key] = Buffer.from(key);
+	var cipher = Crypto.createCipheriv(type, F.temporary.keys[key], CONF.default_crypto_iv);
+	CONCAT[0] = cipher.update(value);
+	CONCAT[1] = cipher.final();
+	return Buffer.concat(CONCAT);
+};
+
+exports.decryptCrypto = function(type, key, value) {
+	if (!F.temporary.keys[key])
+		F.temporary.keys[key] = Buffer.from(key);
+	var decipher = Crypto.createDecipheriv(type, F.temporary.keys[key], CONF.default_crypto_iv);
+	try {
+		CONCAT[0] = decipher.update(value);
+		CONCAT[1] = decipher.final();
+		return Buffer.concat(CONCAT);
+	} catch (e) {}
+};
+
 SP.base64ToFile = function(filename, callback) {
 	var self = this;
 	var index = self.indexOf(',');
