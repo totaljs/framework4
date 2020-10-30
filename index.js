@@ -7654,13 +7654,15 @@ global.ENCRYPT = function(value, key, isUnique) {
 		value = JSON.stringify(value);
 
 	if (CONF.default_crypto) {
+
+		/*
 		key = (key || '') + CONF.secret;
 
 		if (key.length < 32)
 			key += ''.padLeft(32 - key.length, '0');
 
 		if (key.length > 32)
-			key = key.substring(0, 32);
+			key = key.substring(0, 32);*/
 
 		if (!F.temporary.keys[key])
 			F.temporary.keys[key] = Buffer.from(key);
@@ -7696,13 +7698,14 @@ global.DECRYPT = function(value, key, jsonConvert) {
 
 	if (CONF.default_crypto) {
 
+		/*
 		key = (key || '') + CONF.secret;
 
 		if (key.length < 32)
 			key += ''.padLeft(32 - key.length, '0');
 
 		if (key.length > 32)
-			key = key.substring(0, 32);
+			key = key.substring(0, 32);*/
 
 		if (!F.temporary.keys[key])
 			F.temporary.keys[key] = Buffer.from(key);
