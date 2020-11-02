@@ -3882,7 +3882,7 @@ SP.decrypt = function(key, secret) {
 	return counter !== (val.length + key.length) ? null : val;
 };
 
-exports.encrypt_body = function(value, key) {
+exports.encrypt_data = function(value, key) {
 
 	var builder = [];
 	var index = 0;
@@ -3914,7 +3914,7 @@ exports.encrypt_body = function(value, key) {
 	return Buffer.concat([mask, buffer]).toString('base64');
 };
 
-exports.decrypt_body = function(value, key) {
+exports.decrypt_data = function(value, key) {
 
 	try {
 		value = Buffer.from(value, 'base64');

@@ -11665,9 +11665,11 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
 
 		if (self.req.$bodyencrypt && CONF.secret_encryption) {
-			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
-			if (!headers)
-				headers = headers = {};
+			obj = framework_utils.encrypt_data(obj, CONF.secret_encryption);
+			if (!headers) {
+				headers = {};
+				headers['X-Encryption'] = 'a';
+			}
 		}
 	}
 
@@ -14345,8 +14347,8 @@ function extend_request(PROTO) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
 
-				if (this.headers['x-encrypted'] && CONF.secret_encryption)
-					tmp = framework_utils.decrypt_body(tmp, CONF.secret_encryption);
+				if (this.headers['x-encryption'] && CONF.secret_encryption)
+					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
 				this.body = DEF.parsers.xml(tmp);
 				this.$total_prepare();
@@ -14373,8 +14375,8 @@ function extend_request(PROTO) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
 
-				if (this.headers['x-encrypted'] && CONF.secret_encryption)
-					tmp = framework_utils.decrypt_body(tmp, CONF.secret_encryption);
+				if (this.headers['x-encryption'] && CONF.secret_encryption)
+					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
 				this.body = DEF.parsers.json(tmp);
 			} catch (e) {
@@ -14384,8 +14386,8 @@ function extend_request(PROTO) {
 		} else {
 			tmp = this.bodydata.toString(ENCODING);
 
-			if (this.headers['x-encrypted'] && CONF.secret_encryption)
-				tmp = framework_utils.decrypt_body(tmp, CONF.secret_encryption);
+			if (this.headers['x-encryption'] && CONF.secret_encryption)
+				tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
 			this.body = DEF.parsers.urlencoded(tmp);
 		}
@@ -15473,9 +15475,11 @@ function extend_response(PROTO) {
 		} else {
 
 			if (req.$bodyencrypt && CONF.secret_encryption && typeof(options.body) === 'string') {
-				options.body = framework_utils.encrypt_body(options.body, CONF.secret_encryption);
-				if (!headers)
-					headers = headers = {};
+				options.body = framework_utils.encrypt_data(options.body, CONF.secret_encryption);
+				if (!headers) {
+					headers = {};
+					headers['X-Encryption'] = 'a';
+				}
 			}
 
 			if (gzip) {
