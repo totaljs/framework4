@@ -13896,6 +13896,11 @@ function extend_request(PROTO) {
 		return result;
 	};
 
+	PROTO.encrypt = function(value) {
+		this.$bodyencrypt = value == null || value === true;
+		return this;
+	};
+
 	/**
 	 * Authorization for custom delegates
 	 * @param  {Function(err, userprofile, isAuthorized)} callback
