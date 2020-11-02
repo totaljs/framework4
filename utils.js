@@ -3433,12 +3433,12 @@ SP.format = function() {
 	});
 };
 
-SP.encryptUID = function(key) {
-	return exports.encryptUID(this, key);
+SP.encrypt_uid = function(key) {
+	return exports.encrypt_uid(this, key);
 };
 
-SP.decryptUID = function(key) {
-	return exports.decryptUID(this, key);
+SP.decrypt_uid = function(key) {
+	return exports.decrypt_uid(this, key);
 };
 
 SP.encode = function() {
@@ -3882,14 +3882,11 @@ SP.decrypt = function(key, secret) {
 	return counter !== (val.length + key.length) ? null : val;
 };
 
-exports.encrypt_body = function(value, key, isbuffer) {
+exports.encrypt_body = function(value, key) {
 
 	var builder = [];
 	var index = 0;
 	var length = key.length;
-
-	if (isbuffer == null)
-		isbuffer = true;
 
 	for (var i = 0; i < value.length; i++) {
 
@@ -3907,31 +3904,35 @@ exports.encrypt_body = function(value, key, isbuffer) {
 		builder.push(t.length + t);
 	}
 
-	if (isbuffer) {
-		var mask = Buffer.alloc(4);
-		mask.writeInt32BE(exports.random(999999));
-		var buffer = Buffer.from(builder.join(''));
-		for (var i = 0; i < buffer.length; i++)
-			buffer[i] = buffer[i] ^ mask[i % 4];
-		return Buffer.concat([mask, buffer]).toString('base64');
-	} else
-		return builder.join('');
+	var mask = Buffer.alloc(4);
+	mask.writeInt32BE(Math.floor(Math.random() * 999999999));
+
+	var buffer = Buffer.from(builder.join(''));
+	for (var i = 0; i < buffer.length; i++)
+		buffer[i] = buffer[i] ^ mask[i % 4];
+
+	return Buffer.concat([mask, buffer]).toString('base64');
 };
 
 exports.decrypt_body = function(value, key) {
 
+	try {
+		value = Buffer.from(value, 'base64');
+	} catch (e) {
+		return null;
+	}
+
 	var index = 0;
 	var length = key.length;
 	var builder = [];
+	var mask = Buffer.alloc(4);
+	var buffer = Buffer.alloc(value.length - 4);
+	mask.writeInt32BE(value.readInt32BE(0));
 
-	if (value instanceof Buffer) {
-		var mask = Buffer.alloc(4);
-		var buffer = Buffer.alloc(value.length - 4);
-		mask.writeInt32BE(value.readInt32BE(0));
-		for (var i = 4; i < value.length; i++)
-			buffer[i - 4] = value[i] ^ mask[i % 4];
-		value = buffer.toString('utf8');
-	}
+	for (var i = 4; i < value.length; i++)
+		buffer[i - 4] = value[i] ^ mask[i % 4];
+
+	value = buffer.toString('utf8');
 
 	for (var i = 0; i < value.length; i++) {
 

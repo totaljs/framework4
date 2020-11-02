@@ -11668,7 +11668,6 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 			obj = framework_utils.encrypt_body(obj, CONF.secret_encryption);
 			if (!headers)
 				headers = headers = {};
-			headers['X-Encrypted'] = 'a';
 		}
 	}
 
@@ -15477,7 +15476,6 @@ function extend_response(PROTO) {
 				options.body = framework_utils.encrypt_body(options.body, CONF.secret_encryption);
 				if (!headers)
 					headers = headers = {};
-				headers['X-Encrypted'] = 'a';
 			}
 
 			if (gzip) {
