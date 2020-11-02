@@ -246,35 +246,6 @@ global.DIFFARR = exports.diffarr = function(prop, db, form) {
 	return obj;
 };
 
-/**
- * Function checks a valid function and waits for it positive result
- * @param {Function} fnValid
- * @param {Function(err, success)} fnCallback
- * @param {Number} timeout  Timeout, optional (default: 5000)
- * @param {Number} interval Refresh interval, optional (default: 500)
- */
-exports.wait = function(fnValid, fnCallback, timeout, interval) {
-
-	if (fnValid() === true)
-		return fnCallback(null, true);
-
-	var id_timeout = null;
-	var id_interval = setInterval(function() {
-
-		if (fnValid() === true) {
-			clearInterval(id_interval);
-			clearTimeout(id_timeout);
-			fnCallback && fnCallback(null, true);
-		}
-
-	}, interval || 500);
-
-	id_timeout = setTimeout(function() {
-		clearInterval(id_interval);
-		fnCallback && fnCallback(new Error('Timeout.'), false);
-	}, timeout || 5000);
-};
-
 exports.toURLEncode = function(value) {
 	var keys = Object.keys(value);
 	var builder = [];
@@ -810,7 +781,7 @@ function request_process_timeout(req) {
 		options.response.status = 408;
 		options.response.host = req.$uri.host;
 		options.canceled = true;
-		options.callback(exports.httpStatus(408), options.response);
+		options.callback(exports.httpstatus(408), options.response);
 		options.callback = null;
 	}
 }
@@ -1154,7 +1125,7 @@ exports.trim = function(obj, clean) {
  * Noop function
  * @return {Function} Empty function.
  */
-exports.noop = global.noop = global.NOOP = function() {};
+global.NOOP = function() {};
 
 /**
  * Read HTTP status
@@ -1162,7 +1133,7 @@ exports.noop = global.noop = global.NOOP = function() {};
  * @param  {Boolean} addCode Add code number to HTTP status.
  * @return {String}
  */
-exports.httpStatus = function(code, addCode) {
+exports.httpstatus = function(code, addCode) {
 	if (addCode === undefined)
 		addCode = true;
 	return (addCode ? code + ': ' : '') + Http.STATUS_CODES[code];
@@ -1585,24 +1556,6 @@ exports.parseFloat = function(obj, def) {
 };
 
 /**
- * Check if the object is Array.
- * @param {Object} obj
- * @return {Boolean}
- */
-exports.isArray = function(obj) {
-	return obj instanceof Array;
-};
-
-/**
- * Check if the object is RegExp
- * @param {Object} obj
- * @return {Boolean}
- */
-exports.isRegExp = function(obj) {
-	return obj && typeof(obj.test) === 'function' ? true : false;
-};
-
-/**
  * Check if the object is Date
  * @param {Object} obj
  * @return {Boolean}
@@ -1949,15 +1902,6 @@ exports.combine = function() {
 };
 
 /**
- * Remove diacritics
- * @param {String} str
- * @return {String}
- */
-exports.toASCII = function(str) {
-	return str.replace(regexpDiacritics, c => DIACRITICSMAP[c] || c);
-};
-
-/**
  * Simple XML parser
  * @param {String} xml
  * @return {Object}
@@ -2103,7 +2047,8 @@ function ls(path, callback, advanced, filter) {
 		filelist.onFilter = function(filename, is) {
 			return is ? true : filename.toLowerCase().indexOf(tmp) !== -1;
 		};
-	} else if (exports.isRegExp(filter)) {
+	} else if (filter && filter.test) {
+		// regexp
 		tmp = filter;
 		filelist.onFilter = function(filename, is) {
 			return is ? true : tmp.test(filename);
@@ -2201,66 +2146,6 @@ DP.add = function(type, value) {
 			return dt;
 	}
 	return dt;
-};
-
-/**
- * Date difference
- * @param  {Date/Number/String} date Optional.
- * @param  {String} type Date type: minutes, seconds, hours, days, months, years
- * @return {Number}
- */
-DP.diff = function(date, type) {
-
-	if (arguments.length === 1) {
-		type = date;
-		date = Date.now();
-	} else {
-		var to = typeof(date);
-		if (to === 'string')
-			date = Date.parse(date);
-		else if (exports.isDate(date))
-			date = date.getTime();
-	}
-
-	var r = this.getTime() - date;
-
-	switch (type) {
-		case 's':
-		case 'ss':
-		case 'second':
-		case 'seconds':
-			return Math.ceil(r / 1000);
-		case 'm':
-		case 'mm':
-		case 'minute':
-		case 'minutes':
-			return Math.ceil((r / 1000) / 60);
-		case 'h':
-		case 'hh':
-		case 'hour':
-		case 'hours':
-			return Math.ceil(((r / 1000) / 60) / 60);
-		case 'd':
-		case 'dd':
-		case 'day':
-		case 'days':
-			return Math.ceil((((r / 1000) / 60) / 60) / 24);
-		case 'M':
-		case 'MM':
-		case 'month':
-		case 'months':
-			// avg: 28 days per month
-			return Math.ceil((((r / 1000) / 60) / 60) / (24 * 28));
-
-		case 'y':
-		case 'yyyy':
-		case 'year':
-		case 'years':
-			// avg: 28 days per month
-			return Math.ceil((((r / 1000) / 60) / 60) / (24 * 28 * 12));
-	}
-
-	return NaN;
 };
 
 DP.extend = function(date) {
@@ -4012,7 +3897,7 @@ SP.base64ToFile = function(filename, callback) {
 		index = 0;
 	else
 		index++;
-	Fs.writeFile(filename, self.substring(index), 'base64', callback || exports.noop);
+	Fs.writeFile(filename, self.substring(index), 'base64', callback || NOOP);
 	return this;
 };
 
@@ -4034,8 +3919,10 @@ SP.base64ContentType = function() {
 	return index === -1 ? '' : self.substring(5, index);
 };
 
-SP.removeDiacritics = SP.toASCII = function() {
-	return exports.toASCII(this);
+var toascii = c => DIACRITICSMAP[c] || c;
+
+SP.toASCII = function() {
+	return this.replace(regexpDiacritics, toascii);
 };
 
 SP.indent = function(max, c) {
@@ -5264,15 +5151,15 @@ exports.queue = function(name, max, fn) {
 	return true;
 };
 
-exports.minifyStyle = function(val) {
+exports.minify_css = function(val) {
 	return Internal.compile_css(val);
 };
 
-exports.minifyScript = function(val) {
+exports.minify_js = function(val) {
 	return Internal.compile_javascript(val);
 };
 
-exports.minifyHTML = function(val) {
+exports.minify_html = function(val) {
 	return Internal.compile_html(val);
 };
 
@@ -5740,5 +5627,26 @@ exports.reader = function() {
 	return new Reader();
 };
 
-global.WAIT = exports.wait;
+global.WAIT = function(fnValid, fnCallback, timeout, interval) {
+
+	if (fnValid() === true)
+		return fnCallback(null, true);
+
+	var id_timeout = null;
+	var id_interval = setInterval(function() {
+
+		if (fnValid() === true) {
+			clearInterval(id_interval);
+			clearTimeout(id_timeout);
+			fnCallback && fnCallback(null, true);
+		}
+
+	}, interval || 500);
+
+	id_timeout = setTimeout(function() {
+		clearInterval(id_interval);
+		fnCallback && fnCallback(new Error('Timeout.'), false);
+	}, timeout || 5000);
+};
+
 !global.F && require('./index');
