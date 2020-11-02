@@ -3198,44 +3198,6 @@ function remove_route_web() {
 }
 
 /**
- * Get routing by name
- * @param {String} name
- * @return {Object}
- */
-global.ROUTING = function(name, flags) {
-
-	var id = name.substring(0, 3) === 'id:' ? name.substring(3) : null;
-	if (id)
-		name = null;
-
-	var search = id ? null : (name.toLowerCase().replace(/\s{2,}/g, ' ') + (flags ? (' ' + flags.where(n => typeof(n) === 'string' && n.substring(0, 2) !== '//' && n[2] !== ':').join(' ')).toLowerCase() : '')).split(' ');
-
-	for (var i = 0, length = F.routes.web.length; i < length; i++) {
-		var route = F.routes.web[i];
-		var is = true;
-		if (id && route.id !== id)
-			is = false;
-		else if (search) {
-			for (var j = 0; j < search.length; j++) {
-				if (route.search.indexOf(search[j]) === -1) {
-					is = false;
-					break;
-				}
-			}
-		}
-
-		if (!is)
-			continue;
-
-		var url = U.path(route.url.join('/'));
-		if (url[0] !== '/')
-			url = '/' + url;
-
-		return route;
-	}
-};
-
-/**
  * Merge files
  * @param {String} url Relative URL.
  * @param {String/String Array} file1 Filename or URL.
