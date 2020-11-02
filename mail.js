@@ -673,7 +673,7 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 
 	if (!cache) {
 		obj.socket.setTimeout(options.timeout || 60000, function() {
-			var err = framework_utils.httpStatus(408);
+			var err = framework_utils.httpstatus(408);
 			mailer.destroy(obj);
 			!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
 			obj.callback && obj.callback(err);

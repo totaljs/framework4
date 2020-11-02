@@ -539,13 +539,13 @@ function main() {
 
 		switch (extension.toLowerCase()) {
 			case 'html':
-				Fs.writeFileSync(filename, U.minifyHTML(content));
+				Fs.writeFileSync(filename, U.minify_html(content));
 				break;
 			case 'js':
-				Fs.writeFileSync(filename, U.minifyScript(content));
+				Fs.writeFileSync(filename, U.minify_js(content));
 				break;
 			case 'css':
-				Fs.writeFileSync(filename, U.minifyStyle(content));
+				Fs.writeFileSync(filename, U.minify_css(content));
 				break;
 		}
 

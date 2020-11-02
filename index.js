@@ -4930,7 +4930,7 @@ global.DOWNLOAD = function(url, filename, callback, timeout) {
  */
 F.findConnection = function(path) {
 	var arr = Object.keys(F.connections);
-	var is = U.isRegExp(path);
+	var is = path && path.test; // is regexp?
 	for (var i = 0, length = arr.length; i < length; i++) {
 		var key = arr[i];
 		if (is) {
@@ -4950,7 +4950,7 @@ F.findConnection = function(path) {
  */
 F.findConnections = function(path) {
 	var arr = Object.keys(F.connections);
-	var is = U.isRegExp(path);
+	var is = path && path.test; // is regexp?
 	var output = [];
 	for (var i = 0, length = arr.length; i < length; i++) {
 		var key = arr[i];
@@ -6851,7 +6851,7 @@ function makeproxy(proxy, req, res) {
 
 function makeproxyerror(err) {
 	MODELERROR.code = 503;
-	MODELERROR.status = U.httpStatus(503, false);
+	MODELERROR.status = U.httpstatus(503, false);
 	MODELERROR.error = err + '';
 	this.$res.writeHead(503, HEADERS.response503);
 	this.$res.end(VIEW('.' + PATHMODULES + 'error', MODELERROR));
@@ -14135,7 +14135,7 @@ function extend_request(PROTO) {
 			F.stats.request['error' + status]++;
 
 		this.res.writeHead(status);
-		this.res.end(U.httpStatus(status));
+		this.res.end(U.httpstatus(status));
 		F.$events.request_end && EMIT('request_end', this, this.res);
 		this.bodydata = null;
 		this.clear(true);
@@ -14179,7 +14179,7 @@ function extend_request(PROTO) {
 			} else {
 
 				MODELERROR.code = status;
-				MODELERROR.status = U.httpStatus(status, false);
+				MODELERROR.status = U.httpstatus(status, false);
 				MODELERROR.error = this.$total_exception ? prepare_error(this.$total_exception) : null;
 
 				res.options.body = VIEW('.' + PATHMODULES + 'error', MODELERROR);
@@ -14702,7 +14702,7 @@ function extend_response(PROTO) {
 			case 'number':
 				if (!contentType)
 					contentType = 'text/plain';
-				body = U.httpStatus(body);
+				body = U.httpstatus(body);
 				break;
 
 			case 'boolean':
@@ -15569,7 +15569,7 @@ function extend_response(PROTO) {
 	PROTO.throw500 = function(error) {
 		error && F.error(error, null, this.req.uri);
 		this.options.code = 500;
-		this.options.body = U.httpStatus(500) + error ? prepare_error(error) : '';
+		this.options.body = U.httpstatus(500) + error ? prepare_error(error) : '';
 		return this.$throw();
 	};
 
