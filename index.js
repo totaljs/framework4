@@ -2692,6 +2692,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var isBINARY = false;
 	var isCORS = false;
 	var isROLE = false;
+	var isENCRYPT = false;
 	var novalidate = false;
 	var middleware = null;
 	var timeout;
@@ -2820,6 +2821,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 				case 'binary':
 					isBINARY = true;
+					continue;
+
+				case 'encrypt':
+					isENCRYPT = true;
 					continue;
 
 				case 'cors':
@@ -3146,6 +3151,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isJSON = isJSON;
 	r.isXML = flags.indexOf('xml') !== -1;
 	r.isRAW = isRaw;
+	r.isENCRYPT = isENCRYPT;
 	r.isBINARY = isBINARY;
 	r.isMOBILE = isMOBILE;
 	r.isROBOT = isROBOT;
@@ -10018,7 +10024,11 @@ function controller_api() {
 	self.query = model.query;
 	self.id = model.id || '';
 
-console.log(model.data);
+	if (self.route.encrypt)
+		self.req.$bodyencrypt = true;
+
+	if (self.route.isENCRYPT)
+		self.req.$bodyencrypt = true;
 
 	// Evaluates action
 	$ACTION(s, model.data, self.callback(), self);

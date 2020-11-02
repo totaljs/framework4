@@ -3889,6 +3889,9 @@ exports.encrypt_body = function(value, key, isbuffer) {
 	var index = 0;
 	var length = key.length;
 
+	if (isbuffer == null)
+		isbuffer = true;
+
 	for (var i = 0; i < value.length; i++) {
 
 		if (SKIPBODYENCRYPTOR[value[i]]) {
@@ -3911,7 +3914,7 @@ exports.encrypt_body = function(value, key, isbuffer) {
 		var buffer = Buffer.from(builder.join(''));
 		for (var i = 0; i < buffer.length; i++)
 			buffer[i] = buffer[i] ^ mask[i % 4];
-		return Buffer.concat([mask, buffer]);
+		return Buffer.concat([mask, buffer]).toString('base64');
 	} else
 		return builder.join('');
 };
