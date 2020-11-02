@@ -10016,42 +10016,39 @@ function controller_api() {
 
 	var api = F.routes.api[self.url];
 	if (!api) {
-		self.throw400();
+		self.throw404('API not found');
 		return;
 	}
 
 	var s = api[model.schema];
-
 	if (!s) {
-		self.throw400();
+		self.throw404('Schema not found');
 		return;
 	}
 
-	var keys;
-	var key;
+	if (model.id) {
+		if (typeof(model.id) !== 'string') {
+			self.throw400('Invalid ID');
+			return;
+		}
+	}
 
 	if (model.params) {
-		if (typeof(model.params) === 'object' && !(model.params instanceof Array)) {
-			keys = Object.keys(model.params);
-			for (var i = 0; i < keys.length; i++) {
-				key = keys[i];
-				if (typeof(model.params[key]) !== 'string')
-					delete model.params[key];
-			}
-		} else
-			model.params = undefined;
+		if (typeof(model.params) === 'string') {
+			model.params = model.params.parseEncoded();
+		} else {
+			self.throw400('Invalid params');
+			return;
+		}
 	}
 
 	if (model.query) {
-		if (typeof(model.query) === 'object' && !(model.query instanceof Array)) {
-			keys = Object.keys(model.query);
-			for (var i = 0; i < keys.length; i++) {
-				key = keys[i];
-				if (typeof(model.query[key]) !== 'string')
-					delete model.query[key];
-			}
-		} else
-			model.query = undefined;
+		if (typeof(model.query) === 'string') {
+			model.query = model.query.parseEncoded();
+		} else {
+			self.throw400('Invalid query arguments');
+			return;
+		}
 	}
 
 	// Internal Total.js hack
