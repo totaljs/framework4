@@ -1547,6 +1547,7 @@ function Framework() {
 
 	self.routes = {
 		sitemap: null,
+		api: {},
 		web: [],
 		system: {},
 		files: [],
@@ -2505,12 +2506,14 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var tmp;
 	var viewname;
 	var sitemap;
+	var apiname;
+	var apischema;
+	var apimethod;
 
 	if (url instanceof Array) {
 		url.forEach(url => F.route(url, funcExecute, flags, length));
 		return;
 	}
-
 
 	if (url.indexOf('--') === -1) {
 		if (url.indexOf('.') !== -1) {
@@ -2560,6 +2563,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		url = url.replace(/(^|\s?)\*([{}a-z0-9}]|\s).*?$/i, function(text) {
 			!flags && (flags = []);
+
+			if (text.indexOf('*') !== -1)
+				apischema = text.trim();
+
 			flags.push(text.trim());
 			return '';
 		}).trim();
@@ -2568,6 +2575,16 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (index !== -1) {
 			method = url.substring(0, index).toLowerCase().trim();
 			url = url.substring(index + 1).trim();
+		}
+
+		index = url.indexOf(' ');
+		if (index !== -1) {
+			apiname = url.substring(index).trim().replace(/\[|\]/g, '');
+			url = url.substring(0, index).trim();
+			var apitmp = apiname.split(' ');
+			apimethod = apitmp.length > 1 ? apitmp[0].toUpperCase() : 'GET';
+			if (apitmp.length > 1)
+				apiname = apitmp[1];
 		}
 
 		if (method.indexOf(',') !== -1) {
@@ -2685,6 +2702,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var description;
 	var id = null;
 	var groups = [];
+	var isAPI = false;
 
 	if (_flags) {
 		!flags && (flags = []);
@@ -2854,6 +2872,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 					break;
 				case 'delete':
 				case 'get':
+				case 'api':
 				case 'head':
 				case 'options':
 				case 'patch':
@@ -2861,6 +2880,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				case 'propfind':
 				case 'put':
 				case 'trace':
+
+					if (flag === 'api') {
+						isAPI = true;
+						flag = 'post';
+					}
+
 					tmp.push(flag);
 					method += (method ? ',' : '') + flag;
 					corsflags.push(flag);
@@ -3061,6 +3086,18 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	if (isBINARY && !isRaw) {
 		isBINARY = false;
 		console.warn('ROUTE() skips "binary" flag because the "raw" flag is not defined.');
+	}
+
+	if (isAPI) {
+		var tmpapi = url + '/';
+		if (!F.routes.api[tmpapi])
+			F.routes.api[tmpapi] = {};
+		F.routes.api[tmpapi][apiname] = apimethod + ' ' + apischema;
+		if (F.routes.web.findItem('hash', hash))
+			return;
+		funcExecute = controller_api;
+		schema = null;
+		workflow = null;
 	}
 
 	if (workflow && workflow.id) {
@@ -9946,6 +9983,46 @@ ControllerProto.$async = function(callback, index) {
 	var self = this;
 	return self.getSchema().async(self.body, callback, index, self);
 };
+
+function controller_api() {
+
+	// body.id {String} optional
+	// body.data {Object} optional
+	// body.params {Object} optional
+	// body.query {Object} optional
+	// body.schema {String}
+
+	var self = this;
+	var model = self.body;
+
+	if (!model.schema) {
+		self.throw400();
+		return;
+	}
+
+	var api = F.routes.api[self.url];
+	if (!api) {
+		self.throw400();
+		return;
+	}
+
+	var s = api[model.schema];
+
+	if (!s) {
+		self.throw400();
+		return;
+	}
+
+	// Internal Total.js hack
+	self.params = model.params || EMPTYOBJECT;
+	self.query = model.query;
+	self.id = model.id || '';
+
+console.log(model.data);
+
+	// Evaluates action
+	$ACTION(s, model.data, self.callback(), self);
+}
 
 ControllerProto.getSchema = function() {
 	var self = this;
