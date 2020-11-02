@@ -1249,6 +1249,13 @@ function performsschemaaction_async(err, response, data) {
 }
 
 function performsschemaaction(meta, model, callback, controller) {
+
+	if (meta.schema.$bodyencrypt && controller.req)
+		controller.req.$bodyencrypt = true;
+
+	if (meta.schema.$bodycompress && controller.req)
+		controller.req.$bodycompress = true;
+
 	if (meta.multiple) {
 		var add = meta.schema.async(model, callback, meta.opcallbackindex, controller);
 		for (var i = 0; i < meta.op.length; i++)
@@ -2579,7 +2586,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		index = url.indexOf(' ');
 		if (index !== -1) {
-			apiname = url.substring(index).trim().replace(/\[|\]/g, '');
+			apiname = url.substring(index).trim().replace(/<|>/g, '');
 			url = url.substring(0, index).trim();
 			var apitmp = apiname.split(' ');
 			apimethod = apitmp.length > 1 ? apitmp[0].toUpperCase() : 'GET';
@@ -8296,6 +8303,7 @@ function configure_configs(arr, rewrite) {
 		switch (name) {
 			case 'secret':
 			case 'secret_uid':
+			case 'secret_encryption':
 				obj[name] = value;
 				break;
 			case 'default_maxopenfiles':
@@ -10019,9 +10027,36 @@ function controller_api() {
 		return;
 	}
 
+	var keys;
+	var key;
+
+	if (model.params) {
+		if (typeof(model.params) === 'object' && !(model.params instanceof Array)) {
+			keys = Object.keys(model.params);
+			for (var i = 0; i < keys.length; i++) {
+				key = keys[i];
+				if (typeof(model.params[key]) !== 'string')
+					delete model.params[key];
+			}
+		} else
+			model.params = undefined;
+	}
+
+	if (model.query) {
+		if (typeof(model.query) === 'object' && !(model.query instanceof Array)) {
+			keys = Object.keys(model.query);
+			for (var i = 0; i < keys.length; i++) {
+				key = keys[i];
+				if (typeof(model.query[key]) !== 'string')
+					delete model.query[key];
+			}
+		} else
+			model.query = undefined;
+	}
+
 	// Internal Total.js hack
 	self.params = model.params || EMPTYOBJECT;
-	self.query = model.query;
+	self.query = model.query || EMPTYOBJECT;
 	self.id = model.id || '';
 
 	if (self.route.encrypt)
@@ -14346,10 +14381,8 @@ function extend_request(PROTO) {
 
 			try {
 				tmp = this.bodydata.toString(ENCODING);
-
 				if (this.headers['x-encryption'] && CONF.secret_encryption)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-
 				this.body = DEF.parsers.xml(tmp);
 				this.$total_prepare();
 			} catch (err) {
@@ -14374,10 +14407,9 @@ function extend_request(PROTO) {
 		if (this.$type === 1) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
-
-				if (this.headers['x-encryption'] && CONF.secret_encryption)
+				if (this.headers['x-encryption'] && CONF.secret_encryption) {
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-
+				}
 				this.body = DEF.parsers.json(tmp);
 			} catch (e) {
 				this.$total_400('Invalid JSON data.');
