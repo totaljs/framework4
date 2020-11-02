@@ -635,8 +635,6 @@ global.REQUEST = function(opt) {
 		exports.resolve(opt.url, request_resolve, options);
 	else
 		request_call(uri, options);
-
-	return options.evt;
 };
 
 function request_resolve(err, uri, options) {
@@ -832,15 +830,15 @@ function request_assign_res(response) {
 
 function request_writefile(req, options, file, next) {
 
-	var type = typeof(file.buffer);
-	var filename = (type === 'string' ? file.buffer : exports.getName(file.filename));
+	var isbuffer = file.buffer instanceof Buffer;
+	var filename = (isbuffer ? file.name : exports.getName(file.filename));
 
 	req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + file.name + '"; filename="' + filename + '"' + NEWLINE + 'Content-Type: ' + exports.getContentType(exports.getExtension(filename)) + NEWLINE + NEWLINE);
 
 	if (options.first)
 		options.first = false;
 
-	if (file.buffer instanceof Buffer) {
+	if (isbuffer) {
 		req.write(file.buffer);
 		next();
 	} else {
