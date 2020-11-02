@@ -95,7 +95,6 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
-const NOVALIDATESCHEMA = { GET: 1, DELETE: 1, OPTIONS: 1, HEAD: 1 };
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -1548,6 +1547,7 @@ function Framework() {
 
 	self.routes = {
 		sitemap: null,
+		api: {},
 		web: [],
 		system: {},
 		files: [],
@@ -2506,12 +2506,14 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var tmp;
 	var viewname;
 	var sitemap;
+	var apiname;
+	var apischema;
+	var apimethod;
 
 	if (url instanceof Array) {
 		url.forEach(url => F.route(url, funcExecute, flags, length));
 		return;
 	}
-
 
 	if (url.indexOf('--') === -1) {
 		if (url.indexOf('.') !== -1) {
@@ -2561,6 +2563,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		url = url.replace(/(^|\s?)\*([{}a-z0-9}]|\s).*?$/i, function(text) {
 			!flags && (flags = []);
+
+			if (text.indexOf('*') !== -1)
+				apischema = text.trim();
+
 			flags.push(text.trim());
 			return '';
 		}).trim();
@@ -2569,6 +2575,16 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (index !== -1) {
 			method = url.substring(0, index).toLowerCase().trim();
 			url = url.substring(index + 1).trim();
+		}
+
+		index = url.indexOf(' ');
+		if (index !== -1) {
+			apiname = url.substring(index).trim().replace(/\[|\]/g, '');
+			url = url.substring(0, index).trim();
+			var apitmp = apiname.split(' ');
+			apimethod = apitmp.length > 1 ? apitmp[0].toUpperCase() : 'GET';
+			if (apitmp.length > 1)
+				apiname = apitmp[1];
 		}
 
 		if (method.indexOf(',') !== -1) {
@@ -2676,6 +2692,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var isBINARY = false;
 	var isCORS = false;
 	var isROLE = false;
+	var isENCRYPT = false;
 	var novalidate = false;
 	var middleware = null;
 	var timeout;
@@ -2686,6 +2703,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var description;
 	var id = null;
 	var groups = [];
+	var isAPI = false;
 
 	if (_flags) {
 		!flags && (flags = []);
@@ -2805,6 +2823,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 					isBINARY = true;
 					continue;
 
+				case 'encrypt':
+					isENCRYPT = true;
+					continue;
+
 				case 'cors':
 					isCORS = true;
 					count--;
@@ -2855,6 +2877,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 					break;
 				case 'delete':
 				case 'get':
+				case 'api':
 				case 'head':
 				case 'options':
 				case 'patch':
@@ -2862,6 +2885,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				case 'propfind':
 				case 'put':
 				case 'trace':
+
+					if (flag === 'api') {
+						isAPI = true;
+						flag = 'post';
+					}
+
 					tmp.push(flag);
 					method += (method ? ',' : '') + flag;
 					corsflags.push(flag);
@@ -3064,6 +3093,18 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		console.warn('ROUTE() skips "binary" flag because the "raw" flag is not defined.');
 	}
 
+	if (isAPI) {
+		var tmpapi = url + '/';
+		if (!F.routes.api[tmpapi])
+			F.routes.api[tmpapi] = {};
+		F.routes.api[tmpapi][apiname] = apimethod + ' ' + apischema;
+		if (F.routes.web.findItem('hash', hash))
+			return;
+		funcExecute = controller_api;
+		schema = null;
+		workflow = null;
+	}
+
 	if (workflow && workflow.id) {
 		workflow.meta = {};
 		if (workflow.id instanceof Array) {
@@ -3110,6 +3151,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isJSON = isJSON;
 	r.isXML = flags.indexOf('xml') !== -1;
 	r.isRAW = isRaw;
+	r.isENCRYPT = isENCRYPT;
 	r.isBINARY = isBINARY;
 	r.isMOBILE = isMOBILE;
 	r.isROBOT = isROBOT;
@@ -3199,44 +3241,6 @@ function remove_route_web() {
 }
 
 /**
- * Get routing by name
- * @param {String} name
- * @return {Object}
- */
-global.ROUTING = function(name, flags) {
-
-	var id = name.substring(0, 3) === 'id:' ? name.substring(3) : null;
-	if (id)
-		name = null;
-
-	var search = id ? null : (name.toLowerCase().replace(/\s{2,}/g, ' ') + (flags ? (' ' + flags.where(n => typeof(n) === 'string' && n.substring(0, 2) !== '//' && n[2] !== ':').join(' ')).toLowerCase() : '')).split(' ');
-
-	for (var i = 0, length = F.routes.web.length; i < length; i++) {
-		var route = F.routes.web[i];
-		var is = true;
-		if (id && route.id !== id)
-			is = false;
-		else if (search) {
-			for (var j = 0; j < search.length; j++) {
-				if (route.search.indexOf(search[j]) === -1) {
-					is = false;
-					break;
-				}
-			}
-		}
-
-		if (!is)
-			continue;
-
-		var url = U.path(route.url.join('/'));
-		if (url[0] !== '/')
-			url = '/' + url;
-
-		return route;
-	}
-};
-
-/**
  * Merge files
  * @param {String} url Relative URL.
  * @param {String/String Array} file1 Filename or URL.
@@ -3316,7 +3320,7 @@ global.MAP = function(url, filename, filter) {
 	var isPackage = false;
 
 	filename = U.$normalize(filename);
-	url = framework_internal.preparepath(F.$version(url));
+	url = F.$version(framework_internal.preparepath(url));
 
 	var index = filename.indexOf('#');
 	var block;
@@ -7655,13 +7659,15 @@ global.ENCRYPT = function(value, key, isUnique) {
 		value = JSON.stringify(value);
 
 	if (CONF.default_crypto) {
+
+		/*
 		key = (key || '') + CONF.secret;
 
 		if (key.length < 32)
 			key += ''.padLeft(32 - key.length, '0');
 
 		if (key.length > 32)
-			key = key.substring(0, 32);
+			key = key.substring(0, 32);*/
 
 		if (!F.temporary.keys[key])
 			F.temporary.keys[key] = Buffer.from(key);
@@ -7697,13 +7703,14 @@ global.DECRYPT = function(value, key, jsonConvert) {
 
 	if (CONF.default_crypto) {
 
+		/*
 		key = (key || '') + CONF.secret;
 
 		if (key.length < 32)
 			key += ''.padLeft(32 - key.length, '0');
 
 		if (key.length > 32)
-			key = key.substring(0, 32);
+			key = key.substring(0, 32);*/
 
 		if (!F.temporary.keys[key])
 			F.temporary.keys[key] = Buffer.from(key);
@@ -9982,6 +9989,50 @@ ControllerProto.$async = function(callback, index) {
 	var self = this;
 	return self.getSchema().async(self.body, callback, index, self);
 };
+
+function controller_api() {
+
+	// body.id {String} optional
+	// body.data {Object} optional
+	// body.params {Object} optional
+	// body.query {Object} optional
+	// body.schema {String}
+
+	var self = this;
+	var model = self.body;
+
+	if (!model.schema) {
+		self.throw400();
+		return;
+	}
+
+	var api = F.routes.api[self.url];
+	if (!api) {
+		self.throw400();
+		return;
+	}
+
+	var s = api[model.schema];
+
+	if (!s) {
+		self.throw400();
+		return;
+	}
+
+	// Internal Total.js hack
+	self.params = model.params || EMPTYOBJECT;
+	self.query = model.query;
+	self.id = model.id || '';
+
+	if (self.route.encrypt)
+		self.req.$bodyencrypt = true;
+
+	if (self.route.isENCRYPT)
+		self.req.$bodyencrypt = true;
+
+	// Evaluates action
+	$ACTION(s, model.data, self.callback(), self);
+}
 
 ControllerProto.getSchema = function() {
 	var self = this;
@@ -13930,6 +13981,11 @@ function extend_request(PROTO) {
 		} catch (e) {}
 
 		return result;
+	};
+
+	PROTO.encrypt = function(value) {
+		this.$bodyencrypt = value == null || value === true;
+		return this;
 	};
 
 	/**

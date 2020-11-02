@@ -634,8 +634,6 @@ global.REQUEST = function(opt) {
 		exports.resolve(opt.url, request_resolve, options);
 	else
 		request_call(uri, options);
-
-	return options.evt;
 };
 
 function request_resolve(err, uri, options) {
@@ -831,15 +829,15 @@ function request_assign_res(response) {
 
 function request_writefile(req, options, file, next) {
 
-	var type = typeof(file.buffer);
-	var filename = (type === 'string' ? file.buffer : exports.getName(file.filename));
+	var isbuffer = file.buffer instanceof Buffer;
+	var filename = (isbuffer ? file.name : exports.getName(file.filename));
 
 	req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + file.name + '"; filename="' + filename + '"' + NEWLINE + 'Content-Type: ' + exports.getContentType(exports.getExtension(filename)) + NEWLINE + NEWLINE);
 
 	if (options.first)
 		options.first = false;
 
-	if (file.buffer instanceof Buffer) {
+	if (isbuffer) {
 		req.write(file.buffer);
 		next();
 	} else {
@@ -1983,7 +1981,7 @@ function jsonparser(key, value) {
 exports.getWebSocketFrame = function(code, message, type, compress, mask) {
 
 	if (mask)
-		mask = Math.random(999999);
+		mask = exports.random(999999);
 
 	var messageBuffer = getWebSocketFrameMessageBytes(code, message);
 	var lengthBuffer = getWebSocketFrameLengthBytes(messageBuffer.length);
@@ -3884,11 +3882,14 @@ SP.decrypt = function(key, secret) {
 	return counter !== (val.length + key.length) ? null : val;
 };
 
-exports.encrypt_body = function(value, key) {
+exports.encrypt_body = function(value, key, isbuffer) {
 
 	var builder = [];
 	var index = 0;
 	var length = key.length;
+
+	if (isbuffer == null)
+		isbuffer = true;
 
 	for (var i = 0; i < value.length; i++) {
 
@@ -3906,7 +3907,15 @@ exports.encrypt_body = function(value, key) {
 		builder.push(t.length + t);
 	}
 
-	return builder.join('');
+	if (isbuffer) {
+		var mask = Buffer.alloc(4);
+		mask.writeInt32BE(exports.random(999999));
+		var buffer = Buffer.from(builder.join(''));
+		for (var i = 0; i < buffer.length; i++)
+			buffer[i] = buffer[i] ^ mask[i % 4];
+		return Buffer.concat([mask, buffer]).toString('base64');
+	} else
+		return builder.join('');
 };
 
 exports.decrypt_body = function(value, key) {
@@ -3914,6 +3923,15 @@ exports.decrypt_body = function(value, key) {
 	var index = 0;
 	var length = key.length;
 	var builder = [];
+
+	if (value instanceof Buffer) {
+		var mask = Buffer.alloc(4);
+		var buffer = Buffer.alloc(value.length - 4);
+		mask.writeInt32BE(value.readInt32BE(0));
+		for (var i = 4; i < value.length; i++)
+			buffer[i - 4] = value[i] ^ mask[i % 4];
+		value = buffer.toString('utf8');
+	}
 
 	for (var i = 0; i < value.length; i++) {
 
@@ -3937,7 +3955,7 @@ exports.decrypt_body = function(value, key) {
 	return builder.join('');
 };
 
-exports.encryptUID = function(val, key) {
+exports.encrypt_uid = function(val, key) {
 
 	var num = typeof(val) === 'number';
 	var sum = 0;
@@ -3953,17 +3971,37 @@ exports.encryptUID = function(val, key) {
 	for (var i = 0; i < key.length; i++)
 		sum += key.charCodeAt(i);
 
-	return (num ? 'n' : 'x') + (CONF.secret_uid + val + sum + key).crc32(true).toString(16) + 'x' + val;
+	return (num ? 'n' : 'x') + (CONF.secret_uid + val + sum + key).crc32(true).toString(36) + 'x' + val;
 };
 
-exports.decryptUID = function(val, key) {
+exports.decrypt_uid = function(val, key) {
 	var num = val[0] === 'n';
 	var raw = val.substring(val.indexOf('x', 1) + 1);
 
 	if (num)
 		raw = +raw;
 
-	return exports.encryptUID(raw, key) === val ? raw : null;
+	return exports.encrypt_uid(raw, key) === val ? raw : null;
+};
+
+exports.encrypt_crypto = function(type, key, value) {
+	if (!F.temporary.keys[key])
+		F.temporary.keys[key] = Buffer.from(key);
+	var cipher = Crypto.createCipheriv(type, F.temporary.keys[key], CONF.default_crypto_iv);
+	CONCAT[0] = cipher.update(value);
+	CONCAT[1] = cipher.final();
+	return Buffer.concat(CONCAT);
+};
+
+exports.decrypt_crypto = function(type, key, value) {
+	if (!F.temporary.keys[key])
+		F.temporary.keys[key] = Buffer.from(key);
+	var decipher = Crypto.createDecipheriv(type, F.temporary.keys[key], CONF.default_crypto_iv);
+	try {
+		CONCAT[0] = decipher.update(value);
+		CONCAT[1] = decipher.final();
+		return Buffer.concat(CONCAT);
+	} catch (e) {}
 };
 
 SP.base64ToFile = function(filename, callback) {

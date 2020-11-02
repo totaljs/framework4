@@ -169,7 +169,7 @@ MP.clone = function() {
 	return obj;
 };
 
-MP.destroy = function() {
+MP.end = MP.destroy = function() {
 	var self = this;
 	self.processed = 0;
 	self.main.stats.pending--;
