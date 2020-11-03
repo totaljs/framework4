@@ -1500,6 +1500,7 @@ function Framework() {
 		default_image_quality: 93,
 		default_image_consumption: 0, // disabled because e.g. GM v1.3.32 throws some error about the memory
 
+		allow_static_encryption: false,
 		allow_static_files: true,
 		allow_gzip: true,
 		allow_websocket: true,
@@ -4082,7 +4083,7 @@ F.$filelocalize = function(req, res, nominify) {
 	// options.headers
 	// options.download
 
-	if (CONF.secret_encryption)
+	if (CONF.secret_encryption && CONF.allow_static_encryption)
 		req.$bodyencrypt = true;
 
 	DEF.onLocale && (req.$language = DEF.onLocale(req, res, req.isStaticFile));
