@@ -4631,7 +4631,7 @@ function install_component(name, filename, next) {
 
 	if (content.body) {
 		F.components.views[name] = '.' + PATH.temp(F.clusterid + 'component_' + name);
-		F.$bundling && Fs.writeFile(F.components.views[name].substring(1) + '.html', U.minifyHTML(content.body), NOOP);
+		F.$bundling && Fs.writeFile(F.components.views[name].substring(1) + '.html', U.minify_html(content.body), NOOP);
 	} else
 		delete F.components.views[name];
 
