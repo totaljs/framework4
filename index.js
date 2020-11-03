@@ -1229,7 +1229,7 @@ global.$ACTION = function(schema, model, callback, controller) {
 		$.controller = controller ? controller.req : null;
 
 		if (meta.method === 'PATCH')
-			$.keys = Object.keys(data);
+			$.keys = data ? Object.keys(data) : EMPTYARRAY;
 
 		var data = {};
 		data.meta = meta;
@@ -2604,7 +2604,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 			if (apitmp === '+')
 				apimethod = 'POST';
-			else if (apitmp === '-')
+			else if (apitmp === '#')
 				apimethod = 'PATCH';
 			else
 				apimethod = 'GET';
@@ -3119,6 +3119,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	}
 
 	if (isAPI) {
+
 		var tmpapi = url + '/';
 
 		if (!F.routes.api[tmpapi])
@@ -3126,8 +3127,11 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		F.routes.api[tmpapi][apiname] = { action: apimethod + ' ' + apischema, params: apiparams };
 
-		if (F.routes.web.findItem('hash', hash))
-			return;
+		for (var i = 0; i < F.routes.web.length; i++) {
+			var tmp = F.routes.web[i];
+			if (tmp.hash === hash && tmp.MEMBER === membertype)
+				return;
+		}
 
 		funcExecute = controller_api;
 		schema = null;
