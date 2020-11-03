@@ -2514,6 +2514,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var viewname;
 	var sitemap;
 	var apiname;
+	var apiparams;
 	var apischema;
 	var apimethod;
 
@@ -2586,10 +2587,25 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		index = url.indexOf(' ');
 		if (index !== -1) {
-			apiname = url.substring(index).trim().replace(/<|>/g, '');
+
+			apiname = url.substring(index).trim().replace(/<|>/g, '').replace(/\{|\}/g, '');
 			url = url.substring(0, index).trim();
-			var apitmp = apiname.split(' ');
+
+			apiname = apiname.split('/');
+			apiparams = apiname.slice(1).trim();
+			apiname = apiname[0];
+
+			for (var i = 0; i < apiparams.length; i++) {
+				var param = apiparams[i].split(':').trim();
+				apiparams[i] = { name: param[0], type: param[1] };
+			}
+
+			var apitmp = apiname.split(' ').trim();
 			apimethod = apitmp.length > 1 ? apitmp[0].toUpperCase() : 'GET';
+
+			if (apimethod === 'DATA' || apimethod === 'VALIDATE' || apimethod === 'VALID' || apimethod === '@')
+				apimethod = 'POST';
+
 			if (apitmp.length > 1)
 				apiname = apitmp[1];
 		}
@@ -3102,11 +3118,15 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	if (isAPI) {
 		var tmpapi = url + '/';
+
 		if (!F.routes.api[tmpapi])
 			F.routes.api[tmpapi] = {};
-		F.routes.api[tmpapi][apiname] = apimethod + ' ' + apischema;
+
+		F.routes.api[tmpapi][apiname] = { action: apimethod + ' ' + apischema, params: apiparams };
+
 		if (F.routes.web.findItem('hash', hash))
 			return;
+
 		funcExecute = controller_api;
 		schema = null;
 		workflow = null;
@@ -10020,40 +10040,57 @@ function controller_api() {
 		return;
 	}
 
-	var s = api[model.schema];
+	var index = model.schema.indexOf('?');
+	var query = null;
+
+	if (index !== -1) {
+		query = model.schema.substring(index + 1);
+		model.schema = model.schema.substring(0, index);
+	}
+
+	var schema = model.schema.split('/');
+
+	var s = api[schema[0].trim()];
 	if (!s) {
 		self.throw404('Schema not found');
 		return;
 	}
 
-	if (model.id) {
-		if (typeof(model.id) !== 'string') {
-			self.throw400('Invalid ID');
-			return;
-		}
-	}
+	self.params = {};
 
-	if (model.params) {
-		if (typeof(model.params) === 'string') {
-			model.params = model.params.parseEncoded();
-		} else {
+	for (var i = 0; i < s.params.length; i++) {
+		var param = (schema[i + 1] || '').trim();
+		if (!param) {
 			self.throw400('Invalid params');
 			return;
 		}
-	}
+		var p = s.params[i];
 
-	if (model.query) {
-		if (typeof(model.query) === 'string') {
-			model.query = model.query.parseEncoded();
-		} else {
-			self.throw400('Invalid query arguments');
-			return;
+		if (p.type === 'uid') {
+			if (!param.isUID()) {
+				self.throw400('Invalid param type');
+				return;
+			}
+		} else if (p.type === 'number') {
+			param = +param;
+			if (isNaN(param)) {
+				self.throw400('Invalid param type');
+				return;
+			}
+		} else if (p.type === 'date') {
+			param = param.length > 6 ? param.indexOf('-') === -1 ? param.parseDate('yyyyMMddHHmm') : param.parseDate('yyyy-MM-dd-HHmm') : null;
+			if (param == null || !param.getTime) {
+				self.throw400('Invalid param type');
+				return;
+			}
 		}
+		if (i == 0)
+			model.id = param;
+		self.params[p.name] = param;
 	}
 
 	// Internal Total.js hack
-	self.params = model.params || EMPTYOBJECT;
-	self.query = model.query || EMPTYOBJECT;
+	self.query = query ? query.parseEncoded() : {};
 	self.id = model.id || '';
 
 	if (self.route.encrypt)
@@ -10063,7 +10100,7 @@ function controller_api() {
 		self.req.$bodyencrypt = true;
 
 	// Evaluates action
-	$ACTION(s, model.data, self.callback(), self);
+	$ACTION(s.action, model.data, self.callback(), self);
 }
 
 ControllerProto.getSchema = function() {
@@ -16065,7 +16102,7 @@ function process_ping() {
 
 process.on('message', function(msg, h) {
 	if (msg === 'total:debug') {
-		U.wait(() => F.isLoaded, function() {
+		WAIT(() => F.isLoaded, function() {
 			F.isLoaded = undefined;
 			F.console();
 		}, 10000, 500);
