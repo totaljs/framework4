@@ -6062,31 +6062,14 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 		switch (debug.toLowerCase().replace(/\.|\s/g, '-')) {
 			case 'release':
 			case 'production':
+			case 'prod':
 				debug = false;
 				break;
-
 			case 'debug':
 			case 'develop':
+			case 'dev':
 			case 'development':
 				debug = true;
-				break;
-
-			case 'test-debug':
-			case 'debug-test':
-			case 'testing-debug':
-				debug = true;
-				F.isTest = true;
-				break;
-
-			case 'test':
-			case 'testing':
-			case 'test-release':
-			case 'release-test':
-			case 'testing-release':
-			case 'test-production':
-			case 'testing-production':
-				debug = false;
-				F.isTest = true;
 				break;
 		}
 	}
@@ -6212,7 +6195,6 @@ F.initialize = function(http, debug, options) {
 		configure_configs();
 		configure_versions();
 		configure_sitemap();
-		F.isTest && configure_configs('config-test', true);
 		F.cache.init();
 		F.consoledebug('init');
 		EMIT('init');
@@ -6475,22 +6457,8 @@ F.mode = function(http, name, options) {
 	switch (name.toLowerCase().replace(/\.|\s/g, '-')) {
 		case 'release':
 			break;
-
 		case 'debug':
 			debug = true;
-			break;
-
-		case 'test-debug':
-		case 'debug-test':
-			debug = true;
-			F.isTest = true;
-			break;
-
-		case 'test':
-		case 'test-release':
-		case 'release-test':
-			debug = false;
-			F.isTest = true;
 			break;
 	}
 
@@ -6508,19 +6476,12 @@ F.custom = function(mode, http, request, response, options) {
 
 	switch (mode.toLowerCase().replace(/\.|\s/g, '-')) {
 		case 'release':
+		case 'prod':
+		case 'production':
 			break;
 		case 'debug':
+		case 'dev':
 			debug = true;
-			break;
-		case 'test':
-		case 'test-debug':
-		case 'debug-test':
-			debug = true;
-			F.isTest = true;
-			break;
-		case 'test-release':
-		case 'release-test':
-			debug = false;
 			break;
 	}
 
@@ -14244,7 +14205,6 @@ function extend_request(PROTO) {
 
 		var controller = new Controller(name, this, res, route.currentViewDirectory);
 
-		controller.isTransfer = this.$total_transfer;
 		controller.exception = this.$total_exception;
 		this.controller = controller;
 
