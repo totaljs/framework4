@@ -1925,7 +1925,7 @@ function jsonparser(key, value) {
 exports.getWebSocketFrame = function(code, message, type, compress, mask) {
 
 	if (mask)
-		mask = exports.random(999999);
+		mask = ((Math.random() * 214748364) >> 0) + 1;
 
 	var messageBuffer = getWebSocketFrameMessageBytes(code, message);
 	var lengthBuffer = getWebSocketFrameLengthBytes(messageBuffer.length);
@@ -1940,10 +1940,11 @@ exports.getWebSocketFrame = function(code, message, type, compress, mask) {
 	lengthBuffer.copy(frameBuffer, 1, 0, lengthBuffer.length);
 
 	if (mask) {
+		var offset = lengthBuffer.length + 1;
 		frameBuffer[1] |= 0x80;
-		frameBuffer.writeInt32BE(mask, lengthBuffer.length + 1);
+		frameBuffer.writeInt32BE(mask, offset);
 		for (var i = 0; i < messageBuffer.length; i++)
-			messageBuffer[i] = messageBuffer[i] ^ mask[i % 4];
+			messageBuffer[i] = messageBuffer[i] ^ frameBuffer[offset + (i % 4)];
 	}
 
 	messageBuffer.copy(frameBuffer, lengthBuffer.length + 1 + lengthMask, 0, messageBuffer.length);
@@ -3850,7 +3851,7 @@ exports.encrypt_data = function(value, key) {
 	}
 
 	var mask = Buffer.alloc(4);
-	mask.writeInt32BE(Math.floor(Math.random() * 999999999));
+	mask.writeInt32BE((Math.random() * 214748364) >> 0);
 
 	var buffer = Buffer.from(builder.join(''));
 	for (var i = 0; i < buffer.length; i++)
