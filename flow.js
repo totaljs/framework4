@@ -177,6 +177,21 @@ MP.end = MP.destroy = function() {
 	return self;
 };
 
+MP.status = function(a, b, c, d) {
+	this.instance.onstatus(a, b, c, d);
+	return this;
+};
+
+MP.debug = function(a, b, c, d) {
+	this.instance.ondebug(a, b, c, d);
+	return this;
+};
+
+MP.throw = function(a, b, c, d) {
+	this.instance.onerror(a, b, c, d);
+	return this;
+};
+
 MP.send = function(outputindex) {
 
 	var self = this;
