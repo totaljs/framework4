@@ -2084,6 +2084,66 @@ DP.setTimeZone = function(timezone) {
 	return new Date(Date.parse(dt));
 };
 
+/**
+ * Date difference
+ * @param  {Date/Number/String} date Optional.
+ * @param  {String} type Date type: minutes, seconds, hours, days, months, years
+ * @return {Number}
+ */
+DP.diff = function(date, type) {
+
+	if (arguments.length === 1) {
+		type = date;
+		date = Date.now();
+	} else {
+		var to = typeof(date);
+		if (to === 'string')
+			date = Date.parse(date);
+		else if (exports.isDate(date))
+			date = date.getTime();
+	}
+
+	var r = this.getTime() - date;
+
+	switch (type) {
+		case 's':
+		case 'ss':
+		case 'second':
+		case 'seconds':
+			return Math.ceil(r / 1000);
+		case 'm':
+		case 'mm':
+		case 'minute':
+		case 'minutes':
+			return Math.ceil((r / 1000) / 60);
+		case 'h':
+		case 'hh':
+		case 'hour':
+		case 'hours':
+			return Math.ceil(((r / 1000) / 60) / 60);
+		case 'd':
+		case 'dd':
+		case 'day':
+		case 'days':
+			return Math.ceil((((r / 1000) / 60) / 60) / 24);
+		case 'M':
+		case 'MM':
+		case 'month':
+		case 'months':
+			// avg: 28 days per month
+			return Math.ceil((((r / 1000) / 60) / 60) / (24 * 28));
+
+		case 'y':
+		case 'yyyy':
+		case 'year':
+		case 'years':
+			// avg: 28 days per month
+			return Math.ceil((((r / 1000) / 60) / 60) / (24 * 28 * 12));
+	}
+
+	return NaN;
+};
+
 DP.add = function(type, value) {
 
 	var self = this;
