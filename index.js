@@ -2591,7 +2591,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			apiname = url.substring(index).trim().replace(/<|>/g, '').replace(/\{|\}/g, '');
 			url = url.substring(0, index).trim();
 
-			apiname = apiname.split('/');
+			apiname = apiname.split(/\/|\|/);
 			apiparams = apiname.slice(1).trim();
 			apiname = apiname[0];
 
@@ -2600,14 +2600,16 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				apiparams[i] = { name: param[0], type: param[1] };
 			}
 
-			var apitmp = apiname.split(' ').trim();
-			apimethod = apitmp.length > 1 ? apitmp[0].toUpperCase() : 'GET';
+			var apitmp = apiname[0];
 
-			if (apimethod === 'DATA' || apimethod === 'VALIDATE' || apimethod === 'VALID' || apimethod === '@')
+			if (apitmp === '+')
 				apimethod = 'POST';
+			else if (apitmp === '-')
+				apimethod = 'PATCH';
+			else
+				apimethod = 'GET';
 
-			if (apitmp.length > 1)
-				apiname = apitmp[1];
+			apiname = apiname.replace(/^(\+|-|#)/, '').trim();
 		}
 
 		if (method.indexOf(',') !== -1) {
@@ -10029,7 +10031,8 @@ function controller_api() {
 	var self = this;
 	var model = self.body;
 
-	if (!model.schema) {
+
+	if (!model || !model.schema) {
 		self.throw400();
 		return;
 	}
