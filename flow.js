@@ -178,17 +178,17 @@ MP.end = MP.destroy = function() {
 };
 
 MP.status = function(a, b, c, d) {
-	this.instance.onstatus(a, b, c, d);
+	this.instance.status(a, b, c, d);
 	return this;
 };
 
 MP.debug = function(a, b, c, d) {
-	this.instance.ondebug(a, b, c, d);
+	this.instance.debug(a, b, c, d);
 	return this;
 };
 
 MP.throw = function(a, b, c, d) {
-	this.instance.onerror(a, b, c, d);
+	this.instance.error(a, b, c, d);
 	return this;
 };
 
@@ -239,9 +239,9 @@ MP.send = function(outputindex) {
 			continue;
 
 		var schema = meta.flow[output.id];
-		if (schema && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
+		if (schema && schema.message && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.message && next.connected && !next.disabled) {
+			if (next && next.connected && !next.disabled) {
 
 				var inputindex = output.index;
 				var message = self.clone();
@@ -270,7 +270,7 @@ MP.send = function(outputindex) {
 
 				self.$events.message && self.emit('message', message);
 				self.main.$events.message && self.main.emit('message', message);
-				setImmediate(sendmessage, next, message, true);
+				setImmediate(sendmessage, schema, message, true);
 				count++;
 			}
 		}
@@ -350,10 +350,12 @@ function Flow(name) {
 
 var FP = Flow.prototype;
 
-FP.register = function(name, declaration, config) {
-	var self = this;
+FP.register = function(name, declaration, config, extend) {
 
-	if (typeof(declaration) === 'string')
+	var self = this;
+	var type = typeof(declaration);
+
+	if (type === 'string')
 		declaration = new Function('instance', declaration);
 
 	var cache;
@@ -367,14 +369,30 @@ FP.register = function(name, declaration, config) {
 	}
 
 	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {} };
-	declaration(curr);
+	if (extend)
+		declaration(curr);
+	else
+		curr.make = declaration;
+
 	curr.config = CLONE(curr.config || curr.options);
 	self.meta.components[name] = curr;
 	self.$events.register && self.emit('register', name, curr);
+
 	curr.install && !prev && curr.install.call(curr, curr);
 	curr.destroy = function() {
 		self.unregister(name);
 	};
+
+	var keys = Object.keys(self.meta.flow);
+	if (keys.length) {
+		for (var i = 0; i < keys.length; i++) {
+			var f = self.meta.flow[keys[i]];
+			if (f.component === curr.id) {
+				self.initcomponent(keys[i], curr);
+			}
+		}
+	}
+
 	return curr;
 };
 
@@ -454,6 +472,16 @@ FP.unregister = function(name, callback) {
 		callback && callback();
 
 	return self;
+};
+
+FP.reconfigure = function(id, config) {
+	var self = this;
+	var instance = self.meta.flow[id];
+	if (instance) {
+		instance.config = U.extend(instance.config, config);
+		instance.configure && instance.configure(instance.config);
+	}
+	return !!instance;
 };
 
 FP.clean = function() {
@@ -551,7 +579,6 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 			}
 		}
 	}
-
 };
 
 FP.use = function(schema, callback) {
@@ -606,70 +633,12 @@ FP.use = function(schema, callback) {
 				}
 			}
 
-			if (current) {
-				if (current.component === instance.component) {
-
-					// Updated config and connections
-					current.config = instance.config || instance.options;
-					current.connections = instance.connections;
-					current.ts = ts;
-
-					// Reconfigure
-					component.configure && component.configure.call(current, current, current.config);
-					next();
-					return;
-
-				} else {
-					// Components are different, closes current
-					current.ready = false;
-					current.close && current.close.call(current, current);
-					delete self.meta.flow[key];
-				}
-			}
-
-			instance.stats = { pending: 0, input: 0, output: 0, duration: 0 };
-			instance.cache = {};
-			instance.id = key;
-			instance.ts = ts;
-			instance.module = component;
-
-			if (instance.options) {
-				instance.config = instance.options;
-				delete instance.options;
-			}
-
-			var tmp = component.config;
-			if (tmp)
-				instance.config = instance.config ? U.extend(CLONE(tmp), instance.config) : CLONE(tmp);
-
-			if (!instance.config)
-				instance.config = {};
-
-			component.make && component.make.call(instance, instance);
-
-			instance.status = self.onstatus;
-			instance.debug = self.ondebug;
-			instance.throw = self.onerror;
-			instance.send = self.ontrigger;
-			instance.main = self;
-
-			if (component.open) {
-				component.open.call(instance, instance, (function(instance) {
-					return function() {
-						if (instance) {
-							instance.ready = true;
-							delete instance.open;
-						}
-					};
-				})(instance));
-			} else
-				instance.ready = true;
-
 			self.meta.flow[key] = instance;
-
+			self.initcomponent(key, component).ts = ts;
 			next();
 
 		}, function() {
+
 
 			self.$events.schema && self.emit('schema', self.meta.flow);
 			callback && callback(err.length ? err : null);
@@ -681,7 +650,7 @@ FP.use = function(schema, callback) {
 				var component = self.meta.components[instance.component];
 				if (instance.ts !== ts) {
 					component.ready = false;
-					component.close && component.close.call(instance, instance);
+					instance.close && instance.close.call(instance);
 					delete self.meta.flow[key];
 				}
 			}
@@ -694,6 +663,58 @@ FP.use = function(schema, callback) {
 	}
 
 	return self;
+};
+
+FP.initcomponent = function(key, component) {
+
+	var self = this;
+	var instance = self.meta.flow[key];
+
+	if (instance.ready) {
+		// Closes old instance
+		instance.ready = false;
+		instance.close && instance.close.call(instance);
+	}
+
+	instance.stats = { pending: 0, input: 0, output: 0, duration: 0 };
+	instance.cache = {};
+	instance.id = key;
+	instance.module = component;
+	instance.ready = false;
+
+	if (instance.options) {
+		instance.config = instance.options;
+		delete instance.options;
+	}
+
+	var tmp = component.config;
+	if (tmp)
+		instance.config = instance.config ? U.extend(CLONE(tmp), instance.config) : CLONE(tmp);
+
+	if (!instance.config)
+		instance.config = {};
+
+	instance.status = self.onstatus;
+	instance.debug = self.ondebug;
+	instance.throw = self.onerror;
+	instance.send = self.ontrigger;
+	instance.main = self;
+	component.make && component.make.call(instance, instance);
+
+	if (instance.open) {
+		instance.open.call(instance, (function(instance) {
+			return function() {
+				if (instance) {
+					instance.ready = true;
+					delete instance.open;
+				}
+			};
+		})(instance));
+	} else
+		instance.ready = true;
+
+	self.meta.flow[key] = instance;
+	return instance;
 };
 
 function sendmessage(instance, message, event) {
@@ -724,9 +745,10 @@ FP.trigger = function(path, data, controller, events) {
 	var inputindex = path.length === 1 ? 0 : path[1];
 
 	var schema = self.meta.flow[path[0]];
-	if (schema && schema.ready && schema.component) {
+	if (schema && schema.ready && schema.component && schema.message) {
+
 		var instance = self.meta.components[schema.component];
-		if (instance && instance.message && instance.connected && !instance.disabled && self.$can(true, path[0], path[1])) {
+		if (instance && instance.connected && !instance.disabled && self.$can(true, path[0], path[1])) {
 
 			var message = new Message();
 
@@ -774,7 +796,7 @@ FP.trigger = function(path, data, controller, events) {
 				}
 			}
 
-			setImmediate(sendmessage, instance, message, true);
+			setImmediate(sendmessage, schema, message, true);
 			return message;
 		}
 	}
@@ -904,7 +926,7 @@ FP.add = function(name, body) {
 	meta.id = name;
 	var fn = new Function('exports', meta.be);
 	delete meta.be;
-	var component = self.register(meta.id, fn);
+	var component = self.register(meta.id, fn, null, true);
 	component.ui = meta;
 	return component;
 };
