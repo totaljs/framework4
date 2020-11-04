@@ -182,6 +182,11 @@ MP.status = function(a, b, c, d) {
 	return this;
 };
 
+MP.dashboard = function(a, b, c, d) {
+	this.instance.dashboard(a, b, c, d);
+	return this;
+};
+
 MP.debug = function(a, b, c, d) {
 	this.instance.debug(a, b, c, d);
 	return this;
@@ -493,23 +498,29 @@ FP.clean = function() {
 	return self;
 };
 
+FP.ondashboard = function(a, b, c, d) {
+	// this == instance
+	this.main.$events.dashboard && this.main.emit('dashboard', this, a, b, c, d);
+};
+
 FP.onstatus = function(a, b, c, d) {
-	// this instance
+	// this == instance
 	this.main.$events.status && this.main.emit('status', this, a, b, c, d);
 };
 
 FP.onerror = function(a, b, c, d) {
-	// this instance
+	// this == instance
 	this.main.$events.error && this.main.emit('error', this, a, b, c, d);
 };
 
 FP.ondebug = function(a, b, c, d) {
-	// this instance
+	// this == instance
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
 FP.ontrigger = function(outputindex, data, controller, events) {
-	// this instance
+
+	// this == instance
 
 	var schema = this;
 	var self = schema.main;
@@ -693,6 +704,7 @@ FP.initcomponent = function(key, component) {
 	if (!instance.config)
 		instance.config = {};
 
+	instance.dashboard = self.ondashboard;
 	instance.status = self.onstatus;
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
