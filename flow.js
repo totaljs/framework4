@@ -192,7 +192,7 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
-MP.send = function(outputindex) {
+MP.send = function(outputindex, data) {
 
 	var self = this;
 	var outputs;
@@ -245,6 +245,9 @@ MP.send = function(outputindex) {
 
 				var inputindex = output.index;
 				var message = self.clone();
+
+				if (data)
+					message.data = data;
 
 				message.used++;
 				message.instance = schema;
@@ -918,6 +921,19 @@ function parse(html) {
 	// new Function('exports', body_script)(com);
 	return com;
 }
+
+FP.find = function(id) {
+	return this.meta.flow[id];
+};
+
+FP.send = function(path, body) {
+	var self = this;
+	path = path.split('__');
+	var instance = self.meta.flow[path[0]];
+	if (instance)
+		instance.send(path[1], body);
+	return !!instance;
+};
 
 FP.add = function(name, body) {
 	var self = this;
