@@ -510,6 +510,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 	var schema = this;
 	var self = schema.main;
+
 	if (schema && schema.ready && schema.component) {
 		var instance = self.meta.components[schema.component];
 		if (instance && instance.connected && !instance.disabled) {
@@ -524,12 +525,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					if (!target)
 						continue;
 
-					instance = self.meta.components[target.component];
-					if (!instance)
-						continue;
-
 					var message = new Message();
-
 					message.$events = events || {};
 					message.duration = message.duration2 = Date.now();
 					message.controller = controller;
@@ -574,7 +570,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						}
 					}
 
-					setImmediate(sendmessage, instance, message, true);
+					setImmediate(sendmessage, target, message, true);
 				}
 			}
 		}
@@ -849,17 +845,44 @@ function parse(html) {
 	var body_body = '';
 	var raw = html;
 
+	beg = raw.indexOf('<body');
+	if (beg !== -1) {
+		end = raw.indexOf('</body>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 7), '');
+		body_body = tmp.trim();
+	}
+
+	beg = raw.indexOf('<settings');
+	if (beg !== -1) {
+		end = raw.indexOf('</settings>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 11), '');
+		body_settings = tmp.trim();
+	}
+
+	beg = raw.indexOf('<template');
+	if (beg !== -1) {
+		end = raw.indexOf('</template>', beg);
+		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
+		raw = raw.replace(raw.substring(beg, end + 11), '');
+		body_template = tmp.trim();
+	}
+
+	end = 0;
+
 	while (true) {
 
-		beg = html.indexOf('<script', end);
+		beg = raw.indexOf('<script', end);
+
 		if (beg === -1)
 			break;
 
-		end = html.indexOf('</script>', beg);
+		end = raw.indexOf('</script>', beg);
 		if (end === -1)
 			break;
 
-		var body = html.substring(beg, end);
+		var body = raw.substring(beg, end);
 		var beg = body.indexOf('>') + 1;
 
 		var tmp = body.substring(8, beg - 1);
@@ -881,30 +904,6 @@ function parse(html) {
 		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
 		raw = raw.replace(raw.substring(beg, end + 8), '');
 		body_style = tmp.trim();
-	}
-
-	beg = raw.indexOf('<template');
-	if (beg !== -1) {
-		end = raw.indexOf('</template>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 11), '');
-		body_template = tmp.trim();
-	}
-
-	beg = raw.indexOf('<body');
-	if (beg !== -1) {
-		end = raw.indexOf('</body>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 7), '');
-		body_body = tmp.trim();
-	}
-
-	beg = raw.indexOf('<settings');
-	if (beg !== -1) {
-		end = raw.indexOf('</settings>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 11), '');
-		body_settings = tmp.trim();
 	}
 
 	var com = {};
