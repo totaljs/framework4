@@ -4121,6 +4121,33 @@ SP.removeTags = function() {
 	return this.replace(regexpTags, '');
 };
 
+NP.between = function(condition, otherwise) {
+
+	var keys = Object.keys(condition);
+	var val = this;
+
+	for (var i = 0; i < keys.length; i++) {
+
+		var key = keys[i];
+		var arr = key.split('-');
+
+		var a = arr[0] ? +arr[0] : null;
+		var b = arr[1] ? +arr[1] : null;
+
+		if (a != null && b !== null) {
+			if (val >= a && val <= b)
+				return condition[key];
+		} else if (a != null) {
+			if (val >= a)
+				return condition[key];
+		} else if (b != null)
+			if (val <= b)
+				return condition[key];
+	}
+
+	return otherwise;
+};
+
 NP.floor = function(decimals) {
 	return Math.floor(this * Math.pow(10, decimals)) / Math.pow(10, decimals);
 };
