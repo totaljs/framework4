@@ -333,7 +333,7 @@ WebSocketClientProto.$ondata = function(data) {
 
 		case 0x09:
 			// ping, response pong
-			self.socket.write(U.getWebSocketFrame(0, 'PONG', 0x0A));
+			self.socket.write(U.getWebSocketFrame(0, 'PONG', 0x0A, false, self.options.masking));
 			current.buffer = null;
 			current.inflatedata = null;
 			self.$ping = true;
@@ -697,7 +697,7 @@ WebSocketClientProto.sendDeflate = function() {
  */
 WebSocketClientProto.ping = function() {
 	if (!this.isClosed) {
-		this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09));
+		this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, self.options.masking));
 		this.$ping = false;
 	}
 	return this;
@@ -730,8 +730,9 @@ WebSocketClientProto.close = function(message, code) {
 		self.isClosed = true;
 		if (message && self.options.encodedecode)
 			message = encodeURIComponent(message);
-		self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08));
+		self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08, false, self.options.masking));
 	}
+
 	return self;
 };
 
