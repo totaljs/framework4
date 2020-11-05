@@ -284,6 +284,9 @@ MP.send = function(outputindex, data) {
 		}
 	}
 
+	if (!count)
+		self.destroy();
+
 	return count;
 };
 
