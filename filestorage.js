@@ -217,6 +217,9 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom, expire
 			meta.size = writer.bytesWritten - HEADERSIZE;
 			meta.date = NOW = new Date();
 
+			if (expire)
+				meta.expire = NOW.add(expire);
+
 			self.total++;
 			self.size += meta.size;
 
@@ -232,8 +235,6 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom, expire
 					Fs.close(fd, NOOP);
 				} else {
 					meta.id = id;
-					if (expire)
-						meta.expire = NOW.add(expire);
 					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
 					Fs.close(fd, () => callback(null, meta));
 				}
@@ -271,6 +272,11 @@ FP.read = function(id, callback, nostream) {
 
 			var meta = buffer.toString('utf8').replace(REGCLEAN, '').parseJSON(true);
 			meta.id = id;
+
+			if (meta.expire && meta.expire < NOW) {
+				callback('File is expired');
+				return;
+			}
 
 			if (!nostream) {
 				F.stats.performance.open++;
@@ -510,7 +516,7 @@ FP.res = function(res, options, checkcustom) {
 				return;
 			}
 
-			if (checkcustom && checkcustom(obj) == false) {
+			if ((obj.expire && obj.expire < NOW) || (checkcustom && checkcustom(obj) == false)) {
 				if (RELEASE)
 					F.temporary.notfound[F.createTemporaryKey(req)] = true;
 				res.throw404();
