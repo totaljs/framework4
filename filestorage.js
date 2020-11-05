@@ -33,7 +33,7 @@ const MKDIR = { recursive: true };
 const REGCLEAN = /^[\s]+|[\s]+$/g;
 const BINARYREADDATA = { start: HEADERSIZE };
 const BINARYREADDATABASE64 = { start: HEADERSIZE, encoding: 'base64' };
-const BINARYREADMETA = { start: 0, end: HEADERSIZE - 1, encoding: 'binary' };
+const BINARYREADMETA = { start: 0, end: HEADERSIZE - 1, encoding: 'utf8' };
 
 function FileDB(name, directory) {
 	var t = this;
@@ -462,11 +462,11 @@ FP.readmeta = function(id, callback, count) {
 	}
 
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
-
 	F.stats.performance.open++;
-	var stream = Fs.createReadStream(filename, HEADERSIZE);
+	var stream = Fs.createReadStream(filename, BINARYREADMETA);
 	stream.on('error', err => callback(err));
 	stream.on('data', function(buffer) {
+
 		var json = buffer.toString('utf8').replace(REGCLEAN, '');
 		if (json) {
 			callback(null, JSON.parse(json, jsonparser));
