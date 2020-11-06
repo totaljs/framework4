@@ -449,6 +449,7 @@ global.REQUEST = function(opt) {
 	if (!opt.method)
 		opt.method = 'GET';
 
+	// opt.encrypt {String}
 	// opt.limit in kB
 	// opt.key {Buffer}
 	// opt.cert {Buffer}
@@ -511,13 +512,18 @@ global.REQUEST = function(opt) {
 		options.upload = true;
 
 		// Must be object { key: value }
-		if (opt.body)
+		if (opt.body) {
 			options.body = opt.body;
+		}
 
 	} else {
 		if (opt.body) {
-			if (!(opt.body instanceof Buffer))
+			if (!(opt.body instanceof Buffer)) {
+				if (opt.encrypt)
+					opt.body = exports.encrypt_data(opt.body, opt.encrypt);
+				opt.headers['X-Encryption'] = 'a';
 				opt.body = Buffer.from(opt.body, ENCODING);
+			}
 			opt.headers['Content-Length'] = opt.body.length;
 		}
 		options.body = opt.body;
@@ -1031,9 +1037,11 @@ function request_process_end() {
 
 	var ct = self.headers['content-type'];
 
-	if (!ct || REG_TEXTAPPLICATION.test(ct))
+	if (!ct || REG_TEXTAPPLICATION.test(ct)) {
 		data = self._buffer ? options.encoding === 'binary' ? self._buffer : self._buffer.toString(options.encoding) : '';
-	else
+		if (options.opt.encrypt && typeof(data) === 'string')
+			data = exports.decrypt_data(data, options.opt.encrypt);
+	} else
 		data = self._buffer;
 
 	options.canceled = true;

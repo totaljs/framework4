@@ -3490,6 +3490,14 @@ RESTBuilder.GET = function(url, data) {
 	return builder;
 };
 
+RESTBuilder.API = function(url, name, data) {
+	var builder = new RESTBuilder(url);
+	builder.operation = name;
+	builder.options.method = 'POST';
+	builder.raw(data, 'raw');
+	return builder;
+};
+
 RESTBuilder.POST = function(url, data) {
 	var builder = new RESTBuilder(url);
 	builder.options.method = 'POST';
@@ -3768,7 +3776,7 @@ RESTP.redirect = function(value) {
 
 RESTP.raw = function(value, type) {
 	var val = value;
-	if (typeof(val) !== 'string')
+	if (typeof(val) !== 'string' && type !== 'raw')
 		val = type === 'urlencoded' ? U.toURLEncode(val) : JSON.stringify(val);
 	this.options.type = type;
 	this.options.body = val;
@@ -3815,6 +3823,16 @@ function execrestbuilder(instance, callback) {
 
 RESTP.callback = function(callback) {
 	setImmediate(execrestbuilder, this, callback);
+	return this;
+};
+
+RESTP.encrypt = function(key) {
+	this.options.encrypt = key || DEF.secret_encryption;
+	return this;
+};
+
+RESTP.compress = function(val) {
+	this.$compress = val == null || val == true;
 	return this;
 };
 
@@ -3870,6 +3888,24 @@ RESTP.exec = function(callback) {
 
 	var self = this;
 
+	if (self.operation) {
+
+		// API
+		if (self.options.body)
+			self.options.body = { data: self.options.body };
+		else
+			self.options.body = {};
+
+		if (self.options.query) {
+			self.options.body.query = self.options.query;
+			self.options.query = null;
+		}
+
+		self.options.body.schema = self.operation;
+		self.options.body = JSON.stringify(self.options.body, self.$compress ? exports.json2replacer : null);
+		self.options.type = 'json';
+	}
+
 	if (self.options.files && self.options.method === 'GET')
 		self.options.method = 'POST';
 
@@ -3904,7 +3940,7 @@ RESTP.exec = function(callback) {
 	return REQUEST(self.options);
 };
 
-function exec_callback(err, response, host) {
+function exec_callback(err, response) {
 
 	var self = response.builder;
 
