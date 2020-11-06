@@ -8839,7 +8839,7 @@ global.WORKER = function(name, id, timeout, args, special) {
 	return fork;
 };
 
-global.WORKER2 = F.worker2 = function(name, args, callback, timeout) {
+global.WORKER2 = function(name, args, callback, timeout) {
 
 	if (typeof(args) === 'function') {
 		timeout = callback;
@@ -8854,7 +8854,7 @@ global.WORKER2 = F.worker2 = function(name, args, callback, timeout) {
 	if (args && !(args instanceof Array))
 		args = [args];
 
-	var fork = F.worker(name, null, timeout, args, true);
+	var fork = WORKER(name, null, timeout, args, true);
 	if (fork.__worker2)
 		return fork;
 
@@ -14383,7 +14383,7 @@ function extend_request(PROTO) {
 
 			try {
 				tmp = this.bodydata.toString(ENCODING);
-				if (this.headers['x-encryption'] && CONF.secret_encryption)
+				if (CONF.secret_encryption && !route.flags2.noencrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 				this.body = DEF.parsers.xml(tmp);
 				this.$total_prepare();
@@ -14409,9 +14409,8 @@ function extend_request(PROTO) {
 		if (this.$type === 1) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
-				if (this.headers['x-encryption'] && CONF.secret_encryption) {
+				if (CONF.secret_encryption && !route.flags2.noencrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-				}
 				this.body = DEF.parsers.json(tmp);
 			} catch (e) {
 				this.$total_400('Invalid JSON data.');
@@ -14420,7 +14419,7 @@ function extend_request(PROTO) {
 		} else {
 			tmp = this.bodydata.toString(ENCODING);
 
-			if (this.headers['x-encryption'] && CONF.secret_encryption)
+			if (CONF.secret_encryption && !route.flags2.noencrypt)
 				tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
 			this.body = DEF.parsers.urlencoded(tmp);
