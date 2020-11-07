@@ -37,9 +37,7 @@ process.totaldbworker && setTimeout(function() {
 	FUNCCACHE = {};
 }, 60 * 1000 * 5); // 5 minutes cache
 
-function errorhandling(err) {
-}
-
+var errorhandling = () => {};
 var func = {};
 
 func.in = function(a, b) {
@@ -619,10 +617,11 @@ QueryBuilder.prototype.join = function(arr) {
 	return self;
 };
 
-function isdangerous(rule, modify) {
+function isdangerous(rule) {
 	return (/require|global/).test(rule);
 }
 
+/*
 function prepare_filter(value) {
 
 	var skip = '';
@@ -669,7 +668,7 @@ function prepare_filter(value) {
 	}
 
 	return builder.join('');
-}
+}*/
 
 exports.QueryBuilder = QueryBuilder;
 exports.make = function() {
