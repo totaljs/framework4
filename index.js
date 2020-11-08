@@ -11807,6 +11807,7 @@ ControllerProto.content = function(body, type, headers) {
 			body.resourceName = self.language;
 
 		var tmp = body.output(true);
+
 		if (body.contentType)
 			res.options.type = body.contentType;
 		else
