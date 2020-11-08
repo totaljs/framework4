@@ -5558,7 +5558,7 @@ function compile_check(res) {
 
 		if (e) {
 
-			if (!res.noCompress && COMPRESSIONSPECIAL[req.extension] && CONF.allow_compile && !REG_NOCOMPRESS.test(res.options.filename))
+			if (!res.nocompress && COMPRESSIONSPECIAL[req.extension] && CONF.allow_compile && !REG_NOCOMPRESS.test(res.options.filename))
 				return compile_file(res);
 
 			var tmp = [res.options.filename, size, stats.mtime.toUTCString()];
@@ -15004,7 +15004,7 @@ function extend_response(PROTO) {
 		if (!canresize) {
 
 			if (F.components.has && F.components[req.extension] && req.uri.pathname === CONF.static_url_components + req.extension) {
-				res.noCompress = true;
+				res.nocompress = true;
 				res.options.components = true;
 				var g = req.query.group ? req.query.group.substring(0, req.query.group.length - 6) : '';
 				filename = PATH.temp('components' + (g ? '_g' + g : '') + '.' + req.extension);
