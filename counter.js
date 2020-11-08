@@ -80,7 +80,7 @@ CP.flush = function() {
 		m.year = NOW.getFullYear();
 		m.ts = +NOW.format('yyyyMMdd');
 		m.date = NOW;
-		self.db.update(m, true).where('id', m.id);
+		self.db.modify(m, true).where('id', m.id).where('ts', m.ts);
 	}
 
 	self.cache = {};
