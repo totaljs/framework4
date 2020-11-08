@@ -26,7 +26,6 @@
 
 'use strict';
 
-const REQUIRED = 'The field "@" is invalid.';
 const DEFAULT_SCHEMA = 'default';
 const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
@@ -2859,7 +2858,7 @@ ErrorBuilder.prototype.json = function(beautify, replacer) {
 ErrorBuilder.prototype.plain = function() {
 	var items = this.prepare().items;
 	var output = '';
-	for (var i = 0, length = items.length; i < length; i++)
+	for (var i = 0; i < items.length; i++)
 		output += (output ? ', ' : '') + items[i].error;
 	return output;
 };
@@ -2884,7 +2883,7 @@ ErrorBuilder.prototype._prepare = function() {
 		return this;
 
 	var arr = this.items;
-	for (var i = 0, length = arr.length; i < length; i++) {
+	for (var i = 0; i < arr.length; i++) {
 
 		var o = arr[i];
 
@@ -2897,7 +2896,7 @@ ErrorBuilder.prototype._prepare = function() {
 			o.error = this.onResource(o.error.substring(1));
 
 		if (!o.error)
-			o.error = REQUIRED.replace('@', o.name);
+			o.error = 'The field "' + o.name + '" is invalid';
 	}
 
 	return this;
@@ -2917,18 +2916,18 @@ ErrorBuilder.prototype._transform = function(name) {
 	return this.items;
 };
 
-ErrorBuilder.prototype.output = function(isResponse) {
+ErrorBuilder.prototype.output = function(isresponse) {
 
 	if (!this.transformName)
-		return isResponse ? this.json() : this.items;
+		return isresponse ? this.json() : this.items;
 
 	var current = transforms.error[this.transformName];
 	if (current) {
 		this.prepare();
-		return current.call(this, isResponse);
+		return current.call(this, isresponse);
 	}
 
-	return isResponse ? this.json() : this.items;
+	return isresponse ? this.json() : this.items;
 };
 
 /**
