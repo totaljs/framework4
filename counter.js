@@ -92,6 +92,13 @@ CP.find = function() {
 };
 
 CP.scalar = function(type, field, callback) {
+
+	if (typeof(field) === 'function' || !field) {
+		callback = field;
+		field = type;
+		type = '*';
+	}
+
 	var self = this;
 	var builder = self.db.scalar(type, field);
 	callback && builder.callback(callback);
