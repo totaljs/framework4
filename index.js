@@ -787,7 +787,7 @@ var authbuiltin = function(opt) {
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
 			var session = opt.sessions[key];
-			if (session.dtexpire < NOW) {
+			if (session.expire < NOW) {
 				expired.push(session.id);
 				delete opt.sessions[key];
 				users_expired[session.userid] = 1;
