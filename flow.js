@@ -637,13 +637,11 @@ FP.use = function(schema, callback) {
 
 			// Component not found
 			if (!component) {
-				if (current) {
-					err.push(key, '"' + instance.component + '" component not found.');
-					current.close && current.close.call(current, current);
-					delete self.meta.flow[key];
-					next();
-					return;
-				}
+				err.push(key, '"' + instance.component + '" component not found.');
+				current && current.close && current.close.call(current, current);
+				delete self.meta.flow[key];
+				next();
+				return;
 			}
 
 			self.meta.flow[key] = instance;
