@@ -2949,8 +2949,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		method = 'get';
 	}
 
-	if (workflow && workflow[0] === '@') {
-		var tmpa = workflow.replace(/,/g, ' ').split('@').trim();
+	if (workflow) {
+		var tmpa = workflow.replace(/,/g, ' ').replace(/@/g, '').split(' ').trim();
 		var rindex = null;
 		for (var i = 0; i < tmpa.length; i++) {
 			var a = tmpa[i].split(' ');
