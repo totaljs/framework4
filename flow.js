@@ -865,14 +865,17 @@ FP.add = function(name, body) {
 	meta.id = name;
 	meta.checksum = HASH(meta.be).toString(36);
 	var component = self.meta.components[name];
+
 	if (component && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
+		component.ts = Date.now();
 	} else {
 		var fn = new Function('exports', meta.be);
 		delete meta.be;
 		component = self.register(meta.id, fn, null, true);
 		component.ui = meta;
 	}
+
 	return component;
 };
 
