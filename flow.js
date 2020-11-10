@@ -594,11 +594,17 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 	}
 };
 
-FP.use = function(schema, callback) {
+FP.use = function(schema, callback, reinit) {
 	var self = this;
 
 	if (typeof(schema) === 'string')
 		schema = schema.parseJSON(true);
+
+	if (typeof(callback) === 'boolean') {
+		var tmp = reinit;
+		reinit = callback;
+		callback = tmp;
+	}
 
 	// schema.COMPONENT_ID.component = 'condition';
 	// schema.COMPONENT_ID.config = {};
@@ -621,19 +627,7 @@ FP.use = function(schema, callback) {
 
 			var current = self.meta.flow[key];
 			var instance = schema[key];
-
-			// Not defined component
-			if (!instance.component) {
-				if (current) {
-					err.push(key, '"' + instance.id + '" identifier does not have defined component.');
-					current.close && current.close.call(current, current);
-					delete self.meta.flow[key];
-					next();
-					return;
-				}
-			}
-
-			var component = self.meta.components[instance.component];
+			var component = instance.component ? self.meta.components[instance.component] : null;
 
 			// Component not found
 			if (!component) {
@@ -644,8 +638,16 @@ FP.use = function(schema, callback) {
 				return;
 			}
 
-			self.meta.flow[key] = instance;
-			self.initcomponent(key, component).ts = ts;
+			var fi = self.meta.flow[key];
+
+			if (!fi || reinit) {
+				self.meta.flow[key] = instance;
+				self.initcomponent(key, component).ts = ts;
+			} else {
+				U.extend(fi.config, instance.config);
+				fi.configure && fi.configure(fi.config);
+			}
+
 			next();
 
 		}, function() {
@@ -711,7 +713,7 @@ FP.initcomponent = function(key, component) {
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.main = self;
-	component.make && component.make.call(instance, instance);
+	component.make && component.make.call(instance, instance, instance.config);
 
 	if (instance.open) {
 		instance.open.call(instance, (function(instance) {
@@ -862,13 +864,13 @@ FP.add = function(name, body) {
 	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', js: '<script>', html: '<body>', template: '<template>' });
 	meta.id = name;
 	meta.checksum = HASH(meta.be).toString(36);
-	var prev = self.meta.components[name];
-	if (prev && prev.ui.checksum === meta.checksum) {
-		prev.ui = meta;
+	var component = self.meta.components[name];
+	if (component && component.ui.checksum === meta.checksum) {
+		component.ui = meta;
 	} else {
 		var fn = new Function('exports', meta.be);
 		delete meta.be;
-		var component = self.register(meta.id, fn, null, true);
+		component = self.register(meta.id, fn, null, true);
 		component.ui = meta;
 	}
 	return component;
