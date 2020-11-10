@@ -751,12 +751,9 @@ var authbuiltin = function(opt) {
 		opt.onread(meta, function(err, data) {
 
 			if (!err && data) {
-
-				data.expire = NOW.add(opt.expire);
-				opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua };
+				opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
 				$.req.sessionid = meta.sessionid;
 				$.success(data);
-
 			} else {
 
 				if (opt.ddos) {
