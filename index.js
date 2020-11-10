@@ -11599,20 +11599,23 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 
 		obj = json;
 		F.stats.response.errorbuilder++;
+
 	} else {
 
 		if (self.req.$bodycompress && !replacer)
 			replacer = true;
 
-		if (beautify)
-			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4);
-		else
-			obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
+		if (obj) {
+			if (beautify)
+				obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4);
+			else
+				obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer);
+		}
 	}
 
 	F.stats.response.json++;
-	res.options.body = obj;
-	res.options.compress = obj.length > 4096;
+	res.options.compress = obj ? obj.length > 4096 : false;
+	res.options.body = obj == null ? 'null' : obj;
 	res.$text();
 	self.precache && self.precache(obj, res.options.type, headers);
 	return self;
@@ -11823,7 +11826,7 @@ ControllerProto.content = function(body, type, headers) {
 		res.options.type = type || CT_TEXT;
 
 	res.options.body = body;
-	res.options.compress = body.length > 4096;
+	res.options.compress = body ? body.length > 4096 : false;
 	res.$text();
 
 	if (self.precache && (!self.status || self.status === 200)) {
