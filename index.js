@@ -1158,7 +1158,8 @@ global.$ACTION = function(schema, model, callback, controller) {
 
 		index = schema.indexOf('-->');
 
-		var op = (schema.substring(index + 3).trim().trim() + ' ').split(/\s@/).trim();
+		//var op = (schema.substring(index + 3).trim().trim() + ' ').split(/\s@/).trim();
+		var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
 		tmp = schema.substring(0, index).split(/\s|\t/).trim();
 
 		if (tmp.length !== 2) {
@@ -1193,13 +1194,13 @@ global.$ACTION = function(schema, model, callback, controller) {
 			index = item.indexOf('(');
 
 			if (index !== -1) {
-				meta.opcallbackindex = i;
+				meta.opcallbackindex = i - 1;
 				tmp.response = true;
 				item = item.substring(0, index).trim();
+				continue;
 			}
 
 			tmp.name = item;
-
 			if (!o.meta[item]) {
 				if (o.meta['workflow_' + item])
 					tmp.type = 'workflow';
@@ -1250,16 +1251,16 @@ function performsschemaaction_async(err, response, data) {
 
 function performsschemaaction(meta, model, callback, controller) {
 
-	if (meta.schema.$bodyencrypt && controller.req)
+	if (meta.schema.$bodyencrypt && controller && controller.req)
 		controller.req.$bodyencrypt = true;
 
-	if (meta.schema.$bodycompress && controller.req)
+	if (meta.schema.$bodycompress && controller && controller.req)
 		controller.req.$bodycompress = true;
 
 	if (meta.multiple) {
 		var add = meta.schema.async(model, callback, meta.opcallbackindex, controller);
 		for (var i = 0; i < meta.op.length; i++)
-			add(op.name);
+			add(meta.op[i].name);
 	} else {
 		var op = meta.op[0];
 		if (op.type)
