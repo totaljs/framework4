@@ -209,6 +209,10 @@ MP.send = function(outputindex, data) {
 			for (var i = 0; i < outputs.length; i++)
 				count += self.send(outputs[i]);
 		}
+
+		if (!count)
+			self.destroy();
+
 		return count;
 	}
 
