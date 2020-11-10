@@ -429,6 +429,10 @@ FP.destroy = function() {
 FP.cleanforce = function() {
 
 	var self = this;
+
+	if (!self.meta)
+		return self;
+
 	var keys = Object.keys(self.meta.flow);
 
 	for (var i = 0; i < keys.length; i++) {
