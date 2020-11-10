@@ -327,10 +327,6 @@ SchemaOptionsProto.invalid = function(name, error, path, index) {
 	};
 };
 
-SchemaOptionsProto.repository = function(name, value) {
-	return this.model && this.model.$repository ? this.model.$repository(name, value) : value;
-};
-
 SchemaOptionsProto.noop = function() {
 	this.callback(NoOp);
 	return this;
