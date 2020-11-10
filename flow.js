@@ -844,97 +844,6 @@ FP.make = function(fn) {
 	return self;
 };
 
-function parse(html) {
-
-	var beg = -1;
-	var end = -1;
-
-	var body_be = '';
-	var body_style = '';
-	var body_template = '';
-	var body_settings = '';
-	var body_fe = '';
-
-	var body_style = '';
-	var body_template = '';
-	var body_settings = '';
-	var body_body = '';
-	var raw = html;
-
-	beg = raw.indexOf('<body');
-	if (beg !== -1) {
-		end = raw.indexOf('</body>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 7), '');
-		body_body = tmp.trim();
-	}
-
-	beg = raw.indexOf('<settings');
-	if (beg !== -1) {
-		end = raw.indexOf('</settings>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 11), '');
-		body_settings = tmp.trim();
-	}
-
-	beg = raw.indexOf('<template');
-	if (beg !== -1) {
-		end = raw.indexOf('</template>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 11), '');
-		body_template = tmp.trim();
-	}
-
-	end = 0;
-
-	while (true) {
-
-		beg = raw.indexOf('<script', end);
-
-		if (beg === -1)
-			break;
-
-		end = raw.indexOf('</script>', beg);
-		if (end === -1)
-			break;
-
-		var body = raw.substring(beg, end);
-		var beg = body.indexOf('>') + 1;
-
-		var tmp = body.substring(8, beg - 1);
-		var be = tmp === 'total' || tmp === 'flow';
-		body = body.substring(beg);
-		body = body.trim();
-
-		if (be)
-			body_be = body;
-		else
-			body_fe = body;
-
-		end += 9;
-	}
-
-	beg = raw.indexOf('<style');
-	if (beg !== -1) {
-		end = raw.indexOf('</style>', beg);
-		var tmp = raw.substring(raw.indexOf('>', beg) + 1, end);
-		raw = raw.replace(raw.substring(beg, end + 8), '');
-		body_style = tmp.trim();
-	}
-
-	var com = {};
-
-	com.settings = body_settings;
-	com.css = body_style;
-	com.template = body_template;
-	com.html = body_body;
-	com.be = body_be;
-	com.js = body_fe;
-
-	// new Function('exports', body_script)(com);
-	return com;
-}
-
 FP.find = function(id) {
 	return this.meta.flow[id];
 };
@@ -950,12 +859,18 @@ FP.send = function(path, body) {
 
 FP.add = function(name, body) {
 	var self = this;
-	var meta = parse(body);
+	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', js: '<script>', template: '<template>', html: '<body>' });
 	meta.id = name;
-	var fn = new Function('exports', meta.be);
-	delete meta.be;
-	var component = self.register(meta.id, fn, null, true);
-	component.ui = meta;
+	meta.checksum = HASH(meta.be).toString(36);
+	var prev = self.meta.components[name];
+	if (prev && prev.ui.checksum === meta.checksum) {
+		prev.ui = meta;
+	} else {
+		var fn = new Function('exports', meta.be);
+		delete meta.be;
+		var component = self.register(meta.id, fn, null, true);
+		component.ui = meta;
+	}
 	return component;
 };
 

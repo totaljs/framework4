@@ -2559,6 +2559,36 @@ SP.count = function(text) {
 	return count;
 };
 
+SP.parseComponent = function(tags) {
+
+	var html = this;
+	var beg = -1;
+	var end = -1;
+	var output = {};
+	var keys = Object.keys(tags);
+
+	for (var i = 0; i < keys.length; i++) {
+
+		var tagbeg = tags[keys[i]];
+		var tagindex = tagbeg.indexOf(' ');
+
+		if (tagindex === -1)
+			tagindex = tagbeg.length - 1;
+
+		var tagend = '</' + tagbeg.substring(1, tagindex) + '>';
+		beg = html.indexOf(tagbeg);
+
+		if (beg !== -1) {
+			end = html.indexOf(tagend, beg);
+			var tmp = html.substring(html.indexOf('>', beg) + 1, end);
+			html = html.replace(html.substring(beg, end + tagbeg.length), '');
+			output[keys[i]] = tmp.trim();
+		}
+	}
+
+	return output;
+};
+
 SP.parseXML = function(replace) {
 
 	var xml = this;
