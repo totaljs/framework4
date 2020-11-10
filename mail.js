@@ -576,12 +576,13 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 	}
 
 	if (cache && CONNECTION) {
+
 		if (messages instanceof Array) {
 			var count = messages.length;
 			F.stats.performance.mail += count;
 			for (var i = 0; i < count; i++)
 				CONNECTION.messages.push(messages[i]);
-		} else {
+		} else if (messages) {
 			F.stats.performance.mail++;
 			CONNECTION.messages.push(messages);
 		}
@@ -1017,6 +1018,9 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 				}
 
 				if (obj.messages.length) {
+
+					F.error(err, 'SMTP error');
+
 					// a problem
 					obj.buffer = [];
 					obj.count--;
