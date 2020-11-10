@@ -2576,18 +2576,42 @@ SP.parseComponent = function(tags) {
 			tagindex = tagbeg.length - 1;
 
 		var tagend = '</' + tagbeg.substring(1, tagindex) + '>';
+		var tagbeg2 = '<' + tagend.substring(2);
+
 		beg = html.indexOf(tagbeg);
 
 		if (beg !== -1) {
-			end = html.indexOf(tagend, beg);
-			var tmp = html.substring(html.indexOf('>', beg) + 1, end);
-			html = html.replace(html.substring(beg, end + tagbeg.length), '');
-			output[keys[i]] = tmp.trim();
+
+			var count = 0;
+			end = -1;
+
+			for (var j = (beg + tagbeg.length); j < html.length; j++) {
+				var a = html.substring(j, j + tagbeg2.length);
+				if (a === tagbeg2) {
+					count++;
+				} else {
+					if (html.substring(j, j + tagend.length) === tagend) {
+						if (count) {
+							count--;
+						} else {
+							end = j;
+							break;
+						}
+					}
+				}
+			}
+
+			if (end !== -1) {
+				var tmp = html.substring(html.indexOf('>', beg) + 1, end);
+				html = html.replace(html.substring(beg, end + tagend.length), '').trim();
+				output[keys[i]] = tmp.trim();
+			}
+
 		}
 	}
 
 	return output;
-};
+}
 
 SP.parseXML = function(replace) {
 
