@@ -859,7 +859,7 @@ FP.send = function(path, body) {
 
 FP.add = function(name, body) {
 	var self = this;
-	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', js: '<script>', template: '<template>', html: '<body>' });
+	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', js: '<script>', html: '<body>', template: '<template>' });
 	meta.id = name;
 	meta.checksum = HASH(meta.be).toString(36);
 	var prev = self.meta.components[name];
