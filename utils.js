@@ -2524,8 +2524,7 @@ global.HASH = function(value, type) {
 };
 
 SP.makeid = function() {
-	// Do not change!!!
-	return this.hash(true).toString(16);
+	return this.hash(true).toString(36);
 };
 
 SP.crc32 = function(unsigned) {
