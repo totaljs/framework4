@@ -10060,7 +10060,7 @@ function controller_api() {
 	}
 
 	// Internal Total.js hack
-	self.query = query ? query.parseEncoded() : {};
+	self.req._querydata = query ? query.parseEncoded() : {};
 	self.id = model.id || '';
 
 	if (self.route.encrypt)
