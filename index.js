@@ -1139,7 +1139,6 @@ function performschema(type, schema, model, opt, callback, controller, noprepare
 	return !!o;
 }
 
-// GET Users/Neviem  --> @query @workflow
 global.$ACTION = function(schema, model, callback, controller) {
 
 	if (typeof(model) === 'function') {
@@ -1216,24 +1215,26 @@ global.$ACTION = function(schema, model, callback, controller) {
 
 		meta.multiple = meta.op.length > 1;
 		meta.schema = o;
-		meta.validate = meta.method !== 'GET' && meta.method !== 'DELETE';
+		meta.validate = meta.method !== 'GET' || (meta.method === 'DELETE' && model);
 		F.temporary.other[schema] = meta;
 	}
 
 	if (meta.validate) {
 
 		var $ = {};
-
 		$.controller = controller ? controller.req : null;
 
-		if (meta.method === 'PATCH')
-			$.keys = data ? Object.keys(data) : EMPTYARRAY;
+		if (meta.method === 'PATCH' || meta.method === 'DELETE') {
+			meta.validate = true;
+			$.keys = model ? Object.keys(model) : EMPTYARRAY;
+		}
 
 		var data = {};
 		data.meta = meta;
 		data.callback = callback;
 		data.controller = controller;
 		meta.schema.make(model, performsschemaaction_async, data, null, $);
+
 	} else
 		performsschemaaction(meta, null, callback, controller);
 
@@ -1261,9 +1262,9 @@ function performsschemaaction(meta, model, callback, controller) {
 	} else {
 		var op = meta.op[0];
 		if (op.type)
-			meta.schema.exec(op.type, op.name, model, EMPTYOBJECT, controller, callback, !meta.validate);
+			meta.schema.exec(op.type, op.name, model, EMPTYOBJECT, controller, callback, true);
 		else
-			meta.schema.exec(op.name, null, model, EMPTYOBJECT, controller, callback, !meta.validate);
+			meta.schema.exec(op.name, null, model, EMPTYOBJECT, controller, callback, true);
 	}
 }
 
@@ -5014,7 +5015,8 @@ DEF.onSchema = function(req, route, callback) {
 
 	var $ = {};
 
-	if (req.method === 'PATCH' && req.body)
+
+	if ((req.method === 'PATCH' || req.method === 'DELETE') && req.body)
 		req.keys = $.keys = Object.keys(req.body);
 
 	if (schema)
@@ -14319,6 +14321,7 @@ function extend_request(PROTO) {
 				self.$total_400(err);
 				next = null;
 			} else {
+				self.$bodynovalidate = true;
 				F.stats.request.schema++;
 				self.body = body;
 				self.$total_schema = true;
@@ -16500,6 +16503,9 @@ function controller_json_workflow(id) {
 	if (novalidate)
 		self.body = {};
 
+	if (!novalidate && self.req.$bodynovalidate)
+		novalidate = true;
+
 	w.schema.exec(w.type, w.name, self.body, EMPTYOBJECT, self, w.view ? self.callback(w.view) : self.callback(), novalidate);
 
 	if (self.route.isDYNAMICSCHEMA)
@@ -16613,12 +16619,13 @@ function evalroutehandleraction(controller) {
 }
 
 function evalroutehandler(controller) {
-	if (!controller.route.schema || !controller.route.schema[1] || controller.req.method === 'DELETE' || controller.req.method === 'GET')
+	if (!controller.route.schema || !controller.route.schema[1] || controller.req.method === 'GET')
 		return evalroutehandleraction(controller);
 	DEF.onSchema(controller.req, controller.route, function(err, body) {
 		if (err) {
 			controller.$evalroutecallback(err, body);
 		} else {
+			controller.req.$bodynovalidate = true;
 			controller.body = body;
 			evalroutehandleraction(controller);
 		}
@@ -16663,7 +16670,6 @@ global.ACTION = function(url, data, callback) {
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routeSplit(req.uri.pathname);
 	req.body = data || EMPTYOBJECT;
-	// req.query = params ? F.onParseQuery(params) : {};
 	req.query = params ? DEF.parser.urlencoded(params) : {};
 	req.files = EMPTYARRAY;
 	req.method = method;

@@ -1576,7 +1576,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 	var tmp;
 	var entity;
 	var item = new SchemaValue();
-	var keys = $ && $.keys ? [] : null;
+	var keys = $ && $.keys ? [] : null;
 
 	for (var property in obj) {
 
@@ -2074,11 +2074,8 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	}, controller, key, self);
 
 	$.ID = self.name + '.' + (name ? name : type);
-
 	$.type = type;
-
-	if (type === 'patch' || type === 'Patch')
-		$.keys = model ? Object.keys(model) : EMPTYARRAY;
+	$.keys = controller ? controller.req.keys : EMPTYARRAY;
 
 	self.perform(type, name, $, noprepare);
 };
