@@ -251,6 +251,27 @@ DP.stats = function(groupfield, datefield, key, type) {
 	builder.command = 'find';
 	builder.options.scalar = 'if (doc.{0}!=null&&doc.{2}!=null&&doc.{1} instanceof Date){tmp.val=doc.{2};tmp.group=doc.{0};tmp.date=doc.{1}.format(\'{3}\');if(!arg[tmp.group])arg[tmp.group]={};if(!arg[tmp.group][tmp.date])arg[tmp.group][tmp.date]={min:null,max:null,count:0};tmp.cur=arg[tmp.group][tmp.date];tmp.cur.count++;if(tmp.cur.max==null){tmp.cur.max=tmp.val}else if(tmp.cur.max<tmp.val){tmp.cur.max=tmp.val}if(tmp.cur.min==null){tmp.cur.min=tmp.val}else if(tmp.cur.min>tmp.val){tmp.cur.min=tmp.val}}'.format(groupfield, datefield, key, type === 'hourly' ? 'yyyyMMddHH' : type === 'monthly' ? 'yyyyMM' : type === 'yearly' ? 'yyyy' : 'yyyyMMdd');
 	builder.options.scalararg = {};
+	/*
+	builder.$custom = function() {
+		return function(err, response, meta) {
+			var output = [];
+			var keys = Object.keys(response);
+			for (var i = 0; i < keys.length; i++) {
+				var key = keys[i];
+				var item = {};
+				var tmp = response[key];
+				item.id = key;
+				item.data = [];
+				output.push(item);
+				var keys2 = Object.keys(tmp);
+				for (var j = 0; j < keys2.length; j++) {
+					tmp[keys2[j]].date = tmp;
+					item.data.push(tmp[keys2[j]]);
+				}
+			}
+			builder.$callback && builder.$callback(err, output, meta);
+		};
+	};*/
 	this.next(builder);
 	return builder;
 };
