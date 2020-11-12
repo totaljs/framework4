@@ -1480,7 +1480,7 @@ function Framework() {
 		default_timezone: 'utc',
 		default_root: '',
 		default_response_maxage: '11111111',
-		default_errorbuilder_status: 200,
+		default_errorbuilder_status: 400,
 
 		// Default originators
 		default_cors: null,
@@ -5014,7 +5014,6 @@ DEF.onSchema = function(req, route, callback) {
 	}
 
 	var $ = {};
-
 
 	if ((req.method === 'PATCH' || req.method === 'DELETE') && req.body)
 		req.keys = $.keys = Object.keys(req.body);
