@@ -583,7 +583,13 @@ JD.$update = function() {
 	};
 
 	fs.ondocuments = function() {
-		filters.compare2(JSON.parse('[' + fs.docs + ']', jsonparser), update, updateflush);
+		try {
+			var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+			filters.compare2(docs, update, updateflush);
+		} catch (e) {
+			F.error('TextDB("' + self.filename + '").update()', e);
+			return false;
+		}
 	};
 
 	fs.$callback = function() {
@@ -648,10 +654,14 @@ JD.$reader = function(items, reader) {
 	var memory = [];
 
 	fs.ondocuments = function() {
-		// var docs = JSON.parse('[' + fs.docs + ']', jsonparser);
-		var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
-		self.inmemory && memory.push.apply(memory, docs);
-		return filters.compare(docs);
+		try {
+			var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+			self.inmemory && memory.push.apply(memory, docs);
+			return filters.compare(docs);
+		} catch (e) {
+			F.error('TextDB("' + self.filename + '").read()', e);
+			return false;
+		}
 	};
 
 	fs.$callback = function() {
@@ -708,10 +718,14 @@ JD.$reader2 = function() {
 		fs.buffercount = self.buffercount;
 
 	fs.ondocuments = function() {
-		var data = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
-		// var data = JSON.parse('[' + fs.docs + ']', jsonparser);
-		data.reverse();
-		return filters.compare(data);
+		try {
+			var data = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+			data.reverse();
+			return filters.compare(data);
+		} catch (e) {
+			F.error('TextDB("' + self.filename + '").read()', e);
+			return false;
+		}
 	};
 
 	fs.$callback = function() {
@@ -750,12 +764,17 @@ JD.$streamer = function() {
 		fs.buffercount = self.buffercount;
 
 	fs.ondocuments = function() {
-		var docs = JSON.parse('[' + fs.docs + ']', jsonparser);
-		for (var j = 0; j < docs.length; j++) {
-			var json = docs[j];
-			count++;
-			for (var i = 0; i < length; i++)
-				filter[i].fn(json, filter[i].arg, count);
+		try {
+			var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+			for (var j = 0; j < docs.length; j++) {
+				var json = docs[j];
+				count++;
+				for (var i = 0; i < length; i++)
+					filter[i].fn(json, filter[i].arg, count);
+			}
+		} catch (e) {
+			F.error('TextDB("' + self.filename + '").stream()', e);
+			return false;
 		}
 	};
 
@@ -810,7 +829,13 @@ JD.$remove = function() {
 	};
 
 	fs.ondocuments = function() {
-		filters.compare2(JSON.parse('[' + fs.docs + ']', jsonparser), remove, removeflush);
+		try {
+			var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+			filters.compare2(docs, remove, removeflush);
+		} catch (e) {
+			F.error('TextDB("' + self.filename + '").read()', e);
+			return false;
+		}
 	};
 
 	fs.$callback = function() {
