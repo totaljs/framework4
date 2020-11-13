@@ -116,6 +116,28 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+var BLOCKEDB = {};
+
+global.BLOCKED = function($, limit, expiration) {
+
+	if (!limit)
+		limit = 5;
+
+	var key = $.ip;
+	var item = BLOCKEDB[key];
+	if (item) {
+		if (item.count > limit)
+			return true;
+		item.count++;
+	} else {
+		item = BLOCKEDB[key] = {};
+		item.expire = NOW.add(expiration || '15 minutes');
+		item.count = 1;
+	}
+
+	BLOCKEDB.is = true;
+};
+
 global.FILECACHE = function(id, expire, callback, maker, encoding) {
 
 	var filename = PATH.temp('filecache_' + (id + '').hash(true) + '.cache');
@@ -6571,8 +6593,9 @@ F.service = function(count) {
 
 	UIDGENERATOR_REFRESH();
 
-	var keys;
 	var releasegc = false;
+	var keys;
+	var key;
 
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};
@@ -6608,7 +6631,7 @@ F.service = function(count) {
 		// Clears released sessions
 		keys = Object.keys(F.sessions);
 		for (var i = 0; i < keys.length; i++) {
-			var key = keys[i];
+			key = keys[i];
 			if (F.sessions[key]) {
 				F.sessions[key].clean();
 				CONF.allow_sessions_unused && F.sessions[key].releaseunused(CONF.allow_sessions_unused);
@@ -6674,6 +6697,21 @@ F.service = function(count) {
 	if (WORKERID > 9999999999)
 		WORKERID = 0;
 
+	if (BLOCKEDB.is) {
+		keys = Object.keys(BLOCKEDB);
+		BLOCKEDB.is = false;
+		for (var i = 0; i < keys.length; i++) {
+			key = keys[i];
+			if (key !== 'is') {
+				var tmp = BLOCKEDB[key];
+				if (tmp.expire < NOW)
+					delete BLOCKEDB[key];
+				else
+					BLOCKEDB.is = true;
+			}
+		}
+	}
+
 	// Run schedules
 	keys = Object.keys(F.schedules);
 
@@ -6683,7 +6721,7 @@ F.service = function(count) {
 	var expire = NOW.getTime();
 
 	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+		key = keys[i];
 		var schedule = F.schedules[key];
 		if (schedule.expire <= expire) {
 			if (schedule.repeat)
