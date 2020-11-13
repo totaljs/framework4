@@ -155,7 +155,7 @@ DP.next = function(builder) {
 	return this;
 };
 
-DP.find = function() {
+DP.find = DP.all = function() {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find';
 	this.next(builder);
@@ -380,7 +380,7 @@ DP.bulkremove = function(fn) {
 	return builder;
 };
 
-DP.update = DP.modify = function(data, upsert, noeval) {
+DP.update = DP.modify = DP.mod = function(data, upsert, noeval) {
 
 	var self = this;
 	var builder = new DatabaseBuilder();
