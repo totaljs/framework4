@@ -469,7 +469,7 @@ DP.update = DP.modify = DP.mod = function(data, upsert, noeval) {
 	return builder;
 };
 
-DP.remove = function(noeval) {
+DP.remove = DP.rem = function(noeval) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'remove';
 	if (!noeval)
