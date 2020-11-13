@@ -16782,6 +16782,11 @@ function measure_usage() {
 	setTimeout(measure_usage_response, 50);
 }
 
+NEWCOMMAND('clear_smtpcache', function() {
+	if (CONF.mail_smtp || CONF.mail_smtp_options)
+		delete F.temporary.mail_settings;
+});
+
 NEWCOMMAND('clear_viewscache', function() {
 	global.$VIEWCACHE = [];
 	var keys = Object.keys(F.temporary.other);
