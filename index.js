@@ -4747,6 +4747,11 @@ function install(type, name, filename, next) {
 	F.consoledebug('install', key);
 	var m = require(filename);
 	var opt = CONF[key];
+
+	// Backward compatibility
+	if (!opt)
+		opt = CONF[type + '#' + name];
+
 	CURRENT_OWNER = key;
 	CURRENT_CONTROLLER = '';
 	F.dependencies[key] = m;
