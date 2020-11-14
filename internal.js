@@ -21,7 +21,7 @@
 
 /**
  * @module FrameworkInternal
- * @version 4.0.0
+ * @version 3.4.3
  */
 
 'use strict';
@@ -56,8 +56,8 @@ const REG_BLOCK_END = /@\{end\}/i;
 const REG_SKIP_1 = /\('|"/;
 const REG_SKIP_2 = /,(\s)?\w+/;
 const REG_COMPONENTS_GROUP = /('|")[a-z0-9_]+('|")/i;
-const HTTPVERBS = { get: true, post: true, options: true, put: true, delete: true, patch: true, upload: true, head: true, trace: true, propfind: true };
-const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', '((self.resource(', '((RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '((CONFIG(', '((config.', '((config[', '((CONF.', '((CONF[', '((config('];
+const HTTPVERBS = { 'get': true, 'post': true, 'options': true, 'put': true, 'delete': true, 'patch': true, 'upload': true, 'head': true, 'trace': true, 'propfind': true };
+const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', 'self.$script(', '$STRING(self.resource(', '$STRING(RESOURCE(', 'self.translate(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '$STRING(CONFIG(', '$STRING(config.', '$STRING(config[', '$STRING(CONF.', '$STRING(CONF[', '$STRING(config('];
 const REG_NOTRANSLATE = /@\{notranslate\}/gi;
 const REG_NOCOMPRESS = /@\{nocompress\s\w+}/gi;
 const REG_TAGREMOVE = /[^>](\r)\n\s{1,}$/;
@@ -78,11 +78,15 @@ const REG_CSS_11 = /\$.*?(;|\}|!)/gi;
 const REG_CSS_12 = /(margin|padding):.*?(;|})/g;
 const REG_CSS_13 = /#(0{6}|1{6}|2{6}|3{6}|4{6}|5{6}|6{6}|7{6}|8{6}|9{6}|0{6}|A{6}|B{6}|C{6}|D{6}|E{6}|F{6})/gi;
 const REG_VIEW_PART = /\/\*PART.*?\*\//g;
-const AUTOVENDOR = ['appearance', 'user-select', 'font-smoothing', 'text-size-adjust', 'backface-visibility'];
+const AUTOVENDOR = ['filter', 'appearance', 'column-count', 'column-gap', 'column-rule', 'display', 'transform', 'transform-style', 'transform-origin', 'transition', 'user-select', 'animation', 'perspective', 'animation-name', 'animation-duration', 'animation-timing-function', 'animation-delay', 'animation-iteration-count', 'animation-direction', 'animation-play-state', 'opacity', 'background', 'background-image', 'font-smoothing', 'text-size-adjust', 'backface-visibility', 'box-sizing', 'overflow-scrolling'];
 const WRITESTREAM = { flags: 'w' };
 const ALLOWEDMARKUP = { G: 1, M: 1, R: 1, repository: 1, model: 1, CONF: 1, config: 1, global: 1, resource: 1, RESOURCE: 1, CONFIG: 1, author: 1, root: 1, functions: 1, NOW: 1, F: 1 };
 
 var INDEXFILE = 0;
+
+global.$STRING = function(value) {
+	return value != null ? value.toString() : '';
+};
 
 global.$VIEWCACHE = [];
 global.$VIEWASYNC = 0;
@@ -127,16 +131,16 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 	req.files = [];
 	req.body = {};
 
-	var path = framework_utils.combine(tmpDirectory, F.clusterid + 'upload_');
+	var path = framework_utils.combine(tmpDirectory, (F.id ? 'i-' + F.id + '_' : '') + 'uploadedfile-');
 
-	req.bodyexceeded = false;
-	req.bodyhas = true;
+	req.buffer_exceeded = false;
+	req.buffer_has = true;
 	req.buffer_parser = parser;
 	parser.initWithBoundary(boundary);
 
 	parser.onPartBegin = function() {
 
-		if (req.bodyexceeded)
+		if (req.buffer_exceeded)
 			return;
 
 		// Temporary data
@@ -149,7 +153,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 	parser.onHeaderValue = function(buffer, start, end) {
 
-		if (req.bodyexceeded)
+		if (req.buffer_exceeded)
 			return;
 
 		var header = buffer.slice(start, end).toString(ENCODING);
@@ -170,7 +174,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 		// UNKNOWN ERROR, maybe attack
 		if (header.indexOf('form-data; ') === -1) {
-			req.bodyexceeded = true;
+			req.buffer_exceeded = true;
 			!tmp.$is && destroyStream(stream);
 			return;
 		}
@@ -202,7 +206,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 
 	parser.onPartData = function(buffer, start, end) {
 
-		if (req.bodyexceeded)
+		if (req.buffer_exceeded)
 			return;
 
 		var data = buffer.slice(start, end);
@@ -211,7 +215,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 		size += length;
 
 		if (size >= maximumSize) {
-			req.bodyexceeded = true;
+			req.buffer_exceeded = true;
 			if (rm)
 				rm.push(tmp.path);
 			else
@@ -258,6 +262,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 		}
 
 		req.files.push(tmp);
+		F.$events['upload-begin'] && EMIT('upload-begin', req, tmp);
 		F.$events.upload_begin && EMIT('upload_begin', req, tmp);
 		close++;
 		stream = Fs.createWriteStream(tmp.path, WRITESTREAM);
@@ -274,7 +279,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 			stream = null;
 		}
 
-		if (req.bodyexceeded)
+		if (req.buffer_exceeded)
 			return;
 
 		if (tmp == null)
@@ -284,7 +289,8 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 			tmp.$data = undefined;
 			tmp.$is = undefined;
 			tmp.$step = undefined;
-			F.$events.upload_end && EMIT('upload_end', req, tmp);
+			F.$events['upload-end'] && F.emit('upload-end', req, tmp);
+			F.$events.upload_end && F.emit('upload_end', req, tmp);
 			return;
 		}
 
@@ -307,7 +313,7 @@ exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
 		if (close) {
 			setImmediate(parser.onEnd);
 		} else {
-			rm && PATH.unlink(rm);
+			rm && F.unlink(rm);
 			req.$total_end2();
 		}
 	};
@@ -321,7 +327,7 @@ function uploadparser(chunk) {
 }
 
 function uploadparser_done() {
-	!this.bodyexceeded && (this.$upload = true);
+	!this.buffer_exceeded && (this.$upload = true);
 	this.buffer_parser.end();
 }
 
@@ -339,7 +345,7 @@ function parse_multipart_header(header) {
 	if (tmp)
 		arr[0] = tmp;
 	else
-		arr[0] = 'undefined_' + (Math.floor(Math.random() * 100000));
+		arr[0] = 'undefined_' + (Math.floor(Math.random() * 100000)).toString();
 
 	find = ' filename="';
 	length = find.length;
@@ -629,43 +635,25 @@ exports.routeCompareFlags2 = function(req, route, membertype) {
 	return (route.isROLE && hasRoles) ? isRole ? 1 : -1 : 1;
 };
 
-exports.routeParameters = function(routeUrl, route) {
+/**
+ * Create arguments for controller's action
+ * @param {String Array} routeUrl
+ * @param {Object} route
+ * @return {String Array}
+ */
+exports.routeParam = function(routeUrl, route) {
 
 	if (!route || !routeUrl || !route.param.length)
 		return EMPTYARRAY;
 
 	var arr = [];
-	var is = false;
 
-	for (var i = 0; i < route.param.length; i++) {
+	for (var i = 0, length = route.param.length; i < length; i++) {
 		var value = routeUrl[route.param[i]];
-		var name = route.paramnames[route.param[i]];
-		switch (route.paramtypes[name]) {
-			case 'uid':
-				if (!value.isUID())
-					is = true;
-				break;
-			case 'number':
-				value = +value;
-				if (isNaN(value)) {
-					is = true;
-					value = 0;
-				}
-				break;
-			case 'boolean':
-				value = value === 'true' || value === '1';
-				break;
-			case 'date':
-				value = value.length > 6 ? value.indexOf('-') === -1 ? value.parseDate('yyyyMMddHHmm') : value.parseDate('yyyy-MM-dd-HHmm') : null;
-				if (value == null || !value.getTime)
-					is = true;
-				break;
-		}
-
 		arr.push(value === '/' ? '' : value);
 	}
 
-	return { values: arr, error: is };
+	return arr;
 };
 
 function HttpFile() {
@@ -726,10 +714,36 @@ HFP.copy = function(filename, callback) {
 	return self;
 };
 
+HFP.$$rename = HFP.$$move = function(filename) {
+	var self = this;
+	return function(callback) {
+		return self.rename(filename, callback);
+	};
+};
+
+HFP.$$copy = function(filename) {
+	var self = this;
+	return function(callback) {
+		return self.copy(filename, callback);
+	};
+};
+
+HFP.readSync = function() {
+	return Fs.readFileSync(this.path);
+};
+
 HFP.read = function(callback) {
 	var self = this;
+	F.stats.performance.open++;
 	Fs.readFile(self.path, callback);
 	return self;
+};
+
+HFP.$$read = function() {
+	var self = this;
+	return function(callback) {
+		self.read(callback);
+	};
 };
 
 HFP.md5 = function(callback) {
@@ -754,6 +768,13 @@ HFP.md5 = function(callback) {
 	});
 
 	return self;
+};
+
+HFP.$$md5 = function() {
+	var self = this;
+	return function(callback) {
+		self.md5(callback);
+	};
 };
 
 HFP.stream = function(options) {
@@ -782,18 +803,26 @@ HFP.image = function(im) {
 	return framework_image.init(this.path, im, this.width, this.height);
 };
 
-HFP.fs = function(storage, id, custom, expire, callback) {
-
+HFP.fs = function(storagename, custom, callback, id) {
 	if (typeof(custom) === 'function') {
+		id = callback;
 		callback = custom;
 		custom = null;
-		expire = null;
-	} else if (typeof(expire) === 'function') {
-		callback = expire;
-		expire = null;
 	}
+	var storage = FILESTORAGE(storagename);
+	var stream = Fs.createReadStream(this.path);
+	return id ? storage.update(id, this.filename, stream, custom, callback) : storage.insert(this.filename, stream, custom, callback);
+};
 
-	FILESTORAGE(storage).save(id, this.filename, this.path, callback, custom, expire);
+HFP.nosql = function(name, custom, callback, id) {
+	if (typeof(custom) === 'function') {
+		id = callback;
+		callback = custom;
+		custom = null;
+	}
+	var storage = NOSQL(name).binary;
+	var stream = Fs.createReadStream(this.path);
+	return id ? storage.update(id, this.filename, stream, custom, callback) : storage.insert(this.filename, stream, custom, callback);
 };
 
 // *********************************************************************************
@@ -866,6 +895,8 @@ function cssmarginpadding(text) {
 
 function autoprefixer(value) {
 
+	value = autoprefixer_keyframes(value);
+
 	var builder = [];
 	var index = 0;
 	var property;
@@ -892,8 +923,9 @@ function autoprefixer(value) {
 			if (end === -1)
 				continue;
 
+			// text-transform
 			var before = value.substring(index - 1, index);
-			var isPrefix = before === '-' || before === '.' || before === '#';
+			var isPrefix = before === '-';
 			if (isPrefix)
 				continue;
 
@@ -922,6 +954,18 @@ function autoprefixer(value) {
 		var delimiter = ';';
 		var updated = plus + delimiter;
 
+		if (name === 'opacity') {
+			var opacity = plus.replace('opacity', '').replace(':', '').replace(/\s/g, '');
+			index = opacity.indexOf('!');
+			opacity = index === -1 ? (+opacity) : (+opacity.substring(0, index));
+			if (!isNaN(opacity)) {
+				updated += 'filter:alpha(opacity=' + Math.floor(opacity * 100) + ')' + (index !== -1 ? ' !important' : '');
+				value = value.replacer(replace, before + '@[[' + output.length + ']]');
+				output.push(updated);
+			}
+			continue;
+		}
+
 		if (name === 'font-smoothing') {
 			updated = plus + delimiter;
 			updated += plus.replacer('font-smoothing', '-webkit-font-smoothing') + delimiter;
@@ -931,8 +975,63 @@ function autoprefixer(value) {
 			continue;
 		}
 
+		if (name === 'background' || name === 'background-image') {
+			if (property.indexOf('repeating-linear-gradient') !== -1) {
+				updated = plus.replacer('repeating-linear-', '-webkit-repeating-linear-') + delimiter;
+				updated += plus.replacer('repeating-linear-', '-moz-repeating-linear-') + delimiter;
+				updated += plus.replacer('repeating-linear-', '-ms-repeating-linear-') + delimiter;
+				updated += plus;
+				value = value.replacer(replace, before + '@[[' + output.length + ']]');
+				output.push(updated);
+			} else if (property.indexOf('repeating-radial-gradient') !== -1) {
+				updated = plus.replacer('repeating-radial-', '-webkit-repeating-radial-') + delimiter;
+				updated += plus.replacer('repeating-radial-', '-moz-repeating-radial-') + delimiter;
+				updated += plus.replacer('repeating-radial-', '-ms-repeating-radial-') + delimiter;
+				updated += plus;
+				value = value.replacer(replace, before + '@[[' + output.length + ']]');
+				output.push(updated);
+			} else if (property.indexOf('linear-gradient') !== -1) {
+				updated = plus.replacer('linear-', '-webkit-linear-') + delimiter;
+				updated += plus.replacer('linear-', '-moz-linear-') + delimiter;
+				updated += plus.replacer('linear-', '-ms-linear-') + delimiter;
+				updated += plus;
+				value = value.replacer(replace, before + '@[[' + output.length + ']]');
+				output.push(updated);
+			} else if (property.indexOf('radial-gradient') !== -1) {
+				updated = plus.replacer('radial-', '-webkit-radial-') + delimiter;
+				updated += plus.replacer('radial-', '-moz-radial-') + delimiter;
+				updated += plus.replacer('radial-', '-ms-radial-') + delimiter;
+				updated += plus;
+				value = value.replacer(replace, before + '@[[' + output.length + ']]');
+				output.push(updated);
+			}
+			continue;
+		}
+
+		if (name === 'text-overflow') {
+			updated = plus + delimiter;
+			updated += plus.replacer('text-overflow', '-ms-text-overflow');
+			value = value.replacer(replace, before + '@[[' + output.length + ']]');
+			output.push(updated);
+			continue;
+		}
+
+		if (name === 'display') {
+			if (property.indexOf('box') !== -1) {
+				updated = plus + delimiter;
+				updated += plus.replacer('box', '-webkit-box') + delimiter;
+				updated += plus.replacer('box', '-moz-box');
+				value = value.replacer(replace, before + '@[[' + output.length + ']]');
+				output.push(updated);
+			}
+			continue;
+		}
+
 		updated += '-webkit-' + plus + delimiter;
 		updated += '-moz-' + plus;
+
+		if (name.indexOf('animation') === -1)
+			updated += delimiter + '-ms-' + plus;
 
 		value = value.replacer(replace, before + '@[[' + output.length + ']]');
 		output.push(updated);
@@ -944,6 +1043,76 @@ function autoprefixer(value) {
 
 	output = null;
 	builder = null;
+	return value;
+}
+
+function autoprefixer_keyframes(value) {
+
+	var builder = [];
+	var index = 0;
+
+	while (index !== -1) {
+
+		index = value.indexOf('@keyframes', index + 1);
+		if (index === -1)
+			continue;
+
+		var counter = 0;
+		var end = -1;
+
+		for (var indexer = index + 10; indexer < value.length; indexer++) {
+
+			if (value[indexer] === '{')
+				counter++;
+
+			if (value[indexer] !== '}')
+				continue;
+
+			if (counter > 1) {
+				counter--;
+				continue;
+			}
+
+			end = indexer;
+			break;
+		}
+
+		if (end === -1)
+			continue;
+
+		var css = value.substring(index, end + 1);
+		builder.push({ name: 'keyframes', property: css });
+	}
+
+	var output = [];
+	var length = builder.length;
+
+	for (var i = 0; i < length; i++) {
+
+		var name = builder[i].name;
+		var property = builder[i].property;
+
+		if (name !== 'keyframes')
+			continue;
+
+		var plus = property.substring(1);
+		var delimiter = '\n';
+
+		var updated = '@' + plus + delimiter;
+
+		updated += '@-webkit-' + plus + delimiter;
+		updated += '@-moz-' + plus + delimiter;
+		updated += '@-o-' + plus + delimiter;
+
+		value = value.replacer(property, '@[[' + output.length + ']]');
+		output.push(updated);
+	}
+
+	length = output.length;
+
+	for (var i = 0; i < length; i++)
+		value = value.replace('@[[' + i + ']]', output[i]);
+
 	return value;
 }
 
@@ -1102,8 +1271,8 @@ exports.compile_css = function(value, filename, nomarkup) {
 
 	if (global.F) {
 		value = modificators(value, filename, 'style');
-		if (DEF.onCompileStyle)
-			return DEF.onCompileStyle(filename, value);
+		if (F.onCompileStyle)
+			return F.onCompileStyle(filename, value);
 	}
 
 	try {
@@ -1131,8 +1300,8 @@ exports.compile_javascript = function(source, filename, nomarkup) {
 
 	if (global.F) {
 		source = modificators(source, filename, 'script');
-		if (DEF.onCompileScript)
-			return DEF.onCompileScript(filename, source).trim();
+		if (F.onCompileScript)
+			return F.onCompileScript(filename, source).trim();
 	}
 
 	return minify_javascript(source);
@@ -1530,7 +1699,7 @@ function localize(language, command) {
 	if (F.resources[language] && F.resources[language].$empty)
 		return command.command;
 
-	var output = TRANSLATE(language, command.command);
+	var output = F.translate(language, command.command);
 
 	if (command.escape) {
 		var index = 0;
@@ -1698,18 +1867,19 @@ function view_parse(content, minify, filename, controller) {
 			if (cmd[1] === '%') {
 				var t = CONF[cmd.substring(2, cmd.length - 1)];
 				if (t != null)
-					builder += '+' + DELIMITER + (t + '').replace(/'/g, "\\'") + DELIMITER;
+					builder += '+' + DELIMITER + (t.toString()).replace(/'/g, "\\'") + DELIMITER;
 			} else
 				builder += '+' + DELIMITER + (new Function('self', 'return self.$import(' + cmd[0] + '!' + cmd.substring(1) + ')'))(controller) + DELIMITER;
 		} else if (cmd7 === 'compile' && cmd.lastIndexOf(')') === -1) {
 
-			builderTMP = builder + '+(DEF.onCompileView.call(self,\'' + (cmd8[7] === ' ' ? cmd.substring(8).trim() : '') + '\',';
+			builderTMP = builder + '+(F.onCompileView.call(self,\'' + (cmd8[7] === ' ' ? cmd.substring(8).trim() : '') + '\',';
 			builder = '';
 			sectionName = cmd.substring(8);
 			isCOMPILATION = true;
 			isFN = true;
 
 		} else if (cmd8 === 'section ' && cmd.lastIndexOf(')') === -1) {
+
 			builderTMP = builder;
 			builder = '+(function(){var $output=$EMPTY';
 			sectionName = cmd.substring(8);
@@ -1866,12 +2036,12 @@ function view_parse(content, minify, filename, controller) {
 		return '$VIEWCACHE[' + index + ']';
 	});
 
-	var fn = ('(function(self,repository,model,session,query,body,url,helpers,user,config,functions,index,output,files,mobile,settings){var R=this.repository;var M=model;var theme=this.themeName;var language=this.language;var sitemap=this.repository.$sitemap;' + (isCookie ? 'var cookie=function(name){return self.req.cookie(name)};' : '') + (functions.length ? functions.join('') + ';' : '') + 'var controller=self;' + builder + ';return $output;})');
+	var fn = ('(function(self,repository,model,session,query,body,url,global,helpers,user,config,functions,index,output,files,mobile,settings){var G=F.global;var R=this.repository;var M=model;var theme=this.themeName;var language=this.language;var sitemap=this.repository.$sitemap;' + (isCookie ? 'var cookie=function(name){return self.req.cookie(name)};' : '') + (functions.length ? functions.join('') + ';' : '') + 'var controller=self;' + builder + ';return $output;})');
 	try {
 		fn = eval(fn);
 		fn.components = keys;
 	} catch (e) {
-		throw new Error(filename + ': ' + (e.message + ''));
+		throw new Error(filename + ': ' + e.message.toString());
 	}
 	return fn;
 }
@@ -1881,7 +2051,7 @@ function view_prepare_keywords(cmd) {
 }
 
 function wrapTryCatch(value, command, line) {
-	return DEBUG ? ('(function(){try{return ' + value + '}catch(e){throw new Error(unescape(\'' + escape(command) + '\') + \' - Line: ' + line + ' - \' + e.message.toString());}return $EMPTY})()') : value;
+	return F.isDebug ? ('(function(){try{return ' + value + '}catch(e){throw new Error(unescape(\'' + escape(command) + '\') + \' - Line: ' + line + ' - \' + e.message.toString());}return $EMPTY})()') : value;
 }
 
 function view_parse_plus(builder) {
@@ -1914,10 +2084,10 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 
 	var name = command.substring(0, index);
 	if (name === dynamicCommand)
-		return '((' + command + ') + \'\').encode()';
+		return '$STRING(' + command + ').encode()';
 
 	if (name[0] === '!' && name.substring(1) === dynamicCommand)
-		return '((' + command.substring(1) + ') + \'\')';
+		return '$STRING(' + command.substring(1) + ')';
 
 	switch (name) {
 
@@ -1945,7 +2115,9 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return '(' + command + '?$EMPTY:$EMPTY)';
 
 		case '!cookie':
-			return '((' + command + ') + \'\')';
+			return '$STRING(' + command + ')';
+		case '!isomorphic':
+			return '$STRING(' + command + ')';
 
 		case 'root':
 			var r = CONF.default_root;
@@ -1965,10 +2137,10 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'CONF':
 		case 'REPO':
 		case 'controller':
-			return view_is_assign(command) ? ('self.$set(' + command + ')') : ('((' + command + ') + \'\').encode()');
+			return view_is_assign(command) ? ('self.$set(' + command + ')') : ('$STRING(' + command + ').encode()');
 
 		case 'body':
-			return view_is_assign(command) ? ('self.$set(' + command + ')') : command.lastIndexOf('.') === -1 ? 'output' : ('((' + command + ') + \'\').encode()');
+			return view_is_assign(command) ? ('self.$set(' + command + ')') : command.lastIndexOf('.') === -1 ? 'output' : ('$STRING(' + command + ').encode()');
 
 		case 'files':
 		case 'mobile':
@@ -1980,6 +2152,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return command;
 
 		case 'cookie':
+		case 'isomorphic':
 		case 'settings':
 		case 'CONFIG':
 		case 'FUNC':
@@ -1988,7 +2161,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'SCHEMA':
 		case 'MODULE':
 		case 'functions':
-			return '((' + command + ') + \'\').encode()';
+			return '$STRING(' + command + ').encode()';
 
 		case '!M':
 		case '!R':
@@ -2011,17 +2184,17 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case '!function':
 		case '!MODEL':
 		case '!MODULE':
-			return '((' + command.substring(1) + ') + \'\')';
+			return '$STRING(' + command.substring(1) + ')';
 
 		case 'resource':
-			return '((self.' + command + ') + \'\').encode()';
+			return '$STRING(self.' + command + ').encode()';
 		case 'RESOURCE':
-			return '((' + command + ') + \'\').encode()';
+			return '$STRING(' + command + ').encode()';
 
 		case '!resource':
-			return '((self.' + command.substring(1) + ') + \'\')';
+			return '$STRING(self.' + command.substring(1) + ')';
 		case '!RESOURCE':
-			return '((' + command.substring(1) + ') + \'\')';
+			return '$STRING(' + command.substring(1) + ')';
 
 		case 'host':
 		case 'hostname':
@@ -2037,7 +2210,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'description':
 		case 'keywords':
 		case 'author':
-			return command.indexOf('(') === -1 ? '((repository[\'$' + command + '\'] || \'\') + \'\').encode()' : 'self.$' + command;
+			return command.indexOf('(') === -1 ? '(repository[\'$' + command + '\'] || \'\').toString().encode()' : 'self.$' + command;
 
 		case 'title2':
 			return 'self.$' + command;
@@ -2078,13 +2251,15 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'favicon':
 		case 'js':
 		case 'css':
+		case 'script':
+		case 'absolute':
 			return 'self.$' + command + (command.indexOf('(') === -1 ? '()' : '');
 
 		case 'components':
 
 			var group = command.match(REG_COMPONENTS_GROUP);
 			if (group && group.length) {
-				group = (group[0] + '').replace(/'|"'/g, '');
+				group = group[0].toString().replace(/'|"'/g, '');
 				components[group] = 1;
 			}
 
@@ -2126,6 +2301,15 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 
 			return 'self.' + command;
 
+		case 'routeJS':
+		case 'routeScript':
+		case 'routeCSS':
+		case 'routeStyle':
+		case 'routeImage':
+		case 'routeFont':
+		case 'routeDownload':
+		case 'routeStatic':
+		case 'routeVideo':
 		case 'public_js':
 		case 'public_css':
 		case 'public_image':
@@ -2144,7 +2328,11 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'view':
 		case 'layout':
 		case 'image':
+		case 'template':
+		case 'templateToggle':
+		case 'viewCompile':
 		case 'view_compile':
+		case 'viewToggle':
 		case 'download':
 		case 'selected':
 		case 'disabled':
@@ -2152,6 +2340,12 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'header':
 		case 'options':
 		case 'readonly':
+		case 'canonical':
+		case 'dns':
+		case 'next':
+		case 'prefetch':
+		case 'prerender':
+		case 'prev':
 			return 'self.$' + command;
 
 		case 'now':
@@ -2166,7 +2360,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return 'self.$' + appendModel(command);
 
 		default:
-			return DEF.helpers[name] ? ('helpers.' + view_insert_call(command)) : ('((' + (functions.indexOf(name) === -1 ? command[0] === '!' ? command.substring(1) : command + ') + \'\').encode()' : command + ')'));
+			return F.helpers[name] ? ('helpers.' + view_insert_call(command)) : ('$STRING(' + (functions.indexOf(name) === -1 ? command[0] === '!' ? command.substring(1) + ')' : command + ').encode()' : command + ')'));
 	}
 }
 
@@ -2812,7 +3006,7 @@ function compressHTML(html, minify, isChunk) {
 function viewengine_read(path, controller) {
 	var config = CONF;
 	var out = path[0] === '.';
-	var filename = out ? path.substring(1) : PATH.views(path);
+	var filename = out ? path.substring(1) : F.path.views(path);
 	var key;
 
 	if (RELEASE) {
@@ -2851,7 +3045,7 @@ function viewengine_read(path, controller) {
 		return null;
 	}
 
-	filename = PATH.views(path.substring(index + 1));
+	filename = F.path.views(path.substring(index + 1));
 
 	if (existsSync(filename))
 		return view_parse(view_parse_localization(modificators(Fs.readFileSync(filename).toString('utf8'), filename, 'view', controller), controller.language), config.allow_compile_html, filename, controller);
@@ -2912,7 +3106,7 @@ function viewengine_load(name, filename, controller, component) {
 
 	generator = viewengine_read(filename, controller);
 
-	if (component || RELEASE)
+	if (component || !F.isDebug)
 		F.temporary.views[key] = generator;
 
 	return generator;
@@ -2926,7 +3120,7 @@ function viewengine_dynamic(content, language, controller, cachekey) {
 
 	generator = view_parse(view_parse_localization(modificators(content, '', 'view', controller), language), CONF.allow_compile_html, null, controller);
 
-	if (cachekey && RELEASE)
+	if (cachekey && !F.isDebug)
 		F.temporary.views[cachekey] = generator;
 
 	return generator;
@@ -2956,7 +3150,7 @@ function cleanURL(url, index) {
 	return o;
 }
 
-exports.preparepath = function(path, remove) {
+exports.preparePath = function(path, remove) {
 	var root = CONF.default_root;
 	if (!root)
 		return path;
@@ -3198,6 +3392,7 @@ function markup(body) {
 	if (!command)
 		return body;
 
+	var G = F.global;
 	var config = CONF;
 	var resource = F.resource;
 	var M = EMPTYOBJECT;
