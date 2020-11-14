@@ -2713,7 +2713,7 @@ SP.parseXML = function(replace) {
 
 SP.parseJSON = function(date) {
 	try {
-		return JSON.parse(this, date ? jsonparser : undefined);
+		return JSON.parse(this.replace(regexpTRIM, ''), date ? jsonparser : undefined);
 	} catch (e) {}
 };
 
