@@ -2972,14 +2972,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	if (workflow) {
 		var tmpa = workflow.replace(/,/g, ' ').replace(/@/g, '').split(' ').trim();
-		var rindex = null;
-		for (var i = 0; i < tmpa.length; i++) {
-			var a = tmpa[i].split(' ');
-			if (a[1] && (/response|res/i).test(a[1]))
-				rindex = i;
-			tmpa[i] = a[0];
-		}
-		workflow = { id: tmpa.length > 1 ? tmpa : tmpa[0], index: rindex };
+		var rindex = tmpa.indexOf('(response)');
+		if (rindex !== -1)
+			tmpa.splice(rindex, 1);
+		workflow = { id: tmpa.length > 1 ? tmpa : tmpa[0], index: rindex - 1 };
 	}
 
 	if (type === 'string') {
