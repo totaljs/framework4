@@ -1790,14 +1790,15 @@ function view_parse(content, minify, filename, controller) {
 						if (!a) {
 							var isMeta = tmp.indexOf('\'meta\'') !== -1;
 							var isHead = tmp.indexOf('\'head\'') !== -1;
-							tmp = tmp.replace(/(\s)?'(meta|head)'(\s|,)+/g, '').replace(/(,,|,\)|\s{2,})/g, '');
+							tmp = tmp.replace(/(\s)?'(meta|head)'(\s|,)?/g, '').replace(/(,,|,\)|\s{2,})/g, '');
 							if (isMeta || isHead) {
 								var tmpimp = '';
-								if (isMeta)
+								if (!isMeta)
 									tmpimp += (isMeta ? '\'meta\'' : '');
-								if (isHead)
+								if (!isHead)
 									tmpimp += (tmpimp ? ',' : '') + (isHead ? '\'head\'' : '');
-								builder += '+self.$import(' + tmpimp + ')';
+								if (tmpimp)
+									builder += '+self.$import(' + tmpimp + ')';
 							}
 						}
 						can = true;
