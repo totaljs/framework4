@@ -509,7 +509,7 @@ FP.res = function(res, options, checkcustom) {
 			try {
 				obj = JSON.parse(json, jsonparser);
 			} catch (e) {
-				console.log('FileStorage Error:', filename, e);
+				console.log('FileStorage Error:', filename, e, '"' + json + '"');
 				if (RELEASE)
 					F.temporary.notfound[F.createTemporaryKey(req)] = true;
 				res.throw404();
