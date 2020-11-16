@@ -31,9 +31,6 @@ const IMAGES = { jpg: 1, png: 1, gif: 1, svg: 1, jpeg: 1, heic: 1, heif: 1, webp
 const HEADERSIZE = 2000;
 const MKDIR = { recursive: true };
 const REGCLEAN = /^[\s]+|[\s]+$/g;
-const BINARYREADDATA = { start: HEADERSIZE };
-const BINARYREADDATABASE64 = { start: HEADERSIZE, encoding: 'base64' };
-const BINARYREADMETA = { start: 0, end: HEADERSIZE - 1, encoding: 'utf8' };
 
 function FileDB(name, directory) {
 	var t = this;
@@ -264,9 +261,10 @@ FP.read = function(id, callback, nostream) {
 		var buffer = Buffer.alloc(HEADERSIZE);
 		Fs.read(fd, buffer, 0, HEADERSIZE, 0, function(err) {
 
+			Fs.close(fd, NOOP);
+
 			if (err) {
 				callback(err);
-				Fs.close(fd, NOOP);
 				return;
 			}
 
@@ -452,27 +450,44 @@ function jsonparser(key, value) {
 	return typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value;
 }
 
-FP.readmeta = function(id, callback, count) {
+FP.readmeta = function(id, callback, keepfd) {
 
 	var self = this;
-
-	if (count > 3) {
-		callback(new Error('File not found.'));
-		return self;
-	}
-
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
-	F.stats.performance.open++;
-	var stream = Fs.createReadStream(filename, BINARYREADMETA);
-	stream.on('error', err => callback(err));
-	stream.on('data', function(buffer) {
 
-		var json = buffer.toString('utf8').replace(REGCLEAN, '');
-		if (json) {
-			callback(null, JSON.parse(json, jsonparser));
-			CLEANUP(stream);
-		} else
-			setTimeout(readfileattempt, 100, self, id, callback, count || 1);
+	F.stats.performance.open++;
+
+	Fs.open(filename, function(err, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		Fs.read(fd, { buffer: Buffer.alloc(HEADERSIZE) }, function(err, bytes, buffer) {
+
+			if (err) {
+				Fs.close(fd, NOOP);
+				callback(err);
+				return;
+			}
+
+			var json = buffer.toString('utf8').replace(REGCLEAN, '');
+
+			try {
+				json = JSON.parse(json, jsonparser);
+			} catch (e) {
+				Fs.close(fd, NOOP);
+				callback(e, null, filename);
+				return;
+			}
+
+			if (!keepfd)
+				Fs.close(fd, NOOP);
+
+			callback(null, json, filename, fd);
+		});
+
 	});
 
 	return self;
@@ -489,89 +504,65 @@ FP.res = function(res, options, checkcustom) {
 	}
 
 	var id = options.id || '';
-	var filename = Path.join(self.makedirectory(id), id + self.ext);
 
-	F.stats.performance.open++;
-	var stream = Fs.createReadStream(filename, BINARYREADMETA);
+	self.readmeta(id, function(err, obj, filename, fd) {
 
-	stream.on('error', function() {
-		if (RELEASE)
-			F.temporary.notfound[F.createTemporaryKey(req)] = true;
-		res.throw404();
-	});
-
-	stream.on('data', function(buffer) {
-		var json = buffer.toString('utf8').replace(REGCLEAN, '');
-		if (json) {
-
-			var obj;
-
-			try {
-				obj = JSON.parse(json, jsonparser);
-			} catch (e) {
-				console.log('FileStorage Error:', filename, e, '"' + json + '"');
-				if (RELEASE)
-					F.temporary.notfound[F.createTemporaryKey(req)] = true;
-				res.throw404();
-				return;
-			}
-
-			if ((obj.expire && obj.expire < NOW) || (checkcustom && checkcustom(obj) == false)) {
-				if (RELEASE)
-					F.temporary.notfound[F.createTemporaryKey(req)] = true;
-				res.throw404();
-				return;
-			}
-
-			var utc = obj.date ? obj.date.toUTCString() : '';
-
-			if (!options.download && req.headers['if-modified-since'] === utc) {
-				res.extention = framework_utils.getExtension(obj.name);
-				F.$file_notmodified(res, utc);
-			} else {
-
-				if (RELEASE && req.$key && F.temporary.path[req.$key]) {
-					res.$file();
-					return res;
-				}
-
-				F.stats.performance.open++;
-				res.options.type = obj.type;
-				res.options.stream = Fs.createReadStream(filename, BINARYREADDATA);
-				res.options.lastmodified = true;
-
-				!options.headers && (options.headers = {});
-
-				if (options.download) {
-					res.options.download = options.download === true ? obj.name : typeof(options.download) === 'function' ? options.download(obj.name, obj.type) : options.download;
-				} else
-					options.headers['Last-Modified'] = utc;
-
-				if (obj.width && obj.height) {
-					options.headers['X-Width'] = obj.width;
-					options.headers['X-Height'] = obj.height;
-				}
-
-				options.headers['X-Size'] = obj.size;
-				res.options.headers = options.headers;
-				res.options.done = options.done;
-
-				if (options.image) {
-					res.options.make = options.make;
-					res.options.cache = options.cache !== false;
-					res.options.persistent = false;
-					res.$image();
-				} else {
-					res.options.compress = options.nocompress ? false : true;
-					res.$stream();
-				}
-			}
-		} else {
+		if (err || (obj.expire && obj.expire < NOW) || (checkcustom && checkcustom(obj) == false)) {
 			if (RELEASE)
 				F.temporary.notfound[F.createTemporaryKey(req)] = true;
+			fd && Fs.close(fd, NOOP);
 			res.throw404();
+			return;
 		}
-	});
+
+		F.stats.performance.open++;
+
+		var utc = obj.date ? obj.date.toUTCString() : '';
+
+		if (!options.download && req.headers['if-modified-since'] === utc) {
+			Fs.close(fd, NOOP);
+			res.extention = framework_utils.getExtension(obj.name);
+			F.$file_notmodified(res, utc);
+		} else {
+
+			if (RELEASE && req.$key && F.temporary.path[req.$key]) {
+				res.$file();
+				return res;
+			}
+
+			F.stats.performance.open++;
+			res.options.type = obj.type;
+			res.options.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
+			res.options.lastmodified = true;
+
+			!options.headers && (options.headers = {});
+
+			if (options.download) {
+				res.options.download = options.download === true ? obj.name : typeof(options.download) === 'function' ? options.download(obj.name, obj.type) : options.download;
+			} else
+				options.headers['Last-Modified'] = utc;
+
+			if (obj.width && obj.height) {
+				options.headers['X-Width'] = obj.width;
+				options.headers['X-Height'] = obj.height;
+			}
+
+			options.headers['X-Size'] = obj.size;
+			res.options.headers = options.headers;
+			res.options.done = options.done;
+
+			if (options.image) {
+				res.options.make = options.make;
+				res.options.cache = options.cache !== false;
+				res.options.persistent = false;
+				res.$image();
+			} else {
+				res.options.compress = options.nocompress ? false : true;
+				res.$stream();
+			}
+		}
+
+	}, true);
 };
 
 FP.readbase64 = function(id, callback, count) {
@@ -579,32 +570,25 @@ FP.readbase64 = function(id, callback, count) {
 	var self = this;
 
 	if (count > 3) {
-		callback(new Error('File not found.'));
+		callback(new Error('File not found'));
 		return self;
 	}
 
-	F.stats.performance.open++;
-	var filename = Path.join(self.makedirectory(id), id + self.ext);
-	var stream = Fs.createReadStream(filename, BINARYREADMETA);
-	stream.on('error', err => callback(err));
-	stream.on('data', function(buffer) {
-		var json = buffer.toString('utf8').replace(REGCLEAN, '');
-		if (json) {
-			var meta = JSON.parse(json, jsonparser);
-			F.stats.performance.open++;
-			meta.stream = Fs.createReadStream(filename, BINARYREADDATABASE64);
-			callback(null, meta);
-			CLEANUP(stream);
-		} else
-			setTimeout(readfileattempt, 100, self, id, callback, count || 1);
-	});
+	self.readmeta(id, function(err, meta, filename, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		F.stats.performance.open++;
+		meta.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE, encoding: 'base64' });
+		callback(null, meta);
+
+	}, true);
 
 	return self;
 };
-
-function readfileattempt(self, id, callback, count) {
-	self.readmeta(id, callback, count + 1);
-}
 
 FP.drop = function(callback) {
 	this.clear(callback);
