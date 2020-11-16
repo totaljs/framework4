@@ -464,7 +464,9 @@ FP.readmeta = function(id, callback, keepfd) {
 			return;
 		}
 
-		Fs.read(fd, { buffer: Buffer.alloc(HEADERSIZE) }, function(err, bytes, buffer) {
+		var buffer = Buffer.alloc(HEADERSIZE);
+
+		Fs.read(fd, buffer, 0, buffer.length, 0, function(err, bytes, buffer) {
 
 			if (err) {
 				Fs.close(fd, NOOP);
