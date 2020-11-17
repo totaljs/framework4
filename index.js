@@ -14290,7 +14290,7 @@ function extend_request(PROTO) {
 			if (controller.isCanceled)
 				return;
 
-			if (this.$total_route.isCACHE && !F.temporary.other[this.uri.pathname])
+			if (!controller.isTransfer && this.$total_route.isCACHE && !F.temporary.other[this.uri.pathname])
 				F.temporary.other[this.uri.pathname] = this.path;
 
 			if (this.$total_route.param.length) {
