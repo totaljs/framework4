@@ -547,7 +547,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					var m = conn[i];
 					var target = self.meta.flow[m.id];
-					if (!target)
+					if (!target || !target.message)
 						continue;
 
 					var message = new Message();
@@ -874,7 +874,7 @@ FP.add = function(name, body) {
 	meta.checksum = HASH(meta.be).toString(36);
 	var component = self.meta.components[name];
 
-	if (component && component.ui.checksum === meta.checksum) {
+	if (component && component.ui && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
 		component.ts = Date.now();
 	} else {
