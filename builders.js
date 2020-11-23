@@ -3483,10 +3483,20 @@ RESTBuilder.GET = function(url, data) {
 };
 
 RESTBuilder.API = function(url, name, data) {
+
+	var index = url.indexOf('?');
+	var qs = '';
+
+	if (index !== -1) {
+		qs = url.substring(index);
+		url = url.substring(0, index);
+	}
+
 	var builder = new RESTBuilder(url);
-	builder.operation = name;
+	builder.operation = name + qs;
 	builder.options.method = 'POST';
 	builder.raw(data, 'raw');
+
 	return builder;
 };
 
