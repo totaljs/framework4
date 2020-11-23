@@ -3985,6 +3985,7 @@ function exec_callback(err, response) {
 	output.status = response.status;
 	output.headers = response.headers;
 	output.hostname = response.host;
+	output.origin = response.origin;
 	output.cache = false;
 	output.datetime = NOW;
 

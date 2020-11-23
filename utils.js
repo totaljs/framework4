@@ -287,13 +287,14 @@ exports.toURLEncode = function(value) {
 exports.resolve = function(url, callback, param) {
 
 	var uri = Url.parse(url);
+	var cache = dnscache[uri.host];
 
 	if (!callback)
-		return dnscache[uri.host];
+		return cache;
 
-	if (dnscache[uri.host]) {
-		uri.host = dnscache[uri.host];
-		callback(null, uri, param);
+	if (cache) {
+		uri.host = cache[0];
+		callback(null, uri, param, cache);
 		return;
 	}
 
@@ -301,9 +302,9 @@ exports.resolve = function(url, callback, param) {
 		if (e)
 			setImmediate(dnsresolve_callback, uri, callback, param);
 		else {
-			dnscache[uri.host] = addresses[0];
+			dnscache[uri.host] = addresses;
 			uri.host = addresses[0];
-			callback(null, uri, param);
+			callback(null, uri, param, addresses);
 		}
 	});
 };
@@ -311,10 +312,10 @@ exports.resolve = function(url, callback, param) {
 function dnsresolve_callback(uri, callback, param) {
 	Dns.resolve4(uri.hostname, function(e, addresses) {
 		if (addresses && addresses.length) {
-			dnscache[uri.host] = addresses[0];
+			dnscache[uri.host] = addresses;
 			uri.host = addresses[0];
 		}
-		callback(e, uri, param);
+		callback(e, uri, param, addresses);
 	});
 }
 
@@ -613,9 +614,11 @@ global.REQUEST = function(opt) {
 		request_call(uri, options);
 };
 
-function request_resolve(err, uri, options) {
-	if (!err)
+function request_resolve(err, uri, options, origin) {
+	if (!err) {
 		options.uri.host = uri.host;
+		options.origin = origin;
+	}
 	request_call(options.uri, options);
 }
 
@@ -839,14 +842,13 @@ function request_response(res) {
 
 			options.timeoutid && clearTimeout(options.timeoutid);
 			options.canceled = true;
-
 			if (options.callback) {
+				options.response.origin = options.origin;
+				options.response.status = res.statusCode;
 				if (options.custom) {
-					options.response.status = res.statusCode;
 					options.response.stream = res;
 					options.callback(null, options.response);
 				} else {
-					options.response.status = res.statusCode;
 					options.response.host = uri.host;
 					options.response.headers = res.headers;
 					options.callback(null, options.response);
@@ -865,6 +867,7 @@ function request_response(res) {
 
 			options.timeoutid && clearTimeout(options.timeoutid);
 			options.canceled = true;
+			options.response.origin = options.origin;
 
 			if (options.callback) {
 				if (options.custom) {
@@ -918,9 +921,11 @@ function request_response(res) {
 			return request_call(tmp, options);
 		}
 
-		exports.resolve(tmp, function(err, u) {
-			if (!err)
+		exports.resolve(tmp, function(err, u, param, origin) {
+			if (!err) {
 				tmp.host = u.host;
+				options.origin = origin;
+			}
 			res.removeAllListeners();
 			res = null;
 			request_call(tmp, options);
@@ -957,6 +962,7 @@ function request_response(res) {
 		options.done = true;
 		if (options.custom) {
 			options.timeoutid && clearTimeout(options.timeoutid);
+			options.response.origin = options.origin;
 			options.response.status = res.statusCode;
 			options.response.stream = res;
 			options.callback(null, options.response);
@@ -974,6 +980,7 @@ function request_response(res) {
 
 	if (options.custom) {
 		options.timeoutid && clearTimeout(options.timeoutid);
+		options.response.origin = options.origin;
 		options.response.status = res.statusCode;
 		options.response.stream = res;
 		options.callback && options.callback(null, options.response);
@@ -1048,6 +1055,7 @@ function request_process_end() {
 	self._buffer = undefined;
 
 	if (options.callback) {
+		options.response.origin = options.origin;
 		options.response.headers = self.headers;
 		options.response.body = data;
 		options.response.status = self.statusCode;
