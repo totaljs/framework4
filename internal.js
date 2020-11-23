@@ -3245,7 +3245,7 @@ function markup(body) {
 			try {
 				r.push({ cmd: command.phrase, value: eval('(' + cmd + ')') });
 			} catch (e) {
-				console.log('A markup compilation error -->', cmd, e, body.max(150));
+				console.log('A markup compilation error -->', cmd, e, '"' + body.trim().max(0, 150) + '"');
 			}
 		}
 
