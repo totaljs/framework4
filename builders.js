@@ -3484,12 +3484,21 @@ RESTBuilder.GET = function(url, data) {
 
 RESTBuilder.API = function(url, name, data) {
 
-	var index = url.indexOf('?');
+	var index;
 	var qs = '';
 
-	if (index !== -1) {
-		qs = url.substring(index);
+	if (name == null) {
+
+		index = url.indexOf(' ');
+		name = url.substring(index + 1);
 		url = url.substring(0, index);
+
+	} else {
+		index = url.indexOf('?');
+		if (index !== -1) {
+			qs = url.substring(index);
+			url = url.substring(0, index);
+		}
 	}
 
 	var builder = new RESTBuilder(url);
