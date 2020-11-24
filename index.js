@@ -9874,8 +9874,15 @@ ControllerProto.encrypt = function(value) {
 
 ControllerProto.runtest = function(url, name, callback) {
 	var self = this;
+
 	if (!self.TEST)
-		self.TEST = TEST(null, self, self);
+		self.TEST = TEST(null, self);
+
+	if (typeof(url) === 'function') {
+		self.TEST.clean = url;
+		return;
+	}
+
 	var t = self.TEST.add(url, name || url);
 	callback && t.pass(callback);
 	return t;

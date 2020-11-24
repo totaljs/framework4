@@ -29,6 +29,8 @@ function Action() {
 	t.opt = {};
 	t.$callback = function(err, value) {
 
+		t.instance.responses.push(value || null);
+
 		t.opt.log && t.opt.log(err, value);
 
 		if (t.opt.id)
@@ -161,6 +163,7 @@ function Test() {
 			action.$next = t.next;
 			action.run();
 		} else {
+			t.clean && t.clean(t.errors, t.responses, t.output);
 			if (t.done instanceof Controller) {
 				t.done.status = t.errors ? 409 : 200;
 				if (t.done.req.xhr)
@@ -183,6 +186,7 @@ function Test() {
 Test.prototype.add = function(url, name) {
 	var self = this;
 	var action = new Action();
+	action.instance = self;
 	action.response = self.response;
 	action.opt.name = name;
 	action.opt.url = url;
@@ -195,6 +199,7 @@ Test.prototype.add = function(url, name) {
 global.TEST = function(fn, done) {
 	var instance = new Test();
 	instance.response = {};
+	instance.responses = [];
 	instance.done = done;
 	var add = function(url, name) {
 		return instance.add(url, name);
