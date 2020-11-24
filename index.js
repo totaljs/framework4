@@ -9875,12 +9875,24 @@ ControllerProto.encrypt = function(value) {
 ControllerProto.runtest = function(url, name, callback) {
 	var self = this;
 
+	if (typeof(name) === 'function') {
+		callback = name;
+		name = null;
+	}
+
 	if (!self.TEST)
 		self.TEST = TEST(null, self);
 
 	if (typeof(url) === 'function') {
 		self.TEST.clean = url;
 		return;
+	}
+
+	if (!name && url.substring(0, 3) === 'API') {
+		name = url.split(' ')[2];
+		var index = name.indexOf('?');
+		if (index !== -1)
+			name = name.substring(0, index);
 	}
 
 	var t = self.TEST.add(url, name || url);
