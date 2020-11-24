@@ -3226,6 +3226,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isPARAM = arr.length > 0;
 	r.isDELAY = isDELAY;
 	r.isDYNAMICSCHEMA = isDYNAMICSCHEMA;
+	r.isAPI = isAPI;
 	r.CUSTOM = CUSTOM;
 	r.options = options;
 	r.type = 'web';
@@ -9875,7 +9876,7 @@ ControllerProto.runtest = function(url, name, callback) {
 	var self = this;
 	if (!self.TEST)
 		self.TEST = TEST(null, self, self);
-	var t = self.TEST.add(url, name);
+	var t = self.TEST.add(url, name || url);
 	callback && t.pass(callback);
 	return t;
 };
@@ -10038,7 +10039,6 @@ function controller_api() {
 	var self = this;
 	var model = self.body;
 
-
 	if (!model || !model.schema) {
 		self.throw400();
 		return;
@@ -10059,7 +10059,6 @@ function controller_api() {
 	}
 
 	var schema = model.schema.split('/');
-
 	var s = api[schema[0].trim()];
 	if (!s) {
 		self.throw404('Schema not found');
@@ -10099,8 +10098,12 @@ function controller_api() {
 		self.params[p.name] = param;
 	}
 
-	// Internal Total.js hack
-	self.req._querydata = query ? query.parseEncoded() : {};
+	if (self.req.$test) {
+		if (query)
+			self.req.query = query ? query.parseEncoded() : {};
+	} else
+		self.req._querydata = query ? query.parseEncoded() : {};
+
 	self.id = model.id || '';
 
 	if (self.route.encrypt)
@@ -16677,24 +16680,34 @@ global.ACTION = function(url, data, callback) {
 		data = null;
 	}
 
-	var index = url.indexOf(' ');
-	var method = url.substring(0, index);
-	var params = '';
+	var split = url.split(' ');
+	var isAPI = split[0][0] === '/' && !!split[1];
+	var method = isAPI ? 'POST' : split[0];
 	var route;
 
-	url = url.substring(index + 1);
-	index = url.indexOf('?');
+	url = (isAPI ? split[0] : split[1]).trim();
+
+	var params = '';
+	var index = url.indexOf('?');
 
 	if (index !== -1) {
 		params = url.substring(index + 1);
 		url = url.substring(0, index);
 	}
 
-	url = url.trim();
 	var routeurl = url;
-
 	if (routeurl.endsWith('/'))
 		routeurl = routeurl.substring(0, routeurl.length - 1);
+
+	if (isAPI) {
+		if (data) {
+			data = { data: data };
+			data.schema = split[1];
+		} else {
+			data = {};
+			data.schema = split[1];
+		}
+	}
 
 	var req = {};
 	var res = {};
@@ -16704,14 +16717,15 @@ global.ACTION = function(url, data, callback) {
 	req.url = url;
 	req.ip = F.ip || '127.0.0.1';
 	req.host = req.ip + ':' + (F.port || 8000);
-	req.headers = { 'user-agent': 'Total.js/v' + F.version_header };
+	req.headers = { 'user-agent': 'Total.js/v' + F.version_header, 'x-test': 1 };
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routeSplit(req.uri.pathname);
 	req.body = data || EMPTYOBJECT;
-	req.query = params ? DEF.parser.urlencoded(params) : {};
+	req.query = params ? DEF.parsers.urlencoded(params) : {};
 	req.files = EMPTYARRAY;
 	req.method = method;
 	res.options = req.options = {};
+	req.$test = true;
 
 	var route = F.lookupaction(req, url);
 	if (!route)
