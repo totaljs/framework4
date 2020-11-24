@@ -16681,11 +16681,11 @@ global.ACTION = function(url, data, callback) {
 	}
 
 	var split = url.split(' ');
-	var isAPI = split[0][0] === '/' && !!split[1];
+	var isAPI = split[0] === 'API';
 	var method = isAPI ? 'POST' : split[0];
 	var route;
 
-	url = (isAPI ? split[0] : split[1]).trim();
+	url = split[1].trim();
 
 	var params = '';
 	var index = url.indexOf('?');
@@ -16702,10 +16702,10 @@ global.ACTION = function(url, data, callback) {
 	if (isAPI) {
 		if (data) {
 			data = { data: data };
-			data.schema = split[1];
+			data.schema = split[2];
 		} else {
 			data = {};
-			data.schema = split[1];
+			data.schema = split[2];
 		}
 	}
 
