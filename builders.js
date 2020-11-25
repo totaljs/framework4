@@ -2075,7 +2075,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
-	$.keys = controller ? controller.req.keys : EMPTYARRAY;
+	$.keys = controller ? controller.req.keys : type === 'patch' ? (model ? Object.keys(model) : EMPTYARRAY) : null;
 
 	self.perform(type, name, $, noprepare);
 };
