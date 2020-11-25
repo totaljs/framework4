@@ -3143,7 +3143,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (!F.routes.api[tmpapi])
 			F.routes.api[tmpapi] = {};
 
-		F.routes.api[tmpapi][apiname] = { action: apimethod + ' ' + apischema, params: apiparams };
+		F.routes.api[tmpapi][apiname] = { action: apimethod + ' ' + apischema, params: apiparams, member: membertype };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
@@ -10066,6 +10066,12 @@ function controller_api() {
 	var api = F.routes.api[self.url];
 	if (!api) {
 		self.throw404('API not found');
+		return;
+	}
+
+	// Authorization
+	if (api.member && ((api.member === 1 && !self.req.isAuthorized) || (api.member === 2 && self.req.isAuthorized))) {
+		self.throw401();
 		return;
 	}
 
