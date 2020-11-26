@@ -2242,7 +2242,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 			if (!$.model || $.model === EMPTYOBJECT)
 				$.model = {};
 
-			var validation = $.initialized ? false : model && model !== EMPTYOBJECT && (!(model instanceof SchemaValue));
+			var validation = $.initialized ? false : model && (!(model instanceof SchemaValue));
 			self.perform(a.type, name, $, !validation, $.initialized);
 
 		} else if (!a.pending) {
