@@ -286,7 +286,15 @@ exports.toURLEncode = function(value) {
  */
 exports.resolve = function(url, callback, param) {
 
-	var uri = Url.parse(url);
+	var uri;
+
+	try {
+		uri = Url.parse(url);
+	} catch (e) {
+		callback(e);
+		return;
+	}
+
 	var cache = dnscache[uri.host];
 
 	if (!callback)
