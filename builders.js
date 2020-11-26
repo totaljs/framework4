@@ -3644,7 +3644,7 @@ RESTP.file = function(name, filename, buffer) {
 RESTP.maketransform = function(obj, data) {
 	if (this.$transform) {
 		var fn = transforms.restbuilder[this.$transform];
-		return fn ? fn(obj, data) : obj;
+		return fn ? fn.call(this, obj, data) : obj;
 	}
 	return obj;
 };
@@ -3960,7 +3960,8 @@ RESTP.exec = function(callback) {
 		key = '$rest_' + ((self.options.url || '') + (self.options.socketpath || '') + (self.options.path || '') + (self.options.body || '')).hash(true);
 		var data = F.cache.read2(key);
 		if (data) {
-			callback(null, self.maketransform(this.$schema ? this.$schema.make(data.value) : data.value, data), data);
+			data = self.$transform ? self.maketransform(self.$schema ? self.$schema.make(data.value) : data.value, data) : self.$schema ? self.$schema.make(data.value) : data.value;
+			callback(null, data, data);
 			return;
 		}
 	}
@@ -4063,10 +4064,12 @@ function exec_callback(err, response) {
 
 	if (self.$schema) {
 
-		if (err)
-			return callback(err, EMPTYOBJECT, output);
+		if (err) {
+			callback(err, EMPTYOBJECT, output);
+			return;
+		}
 
-		val = self.maketransform(output.value, output);
+		val = self.$transform ? self.maketransform(output.value, output) : output.value;
 
 		if (self.$errorbuilderhandling) {
 			// Is the response Total.js ErrorBuilder?
@@ -4090,7 +4093,7 @@ function exec_callback(err, response) {
 	} else {
 		!err && key && output.status === 200 && F.cache.add(key, output, self.$cache_expire);
 
-		val = self.maketransform(output.value, output);
+		val = self.$transform ? self.maketransform(output.value, output) : output.value;
 
 		if (self.$errorbuilderhandling) {
 			// Is the response Total.js ErrorBuilder?

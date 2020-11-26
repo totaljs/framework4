@@ -16745,30 +16745,30 @@ global.ACTION = function(url, data, callback) {
 	req.headers = { 'user-agent': 'Total.js/v' + F.version_header, 'x-test': 1 };
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routeSplit(req.uri.pathname);
-	req.body = data || EMPTYOBJECT;
-	req.query = params ? DEF.parsers.urlencoded(params) : {};
-	req.files = EMPTYARRAY;
 	req.method = method;
-	res.options = req.options = {};
-	req.$test = true;
 
 	var route = F.lookupaction(req, url);
-	if (!route)
-		return;
+	if (route) {
 
-	if (route.isPARAM)
-		req.split = framework_internal.routeSplit(req.uri.pathname, true);
-	else
-		req.split = EMPTYARRAY;
+		req.body = data || EMPTYOBJECT;
+		req.query = params ? DEF.parsers.urlencoded(params) : {};
+		req.files = EMPTYARRAY;
+		res.options = req.options = {};
+		req.$test = true;
 
-	var controller = new Controller(route.controller, null, null, route.currentViewDirectory);
-	controller.route = route;
-	controller.req = req;
-	controller.res = res;
+		if (route.isPARAM)
+			req.split = framework_internal.routeSplit(req.uri.pathname, true);
+		else
+			req.split = EMPTYARRAY;
 
-	res.$evalroutecallback = controller.$evalroutecallback = callback || NOOP;
-	setImmediate(evalroutehandler, controller);
-	return controller;
+		var controller = new Controller(route.controller, null, null, route.currentViewDirectory);
+		controller.route = route;
+		controller.req = req;
+		controller.res = res;
+		res.$evalroutecallback = controller.$evalroutecallback = callback || NOOP;
+		setImmediate(evalroutehandler, controller);
+		return controller;
+	}
 };
 
 function runsnapshot() {
