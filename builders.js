@@ -3569,6 +3569,27 @@ RESTBuilder.setDefaultTransform = function(name) {
 
 var RESTP = RESTBuilder.prototype;
 
+RESTP.map = function(map) {
+
+	var arr = map.split(',');
+	var self = this;
+	var reg = /=|:|\s/;
+	var convertor = [];
+
+	self.$map = [];
+
+	for (var i = 0; i < arr.length; i++) {
+		var item = arr[i].split(reg);
+		item[2] && convertor.push(item[1].trim() + ':' + item[2].trim());
+		self.$map.push({ id: item[0], target: item[1] });
+	}
+
+	if (convertor.length)
+		self.$mapconvertor = convertor.join(',');
+
+	return self;
+};
+
 RESTP.unixsocket = function(socket, path) {
 	var self = this;
 	self.options.unixsocket = { socket: socket, path: path };
@@ -3995,6 +4016,36 @@ function exec_callback(err, response) {
 				output.value = response.body && response.body.isJSON() ? response.body.parseJSON(true) : null;
 				break;
 		}
+	}
+
+	if (output.value && self.$map) {
+
+		var res;
+
+		if (output.value instanceof Array) {
+			res = [];
+			for (var j = 0; j < output.value.length; j++) {
+				var item = {};
+				for (var i = 0; i < self.$map.length; i++) {
+					var m = self.$map[i];
+					if (output.value[j])
+						item[m.target] = output.value[j][m.id];
+				}
+				if (self.$mapconvertor)
+					item = CONVERT(item, self.$mapconvertor);
+				res.push(item);
+			}
+		} else {
+			res = {};
+			for (var i = 0; i < self.$map.length; i++) {
+				var m = self.$map[i];
+				res[m.target] = output.value[m.id];
+			}
+			if (self.$mapconvertor)
+				res = CONVERT(res, self.$mapconvertor);
+		}
+
+		output.value = res;
 	}
 
 	if (output.value == null)
