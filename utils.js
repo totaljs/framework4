@@ -279,11 +279,6 @@ exports.toURLEncode = function(value) {
 	return builder.length ? builder.join('&') : '';
 };
 
-/**
- * Resolves an IP from the URL address
- * @param {String} url
- * @param {Function(err, uri)} callback
- */
 exports.resolve = function(url, callback, param) {
 
 	var uri;
