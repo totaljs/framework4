@@ -3977,8 +3977,8 @@ function exec_callback(err, response) {
 	var self = response.builder;
 
 	if (self.options.custom) {
-		response.response.builder = self;
-		self.$callback.call(self, err, response.response);
+		// response.builder = self;
+		self.$callback.call(self, err, response);
 		return;
 	}
 
