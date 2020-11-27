@@ -3580,8 +3580,9 @@ RESTP.map = function(map) {
 
 	for (var i = 0; i < arr.length; i++) {
 		var item = arr[i].split(reg);
-		item[2] && convertor.push(item[1].trim() + ':' + item[2].trim());
-		self.$map.push({ id: item[0], target: item[1] });
+		var target = (item[2] || item[0]).trim();
+		convertor.push(target + ':' + (item[1].trim() || 'string'));
+		self.$map.push({ id: item[0], target: target });
 	}
 
 	if (convertor.length)
