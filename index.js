@@ -10069,12 +10069,6 @@ function controller_api() {
 		return;
 	}
 
-	// Authorization
-	if (api.member && ((api.member === 1 && !self.req.isAuthorized) || (api.member === 2 && self.req.isAuthorized))) {
-		self.throw401();
-		return;
-	}
-
 	var index = model.schema.indexOf('?');
 	var query = null;
 
@@ -10087,6 +10081,12 @@ function controller_api() {
 	var s = api[schema[0].trim()];
 	if (!s) {
 		self.throw404('Schema not found');
+		return;
+	}
+
+	// Authorization
+	if (s.member && ((s.member === 1 && !self.req.isAuthorized) || (s.member === 2 && self.req.isAuthorized))) {
+		self.throw401();
 		return;
 	}
 
@@ -14414,9 +14414,7 @@ function extend_request(PROTO) {
 			var status = this.$isAuthorized ? 404 : 401;
 			var code = this.bodyexceeded ? 431 : status;
 			!route && (route = F.lookup(this, '#' + status, EMPTYARRAY, 0));
-
 			this.$total_route = route;
-
 			if (this.$total_route && this.$total_schema)
 				this.$total_validate(this.$total_route, subscribe_validate_callback, code);
 			else

@@ -1,5 +1,6 @@
 require('../index');
 
+const Fs = require('fs');
 var flow = FLOWSTREAM(); // is same as FLOWSTREAM('default');
 
 flow.register('uppercase', function(instance) {
@@ -37,6 +38,8 @@ flow.register('debug', function(instance) {
 
 });
 
+flow.add('scheduler', Fs.readFileSync('flow_scheduler.html').toString('utf8'));
+
 flow.use(`{
 	"com1": {
 		"component": "uppercase",
@@ -45,7 +48,7 @@ flow.use(`{
 		}
 	},
 	"com2": {
-		"component": "reverse",
+		"component": "scheduler",
 		"connections": {
 			"0": [{ "id": "com3", "index": "0" }]
 		}
