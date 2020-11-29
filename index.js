@@ -66,7 +66,7 @@ const REG_TEXTAPPLICATION = /text|application/;
 const REG_ENCODINGCLEANER = /[;\s]charset=utf-8/g;
 const REG_SKIPERROR = /epipe|invalid\sdistance/i;
 const REG_UTF8 = /[^\x20-\x7E]+/;
-const REG_EMPTYBUFFER = /\0|%00|\\u0000/;
+const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
 const EMPTYREQUEST = { uri: {} };

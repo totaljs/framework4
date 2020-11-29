@@ -38,7 +38,7 @@ const Tls = require('tls');
 const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const SKIPBODYENCRYPTOR = { ':': 1, '"': 1, '[': 1, ']': 1, '\'': 1, '_': 1, '{': 1, '}': 1, '&': 1, '=': 1, '+': 1, '-': 1, '\\': 1, '/': 1, ',': 1 };
-const REG_EMPTYBUFFER = /\0|%00|\\u0000/;
+const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
