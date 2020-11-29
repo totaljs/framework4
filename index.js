@@ -14190,7 +14190,7 @@ function extend_request(PROTO) {
 		this.$total_header = header;
 		if (this.$total_route) {
 			PATH.verify('temp');
-			framework_internal.parseMULTIPART(this, header, this.$total_route, CONF.directory_temp);
+			framework_internal.parseMULTIPART(this, header, this.$total_route);
 		} else
 			this.$total_status(404);
 	};

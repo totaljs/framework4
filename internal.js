@@ -84,283 +84,10 @@ const REG_CSS_12 = /(margin|padding):.*?(;|})/g;
 const REG_CSS_13 = /#(0{6}|1{6}|2{6}|3{6}|4{6}|5{6}|6{6}|7{6}|8{6}|9{6}|0{6}|A{6}|B{6}|C{6}|D{6}|E{6}|F{6})/gi;
 const REG_VIEW_PART = /\/\*PART.*?\*\//g;
 const AUTOVENDOR = ['appearance', 'user-select', 'font-smoothing', 'text-size-adjust', 'backface-visibility'];
-const WRITESTREAM = { flags: 'w' };
 const ALLOWEDMARKUP = { G: 1, M: 1, R: 1, repository: 1, model: 1, CONF: 1, config: 1, global: 1, resource: 1, RESOURCE: 1, CONFIG: 1, author: 1, root: 1, functions: 1, NOW: 1, F: 1 };
-
-var INDEXFILE = 0;
 
 global.$VIEWCACHE = [];
 global.$VIEWASYNC = 0;
-
-exports.parseMULTIPART = function(req, contentType, route, tmpDirectory) {
-
-	var beg = contentType.indexOf('boundary=');
-	if (beg === -1) {
-		F.reqstats(false, false);
-		F.stats.request.error400++;
-		req.res.writeHead(400);
-		req.res.end();
-		return;
-	}
-
-	var end = contentType.length;
-
-	for (var i = (beg + 10); i < end; i++) {
-		if (contentType[i] === ';' || contentType[i] === ' ') {
-			end = i;
-			break;
-		}
-	}
-
-	var boundary = contentType.substring(beg + 9, end);
-
-	// For unexpected closing
-	req.once('close', () => !req.$upload && req.clear());
-
-	var parser = new MultipartParser();
-	var size = 0;
-	var maximumSize = route.length;
-	var close = 0;
-	var stream;
-	var tmp;
-	var rm;
-	var fn_close = function() {
-		close--;
-	};
-
-	// Replaces the EMPTYARRAY and EMPTYOBJECT in index.js
-	req.files = [];
-	req.body = {};
-
-	var path = framework_utils.combine(tmpDirectory, F.clusterid + 'upload_');
-
-	req.bodyexceeded = false;
-	req.bodyhas = true;
-	req.buffer_parser = parser;
-	parser.initWithBoundary(boundary);
-
-	parser.onPartBegin = function() {
-
-		if (req.bodyexceeded)
-			return;
-
-		// Temporary data
-		tmp = new HttpFile();
-		tmp.$data = Buffer.alloc(0);
-		tmp.$step = 0;
-		tmp.$is = false;
-		tmp.length = 0;
-	};
-
-	parser.onHeaderValue = function(buffer, start, end) {
-
-		if (req.bodyexceeded)
-			return;
-
-		var header = buffer.slice(start, end).toString(ENCODING);
-
-		if (tmp.$step === 1) {
-			var index = header.indexOf(';');
-			if (index === -1)
-				tmp.type = header.trim();
-			else
-				tmp.type = header.substring(0, index).trim();
-
-			tmp.$step = 2;
-			return;
-		}
-
-		if (tmp.$step !== 0)
-			return;
-
-		// UNKNOWN ERROR, maybe attack
-		if (header.indexOf('form-data; ') === -1) {
-			req.bodyexceeded = true;
-			!tmp.$is && destroyStream(stream);
-			return;
-		}
-
-		header = parse_multipart_header(header);
-		tmp.$step = 1;
-		tmp.$is = header[1] !== null;
-		tmp.name = header[0];
-
-		if (!tmp.$is) {
-			destroyStream(stream);
-			return;
-		}
-
-		tmp.filename = header[1];
-
-		// IE9 sends absolute filename
-		var index = tmp.filename.lastIndexOf('\\');
-
-		// For Unix like senders
-		if (index === -1)
-			index = tmp.filename.lastIndexOf('/');
-
-		if (index !== -1)
-			tmp.filename = tmp.filename.substring(index + 1);
-
-		tmp.path = path + (INDEXFILE++) + '.bin';
-	};
-
-	parser.onPartData = function(buffer, start, end) {
-
-		if (req.bodyexceeded)
-			return;
-
-		var data = buffer.slice(start, end);
-		var length = data.length;
-
-		size += length;
-
-		if (size >= maximumSize) {
-			req.bodyexceeded = true;
-			if (rm)
-				rm.push(tmp.path);
-			else
-				rm = [tmp.path];
-			return;
-		}
-
-		if (!tmp.$is) {
-			CONCAT[0] = tmp.$data;
-			CONCAT[1] = data;
-			tmp.$data = Buffer.concat(CONCAT);
-			return;
-		}
-
-		if (tmp.length) {
-			stream.write(data);
-			tmp.length += length;
-			return;
-		}
-
-		var wh = null;
-
-		switch (tmp.type) {
-			case 'image/jpeg':
-				wh = framework_image.measureJPG(buffer.slice(start));
-				break;
-			case 'image/gif':
-				wh = framework_image.measureGIF(data);
-				break;
-			case 'image/png':
-				wh = framework_image.measurePNG(data);
-				break;
-			case 'image/svg+xml':
-				wh = framework_image.measureSVG(data);
-				break;
-		}
-
-		if (wh) {
-			tmp.width = wh.width;
-			tmp.height = wh.height;
-		} else {
-			tmp.width = 0;
-			tmp.height = 0;
-		}
-
-		req.files.push(tmp);
-		F.$events.upload_begin && EMIT('upload_begin', req, tmp);
-		close++;
-		stream = Fs.createWriteStream(tmp.path, WRITESTREAM);
-		stream.once('close', fn_close);
-		stream.once('error', fn_close);
-		stream.write(data);
-		tmp.length += length;
-	};
-
-	parser.onPartEnd = function() {
-
-		if (stream) {
-			stream.end();
-			stream = null;
-		}
-
-		if (req.bodyexceeded)
-			return;
-
-		if (tmp == null)
-			return;
-
-		if (tmp.$is) {
-			tmp.$data = undefined;
-			tmp.$is = undefined;
-			tmp.$step = undefined;
-			F.$events.upload_end && EMIT('upload_end', req, tmp);
-			return;
-		}
-
-		tmp.$data = tmp.$data.toString(ENCODING);
-
-		var temporary = req.body[tmp.name];
-		if (temporary === undefined) {
-			req.body[tmp.name] = tmp.$data;
-		} else if (temporary instanceof Array) {
-			req.body[tmp.name].push(tmp.$data);
-		} else {
-			temporary = [temporary];
-			temporary.push(tmp.$data);
-			req.body[tmp.name] = temporary;
-		}
-	};
-
-	parser.onEnd = function() {
-
-		if (close) {
-			setImmediate(parser.onEnd);
-		} else {
-			rm && PATH.unlink(rm);
-			req.$total_end2();
-		}
-	};
-
-	req.on('data', uploadparser);
-	req.on('end', uploadparser_done);
-};
-
-function uploadparser(chunk) {
-	this.buffer_parser.write(chunk);
-}
-
-function uploadparser_done() {
-	!this.bodyexceeded && (this.$upload = true);
-	this.buffer_parser.end();
-}
-
-function parse_multipart_header(header) {
-
-	var arr = new Array(2);
-	var find = ' name="';
-	var length = find.length;
-	var beg = header.indexOf(find);
-	var tmp = '';
-
-	if (beg !== -1)
-		tmp = header.substring(beg + length, header.indexOf('"', beg + length));
-
-	if (tmp)
-		arr[0] = tmp;
-	else
-		arr[0] = 'undefined_' + (Math.floor(Math.random() * 100000));
-
-	find = ' filename="';
-	length = find.length;
-	beg = header.indexOf(find);
-	tmp = '';
-
-	if (beg !== -1)
-		tmp = header.substring(beg + length, header.indexOf('"', beg + length));
-
-	if (tmp)
-		arr[1] = tmp;
-	else
-		arr[1] = null;
-
-	return arr;
-}
 
 exports.routeSplit = function(url, noLower) {
 
@@ -674,10 +401,10 @@ exports.routeParameters = function(routeUrl, route) {
 };
 
 function HttpFile() {
-	this.name;
-	this.filename;
-	this.type;
-	this.path;
+	// this.name;
+	// this.filename;
+	// this.type;
+	// this.path;
 	this.length = 0;
 	this.width = 0;
 	this.height = 0;
@@ -1145,348 +872,6 @@ exports.compile_javascript = function(source, filename, nomarkup) {
 
 exports.compile_html = function(source, filename, nomarkup) {
 	return compressCSS(compressJS(compressHTML(source, true), 0, filename, nomarkup), 0, filename, nomarkup);
-};
-
-// *********************************************************************************
-// =================================================================================
-// MULTIPART PARSER
-// =================================================================================
-// *********************************************************************************
-
-// Copyright (c) 2010 Hongli Lai
-// Copyright (c) Felix Geisendörfer -> https://github.com/felixge/node-formidable
-
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-
-var Buffer = require('buffer').Buffer,
-	s = 0,
-	S = {
-		PARSER_UNINITIALIZED: s++,
-		START: s++,
-		START_BOUNDARY: s++,
-		HEADER_FIELD_START: s++,
-		HEADER_FIELD: s++,
-		HEADER_VALUE_START: s++,
-		HEADER_VALUE: s++,
-		HEADER_VALUE_ALMOST_DONE: s++,
-		HEADERS_ALMOST_DONE: s++,
-		PART_DATA_START: s++,
-		PART_DATA: s++,
-		PART_END: s++,
-		END: s++
-	},
-
-	f = 1,
-	FB = {
-		PART_BOUNDARY: f,
-		LAST_BOUNDARY: f *= 2
-	},
-
-	LF = 10,
-	CR = 13,
-	SPACE = 32,
-	HYPHEN = 45,
-	COLON = 58,
-	A = 97,
-	Z = 122,
-
-	lower = function(c) {
-		return c | 0x20;
-	};
-
-for (s in S) {
-	exports[s] = S[s];
-}
-
-function MultipartParser() {
-	this.boundary = null;
-	this.boundaryChars = null;
-	this.lookbehind = null;
-	this.state = S.PARSER_UNINITIALIZED;
-	this.index = null;
-	this.flags = 0;
-}
-
-exports.MultipartParser = MultipartParser;
-const MultipartParserProto = MultipartParser.prototype;
-
-MultipartParser.stateToString = function(stateNumber) {
-	for (var state in S) {
-		var number = S[state];
-		if (number === stateNumber) return state;
-	}
-};
-
-MultipartParserProto.initWithBoundary = function(str) {
-	var self = this;
-	self.boundary = Buffer.alloc(str.length + 4);
-	self.boundary.write('\r\n--', 0, 'ascii');
-	self.boundary.write(str, 4, 'ascii');
-	self.lookbehind = Buffer.alloc(self.boundary.length + 8);
-	self.state = S.START;
-	self.boundaryChars = {};
-	for (var i = 0; i < self.boundary.length; i++)
-		self.boundaryChars[self.boundary[i]] = true;
-};
-
-MultipartParserProto.write = function(buffer) {
-	var self = this,
-		i = 0,
-		len = buffer.length,
-		prevIndex = self.index,
-		index = self.index,
-		state = self.state,
-		flags = self.flags,
-		lookbehind = self.lookbehind,
-		boundary = self.boundary,
-		boundaryChars = self.boundaryChars,
-		boundaryLength = self.boundary.length,
-		boundaryEnd = boundaryLength - 1,
-		bufferLength = buffer.length,
-		c,
-		cl,
-		mark = function(name) {
-			self[name + 'Mark'] = i;
-		},
-		clear = function(name) {
-			delete self[name + 'Mark'];
-		},
-		callback = function(name, buffer, start, end) {
-			if (start !== undefined && start === end)
-				return;
-			var callbackSymbol = 'on' + name.substr(0, 1).toUpperCase() + name.substr(1);
-			if (callbackSymbol in self)
-				self[callbackSymbol](buffer, start, end);
-		},
-		dataCallback = function(name, clear) {
-			var markSymbol = name + 'Mark';
-			if (!(markSymbol in self))
-				return;
-			if (!clear) {
-				callback(name, buffer, self[markSymbol], buffer.length);
-				self[markSymbol] = 0;
-			} else {
-				callback(name, buffer, self[markSymbol], i);
-				delete self[markSymbol];
-			}
-		};
-
-	for (i = 0; i < len; i++) {
-		c = buffer[i];
-		switch (state) {
-
-			case S.PARSER_UNINITIALIZED:
-				return i;
-
-			case S.START:
-				index = 0;
-				state = S.START_BOUNDARY;
-
-			case S.START_BOUNDARY:
-				if (index == boundary.length - 2) {
-					if (c === HYPHEN)
-						flags |= FB.LAST_BOUNDARY;
-					else if (c !== CR)
-						return i;
-					index++;
-					break;
-				} else if (index - 1 === boundary.length - 2) {
-					if (flags & FB.LAST_BOUNDARY && c === HYPHEN) {
-						callback('end');
-						state = S.END;
-						flags = 0;
-					} else if (!(flags & FB.LAST_BOUNDARY) && c === LF) {
-						index = 0;
-						callback('partBegin');
-						state = S.HEADER_FIELD_START;
-					} else
-						return i;
-					break;
-				}
-
-				if (c !== boundary[index + 2])
-					index = -2;
-				if (c === boundary[index + 2])
-					index++;
-				break;
-
-			case S.HEADER_FIELD_START:
-				state = S.HEADER_FIELD;
-				mark('headerField');
-				index = 0;
-
-			case S.HEADER_FIELD:
-				if (c === CR) {
-					clear('headerField');
-					state = S.HEADERS_ALMOST_DONE;
-					break;
-				}
-
-				index++;
-				if (c === HYPHEN)
-					break;
-
-				if (c === COLON) {
-					// empty header field
-					if (index === 1)
-						return i;
-					dataCallback('headerField', true);
-					state = S.HEADER_VALUE_START;
-					break;
-				}
-
-				cl = lower(c);
-				if (cl < A || cl > Z)
-					return i;
-
-				break;
-
-			case S.HEADER_VALUE_START:
-				if (c === SPACE)
-					break;
-				mark('headerValue');
-				state = S.HEADER_VALUE;
-
-			case S.HEADER_VALUE:
-				if (c === CR) {
-					dataCallback('headerValue', true);
-					callback('headerEnd');
-					state = S.HEADER_VALUE_ALMOST_DONE;
-				}
-				break;
-
-			case S.HEADER_VALUE_ALMOST_DONE:
-				if (c !== LF)
-					return i;
-				state = S.HEADER_FIELD_START;
-				break;
-
-			case S.HEADERS_ALMOST_DONE:
-				if (c !== LF)
-					return i;
-				callback('headersEnd');
-				state = S.PART_DATA_START;
-				break;
-
-			case S.PART_DATA_START:
-				state = S.PART_DATA;
-				mark('partData');
-
-			case S.PART_DATA:
-				prevIndex = index;
-				if (!index) {
-					// boyer-moore derrived algorithm to safely skip non-boundary data
-					i += boundaryEnd;
-					while (i < bufferLength && !(buffer[i] in boundaryChars))
-						i += boundaryLength;
-					i -= boundaryEnd;
-					c = buffer[i];
-				}
-
-				if (index < boundary.length) {
-					if (boundary[index] === c) {
-						if (!index)
-							dataCallback('partData', true);
-						index++;
-					} else
-						index = 0;
-				} else if (index === boundary.length) {
-					index++;
-					if (c === CR) {
-						// CR = part boundary
-						flags |= FB.PART_BOUNDARY;
-					} else if (c === HYPHEN) {
-						// HYPHEN = end boundary
-						flags |= FB.LAST_BOUNDARY;
-					} else
-						index = 0;
-				} else if (index - 1 === boundary.length) {
-					if (flags & FB.PART_BOUNDARY) {
-						index = 0;
-						if (c === LF) {
-							// unset the PART_BOUNDARY flag
-							flags &= ~FB.PART_BOUNDARY;
-							callback('partEnd');
-							callback('partBegin');
-							state = S.HEADER_FIELD_START;
-							break;
-						}
-					} else if (flags & FB.LAST_BOUNDARY) {
-						if (c === HYPHEN) {
-							callback('partEnd');
-							callback('end');
-							state = S.END;
-							flags = 0;
-						} else
-							index = 0;
-					} else
-						index = 0;
-				}
-
-				if (index) {
-					// when matching a possible boundary, keep a lookbehind reference
-					// in case it turns out to be a false lead
-					lookbehind[index - 1] = c;
-				} else if (prevIndex) {
-					// if our boundary turned out to be rubbish, the captured lookbehind
-					// belongs to partData
-					callback('partData', lookbehind, 0, prevIndex);
-					prevIndex = 0;
-					mark('partData');
-					// reconsider the current character even so it interrupted the sequence
-					// it could be the beginning of a new sequence
-					i--;
-				}
-				break;
-
-			case S.END:
-				break;
-
-			default:
-				return i;
-		}
-	}
-
-	dataCallback('headerField');
-	dataCallback('headerValue');
-	dataCallback('partData');
-
-	self.index = index;
-	self.state = state;
-	self.flags = flags;
-
-	return len;
-};
-
-MultipartParserProto.end = function() {
-	if ((this.state === S.HEADER_FIELD_START && this.index === 0) || (this.state === S.PART_DATA && this.index == this.boundary.length)) {
-		this.onPartEnd && this.onPartEnd();
-		this.onEnd && this.onEnd();
-	} else if (this.state != S.END) {
-		this.onPartEnd && this.onPartEnd();
-		this.onEnd && this.onEnd();
-		return new Error('MultipartParser.end(): stream ended unexpectedly: ' + this.explain());
-	}
-};
-
-MultipartParserProto.explain = function() {
-	return 'state = ' + MultipartParser.stateToString(this.state);
 };
 
 // *********************************************************************************
@@ -3257,6 +2642,93 @@ function markup(body, filename) {
 
 	return body;
 }
+
+exports.parseMULTIPART = function(req, type, route) {
+
+	var beg = type.indexOf('boundary=');
+	if (beg === -1) {
+		F.reqstats(false, false);
+		F.stats.request.error400++;
+		req.res.writeHead(400);
+		req.res.end();
+		return;
+	}
+
+	var end = type.length;
+
+	for (var i = (beg + 10); i < end; i++) {
+		if (type[i] === ';' || type[i] === ' ') {
+			end = i;
+			break;
+		}
+	}
+
+	var boundary = type.substring(beg + 9, end);
+	req.files = [];
+	req.body = EMPTYOBJECT;
+	req.bodyexceeded = false;
+	req.bodyhas = true;
+
+	var parser = U.multipartparser(boundary, req, function(err, meta) {
+
+		for (var i = 0; i < meta.files.length; i++) {
+			var item = meta.files[i];
+			var file = new HttpFile();
+			file.path = item.path;
+			file.name = item.name;
+			file.filename = item.filename;
+			file.length = item.size;
+			file.width = item.width;
+			file.height = item.height;
+
+			// IE9 sends absolute filename
+			var index = file.filename.lastIndexOf('\\');
+
+			// For Unix like senders
+			if (index === -1)
+				index = file.filename.lastIndexOf('/');
+
+			if (index !== -1)
+				file.filename = file.filename.substring(index + 1);
+
+			req.files.push(file);
+		}
+
+		req.body = meta.body;
+
+		// Error
+		if (err) {
+			req.clear();
+			switch (err[0][0]) {
+				case '4':
+				case '5':
+				case '6':
+					req.bodyexceeded = true;
+					route = F.lookup(req, '#431', EMPTYARRAY, 0);
+					req.bodydata = null;
+					if (route) {
+						req.$total_route = route;
+						req.$total_execute(431, true);
+					} else
+						req.res.throw431();
+					break;
+				default:
+					route = F.lookup(req, '#400', EMPTYARRAY, 0);
+					req.bodydata = null;
+					if (route) {
+						req.$total_route = route;
+						req.$total_execute(400, true);
+					} else
+						req.res.throw400();
+					break;
+			}
+		} else
+			req.$total_end2();
+	});
+
+	parser.limits.total = route.length;
+};
+
 
 global.HttpFile = HttpFile;
 exports.HttpFile = HttpFile;
