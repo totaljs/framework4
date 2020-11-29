@@ -66,6 +66,7 @@ const REG_TEXTAPPLICATION = /text|application/;
 const REG_ENCODINGCLEANER = /[;\s]charset=utf-8/g;
 const REG_SKIPERROR = /epipe|invalid\sdistance/i;
 const REG_UTF8 = /[^\x20-\x7E]+/;
+const REG_EMPTYBUFFER = /\0|%00|\\u0000/;
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
 const EMPTYREQUEST = { uri: {} };
@@ -95,6 +96,7 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
+const ERR_NOTALLOWEDCHARS = 'Not allowed chars in the request body';
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -14449,15 +14451,17 @@ function extend_request(PROTO) {
 		if (route.isXML) {
 
 			if (this.$type !== 2) {
-				this.$total_400('Invalid "Content-Type".');
+				this.$total_400('Invalid "Content-Type"');
 				return;
 			}
 
 			try {
 				tmp = this.bodydata.toString(ENCODING);
+
 				if (CONF.secret_encryption && !route.flags2.noencrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-				this.body = DEF.parsers.xml(tmp);
+
+				this.body = DEF.parsers.xml(tmp.replace(REG_EMPTYBUFFER, ''));
 				this.$total_prepare();
 			} catch (err) {
 				F.error(err, null, this.uri);
@@ -14474,7 +14478,7 @@ function extend_request(PROTO) {
 		}
 
 		if (!this.$type) {
-			this.$total_400('Invalid "Content-Type".');
+			this.$total_400('Invalid "Content-Type"');
 			return;
 		}
 
@@ -14483,18 +14487,16 @@ function extend_request(PROTO) {
 				tmp = this.bodydata.toString(ENCODING);
 				if (CONF.secret_encryption && !route.flags2.noencrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-				this.body = DEF.parsers.json(tmp);
+				this.body = DEF.parsers.json(tmp.replace(REG_EMPTYBUFFER, ''));
 			} catch (e) {
 				this.$total_400('Invalid JSON data.');
 				return;
 			}
 		} else {
 			tmp = this.bodydata.toString(ENCODING);
-
 			if (CONF.secret_encryption && !route.flags2.noencrypt)
 				tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-
-			this.body = DEF.parsers.urlencoded(tmp);
+			this.body = DEF.parsers.urlencoded(tmp.replace(REG_EMPTYBUFFER, ''));
 		}
 
 		route.schema && (this.$total_schema = true);
