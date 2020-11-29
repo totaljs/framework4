@@ -39,6 +39,7 @@ const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const SKIPBODYENCRYPTOR = { ':': 1, '"': 1, '[': 1, ']': 1, '\'': 1, '_': 1, '{': 1, '}': 1, '&': 1, '=': 1, '+': 1, '-': 1, '\\': 1, '/': 1, ',': 1 };
 const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
+const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -5951,6 +5952,10 @@ MultipartParser.prototype.parse_head = function() {
 	self.current.size = 0;
 
 	if (isfile) {
+
+		if (REG_EMPTYBUFFER_TEST.test(self.current.filename))
+			self.current.filename = self.current.filename.replace(REG_EMPTYBUFFER, '');
+
 		var type = header.match(/content-type:\s.*?((\r\n)|$)/i);
 		if (type) {
 			self.current.type = type[0].substring(14);
@@ -6083,7 +6088,12 @@ MultipartParser.prototype.parse_data = function() {
 			return;
 		}
 
-		self.body[self.current.name] = self.buffer.slice(0, index - 2).toString('utf8').replace(REG_EMPTYBUFFER, '');
+		var val = self.buffer.slice(0, index - 2).toString('utf8');
+
+		if (REG_EMPTYBUFFER_TEST.test(val))
+			val = val.replace(REG_EMPTYBUFFER, '');
+
+		self.body[self.current.name] = val;
 		self.buffer = self.buffer.slice(index);
 		self.step = 0;
 		self.parse(true);

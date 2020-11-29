@@ -67,6 +67,7 @@ const REG_ENCODINGCLEANER = /[;\s]charset=utf-8/g;
 const REG_SKIPERROR = /epipe|invalid\sdistance/i;
 const REG_UTF8 = /[^\x20-\x7E]+/;
 const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
+const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
 const EMPTYREQUEST = { uri: {} };
@@ -13660,6 +13661,10 @@ WebSocketClientProto.$decode = function() {
 
 			if (data.isJSON()) {
 				var tmp = data.parseJSON(true);
+
+				if (REG_EMPTYBUFFER_TEST.test(tmp))
+					tmp = tmp.replace(REG_EMPTYBUFFER, '');
+
 				if (tmp !== undefined && this.container.$events.message)
 					this.container.emit('message', this, tmp);
 			}
@@ -13675,6 +13680,9 @@ WebSocketClientProto.$decode = function() {
 
 			if (this.container.$encrypt)
 				data = framework_utils.decrypt_data(data, CONF.secret_encryption);
+
+			if (REG_EMPTYBUFFER_TEST.test(data))
+				data = data.replace(REG_EMPTYBUFFER, '');
 
 			this.container.$events.message && this.container.emit('message', this, data);
 			break;
@@ -14461,7 +14469,10 @@ function extend_request(PROTO) {
 				if (CONF.secret_encryption && !route.flags2.noencrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
-				this.body = DEF.parsers.xml(tmp.replace(REG_EMPTYBUFFER, ''));
+				if (REG_EMPTYBUFFER_TEST.test(tmp))
+					tmp = tmp.replace(REG_EMPTYBUFFER, '');
+
+				this.body = DEF.parsers.xml(tmp);
 				this.$total_prepare();
 			} catch (err) {
 				F.error(err, null, this.uri);
@@ -14487,7 +14498,11 @@ function extend_request(PROTO) {
 				tmp = this.bodydata.toString(ENCODING);
 				if (CONF.secret_encryption && !route.flags2.noencrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-				this.body = DEF.parsers.json(tmp.replace(REG_EMPTYBUFFER, ''));
+
+				if (REG_EMPTYBUFFER_TEST.test(tmp))
+					tmp = tmp.replace(REG_EMPTYBUFFER, '');
+
+				this.body = DEF.parsers.json(tmp);
 			} catch (e) {
 				this.$total_400('Invalid JSON data.');
 				return;
@@ -14496,7 +14511,9 @@ function extend_request(PROTO) {
 			tmp = this.bodydata.toString(ENCODING);
 			if (CONF.secret_encryption && !route.flags2.noencrypt)
 				tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
-			this.body = DEF.parsers.urlencoded(tmp.replace(REG_EMPTYBUFFER, ''));
+			if (REG_EMPTYBUFFER_TEST.test(tmp))
+				tmp = tmp.replace(REG_EMPTYBUFFER, '');
+			this.body = DEF.parsers.urlencoded(tmp);
 		}
 
 		route.schema && (this.$total_schema = true);
