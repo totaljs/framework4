@@ -13438,7 +13438,6 @@ function websocket_onerror(e) {
 }
 
 function websocket_close() {
-	F.stats.performance.online--;
 	this.destroy && this.destroy();
 	this.$websocket.$onclose();
 }
@@ -13745,9 +13744,11 @@ WebSocketClientProto.$onerror = function(err) {
 };
 
 WebSocketClientProto.$onclose = function() {
+
 	if (this._isClosed)
 		return;
 
+	F.stats.performance.online--;
 	this.isClosed = true;
 	this._isClosed = true;
 
@@ -13802,6 +13803,7 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 };
 
 WebSocketClientProto.sendDeflate = function() {
+
 	var self = this;
 
 	if (self.deflatelock)
@@ -13863,6 +13865,7 @@ WebSocketClientProto.close = function(message, code) {
 			self.socket.end();
 		self.req.connection.destroy();
 	}
+
 	return self;
 };
 
