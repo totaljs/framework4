@@ -1581,12 +1581,15 @@ function Framework() {
 		sitemap: null,
 		api: {},
 		web: [],
+		webcached: {},
 		system: {},
 		files: [],
 		filesfallback: null,
+		filescached: {},
 		cors: [],
 		corsall: false,
 		websockets: [],
+		websocketscached: {},
 		middleware: {},
 		redirects: {},
 		resize: {},
@@ -2033,6 +2036,8 @@ F.routes_sort = function(type) {
 		if (key[0] === '1')
 			F.temporary.other[key] = undefined;
 	});
+
+	console.log(F.routes.web);
 
 };
 
