@@ -97,7 +97,6 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
-const ERR_NOTALLOWEDCHARS = 'Not allowed chars in the request body';
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -1298,6 +1297,13 @@ global.OFF = function() {
 };
 
 global.NEWSCHEMA = function(name, make) {
+
+	// Remove schema
+	if (make === null) {
+		framework_builders.remove(name);
+		return;
+	}
+
 	var schema = framework_builders.newschema(name);
 	make && make.call(schema, schema);
 	return schema;
@@ -1578,6 +1584,7 @@ function Framework() {
 	self.isCluster = process.env.PASSENGER_APP_ENV ? false : require('cluster').isWorker;
 
 	self.routes = {
+		all: {},
 		sitemap: null,
 		api: {},
 		web: [],
@@ -2583,7 +2590,33 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		return;
 	}
 
+	var isremove = funcExecute === null;
+
+	if (isremove) {
+		var r = F.routes.all[url];
+		if (r) {
+			if (r.isAPI) {
+				if (F.routes.api[r.url])
+					delete F.routes.api[r.url][r.name];
+				if (Object.keys(F.routes.api[r.url]).length === 0) {
+					delete F.routes.api[r.url];
+					var rindex = F.routes.web.findIndex('path', r.routepath);
+					if (rindex !== -1) {
+						F.routes.web.splice(rindex, 1);
+						F.routes_sort();
+					}
+				}
+				delete F.routes.all[url];
+			} else
+				r.remove();
+		}
+		return;
+	}
+
+	var mypath = url;
+
 	if (url.indexOf('--') === -1) {
+
 		if (url.indexOf('.') !== -1) {
 			tmp = url.split('.');
 			if (tmp[1].length < 6) {
@@ -2617,16 +2650,13 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		flags = tmp;
 	}
 
-	var search = (typeof(url) === 'string' ? url.toLowerCase().replace(/\s{2,}/g, ' ') : '') + (flags ? (' ' + flags.findAll(n => typeof(n) === 'string' && n.substring(0, 2) !== '//' && n[2] !== ':').join(' ')).toLowerCase() : '');
 	var method = '';
 	var CUSTOM = typeof(url) === 'function' ? url : null;
 	if (CUSTOM)
 		url = '/';
 
 	if (url) {
-
 		url = url.replace(/\t/g, ' ').trim();
-
 		var first = url.substring(0, 1);
 		if (first === '+' || first === '-' || url.substring(0, 2) === '🔒') {
 			// auth/unauth
@@ -2780,7 +2810,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var isJSON = false;
 	var isDELAY = false;
 	var isROBOT = false;
-	var isBINARY = false;
 	var isCORS = false;
 	var isROLE = false;
 	var isENCRYPT = false;
@@ -2793,7 +2822,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var isDYNAMICSCHEMA = false;
 	var description;
 	var id = null;
-	var groups = [];
 	var isAPI = false;
 
 	if (_flags) {
@@ -2823,10 +2851,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			flags[i] = flags[i].replace(/\t/g, ' ');
 
 			var first = flags[i][0];
-			if (first === '&') {
-				groups.push(flags[i].substring(1).trim());
-				continue;
-			}
 
 			// ROUTE identificator
 			if (flags[i].substring(0, 3) === 'id:') {
@@ -2908,10 +2932,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				case 'delay':
 					count--;
 					isDELAY = true;
-					continue;
-
-				case 'binary':
-					isBINARY = true;
 					continue;
 
 				case 'encrypt':
@@ -3175,25 +3195,23 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	if (name[1] === '#')
 		name = name.substring(1);
 
-	if (isBINARY && !isRaw) {
-		isBINARY = false;
-		console.warn('ROUTE() skips "binary" flag because the "raw" flag is not defined.');
-	}
+	var tmpapi;
 
 	if (isAPI) {
 
-		var tmpapi = url + '/';
+		tmpapi = url + '/';
 
 		if (!F.routes.api[tmpapi])
 			F.routes.api[tmpapi] = {};
 
-		F.routes.api[tmpapi][apiname] = { action: apimethod + ' ' + apischema, params: apiparams, member: membertype };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, action: apimethod + ' ' + apischema, params: apiparams, member: membertype, path: mypath, isAPI: true };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
 			if (tmp.hash === hash && tmp.MEMBER === membertype) {
 				if (timeout && tmp.timeout < timeout)
 					tmp.timeout = timeout;
+				F.routes.all[mypath].routepath = tmp.path;
 				return;
 			}
 		}
@@ -3217,11 +3235,11 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	var instance = new FrameworkRoute();
 	var r = instance.route;
+	r.path = mypath;
 	r.hash = hash;
-	r.search = search.split(' ');
 	r.id = id;
+	r.apiname = tmpapi;
 	r.name = name.trim();
-	r.groups = flags_to_object(groups);
 	r.priority = priority;
 	r.sitemap = sitemap ? sitemap.id : '';
 	r.schema = schema;
@@ -3250,7 +3268,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isXML = flags.indexOf('xml') !== -1;
 	r.isRAW = isRaw;
 	r.isENCRYPT = isENCRYPT;
-	r.isBINARY = isBINARY;
 	r.isMOBILE = isMOBILE;
 	r.isROBOT = isROBOT;
 	r.isMOBILE_VARY = isMOBILE;
@@ -3266,7 +3283,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isXHR = flags.indexOf('xhr') !== -1;
 	r.isUPLOAD = flags.indexOf('upload') !== -1;
 	r.isSYSTEM = url.startsWith('/#');
-	r.isCACHE = !url.startsWith('/#') && !CUSTOM && !arr.length && !isWILDCARD;
 	r.isPARAM = arr.length > 0;
 	r.isDELAY = isDELAY;
 	r.isDYNAMICSCHEMA = isDYNAMICSCHEMA;
@@ -3274,7 +3290,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.CUSTOM = CUSTOM;
 	r.options = options;
 	r.type = 'web';
-	r.remove = remove_route_web;
+	r.parent = instance;
+	// r.remove = remove_route_web;
 
 	if (r.isUPLOAD)
 		PERF.upload = true;
@@ -3282,8 +3299,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		PERF.json = true;
 	if (r.isXML)
 		PERF.xml = true;
-	if (r.isBINARY)
-		PERF.binary = true;
 	if (r.MEMBER === 1)
 		PERF.auth = true;
 	if (r.MEMBER === 2)
@@ -3304,6 +3319,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		!CURRENT_CONTROLLER && F.routes_sort(1);
 	}
 
+	F.routes.all[mypath] = instance;
+
 	if (isMOBILE)
 		F._request_check_mobile = true;
 
@@ -3315,27 +3332,6 @@ function flags_to_object(flags) {
 	var obj = {};
 	flags.forEach(flag => obj[flag] = true);
 	return obj;
-}
-
-function remove_route_web() {
-
-	if (this.isSYSTEM) {
-		var keys = Object.keys(F.routes.system);
-		for (var i = 0; i < keys.length; i++) {
-			if (F.routes.system[keys[i]] === this) {
-				delete F.routes.system[keys];
-				F.temporary.other = {};
-				return;
-			}
-		}
-	}
-
-	var index = F.routes.web.indexOf(this);
-	if (index !== -1) {
-		F.routes.web.splice(index, 1);
-		F.routes_sort();
-		F.temporary.other = {};
-	}
 }
 
 /**
@@ -3494,7 +3490,7 @@ global.MAP = function(url, filename, filter) {
 
 	setTimeout(function() {
 		U.ls(F.isWindows ? filename.replace(/\//g, '\\') : filename, function(files) {
-			for (var i = 0, length = files.length; i < length; i++) {
+			for (var i = 0; i < files.length; i++) {
 
 				if (F.isWindows)
 					files[i] = files[i].replace(filename, '').replace(/\\/g, '/');
@@ -3576,7 +3572,7 @@ F.use = function(name, url, types, first) {
 		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
 
 	if (!types || types.indexOf('web') !== -1) {
-		for (var i = 0, length = F.routes.web.length; i < length; i++) {
+		for (var i = 0; i < F.routes.web.length; i++) {
 			route = F.routes.web[i];
 			if (url && !route.url.join('/').startsWith(url))
 				continue;
@@ -3586,7 +3582,7 @@ F.use = function(name, url, types, first) {
 	}
 
 	if (!types || types.indexOf('file') !== -1 || types.indexOf('files') !== -1) {
-		for (var i = 0, length = F.routes.files.length; i < length; i++) {
+		for (var i = 0; i < F.routes.files.length; i++) {
 			route = F.routes.files[i];
 			if (url && !route.url.join('/').startsWith(url))
 				continue;
@@ -3596,7 +3592,7 @@ F.use = function(name, url, types, first) {
 	}
 
 	if (!types || types.indexOf('websocket') !== -1 || types.indexOf('websockets') !== -1) {
-		for (var i = 0, length = F.routes.websockets.length; i < length; i++) {
+		for (var i = 0; i < F.routes.websockets.length; i++) {
 			route = F.routes.websockets[i];
 			if (url && !route.url.join('/').startsWith(url))
 				continue;
@@ -3640,6 +3636,7 @@ function merge_middleware(a, b, first) {
 global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	var tmp;
+	var mypath = url;
 
 	var CUSTOM = typeof(url) === 'function' ? url : null;
 	if (CUSTOM)
@@ -3691,7 +3688,6 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	var options;
 	var protocols;
 	var id;
-	var groups = [];
 
 	priority = url.count('/');
 
@@ -3774,12 +3770,6 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 		if (flag.substring(0, 3) === 'id:') {
 			id = flag.substring(3).trim();
-			continue;
-		}
-
-		// Groups
-		if (flag[0] === '&') {
-			groups.push(flag.substring(1).trim());
 			continue;
 		}
 
@@ -3872,11 +3862,12 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 		F._length_subdomain_websocket++;
 
 	var instance = new FrameworkRoute();
+	instance.type = 'websocket';
 	var r = instance.route;
+	r.path = mypath;
 	r.id = id;
 	r.urlraw = urlraw;
 	r.hash = hash;
-	r.groups = flags_to_object(groups);
 	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
 	r.owner = CURRENT_OWNER;
 	r.url = routeURL;
@@ -3909,6 +3900,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.type = 'websocket';
 	F.routes.websockets.push(r);
 	F.initwebsocket && F.initwebsocket();
+	F.routes.all[mypath] = instance;
 
 	EMIT('route', 'websocket', r);
 	!CURRENT_CONTROLLER && F.routes_sort(2);
@@ -3933,6 +3925,7 @@ F.initwebsocket = function() {
 global.FILE = function(fnValidation, fnExecute, flags) {
 
 	var a;
+	var mypath = fnValidation;
 
 	if (fnValidation instanceof Array) {
 		a = fnExecute;
@@ -3959,7 +3952,6 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	var fixedfile = false;
 	var id = null;
 	var urlraw = fnValidation;
-	var groups = [];
 
 	if (_flags) {
 		!flags && (flags = []);
@@ -3971,8 +3963,6 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 			var flag = flags[i];
 			if (typeof(flag) === 'object')
 				options = flag;
-			else if (flag[0] === '&')
-				groups.push(flag.substring(1).trim());
 			else if (flag[0] === '#') {
 				!middleware && (middleware = []);
 				middleware.push(flag.substring(1).trim());
@@ -4039,8 +4029,8 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	var instance = new FrameworkRoute();
 	var r = instance.route;
 	r.id = id;
+	r.path = mypath;
 	r.urlraw = urlraw;
-	r.groups = flags_to_object(groups);
 	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
 	r.owner = CURRENT_OWNER;
 	r.url = url;
@@ -4051,10 +4041,13 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	r.execute = fnExecute;
 	r.middleware = middleware;
 	r.options = options;
-	r.type = 'file';
-
+	instance.type = 'file';
 	F.routes.files.push(r);
 	F.routes.files.sort((a, b) => !a.url ? -1 : !b.url ? 1 : a.url.length > b.url.length ? -1 : 1);
+
+	if (typeof(mypath) === 'string')
+		F.routes.all[mypath] = instance;
+
 	EMIT('route', 'file', r);
 	F._length_files = F.routes.files.length;
 };
@@ -8795,6 +8788,12 @@ F.lookup = function(req, membertype, skipflags) {
 			if (route.isHTTP && req.$protocol !== 'http')
 				continue;
 
+			if (route.isMOBILE && !req.mobile)
+				continue;
+
+			if (route.isROBOT && !req.robot)
+				continue;
+
 			return route;
 		}
 	}
@@ -9121,12 +9120,6 @@ FrameworkRoute.prototype = {
 	},
 	get flags() {
 		return this.route.flags || EMPTYARRAY;
-	},
-	set groups(value) {
-		this.route.groups = value;
-	},
-	get groups() {
-		return this.route.groups;
 	}
 };
 
@@ -9161,16 +9154,22 @@ FrameworkRouteProto.remove = function() {
 
 	var self = this;
 	var index;
+	var tmp;
+
 
 	if (self.type === 'file') {
-		index = F.routes.files.indexOf(self);
+		index = F.routes.files.indexOf(self.route);
 		if (index !== -1) {
+			tmp = F.routes.files[index];
+			delete F.routes.all[tmp.path];
 			F.routes.files.splice(index, 1);
 			F.routes_sort();
 		}
-	} else if (self.isWEBSOCKET) {
-		index = F.routes.websockets.indexOf(self);
+	} else if (self.type === 'websocket') {
+		index = F.routes.websockets.indexOf(self.route);
 		if (index !== -1) {
+			tmp = F.routes.websockets[index];
+			delete F.routes.all[tmp.path];
 			F.routes.websockets.splice(index, 1);
 			F.routes_sort();
 		}
@@ -9178,15 +9177,38 @@ FrameworkRouteProto.remove = function() {
 		var keys = Object.keys(F.routes.system);
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
-			if (F.routes.system[key] === self) {
+			tmp = F.routes.system[key];
+			if (tmp === self) {
+				delete F.routes.all[tmp.path];
 				delete F.routes.system[key];
 				break;
 			}
 		}
 	} else {
+
 		index = F.routes.web.indexOf(self);
+
+		if (index === -1 && self.route)
+			index = F.routes.web.indexOf(self.route);
+
 		if (index !== -1) {
-			F.routes.web.splice(index, 1);
+			tmp = F.routes.web[index];
+			if (tmp.apiname) {
+				var api = F.routes.api[tmp.apiname];
+				var keys = Object.keys(api);
+				var remcount = 0;
+				for (var i = 0; i < keys.length; i++) {
+					if (api[keys[i]].path === tmp.path) {
+						remcount++;
+						delete api[keys[i]];
+						delete F.routes.all[tmp.path];
+					}
+				}
+				if (keys.length === remcount)
+					F.routes.web.splice(index, 1);
+			} else
+				F.routes.web.splice(index, 1);
+
 			F.routes_sort();
 		}
 	}
@@ -14365,7 +14387,7 @@ function extend_request(PROTO) {
 			if (controller.isCanceled)
 				return;
 
-			if (!controller.isTransfer && this.$total_route.isCACHE && !F.temporary.other[this.uri.pathname])
+			if (!controller.isTransfer && !F.temporary.other[this.uri.pathname])
 				F.temporary.other[this.uri.pathname] = this.path;
 
 			if (this.$total_route.param.length) {
