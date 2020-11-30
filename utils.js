@@ -5846,9 +5846,11 @@ function MultipartParser(multipart, stream, callback) {
 			CONCAT[0] = self.buffer;
 			CONCAT[1] = chunk;
 			self.buffer = Buffer.concat(CONCAT);
-		} else
+			self.parse(1);
+		} else {
 			self.buffer = chunk;
-		self.parse();
+			self.parse(0);
+		}
 	};
 
 	self.onend = () => self.free();
@@ -5871,11 +5873,11 @@ MultipartParser.prototype.free = function(err) {
 	self.callback && self.callback(err, self);
 };
 
-MultipartParser.prototype.parse = function(is) {
+MultipartParser.prototype.parse = function(type) {
 	var self = this;
 	switch (self.step) {
 		case 0: // no data, tries to parse meta
-			self.parse_meta(is);
+			self.parse_meta(type);
 			break;
 		case 1: // part found
 			self.parse_head();
@@ -5889,11 +5891,15 @@ MultipartParser.prototype.parse = function(is) {
 	}
 };
 
-MultipartParser.prototype.parse_meta = function(is) {
+MultipartParser.prototype.parse_meta = function(type) {
 
 	var self = this;
 
-	var index = is ? 0 : self.buffer.indexOf(self.header);
+	var fromindex = type === 1 ? (self.buffer.length - self.header.length) : 0;
+	if (fromindex < 0)
+		fromindex = 0;
+
+	var index = type === 2 ? 0 : self.buffer.indexOf(self.header, fromindex);
 
 	if (index === -1)
 		return;
@@ -6032,7 +6038,7 @@ MultipartParser.prototype.parse_file = function() {
 		}
 
 		if (self.limits.total && self.sizes.total > self.limits.total) {
-			self.kill('6: Request body is too large');
+			self.kill('6: Stream is too large');
 			return;
 		}
 
@@ -6043,7 +6049,7 @@ MultipartParser.prototype.parse_file = function() {
 		self.buffer = self.buffer.slice(index);
 		self.current.file = null;
 		self.step = 0;
-		self.parse(true);
+		self.parse(2);
 
 	} else {
 
@@ -6060,7 +6066,7 @@ MultipartParser.prototype.parse_file = function() {
 		}
 
 		if (self.limits.total && self.sizes.total > self.limits.total) {
-			self.kill('6: Request body is too large');
+			self.kill('6: Stream is too large');
 			return;
 		}
 
@@ -6084,7 +6090,7 @@ MultipartParser.prototype.parse_data = function() {
 		}
 
 		if (self.limits.total && self.sizes.total > self.limits.total) {
-			self.kill('6: Request body is too large');
+			self.kill('6: Stream is too large');
 			return;
 		}
 
@@ -6108,7 +6114,7 @@ MultipartParser.prototype.parse_data = function() {
 		}
 
 		if (self.limits.total && (self.sizes.total + self.current.size) > self.limits.total) {
-			self.kill('6: Request body is too large');
+			self.kill('6: Stream is too large');
 			return;
 		}
 
