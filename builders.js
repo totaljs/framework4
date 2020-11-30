@@ -3455,7 +3455,6 @@ function RESTBuilder(url) {
 
 	this.options = { url: url, timeout: 10000, method: 'GET', resolve: true, headers: { 'user-agent': 'Total.js/v' + F.version_header, accept: 'application/json, text/plain, text/plain, text/xml' }};
 
-	// this.$flags;
 	// this.$data = {};
 	// this.$nodnscache = true;
 	// this.$cache_expire;
@@ -3661,7 +3660,7 @@ RESTP.maxlength = function(number) {
 };
 
 RESTP.auth = function(user, password) {
-	this.options.headers.authorization = 'Basic ' + Buffer.from(user + ':' + password).toString('base64');
+	this.options.headers.authorization = password == null ? user : 'Basic ' + Buffer.from(user + ':' + password).toString('base64');
 	return this;
 };
 
@@ -4593,10 +4592,9 @@ OperationOptionsProto.invalid = function(name, error, path, index) {
 	};
 };
 
-function AuthOptions(req, res, flags, callback) {
+function AuthOptions(req, res, callback) {
 	this.req = req;
 	this.res = res;
-	this.flags = flags || [];
 	this.processed = false;
 	this.$callback = callback;
 }
@@ -4641,12 +4639,6 @@ AuthOptions.prototype = {
 };
 
 const AuthOptionsProto = AuthOptions.prototype;
-
-AuthOptionsProto.roles = function() {
-	for (var i = 0; i < arguments.length; i++)
-		this.flags.push('@' + arguments[i]);
-	return this;
-};
 
 SchemaOptionsProto.cookie = OperationOptionsProto.cookie = TaskBuilderProto.cookie = AuthOptionsProto.cookie = function(name, value, expire, options) {
 	var self = this;
@@ -4698,8 +4690,8 @@ AuthOptionsProto.next = AuthOptionsProto.callback = function(is, user) {
 };
 
 AuthOptions.wrap = function(fn) {
-	return function(req, res, flags, next) {
-		fn(new AuthOptions(req, res, flags, next));
+	return function(req, res, next) {
+		fn(new AuthOptions(req, res, next));
 	};
 };
 

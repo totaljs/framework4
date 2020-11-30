@@ -290,7 +290,7 @@ exports.routeCompareFlags2 = function(req, route, membertype) {
 	var isRole = false;
 	var hasRoles = false;
 
-	for (var i = 0, length = req.flags.length; i < length; i++) {
+	for (var i = 0; i < req.flags.length; i++) {
 
 		var flag = req.flags[i];
 		switch (flag) {
@@ -2704,7 +2704,7 @@ exports.parseMULTIPART = function(req, type, route) {
 				case '5':
 				case '6':
 					req.bodyexceeded = true;
-					route = F.lookup(req, '#431', EMPTYARRAY, 0);
+					route = F.lookupsystem(431);
 					req.bodydata = null;
 					if (route) {
 						req.$total_route = route;
@@ -2713,7 +2713,7 @@ exports.parseMULTIPART = function(req, type, route) {
 						req.res.throw431();
 					break;
 				default:
-					route = F.lookup(req, '#400', EMPTYARRAY, 0);
+					route = F.lookupsystem(400);
 					req.bodydata = null;
 					if (route) {
 						req.$total_route = route;

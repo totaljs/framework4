@@ -143,7 +143,7 @@ global.BLOCKED = function($, limit, expiration) {
 
 global.FILECACHE = function(id, expire, callback, maker, encoding) {
 
-	var filename = PATH.temp('filecache_' + (id + '').hash(true) + '.cache');
+	var filename = PATH.temp('filecache_' + (id + '').hash(true).toString(36) + '.cache');
 	var isjson = !encoding || encoding === 'json';
 
 	Fs.lstat(filename, function(err, stat) {
@@ -1412,7 +1412,7 @@ const controller_error_status = function(controller, status, problem) {
 
 	if (controller.req.$total_success) {
 		controller.req.$total_success();
-		controller.req.$total_route = F.lookup(controller.req, '#' + status, EMPTYARRAY, 0);
+		controller.req.$total_route = F.lookupsystem(status);
 		controller.req.$total_exception = problem;
 		controller.req.$total_execute(status, true);
 	} else if (controller.$evalroutecallback)
@@ -2003,20 +2003,50 @@ F.routes_sort = function(type) {
 	F.routes.web.sort((a, b) => a.priority > b.priority ? -1 : a.priority < b.priority ? 1 : 0);
 	F.routes.websockets.sort((a, b) => a.priority > b.priority ? -1 : a.priority < b.priority ? 1 : 0);
 
+	var wcache = {};
 	var cache = {};
 	var length = F.routes.web.length;
 	var url;
+	var tmp;
 
 	for (var i = 0; i < length; i++) {
 		var route = F.routes.web[i];
 		var name = F.temporary.internal[route.controller];
 		if (name)
 			route.controller = name;
+
+		// Missing subdomain routing
+		var key = route.method;
+		tmp = wcache[key];
+		if (!tmp)
+			tmp = wcache[key] = {};
+
+		for (var j = 0; j < route.url.length; j++) {
+			var u = route.url[j].replace(/\{.*?\}/g, 'D');
+			if (!tmp[u])
+				tmp[u] = {};
+			tmp = tmp[u];
+		}
+
+		if (route.isWILDCARD) {
+			if (!tmp.W)
+				tmp.W = {};
+			tmp = tmp.W;
+		}
+
+		if (tmp.$)
+			tmp.$.push(route);
+		else
+			tmp.$ = [route];
+
 		if (!route.isMOBILE || route.isUPLOAD || route.isXHR || route.isJSON || route.isSYSTEM || route.isXML || route.flags.indexOf('get') === -1)
 			continue;
+
 		url = route.url.join('/');
 		cache[url] = true;
 	}
+
+	F.routes.webcached = wcache;
 
 	for (var i = 0; i < length; i++) {
 		var route = F.routes.web[i];
@@ -2037,7 +2067,7 @@ F.routes_sort = function(type) {
 			F.temporary.other[key] = undefined;
 	});
 
-	console.log(F.routes.web);
+	//console.log(F.routes.web);
 
 };
 
@@ -2446,7 +2476,7 @@ global.CORS = function(url, flags, credentials) {
 		url += '/';
 
 	url = framework_internal.preparepath(framework_internal.encodeUnicodeURL(url.trim()));
-	route.hash = url.hash();
+	route.hash = url.hash(true);
 	route.owner = CURRENT_OWNER;
 	route.url = framework_internal.routeSplitCreate(url);
 	route.origin = origin.length ? origin : null;
@@ -3065,7 +3095,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	var url2 = framework_internal.preparepath(url.trim());
 	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
-	var hash = url2.hash();
+	var hash = url2.hash(true);
 	var routeURL = framework_internal.routeSplitCreate(url2);
 	var arr = [];
 	var params = [];
@@ -3269,7 +3299,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		F.routes.system[url.substring(1)] = r;
 	else {
 		F.routes.web.push(r);
-
 		// Appends cors route
 		isCORS && CORS(urlcache, corsflags);
 		!CURRENT_CONTROLLER && F.routes_sort(1);
@@ -3681,7 +3710,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	var url2 = framework_internal.preparepath(url.trim());
 	var routeURL = framework_internal.routeSplitCreate(url2);
 	var arr = [];
-	var hash = url2.hash();
+	var hash = url2.hash(true);
 	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
 	var params = [];
 	var paramtypes = {};
@@ -3795,7 +3824,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 			continue;
 		}
 
-		if (flag === 'json' || flag === 'binary' || flag === 'raw')
+		if (flag === 'json' || flag === 'binary' || flag === 'raw' || flag === 'text' || flag === 'plain')
 			continue;
 
 		switch (flag) {
@@ -3880,6 +3909,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.type = 'websocket';
 	F.routes.websockets.push(r);
 	F.initwebsocket && F.initwebsocket();
+
 	EMIT('route', 'websocket', r);
 	!CURRENT_CONTROLLER && F.routes_sort(2);
 	return instance;
@@ -5629,7 +5659,7 @@ function compile_gzip(arr, callback) {
 
 	// GZIP compression
 
-	var filename = PATH.temp('file' + (arr[0].hash() + '').replace('-', '0') + '.gz');
+	var filename = PATH.temp('file' + (arr[0].hash(true).toString(36) + '').replace('-', '0') + '.gz');
 	arr.push(filename);
 
 	F.stats.performance.open++;
@@ -6994,20 +7024,15 @@ F.$requestcontinue = function(req, res, headers) {
 	req.files = EMPTYARRAY;
 	req.bodyexceeded = false;
 	req.bodyhas = false;
-	req.$flags = req.method[0] + req.method[1];
 
-	var flags = [req.method.toLowerCase()];
 	var multipart;
 
-	if (F._request_check_mobile && req.mobile) {
-		req.$flags += 'a';
+	if (F._request_check_mobile && req.mobile)
 		F.stats.request.mobile++;
-	} else
+	else
 		F.stats.request.desktop++;
 
-	req.$protocol[5] && (req.$flags += req.$protocol[5]);
 	req.$type = 0;
-	flags.push(req.$protocol);
 
 	var method = req.method;
 	var first = method[0];
@@ -7023,8 +7048,6 @@ F.$requestcontinue = function(req, res, headers) {
 
 		switch (tmp.substring(tmp.length - 4)) {
 			case 'json':
-				req.$flags += 'b';
-				flags.push('json');
 				req.$type = 1;
 				multipart = '';
 				break;
@@ -7033,13 +7056,9 @@ F.$requestcontinue = function(req, res, headers) {
 				multipart = '';
 				break;
 			case 'data':
-				req.$flags += 'c';
 				req.$upload = true;
-				flags.push('upload');
 				break;
 			case '/xml':
-				req.$flags += 'd';
-				flags.push('xml');
 				req.$type = 2;
 				multipart = '';
 				break;
@@ -7047,7 +7066,6 @@ F.$requestcontinue = function(req, res, headers) {
 				if (multipart) {
 					// 'undefined' DATA
 					multipart = '';
-					flags.push('raw');
 				} else {
 					req.$type = 3;
 					multipart = '';
@@ -7056,34 +7074,11 @@ F.$requestcontinue = function(req, res, headers) {
 		}
 	}
 
-	if (headers.accept === 'text/event-stream') {
-		req.$flags += 'g';
-		flags.push('sse');
-	}
+	if (headers.accept === 'text/event-stream')
+		req.$sse = true;
 
-	if (DEBUG) {
-		req.$flags += 'h';
-		flags.push('debug');
-	}
-
-	if (req.xhr) {
+	if (req.xhr)
 		F.stats.request.xhr++;
-		req.$flags += 'i';
-		flags.push('xhr');
-	}
-
-	if (F._request_check_robot && req.robot)
-		req.$flags += 'j';
-
-	if (F._request_check_referer) {
-		var referer = headers['referer'];
-		if (referer && referer.indexOf(headers['host']) !== -1) {
-			req.$flags += 'k';
-			flags.push('referer');
-		}
-	}
-
-	req.flags = flags;
 
 	F.$events.request_begin && EMIT('request_begin', req, res);
 	var isCORS = (F._length_cors || F.routes.corsall) && req.headers.origin != null;
@@ -7370,7 +7365,7 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 F.$websocketcontinue = function(req, path) {
 	req.websocketpath = path;
 	if (DEF.onAuthorize) {
-		DEF.onAuthorize(req, req.websocket, req.flags, websocketcontinue_authnew);
+		DEF.onAuthorize(req, req.websocket, websocketcontinue_authnew);
 	} else {
 		var route = F.lookup_websocket(req, req.websocket.uri.pathname, 0);
 		if (route) {
@@ -8518,7 +8513,7 @@ function configure_configs(arr, rewrite) {
 	process.env.NODE_TLS_REJECT_UNAUTHORIZED = CONF.allow_ssc_validation === false ? '0' : '1';
 
 	if (!CONF.directory_temp)
-		CONF.directory_temp = '~' + U.path(Path.join(Os.tmpdir(), 'totaljs' + F.directory.hash()));
+		CONF.directory_temp = '~' + U.path(Path.join(Os.tmpdir(), 'totaljs' + F.directory.hash(true).toString(36)));
 
 	if (!CONF.etag_version)
 		CONF.etag_version = CONF.version.replace(/\.|\s/g, '');
@@ -8644,130 +8639,164 @@ F.$versionprepare = function(html) {
 	return html;
 };
 
-/**
- * Lookup for the route
- * @param {HttpRequest} req
- * @param {String} url URL address.
- * @param {String Array} flags
- * @param {Boolean} membertype Not defined = 0, Authorized = 1, Unauthorized = 2
- * @return {Object}
- */
-F.lookup = function(req, url, flags, membertype) {
-
-	var isSystem = url[0] === '#';
-	var subdomain = F._length_subdomain_web && req.subdomain ? req.subdomain.join('.') : null;
-
-	if (isSystem)
-		return F.routes.system[url];
-
-	if (isSystem)
-		req.path = [url];
-
-	var key;
-
-	// helper for 401 http status
-	req.$isAuthorized = true;
-
-	if (!isSystem) {
-		key = '1' + url + '$' + membertype + req.$flags + (subdomain ? '$' + subdomain : '') + (req.$roles ? 'R' : '');
-		if (F.temporary.other[key])
-			return F.temporary.other[key];
-	}
-
-	for (var i = 0; i < F.routes.web.length; i++) {
-
-		var route = F.routes.web[i];
-		if (route.CUSTOM) {
-			if (!route.CUSTOM(url, req, flags))
-				continue;
-		} else {
-			if (F._length_subdomain_web && !framework_internal.routeCompareSubdomain(subdomain, route.subdomain))
-				continue;
-			if (route.isWILDCARD) {
-				if (!framework_internal.routeCompare(req.path, route.url, isSystem, true))
-					continue;
-			} else {
-				if (!framework_internal.routeCompare(req.path, route.url, isSystem))
-					continue;
-			}
-		}
-
-		if (isSystem) {
-			if (route.isSYSTEM)
-				return route;
-			continue;
-		}
-
-		if (route.isPARAM && route.regexp) {
-			var skip = false;
-			for (var j = 0, l = route.regexpIndexer.length; j < l; j++) {
-
-				var p = req.path[route.regexpIndexer[j]];
-				if (p === undefined) {
-					skip = true;
-					break;
-				}
-
-				if (!route.regexp[route.regexpIndexer[j]].test(p)) {
-					skip = true;
-					break;
-				}
-			}
-
-			if (skip)
-				continue;
-		}
-
-		if (route.flags && route.flags.length) {
-			var result = framework_internal.routeCompareFlags2(req, route, membertype);
-			if (result === -1)
-				req.$isAuthorized = false; // request is not authorized
-			if (result < 1)
-				continue;
-		}
-
-		if (key && route.isCACHE && (req.$isAuthorized || membertype === 1))
-			F.temporary.other[key] = route;
-
-		return route;
-	}
-
-	return null;
+F.lookupsystem = function(code) {
+	return F.routes.system[code + ''];
 };
 
-F.lookupaction = function(req, url) {
+const EMPTYREQSPLIT = ['/'];
 
-	var isSystem = url[0] === '#';
-	if (isSystem)
-		return F.routes.system[url];
+F.lookup = function(req, membertype, skipflags) {
 
-	var length = F.routes.web.length;
+	var key = req.method;
+	var tmp = F.routes.webcached[key];
+	if (!tmp)
+		return null;
+
+	var arr = req.split.length ? req.split : EMPTYREQSPLIT;
+	var length = arr.length;
+	var wild;
+	var dynamic;
+	var r;
+
+	var root = tmp['/'];
+	if (root && root.W)
+		wild = root.W;
+
 	for (var i = 0; i < length; i++) {
+		var u = arr[i];
+		var c = tmp[u];
 
-		var route = F.routes.web[i];
-		if (route.method !== req.method)
+		if (c && c.W)
+			wild = c.W;
+
+		if (c && c.D && (i + 1) < arr.length) {
+			if (!dynamic)
+				dynamic = [];
+			dynamic.push({ index: i + 1, cache: c.D });
+		}
+
+		if (c) {
+			tmp = c;
 			continue;
+		}
 
-		if (route.CUSTOM) {
-			if (!route.CUSTOM(url, req))
-				continue;
-		} else {
-			if (route.isWILDCARD) {
-				if (!framework_internal.routeCompare(req.path, route.url, isSystem, true))
+		// Dynamic
+		c = tmp.D;
+		if (c) {
+			tmp = c;
+			continue;
+		}
+
+		// Wildcard
+		c = tmp.W;
+		if (c) {
+			break;
+		}
+
+		// no route
+		tmp = null;
+		break;
+	}
+
+	r = tmp;
+
+	if (r && !r.$ && dynamic && dynamic.length) {
+
+		length = req.split.length;
+
+		for (var j = 0; j < dynamic.length; j++) {
+			var d = dynamic[j];
+			var is = true;
+			tmp = d.cache;
+
+			for (var i = d.index; i < length; i++) {
+
+				var u = req.split[i];
+				var c = tmp[u];
+
+				if (c) {
+					tmp = c;
 					continue;
-			} else {
-				if (!framework_internal.routeCompare(req.path, route.url, isSystem))
+				}
+
+				// Dynamic
+				if (i === (length - 1))
+					break;
+
+				c = tmp.D;
+				if (c) {
+					tmp = c;
 					continue;
+				}
+
+				is = false;
+				break;
+			}
+
+			if (is) {
+				r = is ? tmp : null;
+				break;
 			}
 		}
+	}
 
-		if (isSystem) {
-			if (route.isSYSTEM)
+	if (!r)
+		r = wild;
+
+	var routes;
+
+	if (membertype) {
+		if (r)
+			routes = r.$ || (r.W ? r.W.$ : null);
+		if (!routes)
+			routes = F.lookup(req, 0, skipflags);
+	} else
+		routes = r ? r.$ || (r.W ? r.W.$ : null) : null;
+
+	if (routes) {
+		for (var i = 0; i < routes.length; i++) {
+			var route = routes[i];
+
+			if (membertype && route.MEMBER && route.MEMBER !== membertype)
+				continue;
+
+			if (skipflags)
 				return route;
-			continue;
-		}
 
-		return route;
+			if (route.isREFERER) {
+				if (!req.headers.referer || req.headers.referer.indexOf(req.headers.host) === -1)
+					continue;
+			}
+
+			if (route.isJSON && req.$type !== 1)
+				continue;
+
+			if (route.isXML && req.$type !== 2)
+				continue;
+
+			if (route.isDEBUG && !DEBUG)
+				continue;
+
+			if (route.isRELEASE && DEBUG)
+				continue;
+
+			if (route.isXHR && !req.xhr)
+				continue;
+
+			if (!route.isBOTH && req.xhr)
+				continue;
+
+			if (route.isUPLOAD && !req.$upload)
+				continue;
+
+			if (route.isHTTPS && req.$protocol !== 'https')
+				continue;
+
+			if (route.isHTTP && req.$protocol !== 'http')
+				continue;
+
+			return route;
+		}
 	}
 };
 
@@ -11329,7 +11358,7 @@ ControllerProto.$import = function() {
 
 			// MERGE
 			var merge = filename.split('+');
-			var hash = 'merge' + filename.hash(true);
+			var hash = 'merge' + filename.hash(true).toString(36);
 
 			if ($importmergecache[hash]) {
 				builder += F.temporary.other[k] = $importmergecache[hash];
@@ -12482,7 +12511,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 				return;
 			}
 
-			filename = PATH.temp('view' + name.hash() + '.html');
+			filename = PATH.temp('view' + name.hash(true).toString(36) + '.html');
 			F.temporary.other[key] = 0;
 
 			var done = { callback: NOOP };
@@ -13929,15 +13958,6 @@ function req_authorizetotal(isAuthorized, user, $) {
 	// @isAuthorized "object" is as user but "user" must be "undefined"
 
 	var req = $.req;
-	var roles = req.flagslength !== req.flags.length;
-
-	if (roles) {
-		req.$flags += req.flags.slice(req.flagslength).join('');
-		req.$roles = true;
-	}
-
-	req.flagslength = undefined;
-
 	if (isAuthorized instanceof Error || isAuthorized instanceof ErrorBuilder) {
 		// Error handling
 		isAuthorized = false;
@@ -13950,7 +13970,7 @@ function req_authorizetotal(isAuthorized, user, $) {
 	}
 
 	req.isAuthorized = isAuthorized;
-	req.$total_authorize(isAuthorized, user, roles);
+	req.$total_authorize(isAuthorized, user);
 }
 
 function extend_request(PROTO) {
@@ -14136,7 +14156,7 @@ function extend_request(PROTO) {
 		var req = this;
 		if (DEF.onAuthorize) {
 			req.authorizecallback = callback;
-			DEF.onAuthorize(req, req.res, req.flags, req_authorizecallback);
+			DEF.onAuthorize(req, req.res, req_authorizecallback);
 		} else
 			callback(null, null, false);
 		return req;
@@ -14213,7 +14233,7 @@ function extend_request(PROTO) {
 
 	PROTO.$total_multipart = function(header) {
 		F.stats.request.upload++;
-		this.$total_route = F.lookup(this, this.uri.pathname, this.flags, 0);
+		this.$total_route = F.lookup(this);
 		this.$total_header = header;
 		if (this.$total_route) {
 			PATH.verify('temp');
@@ -14223,7 +14243,7 @@ function extend_request(PROTO) {
 	};
 
 	PROTO.$total_urlencoded = function() {
-		this.$total_route = F.lookup(this, this.uri.pathname, this.flags, 0);
+		this.$total_route = F.lookup(this);
 		if (this.$total_route) {
 			this.bodyhas = true;
 			this.bodyexceeded = false;
@@ -14235,10 +14255,10 @@ function extend_request(PROTO) {
 
 	PROTO.$total_status = function(status) {
 
-		if (status == null)
-			F.stats.request.blocked++;
-		else
+		if (status)
 			F.stats.request['error' + status]++;
+		else
+			F.stats.request.blocked++;
 
 		this.res.writeHead(status);
 		this.res.end(U.httpstatus(status));
@@ -14361,7 +14381,7 @@ function extend_request(PROTO) {
 		} catch (err) {
 			F.error(err, name, this.uri);
 			this.$total_exception = err;
-			this.$total_route = F.lookup(this, '#500', EMPTYARRAY, 0);
+			this.$total_route = F.lookupsystem(500);
 			this.$total_execute(500, true);
 		}
 	};
@@ -14389,9 +14409,7 @@ function extend_request(PROTO) {
 		if (this.controller) {
 			this.controller.isTimeout = true;
 			this.controller.isCanceled = true;
-			// this.$total_route = F.lookup(this, '#408', EMPTYARRAY, 0);
-			// this.$total_execute(408, true);
-			this.$total_route = F.lookup(this, '#503', EMPTYARRAY, 0);
+			this.$total_route = F.lookupsystem(503);
 			this.$total_execute(503, true);
 		}
 	};
@@ -14423,30 +14441,29 @@ function extend_request(PROTO) {
 		});
 	};
 
-	PROTO.$total_authorize = function(isLogged, user, roles) {
+	PROTO.$total_authorize = function(isLogged, user) {
 
 		var membertype = isLogged ? 1 : 2;
 		var code = this.bodyexceeded ? 431 : 401;
 
-		this.$flags += membertype;
 		user && (this.user = user);
 
-		if (this.$total_route && this.$total_route.isUNIQUE && !roles && (!this.$total_route.MEMBER || this.$total_route.MEMBER === membertype)) {
-			if (code === 401 && this.$total_schema)
-				this.$total_validate(this.$total_route, subscribe_validate_callback, code);
-			else
-				this.$total_execute(code, true);
-		} else {
-			var route = F.lookup(this, this.bodyexceeded ? '#431' : this.uri.pathname, this.flags, this.bodyexceeded ? 0 : membertype);
-			var status = this.$isAuthorized ? 404 : 401;
-			var code = this.bodyexceeded ? 431 : status;
-			!route && (route = F.lookup(this, '#' + status, EMPTYARRAY, 0));
-			this.$total_route = route;
-			if (this.$total_route && this.$total_schema)
-				this.$total_validate(this.$total_route, subscribe_validate_callback, code);
-			else
-				this.$total_execute(code);
-		}
+		// @roles argument
+		var route = this.$total_route;
+
+		if (!route || route.MEMBER !== membertype)
+			route = this.bodyexceeded ? F.lookupsystem(431) : F.lookup(this, membertype);
+
+		var status = this.$isAuthorized ? 404 : 401;
+		var code = this.bodyexceeded ? 431 : status;
+		if (!route)
+			route = F.lookupsystem(status);
+
+		this.$total_route = route;
+		if (this.$total_route && this.$total_schema)
+			this.$total_validate(this.$total_route, subscribe_validate_callback, code);
+		else
+			this.$total_execute(code);
 	};
 
 	PROTO.$total_end2 = function() {
@@ -14454,7 +14471,7 @@ function extend_request(PROTO) {
 		var route = this.$total_route;
 
 		if (this.bodyexceeded) {
-			route = F.lookup(this, '#431', EMPTYARRAY, 0);
+			route = F.lookupsystem(431);
 			this.bodydata = null;
 			if (route) {
 				this.$total_route = route;
@@ -14590,34 +14607,34 @@ function extend_request(PROTO) {
 	};
 
 	PROTO.$total_400 = function(problem) {
-		this.$total_route = F.lookup(this, '#400', EMPTYARRAY, 0);
+		this.$total_route = F.lookupystem(400);
 		this.$total_exception = problem;
 		this.$total_execute(400, true);
 	};
 
 	PROTO.$total_404 = function(problem) {
-		this.$total_route = F.lookup(this, '#404', EMPTYARRAY, 0);
+		this.$total_route = F.lookupystem(404);
 		this.$total_exception = problem;
 		this.$total_execute(404, true);
 	};
 
 	PROTO.$total_500 = function(problem) {
-		this.$total_route = F.lookup(this, '#500', EMPTYARRAY, 0);
+		this.$total_route = F.lookupystem(500);
 		this.$total_exception = problem;
 		this.$total_execute(500, true);
 	};
 
 	PROTO.$total_prepare = function() {
 		var req = this;
-		var length = req.flags.length;
 		if (DEF.onAuthorize) {
-			req.flagslength = length;
-			DEF.onAuthorize(req, req.res, req.flags, req_authorizetotal);
+			DEF.onAuthorize(req, req.res, req_authorizetotal);
 		} else {
+			if (!req.$total_route) {
+				// req.$total_route = F.lookup(req, req.bodyexceeded ? '#431' : req.uri.pathname, req.flags, 0);
+				req.$total_route = req.bodyexceeded ? F.lookupsystem(431) : F.lookup(req);
+			}
 			if (!req.$total_route)
-				req.$total_route = F.lookup(req, req.bodyexceeded ? '#431' : req.uri.pathname, req.flags, 0);
-			if (!req.$total_route)
-				req.$total_route = F.lookup(req, '#404', EMPTYARRAY, 0);
+				req.$total_route = F.lookupsystem(404);
 			var code = req.bodyexceeded ? 431 : 404;
 			if (!req.$total_schema || !req.$total_route)
 				req.$total_execute(code, code);
@@ -15711,7 +15728,7 @@ function extend_response(PROTO) {
 			F.stats.response[key]++;
 			response_end(res);
 		} else {
-			req.$total_route = F.lookup(req, '#' + res.options.code, EMPTYARRAY, 0);
+			req.$total_route = F.lookupsystem(res.options.code);
 			req.$total_exception = res.options.problem;
 			req.$total_execute(res.options.code, true);
 		}
@@ -16739,6 +16756,20 @@ global.ACTION = function(url, data, callback) {
 		data = null;
 	}
 
+	var authorized = 0;
+
+	switch (url[0]) {
+		case '-':
+			authorized = 2;
+			break;
+		case '+':
+			authorized = 2;
+			break;
+	}
+
+	if (authorized)
+		url = url.substring(1);
+
 	var split = url.split(' ');
 	var isAPI = split[0] === 'API';
 	var method = isAPI ? 'POST' : split[0];
@@ -16780,21 +16811,15 @@ global.ACTION = function(url, data, callback) {
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routeSplit(req.uri.pathname);
 	req.method = method;
+	req.split = framework_internal.routeSplit(req.uri.pathname, true);
 
-	var route = F.lookupaction(req, url);
+	var route = F.lookup(req, authorized, true);
 	if (route) {
-
 		req.body = data || EMPTYOBJECT;
 		req.query = params ? DEF.parsers.urlencoded(params) : {};
 		req.files = EMPTYARRAY;
 		res.options = req.options = {};
 		req.$test = true;
-
-		if (route.isPARAM)
-			req.split = framework_internal.routeSplit(req.uri.pathname, true);
-		else
-			req.split = EMPTYARRAY;
-
 		var controller = new Controller(route.controller, null, null, route.currentViewDirectory);
 		controller.route = route;
 		controller.req = req;
@@ -16802,7 +16827,8 @@ global.ACTION = function(url, data, callback) {
 		res.$evalroutecallback = controller.$evalroutecallback = callback || NOOP;
 		setImmediate(evalroutehandler, controller);
 		return controller;
-	}
+	} else if (callback)
+		callback('404');
 };
 
 function runsnapshot() {
