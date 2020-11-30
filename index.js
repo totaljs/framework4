@@ -2544,7 +2544,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var apimethod;
 
 	if (url instanceof Array) {
-		url.forEach(url => F.route(url, funcExecute, flags, length));
+		url.forEach(url => F.route(url, funcExecute, flags));
 		return;
 	}
 
@@ -2561,6 +2561,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			WEBSOCKET(url, funcExecute, flags, length);
 			return;
 		}
+
+		if ((/^(\+|-){0,}(FILE)\s/).test(url)) {
+			FILE(url, funcExecute, flags);
+			return;
+		}
+
 	}
 
 	if (typeof(flags) === 'number') {
@@ -3705,7 +3711,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	tmp = [];
 
-	var isJSON = false;
+	var isJSON = true;
 	var isBINARY = false;
 	var isROLE = false;
 	var isBUFFER = false;
@@ -3760,6 +3766,9 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 		}
 
 		count++;
+
+		if (flag === 'text' || flag === 'plain')
+			isJSON = false;
 
 		if (flag === 'json')
 			isJSON = true;
