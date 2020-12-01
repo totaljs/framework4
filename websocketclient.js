@@ -62,6 +62,9 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.origin = origin;
 	self.protocol = protocol;
 
+	delete self._isClosed;
+	delete self.isClosed;
+
 	var secured = false;
 
 	if (typeof(url) === 'string') {
@@ -86,6 +89,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	origin && (options.headers['Sec-WebSocket-Origin'] = origin);
 	options.headers.Connection = 'Upgrade';
 	options.headers.Upgrade = 'websocket';
+	options.agent = null;
 
 	if (self.options.key)
 		options.key = self.options.key;
@@ -120,14 +124,15 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 
 	self.req.on('error', function(e) {
 		self.$events.error && self.emit('error', e);
+		self.$onclose();
 	});
 
 	self.req.on('response', function() {
-		self.$events.error && self.emit('error', new Error('Unexpected server response.'));
+		self.$events.error && self.emit('error', new Error('Unexpected server response'));
 		if (self.options.reconnectserver)
 			self.connect(url, protocol, origin);
 		else
-			self.free();
+			self.$onclose();
 	});
 
 	self.req.on('upgrade', function(response, socket) {
@@ -141,7 +146,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		if (response.headers['sec-websocket-accept'] !== digest) {
 			socket.destroy();
 			self.closed = true;
-			self.$events.error && self.emit('error', new Error('Invalid server key.'));
+			self.$events.error && self.emit('error', new Error('Invalid server key'));
 			self.free();
 			return;
 		}
@@ -183,15 +188,19 @@ function websocket_onerror(e) {
 
 function websocket_close() {
 	var ws = this.$websocket;
+	if (ws.closed)
+		return;
+
+	ws.$events.close && ws.emit('close', ws.closecode, ws.closemessage);
 	ws.closed = true;
 	ws.$onclose();
-	F.stats.performance.online--;
 	ws.options.reconnect && setTimeout(function(ws) {
 		ws.isClosed = false;
 		ws._isClosed = false;
 		ws.reconnect++;
 		ws.connect(ws.url, ws.protocol, ws.origin);
 	}, ws.options.reconnect, ws);
+
 }
 
 WebSocketClientProto.emit = function(name, a, b, c, d, e, f, g) {
@@ -250,10 +259,20 @@ WebSocketClientProto.removeAllListeners = function(name) {
 };
 
 WebSocketClientProto.free = function() {
+
 	var self = this;
-	self.socket && self.socket.destroy();
+
+	if (self.socket) {
+		self.socket.removeAllListeners();
+		self.socket.destroy();
+	}
+
+	if (self.req) {
+		self.req.removeAllListeners();
+		self.req.abort();
+	}
+
 	self.socket = null;
-	self.req && self.req.abort();
 	self.req = null;
 	return self;
 };
@@ -351,6 +370,7 @@ WebSocketClientProto.$ondata = function(data) {
 		current.buffer = current.buffer.slice(current.length, current.buffer.length);
 		current.buffer.length && self.$ondata();
 	}
+
 };
 
 function buffer_concat(buffers, length) {
@@ -547,6 +567,7 @@ WebSocketClientProto.parseInflate = function() {
 
 			if (!buf.$continue)
 				self.$decode();
+
 			self.parseInflate();
 		});
 	}
@@ -567,6 +588,7 @@ WebSocketClientProto.$onclose = function() {
 
 	this.isClosed = true;
 	this._isClosed = true;
+	F.stats.performance.online--;
 
 	if (this.inflate) {
 		this.inflate.removeAllListeners();
@@ -580,8 +602,7 @@ WebSocketClientProto.$onclose = function() {
 		this.deflatechunks = null;
 	}
 
-	this.$events.close && this.emit('close', this.closecode, this.closemessage);
-	this.socket && this.socket.removeAllListeners();
+	this.free();
 };
 
 /**
