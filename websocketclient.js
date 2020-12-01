@@ -187,20 +187,23 @@ function websocket_onerror(e) {
 }
 
 function websocket_close() {
-	var ws = this.$websocket;
-	if (ws.closed)
+	websocket_close_force(this.$websocket);
+}
+
+function websocket_close_force(client) {
+
+	if (client.closed)
 		return;
 
-	ws.$events.close && ws.emit('close', ws.closecode, ws.closemessage);
-	ws.closed = true;
-	ws.$onclose();
-	ws.options.reconnect && setTimeout(function(ws) {
-		ws.isClosed = false;
-		ws._isClosed = false;
-		ws.reconnect++;
-		ws.connect(ws.url, ws.protocol, ws.origin);
-	}, ws.options.reconnect, ws);
-
+	client.$events.close && client.emit('close', client.closecode, client.closemessage);
+	client.closed = true;
+	client.$onclose();
+	client.options.reconnect && setTimeout(function(client) {
+		client.isClosed = false;
+		client._isClosed = false;
+		client.reconnect++;
+		client.connect(client.url, client.protocol, client.origin);
+	}, client.options.reconnect, client);
 }
 
 WebSocketClientProto.emit = function(name, a, b, c, d, e, f, g) {
@@ -347,7 +350,7 @@ WebSocketClientProto.$ondata = function(data) {
 			if (self.closemessage && self.options.encodedecode)
 				self.closemessage = $decodeURIComponent(self.closemessage);
 
-			self.close();
+			websocket_close_force(self);
 			break;
 
 		case 0x09:
