@@ -2079,10 +2079,6 @@ function regtescape(c) {
 // Helper functions
 // ======================================================
 
-function jsonparser(key, value) {
-	return typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value;
-}
-
 exports.JsonDB = function(name, cache) {
 	var instance = new JsonDB(name, cache !== true);
 	cache && INSTANCES.push(instance);

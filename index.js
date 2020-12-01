@@ -1418,7 +1418,7 @@ const controller_error_status = function(controller, status, problem) {
 
 	if (controller.req.$total_success) {
 		controller.req.$total_success();
-		controller.req.$total_route = F.lookupsystem(status);
+		controller.req.$total_route = F.lookup_system(status);
 		controller.req.$total_exception = problem;
 		controller.req.$total_execute(status, true);
 	} else if (controller.$evalroutecallback)
@@ -2018,6 +2018,7 @@ F.routes_sort = function(type) {
 	var tmp;
 
 	for (var i = 0; i < length; i++) {
+
 		var route = F.routes.web[i];
 		var name = F.temporary.internal[route.controller];
 		if (name)
@@ -2046,12 +2047,6 @@ F.routes_sort = function(type) {
 			tmp.$.push(route);
 		else
 			tmp.$ = [route];
-
-		if (!route.isMOBILE || route.isUPLOAD || route.isXHR || route.isJSON || route.isSYSTEM || route.isXML || route.flags.indexOf('get') === -1)
-			continue;
-
-		url = route.url.join('/');
-		cache[url] = true;
 	}
 
 	F.routes.webcached = wcache;
@@ -2069,14 +2064,44 @@ F.routes_sort = function(type) {
 		route.isUNIQUE = tmp == null;
 	});
 
+	wcache = {};
+	length = F.routes.websockets.length;
+
+	for (var i = 0; i < length; i++) {
+
+		var route = F.routes.websockets[i];
+		var name = F.temporary.internal[route.controller];
+		if (name)
+			route.controller = name;
+
+		tmp = wcache;
+
+		for (var j = 0; j < route.url.length; j++) {
+			var u = route.url[j].replace(/\{.*?\}/g, 'D');
+			if (!tmp[u])
+				tmp[u] = {};
+			tmp = tmp[u];
+		}
+
+		if (route.isWILDCARD) {
+			if (!tmp.W)
+				tmp.W = {};
+			tmp = tmp.W;
+		}
+
+		if (tmp.$)
+			tmp.$.push(route);
+		else
+			tmp.$ = [route];
+	}
+
+	F.routes.websocketscached = wcache;
+
 	// Clears cache
 	Object.keys(F.temporary.other).forEach(function(key) {
 		if (key[0] === '1')
 			F.temporary.other[key] = undefined;
 	});
-
-	//console.log(F.routes.web);
-
 };
 
 F.parseComponent = parseComponent;
@@ -2493,10 +2518,7 @@ global.CORS = function(url, flags, credentials) {
 	route.credentials = credentials;
 	route.age = age || CONF.default_cors_maxage;
 
-	var e = F.routes.cors.findItem(function(item) {
-		return item.hash === route.hash;
-	});
-
+	var e = F.routes.cors.findItem('hash', route.hash);
 	if (e) {
 
 		// Extends existing
@@ -2523,7 +2545,6 @@ global.CORS = function(url, flags, credentials) {
 	}
 
 	F._length_cors = F.routes.cors.length;
-
 	F.routes.cors.sort(function(a, b) {
 		var al = a.url.length;
 		var bl = b.url.length;
@@ -3890,10 +3911,10 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.isBINARY = isBINARY;
 	r.isROLE = isROLE;
 	r.isWILDCARD = isWILDCARD;
-	r.isHTTPS = flags.indexOf('https');
-	r.isHTTP = flags.indexOf('http');
-	r.isDEBUG = flags.indexOf('debug');
-	r.isRELEASE = flags.indexOf('release');
+	r.isHTTPS = flags.indexOf('https') !== -1;
+	r.isHTTP = flags.indexOf('http') !== -1;
+	r.isDEBUG = flags.indexOf('debug') !== -1;
+	r.isRELEASE = flags.indexOf('release') !== -1;
 	r.CUSTOM = CUSTOM;
 	r.middleware = middleware ? middleware : null;
 	r.options = options;
@@ -7349,7 +7370,7 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 	var req = $.req;
 	if (user)
 		req.user = user;
-	var route = F.lookup_websocket(req, req.websocket.uri.pathname, isAuthorized ? 1 : 2);
+	var route = F.lookup_websocket(req, isAuthorized ? 1 : 2);
 	if (route) {
 		F.$websocketcontinue_process(route, req, req.websocketpath);
 	} else
@@ -7361,10 +7382,10 @@ F.$websocketcontinue = function(req, path) {
 	if (DEF.onAuthorize) {
 		DEF.onAuthorize(req, req.websocket, websocketcontinue_authnew);
 	} else {
-		var route = F.lookup_websocket(req, req.websocket.uri.pathname, 0);
-		if (route) {
+		var route = F.lookup_websocket(req, 0);
+		if (route)
 			F.$websocketcontinue_process(route, req, path);
-		} else
+		else
 			req.websocket.$close(4004, '404: not found');
 	}
 };
@@ -8633,7 +8654,7 @@ F.$versionprepare = function(html) {
 	return html;
 };
 
-F.lookupsystem = function(code) {
+F.lookup_system = function(code) {
 	return F.routes.system[code + ''];
 };
 
@@ -8800,45 +8821,141 @@ F.lookup = function(req, membertype, skipflags) {
 	}
 };
 
-F.lookup_websocket = function(req, url, membertype) {
+F.lookup_websocket = function(req, membertype, skipflags) {
 
-	var subdomain = F._length_subdomain_websocket && req.subdomain ? req.subdomain.join('.') : null;
-	var length = F.routes.websockets.length;
+	var tmp = F.routes.websocketscached;
+	var arr = req.split.length ? req.split : EMPTYREQSPLIT;
+	var length = arr.length;
+	var wild;
+	var dynamic;
+	var r;
 
-	req.$isAuthorized = true;
+	var root = tmp['/'];
+	if (root && root.W)
+		wild = root.W;
 
 	for (var i = 0; i < length; i++) {
 
-		var route = F.routes.websockets[i];
+		var u = arr[i];
+		var c = tmp[u];
 
-		if (route.CUSTOM) {
-			if (!route.CUSTOM(url, req))
-				continue;
-		} else {
+		if (c && c.W)
+			wild = c.W;
 
-			if (F._length_subdomain_websocket && !framework_internal.routeCompareSubdomain(subdomain, route.subdomain))
-				continue;
-			if (route.isWILDCARD) {
-				if (!framework_internal.routeCompare(req.path, route.url, false, true))
-					continue;
-			} else {
-				if (!framework_internal.routeCompare(req.path, route.url, false))
-					continue;
-			}
+		if (c && c.D && (i + 1) < arr.length) {
+			if (!dynamic)
+				dynamic = [];
+			dynamic.push({ index: i + 1, cache: c.D });
 		}
 
-		if (route.flags && route.flags.length) {
-			var result = framework_internal.routeCompareFlags2(req, route, membertype);
-			if (result === -1)
-				req.$isAuthorized = false;
-			if (result < 1)
-				continue;
+		if (c) {
+			tmp = c;
+			continue;
 		}
 
-		return route;
+		// Dynamic
+		c = tmp.D;
+		if (c) {
+			tmp = c;
+			continue;
+		}
+
+		// Wildcard
+		c = tmp.W;
+		if (c) {
+			break;
+		}
+
+		// no route
+		tmp = null;
+		break;
 	}
 
-	return null;
+	r = tmp;
+
+	if (r && !r.$ && dynamic && dynamic.length) {
+		length = req.split.length;
+
+		for (var j = 0; j < dynamic.length; j++) {
+			var d = dynamic[j];
+			var is = true;
+			tmp = d.cache;
+
+			for (var i = d.index; i < length; i++) {
+
+				var u = req.split[i];
+				var c = tmp[u];
+
+				if (c) {
+					tmp = c;
+					continue;
+				}
+
+				// Dynamic
+				if (i === (length - 1))
+					break;
+
+				c = tmp.D;
+				if (c) {
+					tmp = c;
+					continue;
+				}
+
+				is = false;
+				break;
+			}
+
+			if (is) {
+				r = is ? tmp : null;
+				break;
+			}
+		}
+	}
+
+	if (!r)
+		r = wild;
+
+	var routes;
+
+	if (membertype) {
+		if (r)
+			routes = r.$ || (r.W ? r.W.$ : null);
+		if (!routes)
+			routes = F.lookup_websocket(req, 0, skipflags);
+	} else
+		routes = r ? r.$ || (r.W ? r.W.$ : null) : null;
+
+	if (routes) {
+		for (var i = 0; i < routes.length; i++) {
+			var route = routes[i];
+
+			if (membertype && route.MEMBER && route.MEMBER !== membertype)
+				continue;
+
+			if (skipflags)
+				return route;
+
+			if (route.isDEBUG && !DEBUG)
+				continue;
+
+			if (route.isRELEASE && DEBUG)
+				continue;
+
+			if (route.isHTTPS && req.$protocol !== 'https')
+				continue;
+
+			if (route.isHTTP && req.$protocol !== 'http')
+				continue;
+
+			if (route.isMOBILE && !req.mobile)
+				continue;
+
+			if (route.isROBOT && !req.robot)
+				continue;
+
+			return route;
+		}
+	}
 };
 
 /**
@@ -10418,71 +10535,6 @@ ControllerProto.invalid = function(status) {
 function next_controller_invalid(self, builder) {
 	self.content(builder);
 }
-
-/**
- * Transfer to new route
- * @param {String} url Relative URL.
- * @param {String Array} flags Route flags (optional).
- * @return {Boolean}
- */
-ControllerProto.transfer = function(url, flags) {
-
-	var self = this;
-	var length = F.routes.web.length;
-	var path = framework_internal.routeSplit(url.trim());
-
-	var isSystem = url[0] === '#';
-	var noFlag = !flags || flags.length === 0 ? true : false;
-	var selected = null;
-
-	self.req.$isAuthorized = true;
-
-	for (var i = 0; i < length; i++) {
-
-		var route = F.routes.web[i];
-
-		if (route.isWILDCARD) {
-			if (!framework_internal.routeCompare(path, route.url, isSystem, true))
-				continue;
-		} else {
-			if (!framework_internal.routeCompare(path, route.url, isSystem))
-				continue;
-		}
-
-		if (noFlag) {
-			selected = route;
-			break;
-		}
-
-		if (route.flags && route.flags.length) {
-			var result = framework_internal.routeCompareFlags(route.flags, flags, true);
-			if (result === -1)
-				self.req.$isAuthorized = false;
-			if (result < 1)
-				continue;
-		}
-
-		selected = route;
-		break;
-	}
-
-
-	if (!selected)
-		return false;
-
-	self.cancel();
-	self.req.path = EMPTYARRAY;
-	self.req.$total_transfer = true;
-	self.req.$total_success();
-
-	// Because of dynamic params
-	// Hidden variable
-	self.req.$path = framework_internal.routeSplit(url, true);
-
-	self.route = self.req.$total_route = selected;
-	self.req.$total_execute(404);
-	return true;
-};
 
 ControllerProto.cancel = function() {
 	this.isCanceled = true;
@@ -14404,7 +14456,7 @@ function extend_request(PROTO) {
 		} catch (err) {
 			F.error(err, name, this.uri);
 			this.$total_exception = err;
-			this.$total_route = F.lookupsystem(500);
+			this.$total_route = F.lookup_system(500);
 			this.$total_execute(500, true);
 		}
 	};
@@ -14432,7 +14484,7 @@ function extend_request(PROTO) {
 		if (this.controller) {
 			this.controller.isTimeout = true;
 			this.controller.isCanceled = true;
-			this.$total_route = F.lookupsystem(503);
+			this.$total_route = F.lookup_system(503);
 			this.$total_execute(503, true);
 		}
 	};
@@ -14475,12 +14527,12 @@ function extend_request(PROTO) {
 		var route = this.$total_route;
 
 		if (!route || route.MEMBER !== membertype)
-			route = this.bodyexceeded ? F.lookupsystem(431) : F.lookup(this, membertype);
+			route = this.bodyexceeded ? F.lookup_system(431) : F.lookup(this, membertype);
 
 		var status = this.$isAuthorized ? 404 : 401;
 		var code = this.bodyexceeded ? 431 : status;
 		if (!route)
-			route = F.lookupsystem(status);
+			route = F.lookup_system(status);
 
 		this.$total_route = route;
 		if (this.$total_route && this.$total_schema)
@@ -14494,7 +14546,7 @@ function extend_request(PROTO) {
 		var route = this.$total_route;
 
 		if (this.bodyexceeded) {
-			route = F.lookupsystem(431);
+			route = F.lookup_system(431);
 			this.bodydata = null;
 			if (route) {
 				this.$total_route = route;
@@ -14652,12 +14704,10 @@ function extend_request(PROTO) {
 		if (DEF.onAuthorize) {
 			DEF.onAuthorize(req, req.res, req_authorizetotal);
 		} else {
-			if (!req.$total_route) {
-				// req.$total_route = F.lookup(req, req.bodyexceeded ? '#431' : req.uri.pathname, req.flags, 0);
-				req.$total_route = req.bodyexceeded ? F.lookupsystem(431) : F.lookup(req);
-			}
 			if (!req.$total_route)
-				req.$total_route = F.lookupsystem(404);
+				req.$total_route = req.bodyexceeded ? F.lookup_system(431) : F.lookup(req);
+			if (!req.$total_route)
+				req.$total_route = F.lookup_system(404);
 			var code = req.bodyexceeded ? 431 : 404;
 			if (!req.$total_schema || !req.$total_route)
 				req.$total_execute(code, code);
@@ -15751,7 +15801,7 @@ function extend_response(PROTO) {
 			F.stats.response[key]++;
 			response_end(res);
 		} else {
-			req.$total_route = F.lookupsystem(res.options.code);
+			req.$total_route = F.lookup_system(res.options.code);
 			req.$total_exception = res.options.problem;
 			req.$total_execute(res.options.code, true);
 		}

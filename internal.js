@@ -30,10 +30,8 @@ const Crypto = require('crypto');
 const Fs = require('fs');
 const ReadStream = Fs.ReadStream;
 const Stream = require('stream');
-const ENCODING = 'utf8';
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
-const CONCAT = [null, null];
 
 if (!global.framework_utils)
 	global.framework_utils = require('./utils');
@@ -61,7 +59,6 @@ const REG_BLOCK_END = /@\{end\}/i;
 const REG_SKIP_1 = /\('|"/;
 const REG_SKIP_2 = /,(\s)?\w+/;
 const REG_COMPONENTS_GROUP = /('|")[a-z0-9_]+('|")/i;
-const HTTPVERBS = { get: true, post: true, options: true, put: true, delete: true, patch: true, upload: true, head: true, trace: true, propfind: true };
 const RENDERNOW = ['self.$import(', 'self.route', 'self.$js(', 'self.$css(', 'self.$favicon(', '$STRING(self.resource(', '$STRING(RESOURCE(', 'language', 'self.sitemap_url(', 'self.sitemap_name(', '$STRING(CONFIG(', '$STRING(config.', '$STRING(config[', '$STRING(CONF.', '$STRING(CONF[', '$STRING(config('];
 const REG_NOTRANSLATE = /@\{notranslate\}/gi;
 const REG_NOCOMPRESS = /@\{nocompress\s\w+}/gi;
@@ -204,161 +201,6 @@ exports.routeCompare = function(url, route, isSystem, isWildcard) {
 	}
 
 	return true;
-};
-
-exports.routeCompareSubdomain = function(subdomain, arr) {
-	if ((!subdomain && !arr) || (subdomain && !arr))
-		return true;
-	if (!subdomain && arr)
-		return false;
-	for (var i = 0, length = arr.length; i < length; i++) {
-		if (arr[i] === '*')
-			return true;
-		var index = arr[i].lastIndexOf('*');
-		if (index === -1) {
-			if (arr[i] === subdomain)
-				return true;
-		} else if (subdomain.indexOf(arr[i].replace('*', '')) !== -1)
-			return true;
-	}
-	return false;
-};
-
-exports.routeCompareFlags = function(arr1, arr2, membertype) {
-
-	var hasVerb = false;
-	var a1 = arr1;
-	var a2 = arr2;
-	var l1 = arr1.length;
-	var l2 = arr2.length;
-	var select = l1 > l2 ? a1 : a2;
-	var compare = l1 > l2 ? a2 : a1;
-	var length = Math.max(l1, l2);
-
-	var AUTHORIZE = 'authorize';
-	var UNAUTHORIZE = 'unauthorize';
-
-	for (var i = 0; i < length; i++) {
-
-		var value = select[i];
-		var c = value[0];
-
-		if (c === '!' || c === '#' || c === '$' || c === '@' || c === '+') // ignore roles
-			continue;
-
-		if (!membertype && (value === AUTHORIZE || value === UNAUTHORIZE))
-			continue;
-
-		var index = compare.indexOf(value);
-		if (index === -1 && !HTTPVERBS[value])
-			return value === AUTHORIZE || value === UNAUTHORIZE ? -1 : 0;
-
-		hasVerb = hasVerb || (index !== -1 && HTTPVERBS[value]);
-	}
-
-	return hasVerb ? 1 : 0;
-};
-
-exports.routeCompareFlags2 = function(req, route, membertype) {
-
-	// membertype 0 -> not specified
-	// membertype 1 -> auth
-	// membertype 2 -> unauth
-
-	// 1. upload --> 0
-	// 2. doAuth --> 1 or 2
-
-	// if (membertype && ((membertype !== 1 && route.MEMBER === 1) || (membertype !== 2 && route.MEMBER === 2)))
-	if (membertype && route.MEMBER && membertype !== route.MEMBER)
-		return -1;
-
-	if (!route.isWEBSOCKET) {
-		if ((route.isXHR && !req.xhr) || (route.isMOBILE && !req.mobile) || (route.isROBOT && !req.robot) || (route.isUPLOAD && !req.$upload))
-			return 0;
-		var method = req.method;
-		if (route.method) {
-			if (route.method !== method)
-				return 0;
-		} else if (!route.flags2[method.toLowerCase()])
-			return 0;
-		if ((route.isREFERER && req.flags.indexOf('referer') === -1) || (!route.isMULTIPLE && route.isJSON && req.flags.indexOf('json') === -1))
-			return 0;
-		if (route.isROLE && !req.$roles && membertype)
-			return -1;
-	}
-
-	var isRole = false;
-	var hasRoles = false;
-
-	for (var i = 0; i < req.flags.length; i++) {
-
-		var flag = req.flags[i];
-		switch (flag) {
-			case 'json':
-				continue;
-			case 'xml':
-				if (route.isRAW || route.isXML)
-					continue;
-				return 0;
-
-			case 'debug':
-				if (!route.isDEBUG && route.isRELEASE)
-					return 0;
-				continue;
-
-			case 'release':
-				if (!route.isRELEASE && route.isDEBUG)
-					return 0;
-				continue;
-
-			case 'referer':
-				continue;
-
-			case 'upload':
-				if (!route.isUPLOAD)
-					return 0;
-				continue;
-
-			case 'https':
-				if (!route.isHTTPS && route.isHTTP)
-					return 0;
-				continue;
-
-			case 'http':
-				if (!route.isHTTP && route.isHTTPS)
-					return 0;
-				continue;
-
-			case 'xhr':
-			case '+xhr':
-				if (!route.isBOTH && !route.isXHR)
-					return 0;
-				continue;
-		}
-
-		var role = flag[0] === '@';
-
-		if (membertype !== 1 && route.MEMBER !== 1) {
-			if ((!route.isGET && !role && !route.flags2[flag]) || (route.isROLE && role && !route.flags2[flag]) || (route.isROLE && !role))
-				return 0;
-			continue;
-		}
-
-		// Is some role verified?
-		if (role && isRole && !route.isROLE)
-			continue;
-
-		if (!role && !route.flags2[flag])
-			return 0;
-
-		if (role) {
-			if (route.flags2[flag])
-				isRole = true;
-			hasRoles = true;
-		}
-	}
-
-	return (route.isROLE && hasRoles) ? isRole ? 1 : -1 : 1;
 };
 
 exports.routeParameters = function(routeUrl, route) {

@@ -2626,7 +2626,7 @@ SP.parseComponent = function(tags) {
 	}
 
 	return output;
-}
+};
 
 SP.parseXML = function(replace) {
 
