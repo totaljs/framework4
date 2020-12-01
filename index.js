@@ -13216,7 +13216,7 @@ WebSocketProto.close = function(message, code) {
 	var self = this;
 
 	if (self.keys && self.keys.length) {
-		for (var i = 0; i < length; i++) {
+		for (var i = 0; i < self.keys.length; i++) {
 			var id = self.keys[i];
 			self.connections[id].close(message, code);
 			self.$remove(id);
@@ -14000,7 +14000,10 @@ WebSocketClientProto.close = function(message, code) {
 			self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08, false, self.masking));
 		} else
 			self.socket.end();
+
 		self.req.connection.destroy();
+		CLEANUP(self.socket);
+		CLEANUP(self.req);
 	}
 
 	return self;

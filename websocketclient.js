@@ -36,8 +36,8 @@ const ENCODING = 'utf8';
 const WEBSOCKET_COMPRESS = Buffer.from([0x00, 0x00, 0xFF, 0xFF]);
 const WEBSOCKET_COMPRESS_OPTIONS = { windowBits: Zlib.Z_DEFAULT_WINDOWBITS };
 const CONCAT = [null, null];
-const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
-const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
+// const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
+// const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 
 function WebSocketClient() {
 	this.current = {};
@@ -91,7 +91,8 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	origin && (options.headers['Sec-WebSocket-Origin'] = origin);
 	options.headers.Connection = 'Upgrade';
 	options.headers.Upgrade = 'websocket';
-	options.agent = options.port === 443 ? KeepAliveHttps : KeepAlive;
+	// options.agent = options.port === 443 ? KeepAliveHttps : KeepAlive;
+	options.agent =  options.port === 443 ? new Https.Agent() : new Http.Agent();
 
 	if (self.options.key)
 		options.key = self.options.key;
@@ -123,6 +124,8 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	F.stats.performance.online++;
 	self.req = (secured ? Https : Http).get(options);
 	self.req.$main = self;
+	self.req.setSocketKeepAlive(false, 0);
+	self.req.setNoDelay(true);
 
 	self.req.on('error', function(e) {
 		self.$events.error && self.emit('error', e);
@@ -131,10 +134,13 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 
 	self.req.on('response', function() {
 		self.$events.error && self.emit('error', new Error('Unexpected server response'));
-		if (self.options.reconnectserver)
-			self.connect(url, protocol, origin);
-		else
+
+		if (self.options.reconnectserver) {
 			self.$onclose();
+			self.connect(url, protocol, origin);
+		}
+
+		self.$onclose();
 	});
 
 	self.req.on('upgrade', function(response, socket) {
@@ -193,10 +199,8 @@ function websocket_close() {
 }
 
 function websocket_close_force(client) {
-
 	if (client.closed)
 		return;
-
 	client.$events.close && client.emit('close', client.closecode, client.closemessage);
 	client.closed = true;
 	client.$onclose();
@@ -267,15 +271,19 @@ WebSocketClientProto.free = function() {
 
 	var self = this;
 
+	if (self.req) {
+		self.req.agent.destroy();
+		self.req.connection.destroy();
+		self.req.removeAllListeners();
+		self.req.destroy();
+		CLEANUP(self.req);
+	}
+
 	if (self.socket) {
 		self.socket.removeAllListeners();
 		self.socket.unref();
 		self.socket.destroy();
-	}
-
-	if (self.req) {
-		self.req.removeAllListeners();
-		self.req.abort();
+		CLEANUP(self.socket);
 	}
 
 	self.socket = null;
