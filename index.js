@@ -114,8 +114,19 @@ global.EMPTYARRAY = EMPTYARRAY;
 global.NOW = new Date();
 global.THREAD = '';
 global.isWORKER = false;
+
 global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
+};
+
+global.IMPORT = function(url, callback) {
+	var filename = PATH.temp((F.id ? (F.id + '_') : '') + url.makeid() + '.js');
+	DOWNLOAD(url, filename, function(err, response) {
+		var m;
+		if (!err)
+			m = require(response.filename);
+		callback && callback(err, m, response);
+	});
 };
 
 var BLOCKEDB = {};
