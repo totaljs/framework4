@@ -2608,9 +2608,11 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var apimethod;
 
 	if (url instanceof Array) {
-		url.forEach(url => F.route(url, funcExecute, flags));
+		url.forEach(url => ROUTE(url, funcExecute, flags));
 		return;
 	}
+
+	url = url.trim();
 
 	var isremove = funcExecute === null;
 
@@ -3658,11 +3660,14 @@ function merge_middleware(a, b, first) {
 global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	var tmp;
-	var mypath = url;
 
 	var CUSTOM = typeof(url) === 'function' ? url : null;
 	if (CUSTOM)
 		url = '/';
+
+	var mypath = url;
+
+	url = url.replace(/SOCKET\s/gi, '').trim();
 
 	if (url[0] === '#') {
 
@@ -3948,6 +3953,9 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 
 	var a;
 	var mypath = fnValidation;
+
+	if (typeof(fnValidation) === 'string')
+		fnValidation = fnValidation.replace(/FILE\s/gi, '').trim();
 
 	if (fnValidation instanceof Array) {
 		a = fnExecute;
