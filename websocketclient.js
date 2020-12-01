@@ -36,6 +36,8 @@ const ENCODING = 'utf8';
 const WEBSOCKET_COMPRESS = Buffer.from([0x00, 0x00, 0xFF, 0xFF]);
 const WEBSOCKET_COMPRESS_OPTIONS = { windowBits: Zlib.Z_DEFAULT_WINDOWBITS };
 const CONCAT = [null, null];
+const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
+const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 
 function WebSocketClient() {
 	this.current = {};
@@ -89,7 +91,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	origin && (options.headers['Sec-WebSocket-Origin'] = origin);
 	options.headers.Connection = 'Upgrade';
 	options.headers.Upgrade = 'websocket';
-	options.agent = null;
+	options.agent = options.port === 443 ? KeepAliveHttps : KeepAlive;
 
 	if (self.options.key)
 		options.key = self.options.key;
@@ -267,6 +269,7 @@ WebSocketClientProto.free = function() {
 
 	if (self.socket) {
 		self.socket.removeAllListeners();
+		self.socket.unref();
 		self.socket.destroy();
 	}
 
@@ -343,6 +346,7 @@ WebSocketClientProto.$ondata = function(data) {
 			break;
 
 		case 0x08:
+
 			// close
 			self.closemessage = current.buffer.slice(4).toString(ENCODING);
 			self.closecode = current.buffer[2] << 8 | current.buffer[3];
