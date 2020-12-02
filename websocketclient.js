@@ -91,8 +91,10 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	origin && (options.headers['Sec-WebSocket-Origin'] = origin);
 	options.headers.Connection = 'Upgrade';
 	options.headers.Upgrade = 'websocket';
+
 	// options.agent = options.port === 443 ? KeepAliveHttps : KeepAlive;
-	options.agent =  options.port === 443 ? new Https.Agent() : new Http.Agent();
+	// options.agent = options.port === 443 ? new Https.Agent() : new Http.Agent();
+	options.agent = false;
 
 	if (self.options.key)
 		options.key = self.options.key;
@@ -124,8 +126,6 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	F.stats.performance.online++;
 	self.req = (secured ? Https : Http).get(options);
 	self.req.$main = self;
-	self.req.setSocketKeepAlive(false, 0);
-	self.req.setNoDelay(true);
 
 	self.req.on('error', function(e) {
 		self.$events.error && self.emit('error', e);
@@ -160,8 +160,6 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		}
 
 		self.closed = false;
-		self.socket.setTimeout(0);
-		self.socket.setNoDelay();
 		self.socket.on('data', websocket_ondata);
 		self.socket.on('error', websocket_onerror);
 		self.socket.on('close', websocket_close);
@@ -272,7 +270,6 @@ WebSocketClientProto.free = function() {
 	var self = this;
 
 	if (self.req) {
-		self.req.agent.destroy();
 		self.req.connection.destroy();
 		self.req.removeAllListeners();
 		self.req.destroy();
@@ -281,7 +278,6 @@ WebSocketClientProto.free = function() {
 
 	if (self.socket) {
 		self.socket.removeAllListeners();
-		self.socket.unref();
 		self.socket.destroy();
 		CLEANUP(self.socket);
 	}
