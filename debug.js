@@ -26,7 +26,8 @@
 
 const Path = require('path');
 const Fs = require('fs');
-const debugging = process.argv.indexOf('--watcher') !== -1;
+// const debugging = process.argv.indexOf('--watcher') !== -1;
+const debugging = process.connected === true;
 const Os = require('os');
 const isWindows = Os.platform().substring(0, 3).toLowerCase() === 'win';
 
@@ -393,7 +394,7 @@ function runwatching() {
 			else
 				arr.push('--restart');
 
-			arr.push('--watcher');
+			// arr.push('--watcher');
 			port && arr.push(port);
 
 			app = fork(Path.join(directory, FILENAME), arr);

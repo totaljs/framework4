@@ -27,10 +27,10 @@
 require('./index');
 
 // Constants
-const WATCHER = process.argv.indexOf('--watcher') !== -1;
 const Fs = require('fs');
 
 // Variables
+var WATCHER = process.connected === true;
 var options;
 var app;
 var firstinit = true;
@@ -52,6 +52,9 @@ module.exports = function(opt) {
 	// options.watch = ['adminer'];
 	// options.livereload = true;
 	// options.watcher = false;
+
+	if (!WATCHER)
+		WATCHER = process.argv.indexOf('--watcher') === -1 && !options.watcher;
 };
 
 function makestamp() {
@@ -77,7 +80,6 @@ function runapp() {
 	if (!firstinit)
 		arr.push('--restart');
 
-	arr.push('--watcher');
 	port && arr.push(port);
 
 	var filename = U.getName(process.argv[1] || 'index.js');
@@ -130,7 +132,6 @@ function init() {
 			HTTP('release', options);
 
 		return;
-
 	}
 
 	var end = function() {
