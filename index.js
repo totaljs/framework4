@@ -774,7 +774,7 @@ var authbuiltin = function(opt) {
 					opt.blocked[$.ip] = 1;
 			}
 
-			opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+			opt.cookie && $.res && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
 			$.invalid();
 			return;
 		}
@@ -798,7 +798,7 @@ var authbuiltin = function(opt) {
 						opt.blocked[$.ip] = 1;
 				}
 
-				opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+				opt.cookie && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
 				$.invalid();
 			}
 
