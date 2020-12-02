@@ -2027,6 +2027,7 @@ F.routes_sort = function(type) {
 	var length = F.routes.web.length;
 	var url;
 	var tmp;
+	var key;
 
 	for (var i = 0; i < length; i++) {
 
@@ -2036,28 +2037,27 @@ F.routes_sort = function(type) {
 			route.controller = name;
 
 		// Missing subdomain routing
-		var key = route.method;
+		key = route.method;
 		tmp = wcache[key];
 		if (!tmp)
 			tmp = wcache[key] = {};
 
-		for (var j = 0; j < route.url.length; j++) {
-			var u = route.url[j].replace(/\{.*?\}/g, 'D');
-			if (!tmp[u])
-				tmp[u] = {};
-			tmp = tmp[u];
-		}
+		var u = [];
+		for (var j = 0; j < route.url.length; j++)
+			u.push(route.url[j].replace(/\{.*?\}/g, '{}'));
 
-		if (route.isWILDCARD) {
-			if (!tmp.W)
-				tmp.W = {};
-			tmp = tmp.W;
-		}
+		if (route.isWILDCARD)
+			u.push('*');
 
-		if (tmp.$)
-			tmp.$.push(route);
+		var k = u.join('/').replace(/\/\//g, '/');
+
+		if (k.indexOf('{') !== -1)
+			k = 'D';
+
+		if (tmp[k])
+			tmp[k].push(route);
 		else
-			tmp.$ = [route];
+			tmp[k] = [route];
 	}
 
 	F.routes.webcached = wcache;
@@ -2087,23 +2087,22 @@ F.routes_sort = function(type) {
 
 		tmp = wcache;
 
-		for (var j = 0; j < route.url.length; j++) {
-			var u = route.url[j].replace(/\{.*?\}/g, 'D');
-			if (!tmp[u])
-				tmp[u] = {};
-			tmp = tmp[u];
-		}
+		var u = [];
+		for (var j = 0; j < route.url.length; j++)
+			u.push(route.url[j].replace(/\{.*?\}/g, '{}'));
 
-		if (route.isWILDCARD) {
-			if (!tmp.W)
-				tmp.W = {};
-			tmp = tmp.W;
-		}
+		if (route.isWILDCARD)
+			u.push('*');
 
-		if (tmp.$)
-			tmp.$.push(route);
+		var k = u.join('/').replace(/\/\//g, '/');
+
+		if (k.indexOf('{') !== -1)
+			k = 'D';
+
+		if (tmp[k])
+			tmp[k].push(route);
 		else
-			tmp.$ = [route];
+			tmp[k] = [route];
 	}
 
 	F.routes.websocketscached = wcache;
@@ -3326,6 +3325,17 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.options = options;
 	r.type = 'web';
 	r.parent = instance;
+	r.compare = function(req) {
+		var url = this.url;
+		for (var i = 0; i < url.length; i++) {
+			var p = url[i];
+			if (p[0] === '{')
+				continue;
+			if (p !== req.split[i])
+				return false;
+		}
+		return true;
+	};
 	// r.remove = remove_route_web;
 
 	if (r.isUPLOAD)
@@ -8683,7 +8693,61 @@ F.lookup_system = function(code) {
 
 const EMPTYREQSPLIT = ['/'];
 
+function compareflags(req, routes, membertype) {
+
+	for (var i = 0; i < routes.length; i++) {
+		var route = routes[i];
+
+		if (membertype && route.MEMBER && route.MEMBER !== membertype)
+			continue;
+
+		if (route.isREFERER) {
+			if (!req.headers.referer || req.headers.referer.indexOf(req.headers.host) === -1)
+				continue;
+		}
+
+		if (!route.isWEBSOCKET && route.isJSON && req.$type !== 1)
+			continue;
+
+		if (!route.isWEBSOCKET && route.isXML && req.$type !== 2)
+			continue;
+
+		if (route.isDEBUG && !DEBUG)
+			continue;
+
+		if (route.isRELEASE && DEBUG)
+			continue;
+
+		if (!route.isWEBSOCKET && route.isXHR && !req.xhr)
+			continue;
+
+		if (!route.isWEBSOCKET && !route.isBOTH && req.xhr)
+			continue;
+
+		if (!route.isWEBSOCKET && route.isUPLOAD && !req.$upload)
+			continue;
+
+		if (route.isHTTPS && req.$protocol !== 'https')
+			continue;
+
+		if (route.isHTTP && req.$protocol !== 'http')
+			continue;
+
+		if (route.isMOBILE && !req.mobile)
+			continue;
+
+		if (route.isROBOT && !req.robot)
+			continue;
+
+		return route;
+	}
+}
+
 F.lookup = function(req, membertype, skipflags) {
+
+	// membertype 0: does not matter
+	// membertype 1: logged
+	// membertype 2: unlogged
 
 	var key = req.method;
 	var tmp = F.routes.webcached[key];
@@ -8692,293 +8756,133 @@ F.lookup = function(req, membertype, skipflags) {
 
 	var arr = req.split.length ? req.split : EMPTYREQSPLIT;
 	var length = arr.length;
-	var wild;
-	var dynamic;
-	var r;
+	var route;
+	var item;
 
-	var root = tmp['/'];
-	if (root && root.W)
-		wild = root.W;
+	var url = req.uri.pathname[req.uri.pathname.length - 1] === '/' ? req.uri.pathname.substring(1, req.uri.pathname.length - 1) : req.uri.pathname.substring(1);
 
-	for (var i = 0; i < length; i++) {
-		var u = arr[i];
-		var c = tmp[u];
-
-		if (c && c.W)
-			wild = c.W;
-
-		if (c && c.D && (i + 1) < arr.length) {
-			if (!dynamic)
-				dynamic = [];
-			dynamic.push({ index: i + 1, cache: c.D });
-		}
-
-		if (c) {
-			tmp = c;
-			continue;
-		}
-
-		// Dynamic
-		c = tmp.D;
-		if (c) {
-			tmp = c;
-			continue;
-		}
-
-		// Wildcard
-		c = tmp.W;
-		if (c) {
-			break;
-		}
-
-		// no route
-		tmp = null;
-		break;
-	}
-
-	r = tmp;
-
-	if (r && !r.$ && dynamic && dynamic.length) {
-
-		length = req.split.length;
-
-		for (var j = 0; j < dynamic.length; j++) {
-			var d = dynamic[j];
-			var is = true;
-			tmp = d.cache;
-
-			for (var i = d.index; i < length; i++) {
-
-				var u = req.split[i];
-				var c = tmp[u];
-
-				if (c) {
-					tmp = c;
-					continue;
-				}
-
-				// Dynamic
-				if (i === (length - 1))
-					break;
-
-				c = tmp.D;
-				if (c) {
-					tmp = c;
-					continue;
-				}
-
-				is = false;
-				break;
-			}
-
-			if (is) {
-				r = is ? tmp : null;
-				break;
-			}
-		}
-	}
-
-	if (!r)
-		r = wild;
-
-	var routes;
-
-	if (membertype) {
-		if (r)
-			routes = r.$ || (r.W ? r.W.$ : null);
-		if (!routes)
-			routes = F.lookup(req, 0, skipflags);
-	} else
-		routes = r ? r.$ || (r.W ? r.W.$ : null) : null;
-
+	// Checks fixed URL
+	var routes = tmp[url];
 	if (routes) {
-		for (var i = 0; i < routes.length; i++) {
-			var route = routes[i];
-
-			if (membertype && route.MEMBER && route.MEMBER !== membertype)
-				continue;
-
-			if (skipflags)
-				return route;
-
-			if (route.isREFERER) {
-				if (!req.headers.referer || req.headers.referer.indexOf(req.headers.host) === -1)
-					continue;
-			}
-
-			if (route.isJSON && req.$type !== 1)
-				continue;
-
-			if (route.isXML && req.$type !== 2)
-				continue;
-
-			if (route.isDEBUG && !DEBUG)
-				continue;
-
-			if (route.isRELEASE && DEBUG)
-				continue;
-
-			if (route.isXHR && !req.xhr)
-				continue;
-
-			if (!route.isBOTH && req.xhr)
-				continue;
-
-			if (route.isUPLOAD && !req.$upload)
-				continue;
-
-			if (route.isHTTPS && req.$protocol !== 'https')
-				continue;
-
-			if (route.isHTTP && req.$protocol !== 'http')
-				continue;
-
-			if (route.isMOBILE && !req.mobile)
-				continue;
-
-			if (route.isROBOT && !req.robot)
-				continue;
-
+		if (skipflags)
+			return routes[0];
+		route = compareflags(req, routes, membertype);
+		if (route)
 			return route;
+		routes = null;
+	}
+
+	// Dynamic routes
+	if (tmp.D) {
+		for (var i = 0; i < tmp.D.length; i++) {
+			var r = tmp.D[i];
+			if (r.url.length === length) {
+				if (r.compare(req)) {
+					if (!routes)
+						routes = [];
+					routes.push(r);
+				}
+			}
+		}
+		if (routes) {
+			if (skipflags)
+				return routes[0];
+			route = compareflags(req, routes, membertype);
+			if (route)
+				return route;
+		}
+		routes = null;
+	}
+
+	// Wildcard
+	routes = [];
+	for (var i = 1; i < length; i++) {
+		var url = req.split.slice(0, length - i).join('/') + '/*';
+		item = tmp[url];
+		if (item) {
+			if (skipflags)
+				return item[0];
+			routes.push.apply(routes, item);
 		}
 	}
+
+	item = tmp['/*'];
+	if (item) {
+		if (skipflags)
+			return item[0];
+		routes.push.apply(routes, item);
+	}
+
+	return routes && routes.length ? compareflags(req, routes, membertype) : null;
 };
 
 F.lookup_websocket = function(req, membertype, skipflags) {
 
+	// membertype 0: does not matter
+	// membertype 1: logged
+	// membertype 2: unlogged
+
 	var tmp = F.routes.websocketscached;
 	var arr = req.split.length ? req.split : EMPTYREQSPLIT;
 	var length = arr.length;
-	var wild;
-	var dynamic;
-	var r;
+	var route;
+	var item;
 
-	var root = tmp['/'];
-	if (root && root.W)
-		wild = root.W;
+	var url = req.uri.pathname[req.uri.pathname.length - 1] === '/' ? req.uri.pathname.substring(1, req.uri.pathname.length - 1) : req.uri.pathname.substring(1);
 
-	for (var i = 0; i < length; i++) {
-
-		var u = arr[i];
-		var c = tmp[u];
-
-		if (c && c.W)
-			wild = c.W;
-
-		if (c && c.D && (i + 1) < arr.length) {
-			if (!dynamic)
-				dynamic = [];
-			dynamic.push({ index: i + 1, cache: c.D });
-		}
-
-		if (c) {
-			tmp = c;
-			continue;
-		}
-
-		// Dynamic
-		c = tmp.D;
-		if (c) {
-			tmp = c;
-			continue;
-		}
-
-		// Wildcard
-		c = tmp.W;
-		if (c) {
-			break;
-		}
-
-		// no route
-		tmp = null;
-		break;
-	}
-
-	r = tmp;
-
-	if (r && !r.$ && dynamic && dynamic.length) {
-		length = req.split.length;
-
-		for (var j = 0; j < dynamic.length; j++) {
-			var d = dynamic[j];
-			var is = true;
-			tmp = d.cache;
-
-			for (var i = d.index; i < length; i++) {
-
-				var u = req.split[i];
-				var c = tmp[u];
-
-				if (c) {
-					tmp = c;
-					continue;
-				}
-
-				// Dynamic
-				if (i === (length - 1))
-					break;
-
-				c = tmp.D;
-				if (c) {
-					tmp = c;
-					continue;
-				}
-
-				is = false;
-				break;
-			}
-
-			if (is) {
-				r = is ? tmp : null;
-				break;
-			}
-		}
-	}
-
-	if (!r)
-		r = wild;
-
-	var routes;
-
-	if (membertype) {
-		if (r)
-			routes = r.$ || (r.W ? r.W.$ : null);
-		if (!routes)
-			routes = F.lookup_websocket(req, 0, skipflags);
-	} else
-		routes = r ? r.$ || (r.W ? r.W.$ : null) : null;
-
+	// Checks fixed URL
+	var routes = tmp[url];
 	if (routes) {
-		for (var i = 0; i < routes.length; i++) {
-			var route = routes[i];
-
-			if (membertype && route.MEMBER && route.MEMBER !== membertype)
-				continue;
-
-			if (skipflags)
-				return route;
-
-			if (route.isDEBUG && !DEBUG)
-				continue;
-
-			if (route.isRELEASE && DEBUG)
-				continue;
-
-			if (route.isHTTPS && req.$protocol !== 'https')
-				continue;
-
-			if (route.isHTTP && req.$protocol !== 'http')
-				continue;
-
-			if (route.isMOBILE && !req.mobile)
-				continue;
-
-			if (route.isROBOT && !req.robot)
-				continue;
-
+		if (skipflags)
+			return routes[0];
+		route = compareflags(req, routes, membertype);
+		if (route)
 			return route;
+		routes = null;
+	}
+
+	// Dynamic routes
+	if (tmp.D) {
+		for (var i = 0; i < tmp.D.length; i++) {
+			var r = tmp.D[i];
+			if (r.url.length === length) {
+				if (r.compare(req)) {
+					if (!routes)
+						routes = [];
+					routes.push(r);
+				}
+			}
+		}
+		if (routes) {
+			if (skipflags)
+				return routes[0];
+			route = compareflags(req, routes, membertype);
+			if (route)
+				return route;
+		}
+		routes = null;
+	}
+
+	// Wildcard
+	routes = [];
+	for (var i = 1; i < length; i++) {
+		var url = req.split.slice(0, length - i).join('/') + '/*';
+		item = tmp[url];
+		if (item) {
+			if (skipflags)
+				return item[0];
+			routes.push.apply(routes, item);
 		}
 	}
+
+	item = tmp['/*'];
+	if (item) {
+		if (skipflags)
+			return item[0];
+		routes.push.apply(routes, item);
+	}
+
+	return routes && routes.length ? compareflags(req, routes, membertype) : null;
 };
 
 /**
@@ -14708,19 +14612,19 @@ function extend_request(PROTO) {
 	};
 
 	PROTO.$total_400 = function(problem) {
-		this.$total_route = F.lookupystem(400);
+		this.$total_route = F.lookup_system(400);
 		this.$total_exception = problem;
 		this.$total_execute(400, true);
 	};
 
 	PROTO.$total_404 = function(problem) {
-		this.$total_route = F.lookupystem(404);
+		this.$total_route = F.lookup_system(404);
 		this.$total_exception = problem;
 		this.$total_execute(404, true);
 	};
 
 	PROTO.$total_500 = function(problem) {
-		this.$total_route = F.lookupystem(500);
+		this.$total_route = F.lookup_system(500);
 		this.$total_exception = problem;
 		this.$total_execute(500, true);
 	};
