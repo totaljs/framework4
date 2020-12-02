@@ -77,7 +77,7 @@ function runwatching() {
 	!options && (options = {});
 	require('./index');
 
-	const FILENAME = U.getName(process.argv[1] || 'debug.js');
+	const FILENAME = U.getName(process.argv[1] || 'index.js');
 	const directory = process.cwd();
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
@@ -376,7 +376,6 @@ function runwatching() {
 			}
 
 			var arr = ARGV.slice(2);
-
 			var port = arr.pop();
 
 			if (process.execArgv.indexOf('--debug') !== -1 || options.debugger) {
@@ -466,29 +465,24 @@ function runwatching() {
 			Fs.writeFileSync(pid, process.pid + '');
 
 			setInterval(function() {
-				Fs.exists(pid, function(e) {
-
-					if (e)
-						return;
-
-					Fs.unlink(pid, noop);
-
-					if (app !== null) {
-						isSkip = true;
-						process.kill(app.pid);
+				Fs.stat(pid, function(err) {
+					if (err) {
+						Fs.unlink(pid, noop);
+						if (app !== null) {
+							isSkip = true;
+							process.kill(app.pid);
+						}
+						process.exit(0);
 					}
-
-					process.exit(0);
 				});
-
-			}, 3000);
+			}, 4000);
 		}
 
 		restart();
 		refresh_directory();
 	}
 
-	var filename = Path.join(directory, PIDNAME);
+	var filename = Path.join(process.cwd(), PIDNAME);
 	if (Fs.existsSync(filename)) {
 		Fs.unlinkSync(filename);
 		setTimeout(app, 3500);

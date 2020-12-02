@@ -6142,6 +6142,10 @@ F.response503 = function(req, res) {
 	res.$text();
 };
 
+F.restart = function() {
+	process.send && process.send('total:restart');
+};
+
 global.LOAD = F.load = function(debug, types, pwd, ready) {
 
 	if (typeof(types) === 'function') {
