@@ -8780,6 +8780,8 @@ F.lookup = function(req, membertype, skipflags) {
 				if (r.compare(req)) {
 					if (!routes)
 						routes = [];
+					if (skipflags)
+						return r;
 					routes.push(r);
 				}
 			}
