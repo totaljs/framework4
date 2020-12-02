@@ -7337,8 +7337,13 @@ F.$upgrade = function(req, socket, head) {
 
 	var headers = req.headers;
 	req.$protocol = req.connection.encrypted || headers['x-forwarded-protocol'] === 'https' ? 'https' : 'http';
-
 	req.uri = framework_internal.parseURI(req);
+	req.$total_route = F.lookup_websocket(req, 0, true);
+
+	if (!req.$total_route) {
+		req.websocket.$close(4004, '404: not found');
+		return;
+	}
 
 	F.$events.websocket && EMIT('websocket', req, socket, head);
 	F.stats.request.websocket++;
@@ -7385,10 +7390,11 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 		isAuthorized = true;
 	}
 
+	var membertype = isAuthorized ? 1 : 2;
 	var req = $.req;
 	if (user)
 		req.user = user;
-	var route = F.lookup_websocket(req, isAuthorized ? 1 : 2);
+	var route = req.$total_route.MEMBER === membertype ? req.$total_route : F.lookup_websocket(req, membertype);
 	if (route) {
 		F.$websocketcontinue_process(route, req, req.websocketpath);
 	} else
