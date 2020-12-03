@@ -5768,6 +5768,16 @@ RP.find = function() {
 	return builder;
 };
 
+RP.read = function() {
+	var self = this;
+	var builder = require('./textdb-wrapper').makebuilder();
+	builder.command = 'find';
+	builder.options.take = 1;
+	builder.options.first = 1;
+	setImmediate(self.$add, builder);
+	return builder;
+};
+
 RP.count = function() {
 	var builder = this.find();
 	builder.options.scalar = 'arg.count++';
