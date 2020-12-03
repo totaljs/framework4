@@ -9972,6 +9972,10 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.clients = function() {
+	return EMPTYARRAY;
+};
+
 ControllerProto.encrypt = function(value) {
 	if (this.req)
 		this.req.$bodyencrypt = value == null || value === true;
@@ -13011,6 +13015,14 @@ WebSocketProto.on = function(name, fn) {
 	else
 		this.$events[name] = [fn];
 	return this;
+};
+
+WebSocketProto.clients = function() {
+	var self = this;
+	var arr = [];
+	for (var i = 0; i < self.keys.length; i++)
+		arr.push(self.connections[self.keys[i]]);
+	return arr;
 };
 
 WebSocketProto.once = function(name, fn) {
