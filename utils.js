@@ -6195,4 +6195,50 @@ exports.multipartparser = function(multipart, stream, callback) {
 	return new MultipartParser(multipart, stream, callback);
 };
 
+global.QUERIFY = function(url, obj) {
+
+	if (typeof(url) !== 'string') {
+		obj = url;
+		url = '';
+	}
+
+	if (!obj)
+		return url;
+
+	var arg = [];
+	var keys = Object.keys(obj);
+	for (var i = 0; i < keys.length; i++) {
+		var key = keys[i];
+		var val = obj[key];
+		if (val != null) {
+
+			if (val instanceof Date)
+				val = val.toISOString();
+			else if (val instanceof Array)
+				val = val.join(',');
+
+			val = val + '';
+
+			if (val)
+				arg.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
+		}
+	}
+
+	var beg = url;
+	var end = '';
+
+	if (url) {
+		var index = url.indexOf(' ');
+		if (index !== -1)
+			index = url.indexOf(' ', index + 1);
+
+		if (index !== -1) {
+			beg = beg.substring(0, index);
+			end = url.substring(index);
+		}
+	}
+
+	return beg + (arg.length ? ((beg.indexOf('?') === -1 ? '?' : '&') + arg.join('&')) : '') + end;
+};
+
 !global.F && require('./index');
