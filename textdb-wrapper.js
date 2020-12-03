@@ -276,7 +276,6 @@ DP.stats = function(groupfield, datefield, key, type) {
 	return builder;
 };
 
-
 DP.memory = function(count, size) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'memory';
