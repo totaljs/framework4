@@ -395,7 +395,7 @@ QueryBuilder.prototype.done = function() {
 	else if (self.scalararg)
 		self.response = self.scalararg;
 
-	if (self.db.clone && (self.$TextReader.type !== 'update' && self.$TextReader.type !== 'remove')) {
+	if (self.db && self.db.clone && (self.$TextReader.type !== 'update' && self.$TextReader.type !== 'remove')) {
 		if (self.response instanceof Array) {
 			for (var i = 0; i < self.response.length; i++)
 				self.response[i] = CLONE(self.response[i]);

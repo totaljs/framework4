@@ -5720,9 +5720,10 @@ exports.Callback = function(count, callback) {
 
 function Reader() {
 	var t = this;
+	// t.tmp;
 	t.$add = function(builder) {
 		var b = require('./textdb-builder').make();
-		builder.options.filter = builder.builder.length ? builder.builder.join('&&') : 'true';
+		builder.options.filter = builder.options.filter && builder.options.filter.length ? builder.options.filter.join('&&') : 'true';
 		b.assign(builder.options);
 		b.$callback = builder.$callback;
 		if (t.reader)
@@ -5732,6 +5733,17 @@ function Reader() {
 			t.reader.add(b);
 		}
 	};
+
+	t.push = function(data) {
+		if (t.reader) {
+			if (data)
+				t.reader.compare(data instanceof Array ? data : [data]);
+			else
+				t.reader.done();
+		} else
+			setImmediate(t.push, data);
+	};
+
 }
 
 const RP = Reader.prototype;
@@ -5746,14 +5758,6 @@ RP.reset = function() {
 	var self = this;
 	self.reader.reset();
 	return self;
-};
-
-RP.push = function(data) {
-	if (data == null)
-		this.reader.done();
-	else
-		this.reader.compare(data instanceof Array ? data : [data]);
-	return this;
 };
 
 RP.find = function() {
@@ -5773,23 +5777,41 @@ RP.count = function() {
 
 RP.scalar = function(type, key) {
 	var builder = this.find();
+
+	if (key == null) {
+		key = type;
+		type = '*';
+	}
+
 	switch (type) {
-		case 'min':
-		case 'max':
-		case 'sum':
-			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if (!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(key);
-			builder.options.scalararg = { count: 0, sum: 0 };
-			break;
 		case 'group':
 			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(key);
 			builder.options.scalararg = {};
 			break;
+		default:
+			// min, max, sum, count
+			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if (!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(key);
+			builder.options.scalararg = { count: 0, sum: 0 };
+			break;
 	}
+
 	return builder;
 };
 
-exports.reader = function() {
-	return new Reader();
+RP.stats = function(groupfield, datefield, key, type) {
+	var builder = this.find();
+	builder.options.scalar = 'if (doc.{0}!=null&&doc.{2}!=null&&doc.{1} instanceof Date){tmp.val=doc.{2};tmp.group=doc.{0};tmp.date=doc.{1}.format(\'{3}\');if(!arg[tmp.group])arg[tmp.group]={};if(!arg[tmp.group][tmp.date])arg[tmp.group][tmp.date]={min:null,max:null,count:0};tmp.cur=arg[tmp.group][tmp.date];tmp.cur.count++;if(tmp.cur.max==null){tmp.cur.max=tmp.val}else if(tmp.cur.max<tmp.val){tmp.cur.max=tmp.val}if(tmp.cur.min==null){tmp.cur.min=tmp.val}else if(tmp.cur.min>tmp.val){tmp.cur.min=tmp.val}}'.format(groupfield, datefield, key, type === 'hourly' ? 'yyyyMMddHH' : type === 'monthly' ? 'yyyyMM' : type === 'yearly' ? 'yyyy' : 'yyyyMMdd');
+	builder.options.scalararg = {};
+	return builder;
+};
+
+exports.reader = function(items) {
+	var instance = new Reader();
+	if (items) {
+		instance.push(items);
+		instance.push(null);
+	}
+	return instance;
 };
 
 global.WAIT = function(fnValid, fnCallback, timeout, interval) {
