@@ -4068,7 +4068,7 @@ function exec_callback(err, response) {
 	if (!err && self.$errorhandler) {
 		if (typeof(self.$errorhandler) === 'function')
 			err = self.$errorhandler(output.value);
-		else if (!output.value || (output.value instanceof Array && output.value.length))
+		else if (!output.value || output.value === EMPTYOBJECT || (output.value instanceof Array && output.value.length))
 			err = self.$errorhandler;
 	}
 
