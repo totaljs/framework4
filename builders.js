@@ -3462,7 +3462,7 @@ function RESTBuilder(url) {
 	// this.$redirect
 
 	// Auto Total.js Error Handling
-	this.$errorbuilderhandling = true;
+	this.$errorbuilderhandler = true;
 }
 
 RESTBuilder.make = function(fn) {
@@ -3567,6 +3567,11 @@ RESTBuilder.setDefaultTransform = function(name) {
 };
 
 var RESTP = RESTBuilder.prototype;
+
+RESTP.error = function(err) {
+	this.$errorhandler = err;
+	return this;
+};
 
 RESTP.map = function(map) {
 
@@ -4060,6 +4065,13 @@ function exec_callback(err, response) {
 	output.cache = false;
 	output.datetime = NOW;
 
+	if (!err && self.$errorhandler) {
+		if (typeof(self.$errorhandler) === 'function')
+			err = self.$errorhandler(output.value);
+		else if (!output.value || (output.value instanceof Array && output.value.length))
+			err = self.$errorhandler;
+	}
+
 	var val;
 
 	if (self.$schema) {
@@ -4071,7 +4083,7 @@ function exec_callback(err, response) {
 
 		val = self.$transform ? self.maketransform(output.value, output) : output.value;
 
-		if (self.$errorbuilderhandling) {
+		if (self.$errorbuilderhandler) {
 			// Is the response Total.js ErrorBuilder?
 			if (val instanceof Array && val.length && val[0] && val[0].error) {
 				err = ErrorBuilder.assign(val);
@@ -4085,17 +4097,20 @@ function exec_callback(err, response) {
 		}
 
 		self.$schema.make(val, function(err, model) {
-			!err && key && output.status === 200 && F.cache.add(key, output, self.$cache_expire);
+			if (!err && key && output.status === 200)
+				F.cache.add(key, output, self.$cache_expire);
 			callback(err, err ? EMPTYOBJECT : model, output);
 			output.cache = true;
 		});
 
 	} else {
-		!err && key && output.status === 200 && F.cache.add(key, output, self.$cache_expire);
+
+		if (!err && key && output.status === 200)
+			F.cache.add(key, output, self.$cache_expire);
 
 		val = self.$transform ? self.maketransform(output.value, output) : output.value;
 
-		if (self.$errorbuilderhandling) {
+		if (self.$errorbuilderhandler) {
 			// Is the response Total.js ErrorBuilder?
 			if (val instanceof Array && val.length && val[0] && val[0].error) {
 				err = ErrorBuilder.assign(val);
