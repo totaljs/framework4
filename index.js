@@ -1433,7 +1433,7 @@ const controller_error_status = function(controller, status, problem) {
 		controller.req.$total_exception = problem;
 		controller.req.$total_execute(status, true);
 	} else if (controller.$evalroutecallback)
-		controller.$evalroutecallback(problem);
+		controller.$evalroutecallback(problem || (status + ''));
 
 	return controller;
 };
@@ -9979,6 +9979,7 @@ ControllerProto.encrypt = function(value) {
 };
 
 ControllerProto.runtest = function(url, name, callback) {
+
 	var self = this;
 
 	if (typeof(name) === 'function') {
@@ -10004,6 +10005,7 @@ ControllerProto.runtest = function(url, name, callback) {
 	var t = self.TEST.add(url, name || url);
 	callback && t.pass(callback);
 	return t;
+
 };
 
 ControllerProto.mail = function(address, subject, view, model, callback) {
@@ -16759,7 +16761,7 @@ global.ACTION = function(url, data, callback) {
 			authorized = 2;
 			break;
 		case '+':
-			authorized = 2;
+			authorized = 1;
 			break;
 	}
 
@@ -16808,6 +16810,7 @@ global.ACTION = function(url, data, callback) {
 	req.path = framework_internal.routeSplit(req.uri.pathname);
 	req.method = method;
 	req.split = framework_internal.routeSplit(req.uri.pathname, true);
+	req.isAuthorized = authorized === 1;
 
 	var route = F.lookup(req, authorized, true);
 	if (route) {
