@@ -2624,28 +2624,29 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	url = url.trim();
 
-	var isremove = funcExecute === null;
+	var isremoveonly = funcExecute === null;
 
-	if (isremove) {
-		var r = F.routes.all[url];
-		if (r) {
-			if (r.isAPI) {
-				if (F.routes.api[r.url])
-					delete F.routes.api[r.url][r.name];
-				if (Object.keys(F.routes.api[r.url]).length === 0) {
-					delete F.routes.api[r.url];
-					var rindex = F.routes.web.findIndex('path', r.routepath);
-					if (rindex !== -1) {
-						F.routes.web.splice(rindex, 1);
+	var r = F.routes.all[url];
+	if (r) {
+		if (r.isAPI) {
+			if (F.routes.api[r.url])
+				delete F.routes.api[r.url][r.name];
+			if (Object.keys(F.routes.api[r.url]).length === 0) {
+				delete F.routes.api[r.url];
+				var rindex = F.routes.web.findIndex('path', r.routepath);
+				if (rindex !== -1) {
+					F.routes.web.splice(rindex, 1);
+					if (isremoveonly)
 						F.routes_sort();
-					}
 				}
-				delete F.routes.all[url];
-			} else
-				r.remove();
-		}
-		return;
+			}
+			delete F.routes.all[url];
+		} else
+			r.remove(!isremoveonly);
 	}
+
+	if (isremoveonly)
+		return;
 
 	var mypath = url;
 
@@ -3355,9 +3356,9 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		PERF[arr[i].toLowerCase()] = true;
 	}
 
-	if (r.isSYSTEM)
-		F.routes.system[url.substring(1)] = r;
-	else {
+	if (r.isSYSTEM) {
+		F.routes.system[url.substring(2)] = r;
+	} else {
 		F.routes.web.push(r);
 		// Appends cors route
 		isCORS && CORS(urlcache, corsflags);
@@ -9188,30 +9189,40 @@ FrameworkRouteProto.setOptions = function(value) {
 	return this;
 };
 
-FrameworkRouteProto.remove = function() {
+FrameworkRouteProto.remove = function(nosort) {
 
 	var self = this;
 	var index;
 	var tmp;
 
-
 	if (self.type === 'file') {
+
 		index = F.routes.files.indexOf(self.route);
 		if (index !== -1) {
 			tmp = F.routes.files[index];
 			delete F.routes.all[tmp.path];
 			F.routes.files.splice(index, 1);
-			F.routes_sort();
+
+			if (!nosort)
+				F.routes_sort();
+
 		}
+
 	} else if (self.type === 'websocket') {
+
 		index = F.routes.websockets.indexOf(self.route);
 		if (index !== -1) {
 			tmp = F.routes.websockets[index];
 			delete F.routes.all[tmp.path];
 			F.routes.websockets.splice(index, 1);
-			F.routes_sort();
+
+			if (!nosort)
+				F.routes_sort();
+
 		}
+
 	} else if (self.isSYSTEM) {
+
 		var keys = Object.keys(F.routes.system);
 		for (var i = 0; i < keys.length; i++) {
 			var key = keys[i];
@@ -9222,6 +9233,7 @@ FrameworkRouteProto.remove = function() {
 				break;
 			}
 		}
+
 	} else {
 
 		index = F.routes.web.indexOf(self);
@@ -9247,7 +9259,8 @@ FrameworkRouteProto.remove = function() {
 			} else
 				F.routes.web.splice(index, 1);
 
-			F.routes_sort();
+			if (!nosort)
+				F.routes_sort();
 		}
 	}
 };
