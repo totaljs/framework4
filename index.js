@@ -774,7 +774,7 @@ var authbuiltin = function(opt) {
 					opt.blocked[$.ip] = 1;
 			}
 
-			opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+			opt.cookie && $.res && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
 			$.invalid();
 			return;
 		}
@@ -798,7 +798,7 @@ var authbuiltin = function(opt) {
 						opt.blocked[$.ip] = 1;
 				}
 
-				opt.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+				opt.cookie && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
 				$.invalid();
 			}
 
@@ -6156,7 +6156,7 @@ F.restart = function() {
 	process.send && process.send('total:restart');
 };
 
-global.LOAD = F.load = function(debug, types, pwd, ready) {
+global.LOAD = F.load = function(types, pwd, ready) {
 
 	if (typeof(types) === 'function') {
 		ready = types;
@@ -6167,6 +6167,9 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 		ready = pwd;
 		pwd = null;
 	}
+
+	if (typeof(types) === 'string')
+		types = types.split(/\s|,/).trim();
 
 	if (!types)
 		types = ['nobundles', 'nopackages', 'nocomponents', 'nothemes'];
@@ -6180,26 +6183,10 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 	else if ((/\/scripts\/.*?.js/).test(process.argv[1]))
 		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
 
-	if (typeof(debug) === 'string') {
-		switch (debug.toLowerCase().replace(/\.|\s/g, '-')) {
-			case 'release':
-			case 'production':
-			case 'prod':
-				debug = false;
-				break;
-			case 'debug':
-			case 'develop':
-			case 'dev':
-			case 'development':
-				debug = true;
-				break;
-		}
-	}
-
 	F.isWorker = true;
 	global.isWORKER = true;
-	global.DEBUG = debug;
-	global.RELEASE = !debug;
+	global.DEBUG = false;
+	global.RELEASE = true;
 
 	var isno = true;
 
@@ -6228,7 +6215,6 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 		F.consoledebug('init');
 
 		var noservice = true;
-
 		for (var i = 0; i < types.length; i++) {
 			switch(types[i]) {
 				case 'service':
@@ -6246,7 +6232,6 @@ global.LOAD = F.load = function(debug, types, pwd, ready) {
 		F.$load(types, directory, function() {
 
 			F.isLoaded = true;
-
 			process.send && process.send('total:ready');
 
 			setTimeout(function() {
@@ -7352,8 +7337,13 @@ F.$upgrade = function(req, socket, head) {
 
 	var headers = req.headers;
 	req.$protocol = req.connection.encrypted || headers['x-forwarded-protocol'] === 'https' ? 'https' : 'http';
-
 	req.uri = framework_internal.parseURI(req);
+	req.$total_route = F.lookup_websocket(req, 0, true);
+
+	if (!req.$total_route) {
+		req.websocket.$close(4004, '404: not found');
+		return;
+	}
 
 	F.$events.websocket && EMIT('websocket', req, socket, head);
 	F.stats.request.websocket++;
@@ -7400,10 +7390,11 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 		isAuthorized = true;
 	}
 
+	var membertype = isAuthorized ? 1 : 2;
 	var req = $.req;
 	if (user)
 		req.user = user;
-	var route = F.lookup_websocket(req, isAuthorized ? 1 : 2);
+	var route = req.$total_route.MEMBER === membertype ? req.$total_route : F.lookup_websocket(req, membertype);
 	if (route) {
 		F.$websocketcontinue_process(route, req, req.websocketpath);
 	} else

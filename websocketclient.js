@@ -753,6 +753,13 @@ function websocket_deflate(data) {
  */
 WebSocketClientProto.close = function(message, code) {
 	var self = this;
+
+	if (typeof(message) === 'number') {
+		var tmp = code;
+		code = message;
+		message = tmp;
+	}
+
 	if (message !== true) {
 		self.options.reconnect = 0;
 	} else
