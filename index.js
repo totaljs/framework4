@@ -8897,78 +8897,97 @@ global.ACCEPT = F.accept = function(ext, type) {
 	type && U.setContentType(ext, type);
 };
 
+global.TotalAPI = function(token, type, data, callback) {
+	RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data).header('x-token', token).stream(function(err, response) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var type = response.headers['content-type'] || '';
+
+		// Determines raw file
+		if (type.indexOf('/json') === -1) {
+			if (typeof(callback) === 'function')
+				callback(null, response.stream, response);
+			else
+				callback.res.stream(type, response.stream);
+			return;
+		}
+
+		if (typeof(callback) !== 'function') {
+			callback.res.stream(type, response.stream);
+			return;
+		}
+
+		var buffer = [];
+		response.on('stream', chunk => buffer.push(chunk));
+
+		CLEANUP(response, function() {
+			var response = Buffer.concat(buffer).toString('utf8').parseJSON(true);
+			if (response instanceof Array)
+				callback(response);
+			else
+				callback(err, response);
+		});
+
+	});
+};
+
 // A temporary variable for generating Worker ID
 // It's faster than Date.now()
 var WORKERID = 0;
 
-/**
- * Run worker
- * @param {String} name
- * @param {String} id Worker id, optional.
- * @param {Number} timeout Timeout, optional.
- * @param {Array} args Additional arguments, optional.
- * @return {ChildProcess}
- */
-global.WORKER = function(name, id, timeout, args, special) {
+function killworker(fork) {
+	fork && fork.kill('SIGKILL');
+}
 
-	var fork = null;
-	var type = typeof(id);
-
-	if (type === 'number' && timeout === undefined) {
-		timeout = id;
-		id = null;
-		type = 'undefined';
-	}
-
-	if (type === 'string')
-		fork = F.workers[id];
-
-	if (id instanceof Array) {
-		args = id;
-		id = null;
-		timeout = undefined;
-	}
+global.WORKER = function(name, timeout, args, special) {
 
 	if (timeout instanceof Array) {
+		special = args;
 		args = timeout;
 		timeout = undefined;
 	}
 
-	if (fork)
-		return fork;
+	var isid = name[0] === '#';
+	if (isid) {
+		name = name.substring(1);
+		return F.workers[name];
+	}
 
+	if (WORKERID > 999999999)
+		WORKERID = 0;
+
+	var id = name + '_' + (WORKERID++);
 	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
 
 	if (!args)
-		args = EMPTYARRAY;
+		args = [];
 
-	fork = Child.fork(filename[filename.length - 3] === '.' ? filename : filename + '.js', args, special ? HEADERS.workers2 : HEADERS.workers);
+	args.push('--worker');
 
-	if (!id)
-		id = name + '_' + (WORKERID++);
-
-	fork.__id = id;
+	var fork = Child.fork(filename[filename.length - 3] === '.' ? filename : filename + '.js', args, special ? HEADERS.workers2 : HEADERS.workers);
+	fork.ID = id;
 	F.workers[id] = fork;
 
 	fork.on('exit', function() {
 		var self = this;
 		self.__timeout && clearTimeout(self.__timeout);
-		delete F.workers[self.__id];
+		delete F.workers[self.ID];
 		if (fork) {
 			fork.removeAllListeners();
 			fork = null;
 		}
 	});
 
-	if (typeof(timeout) !== 'number')
-		return fork;
-
-	fork.__timeout = setTimeout(function() {
-		fork && fork.kill('SIGKILL');
-	}, timeout);
+	if (timeout > 10)
+		fork.__timeout = setTimeout(killworker, timeout, fork);
 
 	return fork;
 };
+
 
 global.WORKER2 = function(name, args, callback, timeout) {
 
@@ -8985,7 +9004,7 @@ global.WORKER2 = function(name, args, callback, timeout) {
 	if (args && !(args instanceof Array))
 		args = [args];
 
-	var fork = WORKER(name, null, timeout, args, true);
+	var fork = WORKER(name, timeout, args, true);
 	if (fork.__worker2)
 		return fork;
 
