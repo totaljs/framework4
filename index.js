@@ -8899,7 +8899,7 @@ global.ACCEPT = F.accept = function(ext, type) {
 	type && U.setContentType(ext, type);
 };
 
-global.TotalAPI = function(token, type, data, callback) {
+global.TotalAPI = function(token, type, data, callback, filename) {
 	var builder = RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data);
 
 	builder.options.keepalive = true;
@@ -8919,12 +8919,12 @@ global.TotalAPI = function(token, type, data, callback) {
 			if (typeof(callback) === 'function')
 				callback(null, response.stream, response);
 			else
-				callback.res.stream(type, response.stream);
+				callback.res.stream(type, response.stream, filename);
 			return;
 		}
 
 		if (typeof(callback) !== 'function') {
-			callback.res.stream(type, response.stream);
+			callback.res.stream(type, response.stream, filename);
 			if (!callback.isController && callback.cancel)
 				callback.cancel();
 			return;
