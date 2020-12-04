@@ -6238,7 +6238,9 @@ global.LOAD = F.load = function(types, pwd, ready) {
 		F.$load(types, directory, function() {
 
 			F.isLoaded = true;
-			process.send && process.send('total:ready');
+
+			// if (process.send && process.argv.indexOf('--worker') === -1)
+			// 	process.send('total:ready');
 
 			setTimeout(function() {
 
