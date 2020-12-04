@@ -2239,11 +2239,19 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 			$.name = a.type + (name ? ('.' + name) : '');
 			$.options = item.options;
 
-			if (!$.model || $.model === EMPTYOBJECT)
-				$.model = {};
+			var novalidate = true;
 
-			var validation = $.initialized ? false : model && (!(model instanceof SchemaValue));
-			self.perform(a.type, name, $, !validation, $.initialized);
+			if (!$.initialized) {
+				if (!$.model || $.model === EMPTYOBJECT) {
+					novalidate = true;
+					$.model = {};
+				} else if (model instanceof SchemaValue)
+					novalidate = true;
+				else
+					novalidate = false;
+			}
+
+			self.perform(a.type, name, $, novalidate, $.initialized);
 
 		} else if (!a.pending) {
 			if (a.index == null) {
@@ -2275,8 +2283,9 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 				}
 			}, null, null, model == null);
 		}
-	} else
+	} else {
 		setImmediate(a.next);
+	}
 
 	return add;
 };
