@@ -2626,7 +2626,14 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	var isremoveonly = funcExecute === null;
 
-	var r = F.routes.all[url];
+	var mypath = url;
+
+	if (flags instanceof Array) {
+		flags.sort();
+		mypath += ' ' + flags.join(',');
+	}
+
+	var r = F.routes.all[mypath];
 	if (r) {
 		if (r.isAPI) {
 			if (F.routes.api[r.url])
@@ -2640,15 +2647,13 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 						F.routes_sort();
 				}
 			}
-			delete F.routes.all[url];
+			delete F.routes.all[mypath];
 		} else
 			r.remove(!isremoveonly);
 	}
 
 	if (isremoveonly)
 		return;
-
-	var mypath = url;
 
 	if (url.indexOf('--') === -1) {
 
