@@ -8925,6 +8925,8 @@ global.TotalAPI = function(token, type, data, callback) {
 
 		if (typeof(callback) !== 'function') {
 			callback.res.stream(type, response.stream);
+			if (!callback.isController && callback.cancel)
+				callback.cancel();
 			return;
 		}
 
