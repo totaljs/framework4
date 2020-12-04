@@ -312,7 +312,7 @@ function convert4(a) {
 				output.push(line);
 				continue;
 			}
-		};
+		}
 
 		var key = line.substring(0, index).trim();
 
@@ -566,7 +566,7 @@ function main() {
 		if (isDirectory) {
 			if (translateFile(dir))
 				return;
-			console.log('T' + dir.hash().padRight(17, ' ') + ': ' + dir);
+			console.log('T' + dir.hash(true).toString(36).padRight(17, ' ') + ': ' + dir);
 			return;
 		}
 
