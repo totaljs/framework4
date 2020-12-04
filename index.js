@@ -8900,7 +8900,12 @@ global.ACCEPT = F.accept = function(ext, type) {
 };
 
 global.TotalAPI = function(token, type, data, callback) {
-	RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data).header('x-token', token).stream(function(err, response) {
+	var builder = RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data);
+
+	builder.options.keepalive = true;
+	builder.options.headers['x-token'] = token;
+
+	builder.stream(function(err, response) {
 
 		if (err) {
 			callback(err);
@@ -8924,6 +8929,7 @@ global.TotalAPI = function(token, type, data, callback) {
 		}
 
 		var buffer = [];
+
 		response.on('stream', chunk => buffer.push(chunk));
 
 		CLEANUP(response, function() {
