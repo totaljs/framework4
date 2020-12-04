@@ -45,7 +45,7 @@ function translateFile(a) {
 	for (var i = 0, length = arr.length; i < length; i++) {
 		var line = arr[i].trim();
 		if (line.length) {
-			builder.push('T' + line.makeid().padRight(17, ' ') + ': ' + line);
+			builder.push('T' + HASH(line, true).toString(36).padRight(17, ' ') + ': ' + line);
 			count++;
 		}
 	}
@@ -597,7 +597,7 @@ function main() {
 						continue;
 					}
 
-					key = 'T' + command.command.makeid();
+					key = 'T' + HASH(command.command, true).toString(36);
 					file = filename.substring(dir.length + 1);
 
 					texts[key] = command.command;
@@ -700,7 +700,7 @@ function main() {
 						continue;
 					}
 
-					var key = 'T' + command.command.makeid();
+					var key = 'T' + HASH(command.command, true).toString(36);
 
 					texts[key] = command.command;
 
