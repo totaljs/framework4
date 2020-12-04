@@ -853,6 +853,7 @@ function request_response(res) {
 			if (options.callback) {
 				options.response.origin = options.origin;
 				options.response.status = res.statusCode;
+				options.response.headers = res.headers;
 				if (options.custom) {
 					options.response.stream = res;
 					options.callback(null, options.response);
@@ -876,6 +877,7 @@ function request_response(res) {
 			options.timeoutid && clearTimeout(options.timeoutid);
 			options.canceled = true;
 			options.response.origin = options.origin;
+			options.response.headers = res.headers;
 
 			if (options.callback) {
 				if (options.custom) {
@@ -972,6 +974,7 @@ function request_response(res) {
 			options.timeoutid && clearTimeout(options.timeoutid);
 			options.response.origin = options.origin;
 			options.response.status = res.statusCode;
+			options.response.headers = res.headers;
 			options.response.stream = res;
 			options.callback(null, options.response);
 			options.callback = null;
@@ -990,6 +993,7 @@ function request_response(res) {
 		options.timeoutid && clearTimeout(options.timeoutid);
 		options.response.origin = options.origin;
 		options.response.status = res.statusCode;
+		options.response.headers = res.headers;
 		options.response.stream = res;
 		options.callback && options.callback(null, options.response);
 		options.callback = null;
