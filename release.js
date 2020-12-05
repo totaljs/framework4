@@ -41,6 +41,7 @@ var restarting;
 module.exports = function(opt) {
 
 	options = opt;
+
 	// options.ip = '127.0.0.1';
 	// options.port = parseInt(process.argv[2]);
 	// options.unixsocket = require('path').join(require('os').tmpdir(), 'app_name');
@@ -120,10 +121,10 @@ function runapp() {
 	});
 
 }
+
 function init() {
 
-
-	if (options.cluster) {
+	if (options.cluster && !options.threads) {
 		var cluster = options.cluster;
 		delete options.cluster;
 		require('total4').cluster.http(cluster, 'release', options);

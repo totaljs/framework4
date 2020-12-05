@@ -214,20 +214,22 @@ function master(count, mode, options, callback, https) {
 	require('./utils');
 	var memory = process.memoryUsage();
 
-	console.log('==================== CLUSTER =======================');
-	console.log('PID           : ' + process.pid);
-	console.log('Node.js       : ' + process.version);
-	console.log('Total.js      : v' + F.version_header);
-	console.log('OS            : ' + Os.platform() + ' ' + Os.release());
-	console.log('Memory        : ' + memory.heapUsed.filesize(2) + ' / ' + memory.heapTotal.filesize(2));
-	console.log('User          : ' + Os.userInfo().username);
-	console.log('OS            : ' + Os.platform() + ' ' + Os.release());
-	console.log('====================================================');
-	console.log('Threads       : {0}'.format(OPTIONS.auto ? 'auto' : (count + 'x')));
-	console.log('Date          : ' + new Date().format('yyyy-MM-dd HH:mm:ss'));
-	console.log('Mode          : ' + mode);
-	options.thread && console.log('Thread name   : ' + options.thread);
-	console.log('====================================================\n');
+	if (!process.connected || OPTIONS.options.logs === 'isolated') {
+		console.log('==================== CLUSTER =======================');
+		console.log('PID           : ' + process.pid);
+		console.log('Node.js       : ' + process.version);
+		console.log('Total.js      : v' + F.version_header);
+		console.log('OS            : ' + Os.platform() + ' ' + Os.release());
+		console.log('Memory        : ' + memory.heapUsed.filesize(2) + ' / ' + memory.heapTotal.filesize(2));
+		console.log('User          : ' + Os.userInfo().username);
+		console.log('OS            : ' + Os.platform() + ' ' + Os.release());
+		console.log('====================================================');
+		console.log('Threads       : {0}'.format(OPTIONS.auto ? 'auto' : (count + 'x')));
+		console.log('Date          : ' + new Date().format('yyyy-MM-dd HH:mm:ss'));
+		console.log('Mode          : ' + mode);
+		options.thread && console.log('Thread name   : ' + options.thread);
+		console.log('====================================================\n');
+	}
 
 	if (options.thread)
 		global.THREAD = options.thread;
@@ -325,6 +327,10 @@ function master(count, mode, options, callback, https) {
 		for (var i = 0; i < FORKS.length; i++) {
 			var fork = FORKS[i];
 			if (fork) {
+
+				if (fork.$pingoverload)
+					fork.$pingoverload--;
+
 				if (fork.$ping) {
 					if (fork.$ping < MAXTHREADLATENCY)
 						isfree = true;
@@ -375,7 +381,7 @@ function message(m) {
 
 	if (m === 'total:init') {
 		OPTIONS.options.id = this.$id;
-		this.send({ TYPE: 'init', bundling: !CONTINUE, id: this.$id, mode: OPTIONS.mode, options: OPTIONS.options, threads: OPTIONS.count, index: this.$index, https: this.$https });
+		this.send({ TYPE: 'init', bundling: !CONTINUE, id: this.$id, mode: OPTIONS.mode, options: OPTIONS.options, unixsocket: OPTIONS.unixsocket, threads: OPTIONS.count, index: this.$index, https: this.$https });
 		return;
 	}
 
@@ -393,6 +399,14 @@ function message(m) {
 	if (m === 'total:update') {
 		for (var i = 1, length = FORKS.length; i < length; i++)
 			FORKS[i] && FORKS[i].$ready && FORKS[i].send(m);
+		return;
+	}
+
+	if (m === 'total:overload') {
+		if (this.$pingoverload) {
+			this.$ping = MAXTHREADLATENCY + 1;
+			this.$pingoverload = 3; // waits 15 seconds
+		}
 		return;
 	}
 

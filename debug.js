@@ -91,6 +91,7 @@ function runwatching() {
 	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.resource$/i;
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
+	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
 	const REG_COMPONENTS = /components\/.*?\.html|\.package\/.*?$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|resource|package|bundle)$/i;
@@ -227,7 +228,8 @@ function runwatching() {
 				var length = arr.length;
 				for (var i = 0; i < length; i++) {
 					var name = arr[i];
-					name !== FILENAME && REG_FILES.test(name) && f.push(name);
+					if (name !== FILENAME && !REG_INDEX.test(name) && REG_FILES.test(name))
+						f.push(name);
 				}
 
 				length = f.length;
@@ -237,6 +239,7 @@ function runwatching() {
 					if (files[name] === undefined)
 						files[name] = isLoaded ? 0 : null;
 				}
+
 				refresh();
 			});
 		}
@@ -501,7 +504,7 @@ function normalize(path) {
 
 function init() {
 
-	if (options.cluster) {
+	if (options.cluster && !options.threads) {
 		var cluster = options.cluster;
 		delete options.cluster;
 		require('total4').cluster.http(cluster, 'debug', options);

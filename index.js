@@ -2228,6 +2228,12 @@ F.stop = F.kill = function(signal) {
 	F.textdbworker && F.textdbworker.kill(0);
 	F.textdbworker = null;
 
+	if (F.threads) {
+		var keys = Object.keys(F.threads);
+		for (var i = 0; i < keys.length; i++)
+			F.threads[keys[i]].kill(0);
+	}
+
 	EMIT('exit', signal);
 
 	if (!F.isWorker && process.send && process.connected) {
@@ -4441,6 +4447,10 @@ F.$load = function(types, targetdirectory, callback) {
 	}
 
 	var can = function(type) {
+
+		if (types === EMPTYARRAY)
+			return false;
+
 		if (!types)
 			return true;
 		if (types.indexOf('no' + type) !== -1)
@@ -6306,11 +6316,14 @@ F.initialize = function(http, debug, options) {
 
 	F.$bundle(function() {
 
-		configure_env();
-		configure_configs();
-		configure_versions();
-		configure_sitemap();
-		F.cache.init();
+		if (!options.threads) {
+			configure_env();
+			configure_configs();
+			configure_versions();
+			configure_sitemap();
+			F.cache.init();
+		}
+
 		F.consoledebug('init');
 		EMIT('init');
 
@@ -6393,10 +6406,15 @@ F.initialize = function(http, debug, options) {
 		F.clear(function() {
 
 			F.consoledebug('clear temporary (done)');
-			F.$load(undefined, directory, function() {
+			F.$load(options.threads ? EMPTYARRAY : undefined, directory, function() {
 
 				F.isLoaded = true;
-				process.send && process.send('total:ready');
+
+				if (options.threads) {
+					F.cache.init_timer();
+					loadthreads(options);
+				} else
+					process.send && process.send('total:ready');
 
 				if (options.middleware)
 					options.middleware(listen);
@@ -6408,7 +6426,7 @@ F.initialize = function(http, debug, options) {
 					F.usagesnapshot();
 				}
 
-				if (!process.connected)
+				if (!options.threads && !process.connected)
 					F.console();
 
 				setTimeout(function() {
@@ -6425,9 +6443,61 @@ F.initialize = function(http, debug, options) {
 					runsnapshot();
 				}, 500);
 			});
+
 		}, true);
 	});
 };
+
+function loadthreads(options) {
+
+	if (options.threads === true)
+		options.threads = '';
+
+	Fs.readdir(PATH.root('/threads/'), function(err, items) {
+
+		F.threads = {};
+
+		var tmp = require('os').tmpdir();
+		var id = Date.now().toString(36);
+		var runscript = U.getName(process.argv[1] || 'index.js').replace(/\.js$/g, '');
+
+		items.wait(function(item, next) {
+
+			var socket = Path.join(tmp, F.directory.makeid() + '_' + item.makeid() + '_' + id);
+			var url = ('/' + options.threads + '/' + item + '/').replace(/\/{2,}/g, '/');
+
+			PROXY(url, socket, 'replace', null, null);
+
+			var isolated = options.logs === 'isolated';
+			var scr = `const options = {};
+options.cluster = {3};
+options.thread = '{2}';
+options.unixsocket = '{0}';
+require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, options.cluster == null || options.cluster === 'auto' ? '\'auto\'' : options.cluster);
+
+			var filename = PATH.root(runscript + '_' + item + '.js');
+			var logname = PATH.logs(runscript + '_' + item + '.log');
+
+			// Tires to remove log
+			if (isolated)
+				Fs.unlink(logname, NOOP);
+
+			Fs.writeFile(filename, scr, function() {
+				F.threads[item] = Child.fork(filename, { silent: isolated });
+				isolated && F.threads[item].stdout.on('data', chunk => Fs.appendFile(logname, chunk, NOOP));
+				next();
+			});
+
+		}, function() {
+			if (process.send)
+				process.send('total:ready');
+			else
+				F.console();
+		});
+
+	});
+
+}
 
 function connection_tunning(socket) {
 	socket.setNoDelay(true);
@@ -6606,6 +6676,7 @@ F.custom = function(mode, http, request, response, options) {
 F.console = function() {
 
 	var memory = process.memoryUsage();
+
 	console.log('====================================================');
 	console.log('PID           : ' + process.pid);
 	console.log('Node.js       : ' + process.version);
@@ -6619,6 +6690,7 @@ F.console = function() {
 	CONF.author && console.log('Author        : ' + CONF.author);
 	console.log('Date          : ' + NOW.format('yyyy-MM-dd HH:mm:ss'));
 	console.log('Mode          : ' + (DEBUG ? 'debug' : 'release'));
+	F.threads && console.log('Threads       : ' + Object.keys(F.threads).join(', '));
 	global.THREAD && console.log('Thread        : ' + global.THREAD);
 	console.log('====================================================');
 	CONF.default_root && console.log('Root          : ' + CONF.default_root);
@@ -6842,6 +6914,8 @@ F.listener = function(req, res) {
 	else if (!req.host) // HTTP 1.0 without host
 		return res.throw400();
 
+	F.stats.request.request++;
+
 	if (CONF.allow_reqlimit) {
 		var ip = req.ip;
 		if (F.temporary.ddos[ip] > CONF.allow_reqlimit) {
@@ -6872,8 +6946,6 @@ F.listener = function(req, res) {
 	var headers = req.headers;
 	req.$protocol = ((req.connection && req.connection.encrypted) || ((headers['x-forwarded-proto'] || ['x-forwarded-protocol']) === 'https')) ? 'https' : 'http';
 	req.uri = framework_internal.parseURI(req);
-
-	F.stats.request.request++;
 	F.$events.request && EMIT('request', req, res);
 
 	if (F._request_check_redirect) {
@@ -6928,8 +7000,12 @@ function makeproxy(proxy, req, res) {
 	uri.method = req.method;
 	uri.headers = req.headers;
 
-	if (proxy.copypath)
-		uri.path = req.url;
+	if (proxy.copypath) {
+		if (proxy.copypath === 'replace')
+			uri.path = req.url.substring(proxy.url.length - 1);
+		else
+			uri.path = req.url;
+	}
 
 	if (uri.headers.connection)
 		delete uri.headers.connection;
@@ -6959,6 +7035,7 @@ function makeproxy(proxy, req, res) {
 	}
 
 	request.on('error', makeproxyerror);
+	request.on('abort', makeproxyerror);
 	request.$res = res;
 	request.$proxy = proxy;
 
@@ -16973,6 +17050,8 @@ function measure_usage_response() {
 	if (F.temporary.service.usage < val)
 		F.temporary.service.usage = val;
 	F.stats.performance.usage = val;
+	if (val >= 100 && process.connected)
+		process.send('total:overload');
 }
 
 function measure_usage() {
@@ -17009,6 +17088,6 @@ EMPTYCONTROLLER.req.body = EMPTYOBJECT;
 EMPTYCONTROLLER.req.files = EMPTYARRAY;
 global.EMPTYCONTROLLER = EMPTYCONTROLLER;
 
-process.connected && setImmediate(function() {
+process.connected && setTimeout(function() {
 	process.send('total:init');
-});
+}, 100);

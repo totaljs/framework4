@@ -15,5 +15,13 @@ const options = {};
 // options.watch = ['private'];
 // options.livereload = 'https://yourhostname';
 
+// Enables cluster:
+// opt.cluster = 'auto';
+
+// Enables threads:
+// opt.cluster = 'auto';
+// opt.threads = '/api/';
+// opt.logs = 'isolated';
+
 var type = process.argv.indexOf('--release', 1) !== -1 || process.argv.indexOf('release', 1) !== -1 ? 'release' : 'debug';
 require(total + '/' + type)(options);
