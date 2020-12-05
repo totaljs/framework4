@@ -137,6 +137,7 @@ function runwatching() {
 			U.combine(CONF.directory_configs),
 			U.combine(CONF.directory_bundles),
 			U.combine('/startup/'),
+			U.combine('/threads/'),
 			U.combine('/plugins/')
 		];
 
@@ -214,8 +215,10 @@ function runwatching() {
 		}
 
 		function onFilter(path, isDirectory) {
+
+			var p = path.substring(directory.length);
 			if (isBUNDLE)
-				return isDirectory ? SRC !== path : !blacklist[path.substring(directory.length)];
+				return isDirectory ? SRC !== path : !blacklist[p];
 			if (isRELOAD)
 				return isDirectory ? true : REG_RELOAD.test(path);
 			return isDirectory && REG_THEMES.test(path) ? true : isDirectory ? true : !REG_PUBLIC.test(path) && (REG_EXTENSION.test(path) || REG_COMPONENTS.test(path) || REG_CONFIGS.test(path) || REG_THEMES_INDEX.test(path));
@@ -298,6 +301,13 @@ function runwatching() {
 
 							if (filename.endsWith('.bundle') && files[filename.replace(/\.bundle$/, '.url')]) {
 								// Bundle from URL address
+								files[filename] = ticks;
+								reload = true;
+								next();
+								return;
+							}
+
+							if (filename.substring(directory.length).indexOf('/threads/') !== -1 && files[filename]) {
 								files[filename] = ticks;
 								next();
 								return;

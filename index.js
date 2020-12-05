@@ -6461,6 +6461,9 @@ function loadthreads(options) {
 		var id = Date.now().toString(36);
 		var runscript = U.getName(process.argv[1] || 'index.js').replace(/\.js$/g, '');
 
+		if (!items)
+			items = [];
+
 		items.wait(function(item, next) {
 
 			var socket = Path.join(tmp, F.directory.makeid() + '_' + item.makeid() + '_' + id);
@@ -6476,7 +6479,7 @@ options.unixsocket = '{0}';
 require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, options.cluster == null || options.cluster === 'auto' ? '\'auto\'' : options.cluster);
 
 			var filename = PATH.root(runscript + '_' + item + '.js');
-			var logname = PATH.logs(runscript + '_' + item + '.log');
+			var logname = PATH.logs('debug_' + item + '.log');
 
 			// Tires to remove log
 			if (isolated)
