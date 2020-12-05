@@ -2252,7 +2252,7 @@ F.stop = F.kill = function(signal) {
 	setTimeout(() => process.exit(signal), 300);
 };
 
-global.PROXY = function(url, target, copypath, before, after) {
+global.PROXY = function(url, target, copypath, before, after, timeout) {
 
 	if (typeof(copypath) == 'function') {
 		after = before;
@@ -2265,7 +2265,7 @@ global.PROXY = function(url, target, copypath, before, after) {
 	else
 		target = { socketPath: target };
 
-	var obj = { url: url, uri: target, before: before, after: after, copypath: copypath };
+	var obj = { url: url, uri: target, before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 5 };
 	F.routes.proxies.push(obj);
 	F._request_check_proxy = true;
 };
@@ -6469,7 +6469,7 @@ function loadthreads(options) {
 			var socket = Path.join(tmp, F.directory.makeid() + '_' + item.makeid() + '_' + id);
 			var url = ('/' + options.threads + '/' + item + '/').replace(/\/{2,}/g, '/');
 
-			PROXY(url, socket, 'replace', null, null);
+			PROXY(url, socket, 'replace', null, null, options.timeout);
 
 			var isolated = options.logs === 'isolated';
 			var scr = `const options = {};
@@ -7045,16 +7045,28 @@ function makeproxy(proxy, req, res) {
 	request.$res = res;
 	request.$proxy = proxy;
 
+	if (proxy.timeout) {
+		req.$total_timeout = proxy.timeout;
+		TIMEOUTS.push(req);
+		FINISHED(res, () => req && (req.success = true));
+	}
+
 	if (get)
 		request.end();
 	else
 		req.pipe(request, PROXYOPTIONS);
+
 }
 
 function makeproxyerror(err) {
+
+	if (this.success)
+		return;
+
 	MODELERROR.code = 503;
 	MODELERROR.status = U.httpstatus(503, false);
 	MODELERROR.error = err + '';
+	this.success = true;
 	this.$res.writeHead(503, HEADERS.response503);
 	this.$res.end(VIEW('.' + PATHMODULES + 'error', MODELERROR));
 }
@@ -14429,7 +14441,10 @@ function extend_request(PROTO) {
 		if (isError || !route) {
 			var key = 'error' + status;
 			F.stats.response[key]++;
-			status !== 500 && F.$events.error && EMIT('error', this, res, this.$total_exception);
+
+			if (status !== 500 && F.$events.error)
+				EMIT('error', this, res, this.$total_exception);
+
 			F.$events[key] && EMIT(key, this, res, this.$total_exception);
 			if (status === 408) {
 				if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.url) > 5)
@@ -14548,13 +14563,16 @@ function extend_request(PROTO) {
 	};
 
 	PROTO.$total_cancel = function() {
+
 		F.stats.response.timeout++;
+
 		if (this.controller) {
 			this.controller.isTimeout = true;
 			this.controller.isCanceled = true;
-			this.$total_route = F.lookup_system(503);
-			this.$total_execute(503, true);
 		}
+
+		this.$total_route = F.lookup_system(503);
+		this.$total_execute(503, true);
 	};
 
 	PROTO.$total_validate = function(route, next, code) {

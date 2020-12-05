@@ -20,6 +20,7 @@ const options = {};
 
 // Enables threads:
 // options.cluster = 'auto';
+// options.timeout = 5000;
 // options.threads = '/api/';
 // options.logs = 'isolated';
 
