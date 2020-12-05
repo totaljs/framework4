@@ -307,7 +307,7 @@ function runwatching() {
 								return;
 							}
 
-							if (filename.substring(directory.length).indexOf('/threads/') !== -1 && files[filename]) {
+							if (options.threads && filename.substring(directory.length).indexOf('/threads/') !== -1 && files[filename]) {
 								files[filename] = ticks;
 								next();
 								return;
