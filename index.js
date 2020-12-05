@@ -6604,6 +6604,7 @@ F.custom = function(mode, http, request, response, options) {
 };
 
 F.console = function() {
+
 	var memory = process.memoryUsage();
 	console.log('====================================================');
 	console.log('PID           : ' + process.pid);
@@ -16250,6 +16251,7 @@ function process_ping() {
 }
 
 process.on('message', function(msg, h) {
+
 	if (msg === 'total:debug') {
 		WAIT(() => F.isLoaded, function() {
 			F.isLoaded = undefined;
@@ -17006,3 +17008,7 @@ EMPTYCONTROLLER.req.query = EMPTYOBJECT;
 EMPTYCONTROLLER.req.body = EMPTYOBJECT;
 EMPTYCONTROLLER.req.files = EMPTYARRAY;
 global.EMPTYCONTROLLER = EMPTYCONTROLLER;
+
+process.connected && setImmediate(function() {
+	process.send('total:init');
+});

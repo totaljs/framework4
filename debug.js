@@ -37,7 +37,9 @@ var initdelay;
 var watchercallback;
 
 module.exports = function(opt) {
+
 	options = opt;
+
 	// options.ip = '127.0.0.1';
 	// options.port = parseInt(process.argv[2]);
 	// options.unixsocket = require('path').join(require('os').tmpdir(), 'app_name');
@@ -48,6 +50,10 @@ module.exports = function(opt) {
 	// options.debugger = 40894;
 	// options.watch = ['adminer'];
 	// options.livereload = true;
+	// options.cluster = 'auto' || or NUMBER
+	// options.max = 5; // maximum threads
+	// options.thread = 'thread_name';
+
 };
 
 module.exports.watcher = function(callback) {
@@ -60,7 +66,7 @@ module.exports.watcher = function(callback) {
 function runapp() {
 
 	!options && (options = {});
-	require('total4');
+	require('./index');
 
 	if (options.https)
 		HTTPS('debug', options);
@@ -394,9 +400,7 @@ function runwatching() {
 			else
 				arr.push('--restart');
 
-			// arr.push('--watcher');
 			port && arr.push(port);
-
 			app = fork(Path.join(directory, FILENAME), arr);
 
 			app.on('message', function(msg) {
@@ -496,6 +500,13 @@ function normalize(path) {
 }
 
 function init() {
+
+	if (options.cluster) {
+		var cluster = options.cluster;
+		delete options.cluster;
+		require('total4').cluster.http(cluster, 'debug', options);
+		return;
+	}
 
 	process.on('uncaughtException', e => e.toString().indexOf('ESRCH') == -1 && console.log(e));
 	process.title = 'total: debug';

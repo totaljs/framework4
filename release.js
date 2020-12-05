@@ -122,6 +122,14 @@ function runapp() {
 }
 function init() {
 
+
+	if (options.cluster) {
+		var cluster = options.cluster;
+		delete options.cluster;
+		require('total4').cluster.http(cluster, 'release', options);
+		return;
+	}
+
 	if (WATCHER) {
 
 		delete options.watcher;
