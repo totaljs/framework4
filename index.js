@@ -2265,7 +2265,7 @@ global.PROXY = function(url, target, copypath, before, after, timeout) {
 	else
 		target = { socketPath: target };
 
-	var obj = { url: url, uri: target, before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 5 };
+	var obj = { url: url, uri: target, before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
 	F.routes.proxies.push(obj);
 	F._request_check_proxy = true;
 };
