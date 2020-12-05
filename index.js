@@ -6479,7 +6479,10 @@ options.unixsocket = '{0}';
 require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, options.cluster == null || options.cluster === 'auto' ? '\'auto\'' : options.cluster);
 
 			var filename = PATH.root(runscript + '_' + item + '.js');
-			var logname = PATH.logs('debug_' + item + '.log');
+			var logdir = PATH.root('/threads/' + item + '/logs/');
+			PATH.mkdir(logdir);
+
+			var logname = Path.join(logdir, 'debug.log');
 
 			// Tires to remove log
 			if (isolated)
