@@ -51,9 +51,11 @@ module.exports = function(opt) {
 	// options.watch = ['adminer'];
 	// options.livereload = true;
 	// options.cluster = 'auto' || or NUMBER
-	// options.max = 5; // maximum threads
+	// options.cluster_limit = 10;
+	// options.timeout = 5000;
+	// options.threads = '/api/' || or true or false;
 	// options.thread = 'thread_name';
-
+	// options.logs = 'isolated';
 };
 
 module.exports.watcher = function(callback) {

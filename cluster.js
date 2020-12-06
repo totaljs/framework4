@@ -371,7 +371,7 @@ function master(count, mode, options, callback, https) {
 				}
 				THREADS = FORKS.length;
 			}
-		} else if (!options.max || THREADS < options.max)
+		} else if (!options.cluster_limit || THREADS < options.cluster_limit)
 			exec(THREADS++, https);
 
 	}, 5000);

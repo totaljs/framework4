@@ -53,6 +53,12 @@ module.exports = function(opt) {
 	// options.watch = ['adminer'];
 	// options.livereload = true;
 	// options.watcher = false;
+	// options.cluster = 'auto' || or NUMBER
+	// options.cluster_limit = 10;
+	// options.timeout = 5000;
+	// options.threads = '/api/' || or true or false;
+	// options.thread = 'thread_name';
+	// options.logs = 'isolated';
 
 	if (!WATCHER)
 		WATCHER = process.argv.indexOf('--watcher') === -1 && !options.watcher;
