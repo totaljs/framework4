@@ -224,7 +224,7 @@ function master(count, mode, options, callback, https) {
 		console.log('User          : ' + Os.userInfo().username);
 		console.log('OS            : ' + Os.platform() + ' ' + Os.release());
 		console.log('====================================================');
-		console.log('Threads       : {0}'.format(OPTIONS.auto ? 'auto' : (count + 'x')));
+		console.log('Threads       : {0}'.format(OPTIONS.auto ? 'auto' : count));
 		console.log('Date          : ' + new Date().format('yyyy-MM-dd HH:mm:ss'));
 		console.log('Mode          : ' + mode);
 		options.thread && console.log('Thread name   : ' + options.thread);
