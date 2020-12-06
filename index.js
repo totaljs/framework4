@@ -1533,7 +1533,6 @@ function Framework() {
 
 		// in milliseconds
 		default_request_timeout: 3000,
-		default_dependency_timeout: 1500,
 		default_restbuilder_timeout: 10000,
 
 		// otherwise is used ImageMagick (Heroku supports ImageMagick)
@@ -1575,7 +1574,6 @@ function Framework() {
 		default_interval_clear_resources: 20,
 		default_interval_clear_cache: 10,
 		default_interval_clear_dnscache: 30,
-		default_interval_precompile_views: 61,
 		default_interval_websocket_ping: 3
 	};
 
@@ -8500,7 +8498,6 @@ function configure_configs(arr, rewrite) {
 			case 'default_websocket_maxlength':
 			case 'default_interval_clear_cache':
 			case 'default_interval_clear_resources':
-			case 'default_interval_precompile_views':
 			case 'default_interval_websocket_ping':
 			case 'default_interval_clear_dnscache':
 			case 'default_dependency_timeout':
