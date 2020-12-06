@@ -6404,14 +6404,13 @@ F.initialize = function(http, debug, options) {
 		F.clear(function() {
 
 			F.consoledebug('clear temporary (done)');
-			F.$load(options.threads ? EMPTYARRAY : undefined, directory, function() {
+			F.$load(undefined, directory, function() {
 
 				F.isLoaded = true;
 
-				if (options.threads) {
-					F.cache.init_timer();
+				if (options.threads)
 					loadthreads(options);
-				} else
+				else
 					process.send && process.send('total:ready');
 
 				if (options.middleware)
@@ -6474,7 +6473,7 @@ function loadthreads(options) {
 options.cluster = {3};
 options.thread = '{2}';
 options.unixsocket = '{0}';
-require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, options.cluster == null || options.cluster === 'auto' ? '\'auto\'' : options.cluster);
+require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, (options.cluster === 'auto' ? '\'auto\'' : options.cluster) || 0);
 
 			var filename = PATH.root(runscript + '_' + item + '.js');
 			var logdir = PATH.root('/threads/' + item + '/logs/');
