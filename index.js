@@ -8992,6 +8992,14 @@ global.ACCEPT = F.accept = function(ext, type) {
 };
 
 global.TotalAPI = function(token, type, data, callback, filename) {
+
+	if (typeof(type) === 'object') {
+		filename = callback;
+		callback = data;
+		data = type;
+		token = CONF.totalapi || '-';
+	}
+
 	var builder = RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data);
 
 	builder.options.keepalive = true;

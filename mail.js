@@ -348,6 +348,23 @@ Message.prototype.attachment = function(filename, name, contentid) {
 
 Message.prototype.send2 = function(callback) {
 
+
+	var self = this;
+
+	if (CONF.mail_api) {
+		var data = {};
+		data.to = self.to;
+		data.from = self.from;
+		data.subject = self.subject;
+		data.type = self.type;
+		data.cc = self.cc;
+		data.bcc = self.bcc;
+		data.body = self.body;
+		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? CONF.totalapi : CONF.mail_api, data, callback || NOOP);
+		return;
+	}
+
+
 	var opt = F.temporary.mail_settings;
 
 	if (!opt) {
@@ -360,7 +377,7 @@ Message.prototype.send2 = function(callback) {
 
 	// Computes a hostname
 	if (!CONF.mail_smtp) {
-		var ea = (this.address_from.address || this.address_from) || '';
+		var ea = (self.address_from.address || self.address_from) || '';
 
 		if (typeof(ea) !== 'string' || !ea)
 			throw new Error('Missing SMTP settings');
@@ -371,9 +388,9 @@ Message.prototype.send2 = function(callback) {
 		CONF.mail_smtp = ea;
 	}
 
-	this.$callback2 = callback;
-	mailer.send(CONF.mail_smtp, opt, this, null, !!F.port);
-	return this;
+	self.$callback2 = callback;
+	mailer.send(CONF.mail_smtp, opt, self, null, !!F.port);
+	return self;
 };
 
 Message.prototype.send = function(smtp, options, callback) {
