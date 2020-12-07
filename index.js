@@ -6940,7 +6940,12 @@ F.listener = function(req, res) {
 	if (F._request_check_proxy) {
 		for (var i = 0; i < F.routes.proxies.length; i++) {
 			var proxy = F.routes.proxies[i];
-			if (req.url.substring(0, proxy.url.length) === proxy.url) {
+			var u = req.url.substring(0, proxy.url.length);
+
+			if (u[u.length - 1] !== '/')
+				u += '/';
+
+			if (u === proxy.url) {
 				F.stats.response.proxy++;
 				makeproxy(proxy, req, res);
 				return;
