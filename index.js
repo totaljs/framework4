@@ -177,7 +177,7 @@ global.FILECACHE = function(id, expire, callback, maker, encoding) {
 
 global.NEWCOMMAND = function(name, fn) {
 
-	if (fn == null) {
+	if (fn === null) {
 		delete F.commands[name];
 		return;
 	}
