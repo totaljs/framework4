@@ -354,12 +354,15 @@ Message.prototype.send2 = function(callback) {
 	if (CONF.mail_api) {
 		var data = {};
 		data.to = self.to;
-		data.from = self.from;
+		data.from = self.from.email;
 		data.subject = self.subject;
 		data.type = self.type;
 		data.cc = self.cc;
 		data.bcc = self.bcc;
 		data.body = self.body;
+		data.priority = self.$priotity;
+		data.unsubscribe = self.$unsubscribe;
+		data.confidential = self.$confidential;
 		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? CONF.totalapi : CONF.mail_api, data, callback || NOOP);
 		return;
 	}
