@@ -9019,7 +9019,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		var type = response.headers['content-type'] || '';
 
 		// Determines raw file
-		if (type.indexOf('/json') === -1) {
+		if (!(/json|text|html/).test(type)) {
 			if (typeof(callback) === 'function')
 				callback(null, response.stream, response);
 			else
@@ -9038,7 +9038,13 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		response.stream.on('data', chunk => buffer.push(chunk));
 
 		CLEANUP(response.stream, function() {
-			var response = Buffer.concat(buffer).toString('utf8').parseJSON(true);
+
+			var body = Buffer.concat(buffer).toString('utf8');
+			var response = body.parseJSON(true);
+
+			if (!err && response.status > 399)
+				err = new ErrorBuilder().push(response.status + '');
+
 			if (response instanceof Array)
 				callback(response);
 			else
