@@ -5189,17 +5189,20 @@ DEF.onMail = function(address, subject, body, callback, replyTo) {
 	} else
 		message.to(address);
 
-	message.from(CONF.mail_address_from || '', CONF.name);
+	message.from(CONF.mail_from || CONF.mail_address_from || '', CONF.name);
 
 	if (replyTo)
 		message.reply(replyTo);
 	else {
-		tmp = CONF.mail_address_reply;
+		tmp = CONF.mail_reply || CONF.mail_address_reply;
 		tmp && tmp.length > 3 && message.reply(tmp);
 	}
 
-	tmp = CONF.mail_address_copy;
+	tmp = CONF.mail_bcc || CONF.mail_address_copy;
 	tmp && tmp.length > 3 && message.bcc(tmp);
+
+	tmp = CONF.mail_cc;
+	tmp && tmp.length > 3 && message.cc(tmp);
 
 	message.$sending = setImmediate(onmailsendforce, callback, message);
 	return message;
