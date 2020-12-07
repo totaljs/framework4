@@ -9000,6 +9000,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		filename = callback;
 		callback = data;
 		data = type;
+		type = token;
 		token = CONF.totalapi || '-';
 	}
 
@@ -9034,10 +9035,9 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		}
 
 		var buffer = [];
+		response.stream.on('data', chunk => buffer.push(chunk));
 
-		response.on('stream', chunk => buffer.push(chunk));
-
-		CLEANUP(response, function() {
+		CLEANUP(response.stream, function() {
 			var response = Buffer.concat(buffer).toString('utf8').parseJSON(true);
 			if (response instanceof Array)
 				callback(response);
@@ -11973,10 +11973,9 @@ ControllerProto.jsonp = function(name, obj, headers, beautify, replacer) {
 
 		if (self.req.$bodyencrypt && CONF.secret_encryption) {
 			obj = framework_utils.encrypt_data(obj, CONF.secret_encryption);
-			if (!headers) {
+			if (!headers)
 				headers = {};
-				headers['X-Encryption'] = 'a';
-			}
+			headers['X-Encryption'] = 'a';
 		}
 	}
 
@@ -15800,10 +15799,9 @@ function extend_response(PROTO) {
 
 			if (req.$bodyencrypt && CONF.secret_encryption && typeof(options.body) === 'string') {
 				options.body = framework_utils.encrypt_data(options.body, CONF.secret_encryption);
-				if (!headers) {
+				if (!headers)
 					headers = {};
-					headers['X-Encryption'] = 'a';
-				}
+				headers['X-Encryption'] = 'a';
 			}
 
 			if (gzip) {

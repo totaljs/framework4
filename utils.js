@@ -528,9 +528,10 @@ global.REQUEST = function(opt) {
 	} else {
 		if (opt.body) {
 			if (!(opt.body instanceof Buffer)) {
-				if (opt.encrypt)
+				if (opt.encrypt) {
 					opt.body = exports.encrypt_data(opt.body, opt.encrypt);
-				opt.headers['X-Encryption'] = 'a';
+					opt.headers['X-Encryption'] = 'a';
+				}
 				opt.body = Buffer.from(opt.body, ENCODING);
 			}
 			opt.headers['Content-Length'] = opt.body.length;
