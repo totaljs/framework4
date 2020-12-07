@@ -795,7 +795,7 @@ function request_process_timeout(req) {
 		}
 		req.socket.destroy();
 		req.socket.end();
-		req.abort();
+		req.destroy();
 		options.response.status = 408;
 		options.response.host = req.$uri.host;
 		options.canceled = true;

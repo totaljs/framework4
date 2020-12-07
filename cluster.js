@@ -181,7 +181,7 @@ exports.restart = function(index) {
 		if (fork) {
 			fork.$ready = false;
 			fork.removeAllListeners();
-			fork.disconnect();
+			fork.kill(0);
 			exec(index);
 		} else
 			exec(index);
@@ -322,6 +322,7 @@ function master(count, mode, options, callback, https) {
 
 		var isfree = false;
 		var isempty = false;
+		var sum = 0;
 
 		// Auto-ping
 		for (var i = 0; i < FORKS.length; i++) {
@@ -332,6 +333,7 @@ function master(count, mode, options, callback, https) {
 					fork.$pingoverload--;
 
 				if (fork.$ping) {
+					sum += fork.$ping;
 					if (fork.$ping < MAXTHREADLATENCY)
 						isfree = true;
 				} else
@@ -343,7 +345,9 @@ function master(count, mode, options, callback, https) {
 		}
 
 		if (isfree || isempty) {
-			if (!isempty && THREADS > 1) {
+
+			if (counter % 5 === 0 && !isempty && THREADS > 1) {
+
 				// try to remove last
 				var lastindex = FORKS.length - 1;
 				var last = FORKS[lastindex];
@@ -361,7 +365,7 @@ function master(count, mode, options, callback, https) {
 							// nothing pending
 							fork.$ready = false;
 							fork.removeAllListeners();
-							fork.disconnect();
+							fork.kill(0);
 							setTimeout(killme, 1000, fork);
 							FORKS.splice(lastindex, 1);
 							STATS.splice(lastindex, 1);
@@ -371,8 +375,12 @@ function master(count, mode, options, callback, https) {
 				}
 				THREADS = FORKS.length;
 			}
-		} else if (!options.cluster_limit || THREADS < options.cluster_limit)
-			exec(THREADS++, https);
+
+		} else if (!options.cluster_limit || THREADS < options.cluster_limit) {
+			var avg = (sum / FORKS.length).floor(3);
+			if (avg > MAXTHREADLATENCY)
+				exec(THREADS++, https);
+		}
 
 	}, 5000);
 }

@@ -1702,6 +1702,7 @@ function Framework() {
 
 		request: {
 			request: 0,
+			external: 0,
 			pending: 0,
 			web: 0,
 			xhr: 0,
@@ -6317,13 +6318,11 @@ F.initialize = function(http, debug, options) {
 
 	F.$bundle(function() {
 
-		if (!options.threads) {
-			configure_env();
-			configure_configs();
-			configure_versions();
-			configure_sitemap();
-			F.cache.init();
-		}
+		configure_env();
+		configure_configs();
+		configure_versions();
+		configure_sitemap();
+		F.cache.init();
 
 		F.consoledebug('init');
 		EMIT('init');
@@ -7024,6 +7023,7 @@ function makeproxy(proxy, req, res) {
 
 	proxy.before && proxy.before(uri, req, res);
 	F.stats.performance.external++;
+	F.stats.request.external++;
 
 	var request;
 	var get = uri.method === 'GET' || uri.method === 'HEAD' || uri.method === 'OPTIONS';
@@ -9626,6 +9626,7 @@ FrameworkCacheProto.init = function(notimer) {
 		self.load(() => self.loadpersistent());
 	else
 		self.loadpersistent();
+
 	return self;
 };
 
@@ -17045,6 +17046,7 @@ function runsnapshot() {
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
 		stats.requests = F.stats.request.request;
 		stats.pending = F.stats.request.pending;
+		stats.external = F.stats.request.external || 0;
 		stats.errors = F.stats.error;
 		stats.timeouts = F.stats.response.error408;
 		stats.online = F.stats.performance.online;
