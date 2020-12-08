@@ -1966,14 +1966,14 @@ global.EMIT2 = function(name, a, b, c, d, e) {
 				var child = F.threads[keys[i]];
 				child.send(EMIT2MESSAGE);
 			}
+			F.$events[name] && EMIT(name, a, b, c, d, e);
 		} else if (F.isWorker) {
 			// Back to parent
 			process.send(EMIT2MESSAGE);
 		} else if (F.cluster) {
 			// Sends to all children in the cluster
 			F.cluster.emit2(EMIT2MESSAGE);
-		} else
-			EMIT(name, a, b, c, d, e);
+		}
 	}
 };
 
@@ -6546,8 +6546,14 @@ require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', ite
 }
 
 function threadforkmessage(m) {
-	if (m && m.TYPE === 'total:emit' && m.name)
+	if (m && m.TYPE === 'total:emit' && m.name) {
 		EMIT(m.name, m.a, m.b, m.c, m.d, m.e);
+		if (F.threads) {
+			var keys = Object.keys(F.threads);
+			for (var i = 0; i < keys.length; i++)
+				F.threads[keys[i]].send(m);
+		}
+	}
 }
 
 function connection_tunning(socket) {
@@ -16509,7 +16515,7 @@ process.on('message', function(msg, h) {
 
 		if (msg.TYPE === 'total:emit') {
 			msg.TYPE = 'emit';
-			F.cluster.emit(msg.name, msg.a, msg.b, msg.c, msg.d, msg.e);
+			F.cluster.emit2(msg);
 		}
 	}
 
