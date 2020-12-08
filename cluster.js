@@ -96,7 +96,7 @@ exports.request = function(name, data, callback, timeout) {
 
 	obj.timeout = setTimeout(function(obj) {
 		delete CALLBACKS[obj.id];
-		obj.fn && obj.fn(new Error('Timeout.'), obj.response);
+		obj.fn && obj.fn('Timeout', obj.response);
 	}, timeout || 3000, obj);
 
 	if (Cluster.isMaster)
@@ -173,7 +173,7 @@ exports.https = function(count, mode, options, callback) {
 };
 
 exports.restart = function(index) {
-	if (index === undefined) {
+	if (index == null) {
 		for (var i = 0; i < THREADS; i++)
 			setTimeout(index => exports.restart(index), i * 2000, i);
 	} else {
@@ -224,10 +224,10 @@ function master(count, mode, options, callback, https) {
 		console.log('User          : ' + Os.userInfo().username);
 		console.log('OS            : ' + Os.platform() + ' ' + Os.release());
 		console.log('====================================================');
-		console.log('Threads       : {0}'.format(OPTIONS.auto ? 'auto' : count));
+		console.log('Thread count  : {0}'.format(OPTIONS.auto ? 'auto' : count));
+		options.thread && console.log('Thread name   : ' + options.thread);
 		console.log('Date          : ' + new Date().format('yyyy-MM-dd HH:mm:ss'));
 		console.log('Mode          : ' + mode);
-		options.thread && console.log('Thread name   : ' + options.thread);
 		console.log('====================================================\n');
 	}
 
@@ -405,7 +405,7 @@ function message(m) {
 	}
 
 	if (m === 'total:update') {
-		for (var i = 1, length = FORKS.length; i < length; i++)
+		for (var i = 1; i < FORKS.length; i++)
 			FORKS[i] && FORKS[i].$ready && FORKS[i].send(m);
 		return;
 	}
@@ -437,17 +437,28 @@ function message(m) {
 		!is && STATS.push(m.data);
 	} else {
 
+		if (m.TYPE === 'total:emit') {
+			if (process.send)
+				process.send(m);
+			else {
+				m.TYPE = 'emit';
+				for (var i = 0; i < FORKS.length; i++)
+					FORKS[i] && FORKS[i].$ready && FORKS[i].send(m);
+			}
+			return;
+		}
+
 		if (m.target === 'master') {
 			exports.res(m);
 		} else {
-			for (var i = 0, length = FORKS.length; i < length; i++)
+			for (var i = 0; i < FORKS.length; i++)
 				FORKS[i] && FORKS[i].$ready && FORKS[i].send(m);
 		}
 	}
 }
 
 function mastersend(m) {
-	for (var i = 0, length = FORKS.length; i < length; i++)
+	for (var i = 0; i < FORKS.length; i++)
 		FORKS[i] && FORKS[i].send(m);
 }
 

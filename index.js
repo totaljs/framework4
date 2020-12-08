@@ -1945,16 +1945,43 @@ global.ON = function(name, fn) {
 		F.$events[name] = [fn];
 };
 
+
+global.EMIT2 = function(name, a, b, c, d, e) {
+
+	if (THREAD) {
+		process.send({ TYPE: 'total:emit', name: name, a: a, b: b, c: c, d: d, e: e });
+	} else {
+
+		if (F.threads) {
+			var keys = Object.keys(F.threads);
+			for (var i = 0; i < keys.length; i++) {
+				var child = F.threads[keys[i]];
+				child.send({ TYPE: 'total:emit', name: name, a: a, b: b, c: c, d: d, e: e });
+			}
+		} else if (F.isWorker) {
+			// Back to parent
+			process.send({ TYPE: 'total:emit', a: a, b: b, c: c, d: d, e: e });
+		} else {
+			// Sends to all children in the cluster
+			F.cluster.emit(name, a, b, c, d, e);
+		}
+
+	}
+};
+
 global.EMIT = function(name, a, b, c, d, e, f, g) {
 
 	var evt = F.$events[name];
 	if (evt) {
+
 		var clean = false;
-		for (var i = 0, length = evt.length; i < length; i++) {
+
+		for (var i = 0; i < evt.length; i++) {
 			if (evt[i].$once)
 				clean = true;
 			evt[i].call(F, a, b, c, d, e, f, g);
 		}
+
 		if (clean) {
 			evt = evt.remove(n => n.$once);
 			if (evt.length)
@@ -6496,6 +6523,7 @@ require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', ite
 			Fs.writeFile(filename, scr, function() {
 				F.threads[item] = Child.fork(filename, { silent: isolated });
 				isolated && F.threads[item].stdout.on('data', chunk => Fs.appendFile(logname, chunk, NOOP));
+				F.threads[item].on('message', threadforkmessage);
 				next();
 			});
 
@@ -6507,7 +6535,11 @@ require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', ite
 		});
 
 	});
+}
 
+function threadforkmessage(m) {
+	if (m && m.TYPE === 'total:emit' && m.name)
+		EMIT(m.name, m.a, m.b, m.c, m.d, m.e);
 }
 
 function connection_tunning(socket) {
@@ -16465,6 +16497,11 @@ process.on('message', function(msg, h) {
 					F.cache.$sync = true;
 					break;
 			}
+		}
+
+		if (msg.TYPE === 'total:emit') {
+			msg.TYPE = 'emit';
+			F.cluster.emit(msg.name, msg.a, msg.b, msg.c, msg.d, msg.e);
 		}
 	}
 
