@@ -68,6 +68,14 @@ exports.emit = function(name, a, b, c, d, e) {
 	return F;
 };
 
+exports.emit2 = function(msg) {
+	if (Cluster.isMaster)
+		message(msg);
+	else if (F.isCluster)
+		process.send(msg);
+	return F;
+};
+
 exports.master = function(name, a, b, c, d, e) {
 	if (F.isCluster) {
 		CLUSTER_MASTER.name = name;

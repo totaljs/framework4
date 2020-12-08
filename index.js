@@ -1945,27 +1945,35 @@ global.ON = function(name, fn) {
 		F.$events[name] = [fn];
 };
 
+var EMIT2MESSAGE = { TYPE: 'total:emit' };
 
 global.EMIT2 = function(name, a, b, c, d, e) {
 
+	EMIT2MESSAGE.name = name;
+	EMIT2MESSAGE.a = a;
+	EMIT2MESSAGE.b = b;
+	EMIT2MESSAGE.c = c;
+	EMIT2MESSAGE.d = d;
+	EMIT2MESSAGE.e = e;
+
 	if (THREAD) {
-		process.send({ TYPE: 'total:emit', name: name, a: a, b: b, c: c, d: d, e: e });
+		process.send(EMIT2MESSAGE);
 	} else {
 
 		if (F.threads) {
 			var keys = Object.keys(F.threads);
 			for (var i = 0; i < keys.length; i++) {
 				var child = F.threads[keys[i]];
-				child.send({ TYPE: 'total:emit', name: name, a: a, b: b, c: c, d: d, e: e });
+				child.send(EMIT2MESSAGE);
 			}
 		} else if (F.isWorker) {
 			// Back to parent
-			process.send({ TYPE: 'total:emit', a: a, b: b, c: c, d: d, e: e });
-		} else {
+			process.send(EMIT2MESSAGE);
+		} else if (F.cluster) {
 			// Sends to all children in the cluster
-			F.cluster.emit(name, a, b, c, d, e);
-		}
-
+			F.cluster.emit2(EMIT2MESSAGE);
+		} else
+			EMIT(name, a, b, c, d, e);
 	}
 };
 
