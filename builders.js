@@ -2747,6 +2747,7 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 		return this;
 	}
 
+
 	if (typeof(name) === 'object') {
 		path = error;
 		error = name;
@@ -2768,7 +2769,12 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 	if (this.path && !path)
 		path = this.path;
 
+	// e.g. push(404)
+	if (name > 0)
+		name = name + '';
+
 	if (!error && typeof(name) === 'string') {
+
 		var m = name.length;
 		if (m > 15)
 			m = 15;
