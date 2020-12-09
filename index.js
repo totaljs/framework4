@@ -8406,16 +8406,12 @@ function makehash(url, callback, count) {
 	var opt = {};
 
 	if (F.unixsocket)
-		opt.unixsocket = { socket: F.unixsocket, url: url };
+		opt.unixsocket = { socket: F.unixsocket, path: url };
 	else
 		opt.url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
 
-	console.log(opt);
-
 	opt.custom = true;
 	opt.callback = function(err, response) {
-
-		console.log(err);
 
 		// Maybe F.wait()
 		if (response.status === 503) {
