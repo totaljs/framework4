@@ -6435,9 +6435,12 @@ F.initialize = function(http, debug, options) {
 			F.consoledebug('HTTP listening');
 			setInterval(clear_pending_requests, 5000);
 
-			if (unixsocket)
-				F.server.listen(unixsocket);
-			else
+			if (unixsocket) {
+				F.server.listen(unixsocket, function() {
+					if (options.unixsocket777)
+						Fs.chmodSync(unixsocket, 0o777);
+				});
+			} else
 				F.server.listen(F.port, F.ip);
 
 		};
