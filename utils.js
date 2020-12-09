@@ -521,9 +521,8 @@ global.REQUEST = function(opt) {
 		options.upload = true;
 
 		// Must be object { key: value }
-		if (opt.body) {
+		if (opt.body)
 			options.body = opt.body;
-		}
 
 	} else {
 		if (opt.body) {
@@ -5983,6 +5982,7 @@ MultipartParser.prototype.parse_head = function() {
 
 	var beg = header.indexOf('filename="');
 	var isfile = beg !== -1;
+
 	self.current.filename = isfile ? header.substring(beg + 10, header.indexOf('"', beg + 10)) : null;
 
 	beg = header.indexOf('name="');
@@ -6131,7 +6131,7 @@ MultipartParser.prototype.parse_data = function() {
 			return;
 		}
 
-		var val = self.buffer.slice(0, index - 2).toString('utf8');
+		var val = self.buffer.slice(0, index - 4).toString('utf8');
 
 		if (REG_EMPTYBUFFER_TEST.test(val))
 			val = val.replace(REG_EMPTYBUFFER, '');

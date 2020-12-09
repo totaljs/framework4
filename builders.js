@@ -3849,11 +3849,8 @@ RESTP.redirect = function(value) {
 };
 
 RESTP.raw = function(value, type) {
-	var val = value;
-	if (typeof(val) !== 'string' && type !== 'raw')
-		val = type === 'urlencoded' ? U.toURLEncode(val) : JSON.stringify(val);
 	this.options.type = type;
-	this.options.body = val;
+	this.options.body = value;
 	return this;
 };
 
@@ -3982,6 +3979,9 @@ RESTP.exec = function(callback) {
 
 	if (self.options.files && self.options.method === 'GET')
 		self.options.method = 'POST';
+
+	if (self.options.body && !self.options.files && typeof(self.options.body) !== 'string' && self.options.type !== 'raw')
+		self.options.body = self.options.type === 'urlencoded' ? U.toURLEncode(self.options.body) : JSON.stringify(self.options.body);
 
 	if (self.options.unixsocket && self.options.url) {
 		if (!self.options.path)
