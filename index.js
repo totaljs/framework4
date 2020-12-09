@@ -5078,9 +5078,11 @@ global.DOWNLOAD = function(url, filename, callback, timeout) {
 	else
 		opt.url = framework_internal.preparepath(url);
 
-	if (!REG_HTTPHTTPS.test(url)) {
+	if (!opt.unixsocket && !REG_HTTPHTTPS.test(opt.url)) {
+
 		if (url[0] !== '/')
 			url = '/' + url;
+
 		if (F.isWorker)
 			throw new Error('Worker can\'t create a snapshot from the relative URL address "{0}".'.format(url));
 
@@ -8402,9 +8404,18 @@ function configure_versions(arr, clean) {
 function makehash(url, callback, count) {
 
 	var opt = {};
-	opt.url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
+
+	if (F.unixsocket)
+		opt.unixsocket = { socket: F.unixsocket, url: url };
+	else
+		opt.url = 'http://' + (F.ip === 'auto' ? '0.0.0.0' : F.ip) + ':' + F.port + url;
+
+	console.log(opt);
+
 	opt.custom = true;
 	opt.callback = function(err, response) {
+
+		console.log(err);
 
 		// Maybe F.wait()
 		if (response.status === 503) {
