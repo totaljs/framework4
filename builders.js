@@ -2769,9 +2769,13 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 	if (this.path && !path)
 		path = this.path;
 
+	var status;
+
 	// e.g. push(404)
-	if (name > 0)
+	if (name > 0) {
+		status = name;
 		name = name + '';
+	}
 
 	if (!error && typeof(name) === 'string') {
 
@@ -2796,7 +2800,7 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 		error = error.toString();
 	}
 
-	this.items.push({ name: name, error: typeof(error) === 'string' ? error : error.toString(), path: path, index: index, prefix: prefix });
+	this.items.push({ name: name, error: typeof(error) === 'string' ? error : error.toString(), path: path, index: index, prefix: prefix, status: status });
 	this.count = this.items.length;
 	return this;
 };
@@ -2915,8 +2919,14 @@ ErrorBuilder.prototype._prepare = function() {
 		else
 			o.error = this.onResource(o.error.substring(1));
 
-		if (!o.error)
-			o.error = 'The field "' + o.name + '" is invalid';
+		if (!o.error) {
+			if (o.status) {
+				o.error = U.httpstatus(o.status);
+				o.status = undefined;
+			}
+			if (!o.status || !o.error)
+				o.error = 'The field "' + o.name + '" is invalid';
+		}
 	}
 
 	return this;
@@ -3021,10 +3031,10 @@ ErrorBuilder.prototype._prepareReplace = function() {
  * @return {ErrorBuilder}
  */
 ErrorBuilder.prototype.prepare = function() {
-	if (this.isPrepared)
-		return this;
-	this._prepare()._prepareReplace();
-	this.isPrepared = true;
+	if (!this.isPrepared) {
+		this._prepare()._prepareReplace();
+		this.isPrepared = true;
+	}
 	return this;
 };
 
