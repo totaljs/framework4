@@ -9071,6 +9071,9 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		token = CONF.totalapi || '-';
 	}
 
+	if (!callback)
+		callback = NOOP;
+
 	var builder = RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data);
 
 	builder.options.keepalive = true;
