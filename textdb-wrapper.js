@@ -546,10 +546,12 @@ DB.done = function($, callback, param) {
 DB.callback = function(callback, err) {
 	if (this.parent) {
 		this.parent.$callback = callback;
-		this.parent.$error = err;
+		if (err)
+			this.parent.$error = err;
 	} else {
 		this.$callback = callback;
-		this.$error = err;
+		if (err)
+			this.$error = err;
 	}
 	return this;
 };

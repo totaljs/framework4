@@ -1370,6 +1370,7 @@ global.OBSOLETE = function(name, message) {
 		return;
 
 	console.log(NOW.format('yyyy-MM-dd HH:mm:ss') + ' :: OBSOLETE / IMPORTANT ---> "' + name + '"', message);
+
 	if (global.F)
 		F.stats.other.obsolete++;
 };
@@ -10173,8 +10174,9 @@ Controller.prototype = {
 			var obj = {};
 			for (var i = 0; i < names.length; i++) {
 				var val = this.req.split[route.param[i]];
-				var type = route.paramtypes[i];
-				obj[names[i]] = type === 'number' ? val.parseInt() : type === 'boolean' ? val.parseBoolean() : type === 'date' ? val.parseDate() : val;
+				var name = route.paramnames[i];
+				var type = route.paramtypes[name];
+				obj[name] = type === 'number' ? val.parseInt() : type === 'boolean' ? val.parseBoolean() : type === 'date' ? val.parseDate() : val;
 			}
 			this.$params = obj;
 			return obj;

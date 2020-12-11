@@ -2728,7 +2728,7 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 
 	if (name instanceof ErrorBuilder) {
 		if (name !== this && name.is) {
-			for (var i = 0, length = name.items.length; i < length; i++)
+			for (var i = 0; i < name.items.length; i++)
 				this.items.push(name.items[i]);
 			this.count = this.items.length;
 		}
@@ -2736,13 +2736,13 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 	}
 
 	if (name instanceof Array) {
-		for (var i = 0, length = name.length; i < length; i++)
+		for (var i = 0; i < name.length; i++)
 			this.push(name[i], undefined, path, index, prefix);
 		return this;
 	}
 
 	if (error instanceof Array) {
-		for (var i = 0, length = error.length; i < length; i++)
+		for (var i = 0; i < error.length; i++)
 			this.push(name, error[i], path, index, prefix);
 		return this;
 	}
@@ -2759,10 +2759,10 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 
 	// Status code
 	if (error > 0) {
-		this.status = error;
+		this.status = +error;
 		error = '@';
 	} else if (path > 0) {
-		this.status = path;
+		this.status = +path;
 		path = undefined;
 	}
 
@@ -2773,7 +2773,7 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 
 	// e.g. push(404)
 	if (name > 0) {
-		status = name;
+		status = +name;
 		name = name + '';
 	}
 

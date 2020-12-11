@@ -213,7 +213,7 @@ exports.routeParameters = function(routeUrl, route) {
 
 	for (var i = 0; i < route.param.length; i++) {
 		var value = routeUrl[route.param[i]];
-		var name = route.paramnames[route.param[i]];
+		var name = route.paramnames[i];
 		switch (route.paramtypes[name]) {
 			case 'uid':
 				if (!value.isUID())
