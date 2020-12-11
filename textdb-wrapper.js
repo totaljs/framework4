@@ -529,7 +529,7 @@ DB.insert = function(fn) {
 };
 
 DB.error = DB.err = function(err) {
-	this.$error = err;
+	this.$error = err + '';
 	return this;
 };
 
