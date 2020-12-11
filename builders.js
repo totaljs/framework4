@@ -4012,7 +4012,8 @@ RESTP.exec = function(callback) {
 	self.options.callback = exec_callback;
 	self.options.response = {};
 	self.options.response.builder = self;
-	return REQUEST(self.options);
+	self.request = REQUEST(self.options);
+	return self;
 };
 
 function exec_callback(err, response) {
