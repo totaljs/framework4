@@ -4004,7 +4004,7 @@ RESTP.exec = function(callback) {
 		if (data) {
 			data = self.$transform ? self.maketransform(self.$schema ? self.$schema.make(data.value) : data.value, data) : self.$schema ? self.$schema.make(data.value) : data.value;
 			callback(null, data, data);
-			return;
+			return self;
 		}
 	}
 
