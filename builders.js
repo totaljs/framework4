@@ -1565,7 +1565,7 @@ function toName(val) {
 		p = c;
 	}
 
-	return val;
+	return a;
 }
 
 /**
