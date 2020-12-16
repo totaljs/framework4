@@ -3126,7 +3126,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		var rindex = tmpa.indexOf('(response)');
 		if (rindex !== -1)
 			tmpa.splice(rindex, 1);
-		workflow = { id: tmpa.length > 1 ? tmpa : tmpa[0], index: rindex - 1 };
+		workflow = { id: tmpa.length > 1 ? tmpa : tmpa[0], index: rindex === -1 ? null : rindex - 1 };
 	}
 
 	if (type === 'string') {
