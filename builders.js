@@ -4856,7 +4856,8 @@ function convertorcompile(schema, data, key) {
 				};
 				break;
 			case 'object':
-				return val => val;
+				obj.fn = val => val;
+				break;
 			case 'search':
 				obj.fn = (val, obj) => $convertstring(val, obj).toSearch();
 				break;
