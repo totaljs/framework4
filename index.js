@@ -12165,6 +12165,7 @@ ControllerProto.content = function(body, type, headers) {
 
 		body = tmp;
 		F.stats.response.errorbuilder++;
+
 	} else
 		res.options.type = type || CT_TEXT;
 
@@ -16909,6 +16910,7 @@ function controller_json_workflow_multiple(id) {
 		var async = self.$async(self.callback(w.view), w.index);
 		for (var i = 0; i < w.id.length; i++)
 			async(w.id[i]);
+
 	} else
 		self.throw500('Schema "{0}" not found.'.format(getSchemaName(self.route.schema, self.isDYNAMICSCHEMA ? self.params : null)));
 }
