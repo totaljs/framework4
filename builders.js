@@ -1077,7 +1077,7 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 
 	var fn = function($) {
 		$.schema = self.name;
-		OPERATION(opname, $.model, $.callback, $, self.name);
+		OPERATION(opname, $.model, $.callback, self.name, $);
 	};
 
 	!self.operations && (self.operations = {});
