@@ -3,7 +3,7 @@
 Node.js framework
 =================
 
-- [__Documentation__](https://docs.totaljs.com)
+- [__Documentation__](https://docs.totaljs.com/total4/)
 - [Chat support](https://platform.totaljs.com/?open=messenger)
 - [Join to __Total.js Telegram__](https://t.me/totalplatform)
 
