@@ -3,6 +3,10 @@
 Node.js framework
 =================
 
+- [__Documentation__](https://docs.totaljs.com)
+- [Chat support](https://platform.totaljs.com/?open=messenger)
+- [Join to __Total.js Telegram__](https://t.me/totalplatform)
+
 __Total.js framework v4__ is a framework for Node.js platfrom written in `pure` JavaScript similar to PHP's Laravel or Python's Django or ASP.NET MVC. It can be used as web, desktop, service or IoT application.
 
 ```bash
@@ -26,9 +30,10 @@ Please support the framework on social networks.
 
 ## Contact
 
-- (c) 2012-2020 by Peter Širka - <petersirka@gmail.com>
-- contact form <https://www.totaljs.com/contact/>
-- <info@totaljs.com>
+- (c) 2018-2020 by Peter Širka - <petersirka@gmail.com>
+- Contact <https://www.totaljs.com/contact/>
+- [Chat support](https://platform.totaljs.com/?open=messenger)
+- [Join to __Total.js Telegram__](https://t.me/totalplatform)
 
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
 [license-url]: license.txt
