@@ -1504,7 +1504,7 @@ function Framework() {
 		static_url_script: '/js/',
 		static_url_style: '/css/',
 		static_url_image: '/img/',
-		static_url_video: '/video/',
+		static_url_video: '/videos/',
 		static_url_font: '/fonts/',
 		static_url_download: '/download/',
 		static_url_components: '/components.',
