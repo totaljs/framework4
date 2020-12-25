@@ -2550,7 +2550,7 @@ exports.parseMULTIPART = function(req, type, route) {
 				case '5':
 				case '6':
 					req.bodyexceeded = true;
-					route = F.lookupsystem(431);
+					route = F.lookup_system(431);
 					req.bodydata = null;
 					if (route) {
 						req.$total_route = route;
@@ -2559,7 +2559,7 @@ exports.parseMULTIPART = function(req, type, route) {
 						req.res.throw431();
 					break;
 				default:
-					route = F.lookupsystem(400);
+					route = F.lookup_system(400);
 					req.bodydata = null;
 					if (route) {
 						req.$total_route = route;
