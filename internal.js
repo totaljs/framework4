@@ -2526,6 +2526,7 @@ exports.parseMULTIPART = function(req, type, route) {
 			file.length = item.size;
 			file.width = item.width;
 			file.height = item.height;
+			file.type = item.type;
 
 			// IE9 sends absolute filename
 			var index = file.filename.lastIndexOf('\\');
