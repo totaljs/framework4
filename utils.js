@@ -6200,7 +6200,7 @@ exports.multipartparser = function(multipart, stream, callback) {
 	return new MultipartParser(multipart, stream, callback);
 };
 
-var QUERIFYMETHODS = { GET: 1, POST: 1, DELETE: 1, PUT: 1, PATCH: 1 };
+var QUERIFYMETHODS = { GET: 1, POST: 1, DELETE: 1, PUT: 1, PATCH: 1, API: 1 };
 
 global.QUERIFY = function(url, obj) {
 
