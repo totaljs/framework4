@@ -6200,6 +6200,8 @@ exports.multipartparser = function(multipart, stream, callback) {
 	return new MultipartParser(multipart, stream, callback);
 };
 
+var QUERIFYMETHODS = { GET: 1, POST: 1, DELETE: 1, PUT: 1, PATCH: 1 };
+
 global.QUERIFY = function(url, obj) {
 
 	if (typeof(url) !== 'string') {
@@ -6212,7 +6214,9 @@ global.QUERIFY = function(url, obj) {
 
 	var arg = [];
 	var keys = Object.keys(obj);
+
 	for (var i = 0; i < keys.length; i++) {
+
 		var key = keys[i];
 		var val = obj[key];
 		if (val != null) {
@@ -6223,27 +6227,18 @@ global.QUERIFY = function(url, obj) {
 				val = val.join(',');
 
 			val = val + '';
-
-			if (val)
-				arg.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
+			val && arg.push(encodeURIComponent(key) + '=' + encodeURIComponent(val));
 		}
 	}
-
-	var beg = url;
-	var end = '';
 
 	if (url) {
-		var index = url.indexOf(' ');
-		if (index !== -1)
-			index = url.indexOf(' ', index + 1);
-
-		if (index !== -1) {
-			beg = beg.substring(0, index);
-			end = url.substring(index);
-		}
+		var arr = url.split(' ');
+		var index = QUERIFYMETHODS[arr[0]] ? 1 : 0;
+		arr[index] += (arr[index].indexOf('?') === -1 ? '?' : '&') + arg.join('&');
+		return arr.join(' ');
 	}
 
-	return beg + (arg.length ? ((beg.indexOf('?') === -1 ? '?' : '&') + arg.join('&')) : '') + end;
+	return '?' + arg.join('&');
 };
 
 !global.F && require('./index');
