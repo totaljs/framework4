@@ -608,7 +608,7 @@ global.DESTROY = framework_internal.destroyStream;
 
 function filestoragewrapper(name) {
 	var key = 'fs_' + name;
-	return F.databases[key] ? F.databases[key] : (F.databases[key] = require('./filestorage').FileDB(name, PATH.databases('fs-' + name + '/')));
+	return F.databases[key] ? F.databases[key] : (F.databases[key] = require('./filestorage').FileDB(name, PATH.filestorage(name)));
 }
 
 global.FILESTORAGE = function(name) {
@@ -9599,6 +9599,10 @@ FrameworkPathProto.updates = function(filename) {
 
 FrameworkPathProto.workers = function(filename) {
 	return U.combine(CONF.directory_workers, filename);
+};
+
+FrameworkPathProto.filestorage = function(name) {
+	return PATH.databases('fs-' + name + '/');
 };
 
 FrameworkPathProto.databases = function(filename) {
