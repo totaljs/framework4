@@ -9064,7 +9064,7 @@ global.ACCEPT = F.accept = function(ext, type) {
 
 global.TotalAPI = function(token, type, data, callback, filename) {
 
-	if (typeof(type) === 'object') {
+	if (typeof(type) === 'object' || typeof(data) === 'function' || (typeof(data) === 'object' && data.req)) {
 		filename = callback;
 		callback = data;
 		data = type;
@@ -9074,6 +9074,9 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 
 	if (!callback)
 		callback = NOOP;
+
+	if (typeof(data) !== 'object')
+		data = { value: data };
 
 	var builder = RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data);
 
