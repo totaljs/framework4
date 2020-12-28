@@ -80,6 +80,8 @@ exports.make = function(callback) {
 	blacklist['/index.pid'] = 1;
 	blacklist['/index.js.json'] = 1;
 	blacklist['/package-lock.json'] = 1;
+	blacklist['/superadmin.pid'] = 1;
+	blacklist['/superadmin.socket'] = 1;
 
 	var Files = [];
 	var Dirs = [];
@@ -340,7 +342,7 @@ function copyFiles(files, callback) {
 	var path = PATH.root(CONF.directory_src);
 	files.wait(function(file, next) {
 
-		if (!META.ignore(file.name))
+		if (!META.ignore(file.name) || (/\.(socket|pid)$/).test(file.name))
 			return next();
 
 		var filename = Path.join(path, file.name);
