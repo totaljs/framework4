@@ -14754,7 +14754,7 @@ function extend_request(PROTO) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
 
-				if (CONF.secret_encryption && !route.flags2.noencrypt)
+				if (CONF.secret_encryption && !route.flags2.nodecrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
 				if (REG_EMPTYBUFFER_TEST.test(tmp))
@@ -14784,7 +14784,7 @@ function extend_request(PROTO) {
 		if (this.$type === 1) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
-				if (CONF.secret_encryption && !route.flags2.noencrypt)
+				if (CONF.secret_encryption && !route.flags2.nodecrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
 				if (REG_EMPTYBUFFER_TEST.test(tmp))
@@ -14797,7 +14797,7 @@ function extend_request(PROTO) {
 			}
 		} else {
 			tmp = this.bodydata.toString(ENCODING);
-			if (CONF.secret_encryption && !route.flags2.noencrypt)
+			if (CONF.secret_encryption && !route.flags2.nodecrypt)
 				tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 			if (REG_EMPTYBUFFER_TEST.test(tmp))
 				tmp = tmp.replace(REG_EMPTYBUFFER, '');
