@@ -14757,6 +14757,11 @@ function extend_request(PROTO) {
 				if (CONF.secret_encryption && !route.flags2.nodecrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
 
+				if (!tmp || tmp === '\0') {
+					this.$total_400('Invalid data');
+					return;
+				}
+
 				if (REG_EMPTYBUFFER_TEST.test(tmp))
 					tmp = tmp.replace(REG_EMPTYBUFFER, '');
 
@@ -14784,21 +14789,35 @@ function extend_request(PROTO) {
 		if (this.$type === 1) {
 			try {
 				tmp = this.bodydata.toString(ENCODING);
+
 				if (CONF.secret_encryption && !route.flags2.nodecrypt)
 					tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
+
+				if (!tmp || tmp === '\0') {
+					this.$total_400('Invalid data');
+					return;
+				}
 
 				if (REG_EMPTYBUFFER_TEST.test(tmp))
 					tmp = tmp.replace(REG_EMPTYBUFFER, '');
 
 				this.body = DEF.parsers.json(tmp);
+
 			} catch (e) {
-				this.$total_400('Invalid JSON data.');
+				this.$total_400('Invalid JSON data');
 				return;
 			}
 		} else {
 			tmp = this.bodydata.toString(ENCODING);
+
 			if (CONF.secret_encryption && !route.flags2.nodecrypt)
 				tmp = framework_utils.decrypt_data(tmp, CONF.secret_encryption);
+
+			if (!tmp || tmp === '\0') {
+				this.$total_400('Invalid data');
+				return;
+			}
+
 			if (REG_EMPTYBUFFER_TEST.test(tmp))
 				tmp = tmp.replace(REG_EMPTYBUFFER, '');
 			this.body = DEF.parsers.urlencoded(tmp);
