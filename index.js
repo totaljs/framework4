@@ -4814,7 +4814,7 @@ function install_build(name, filename, next) {
 	if (build && build.compiled) {
 		var code;
 		if ((/^base64\s/i).test(build.compiled))
-			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64');
+			code = decodeURIComponent(Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64'));
 		else if ((/^hex\s/i).test(build.compiled))
 			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
 		else
