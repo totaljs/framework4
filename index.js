@@ -1478,6 +1478,7 @@ function Framework() {
 		directory_components: '/components/',
 		directory_views: '/views/',
 		directory_definitions: '/definitions/',
+		directory_builds: '/builds/',
 		directory_plugins: '/plugins/',
 		directory_temp: '/tmp/',
 		directory_models: '/models/',
@@ -1631,6 +1632,7 @@ function Framework() {
 	self.modificators2 = null;
 	self.modules = {};
 	self.models = {};
+	self.builds = {};
 	self.plugins = {};
 	self.sources = {};
 	self.controllers = {};
@@ -4725,6 +4727,16 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('builds')) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
+			arr = [];
+			listing(dir, 0, arr, '.build');
+			arr.forEach(item => dependencies.push(next => install_build(item.name, item.filename, next)));
+			resume();
+		});
+	}
+
 	var thread = global.THREAD;
 	if (thread) {
 
@@ -4794,6 +4806,22 @@ function install_package(name, filename, next) {
 		RESTORE(filename, dir, restorecb);
 	else
 		restorecb();
+}
+
+function install_build(name, filename, next) {
+	F.builds[name] = { filename: filename };
+	var build = Fs.readFileSync(filename).toString('utf8').parseJSON();
+	if (build && build.compiled) {
+		var code;
+		if ((/^base64\s/i).test(build.compiled))
+			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64');
+		else if ((/^hex\s/i).test(build.compiled))
+			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
+		else
+			code = build.compiled.trim();
+		new Function('exports', code)(F.builds[name]);
+	}
+	next();
 }
 
 function install_component(name, filename, next) {
@@ -4888,8 +4916,10 @@ function install_component(name, filename, next) {
 }
 
 function install(type, name, filename, next) {
+
 	var key = type + '_' + name;
 	F.consoledebug('install', key);
+
 	var m = require(filename);
 	var opt = CONF[key];
 
@@ -9581,6 +9611,10 @@ FrameworkPathProto.logs = function(filename) {
 
 FrameworkPathProto.models = function(filename) {
 	return U.combine(CONF.directory_models, filename);
+};
+
+FrameworkPathProto.builds = function(filename) {
+	return U.combine(CONF.directory_builds, filename);
 };
 
 FrameworkPathProto.temp = FrameworkPathProto.tmp = function(filename) {

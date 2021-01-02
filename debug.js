@@ -90,13 +90,13 @@ function runwatching() {
 	const directory = process.cwd();
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
-	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.resource$/i;
+	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.resource$|\.build$/i;
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
 	const REG_COMPONENTS = /components\/.*?\.html|\.package\/.*?$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
-	const REG_EXTENSION = /\.(js|resource|package|bundle)$/i;
+	const REG_EXTENSION = /\.(js|resource|package|bundle|build)$/i;
 	const REG_RELOAD = /\.(js|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
@@ -129,6 +129,7 @@ function runwatching() {
 			U.combine(CONF.directory_operations),
 			U.combine(CONF.directory_modules),
 			U.combine(CONF.directory_models),
+			U.combine(CONF.directory_builds),
 			U.combine(CONF.directory_schemas),
 			U.combine(CONF.directory_tasks),
 			U.combine(CONF.directory_resources),
