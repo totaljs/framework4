@@ -4819,7 +4819,11 @@ function install_build(name, filename, next) {
 			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
 		else
 			code = build.compiled.trim();
-		new Function('exports', code)(F.builds[name]);
+
+		var tmp = PATH.temp(name + '.build.js');
+		Fs.writeFileSync(tmp, code);
+		F.builds[name] = require(tmp);
+		// new Function('exports', code)(F.builds[name]);
 	}
 	next();
 }
