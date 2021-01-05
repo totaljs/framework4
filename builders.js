@@ -315,18 +315,37 @@ SchemaOptionsProto.success = function(a, b) {
 };
 
 SchemaOptionsProto.done = function(arg) {
+
 	var self = this;
+
 	return function(err, response) {
+
 		if (err) {
 
 			if (self.error !== err)
 				self.error.push(err);
 
 			self.callback();
-		} else if (arg)
-			self.callback(SUCCESS(err == null, arg === true ? response : arg));
-		else
-			self.callback(SUCCESS(err == null));
+
+		} else {
+
+			var o;
+
+			if (arg)
+				o = SUCCESS(err == null, arg === true ? response : arg);
+			else
+				o = SUCCESS(err == null);
+
+			// Because if the response will contain same SUCCESS() objects then the value will be same due to reference
+			if (self.$multiple) {
+				var obj = {};
+				for (var m in o)
+					obj[m] = o[m];
+				o = obj;
+			}
+
+			self.callback(o);
+		}
 	};
 };
 
