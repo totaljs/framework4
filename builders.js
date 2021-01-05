@@ -2095,7 +2095,7 @@ SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare) {
+SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, directcall) {
 
 	var error = new ErrorBuilder();
 	var self = this;
@@ -2116,7 +2116,11 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
-	$.keys = controller ? controller.req.keys : type === 'patch' ? (model ? Object.keys(model) : EMPTYARRAY) : null;
+
+	if (type === 'patch')
+		$.keys = directcall ? model ? Object.keys(model) : EMPTYARRAY : controller && controller.req ? controller.req.keys : EMPTYARRAY;
+	else
+		$.keys = null;
 
 	self.perform(type, name, $, noprepare);
 };
