@@ -131,6 +131,25 @@ global.IMPORT = function(url, callback) {
 
 var BLOCKEDB = {};
 
+global.UNAUTHORIZED = function($) {
+	var user = $.user;
+	if (user) {
+		if (user.sa || user.su)
+			return false;
+		if (user.roles && user.roles.length) {
+			for (var i = 0; i < user.roles.length; i++) {
+				for (var j = 1; j < arguments.length; j++) {
+					if (arguments[i] === user.roles[i])
+						return false;
+				}
+			}
+		}
+	}
+
+	$.invalid(401);
+	return true;
+};
+
 global.BLOCKED = function($, limit, expiration) {
 
 	if (!limit)
