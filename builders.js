@@ -300,7 +300,17 @@ SchemaOptionsProto.success = function(a, b) {
 		a = true;
 	}
 
-	this.callback(SUCCESS(a === undefined ? true : a, b));
+	var o = SUCCESS(a === undefined ? true : a, b);
+
+	// Because if the response will contain same SUCCESS() objects then the value will be same due to reference
+	if (this.$multiple) {
+		var obj = {};
+		for (var m in o)
+			obj[m] = o[m];
+		o = obj;
+	}
+
+	this.callback(o);
 	return this;
 };
 
@@ -2206,6 +2216,9 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 		CONF.logger && F.ilogger(self.getLoggerName(a.type, a.name), $.controller, a.now);
 		self.$process(arguments, $.model, a.type, a.name, error, response, process);
 	}, controller, null, self);
+
+	// Multiple responses
+	$.$multiple = index == null;
 
 	var process = function(err, response) {
 		a.pending--;
