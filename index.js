@@ -4479,6 +4479,7 @@ F.$load = function(types, targetdirectory, callback) {
 			var ext = U.getExtension(o);
 			if (ext)
 				ext = '.' + ext;
+
 			if (ext !== extension || o[0] === '.' || o.endsWith('-bk' + extension) || o.endsWith('_bk' + extension))
 				return;
 
@@ -4750,8 +4751,20 @@ F.$load = function(types, targetdirectory, callback) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
 			arr = [];
+
+			listing(dir, 0, arr, '.url');
 			listing(dir, 0, arr, '.build');
-			arr.forEach(item => dependencies.push(next => install_build(item.name, item.filename, next)));
+
+			var unique = [];
+
+			// A simple prevention for same builds with .url and .build extension
+			for (var i = 0; i < arr.length; i++) {
+				var item = arr[i];
+				if (!unique.findItem('name', item.name))
+					unique.push(item);
+			}
+
+			unique.forEach(item => dependencies.push(next => install_build(item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -4828,6 +4841,22 @@ function install_package(name, filename, next) {
 }
 
 function install_build(name, filename, next) {
+
+	if (U.getExtension(filename) === 'url') {
+		var url = Fs.readFileSync(filename).toString('utf8').trim();
+		if (url) {
+			filename = filename.replace(/\.url$/, '.build');
+			DOWNLOAD(url, filename, function(err) {
+				if (err)
+					next();
+				else
+					install_build(name, filename, next);
+			});
+		} else
+			next();
+		return;
+	}
+
 	F.builds[name] = { filename: filename };
 	var build = Fs.readFileSync(filename).toString('utf8').parseJSON();
 	if (build && build.compiled) {
