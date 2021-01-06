@@ -4838,11 +4838,10 @@ function install_build(name, filename, next) {
 			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
 		else
 			code = build.compiled.trim();
-
 		var tmp = PATH.temp(name + '.build.js');
 		Fs.writeFileSync(tmp, code);
 		F.builds[name] = require(tmp);
-		// new Function('exports', code)(F.builds[name]);
+		F.buildscount = Object.keys(F.builds).length;
 	}
 	next();
 }
@@ -5023,6 +5022,8 @@ F.register = function(path) {
 	}
 };
 
+var BUILDERRORS = {};
+
 /**
  * Error handler
  * @param {Error} err
@@ -5031,8 +5032,66 @@ F.register = function(path) {
  * @return {Framework}
  */
 DEF.onError = function(err, name, uri) {
+
 	NOW = new Date();
-	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack ? err.stack : err);
+
+	if (F.buildscount && err.stack) {
+
+		var str = err.stack.split('\n')[1];
+		var index = str.lastIndexOf('(');
+		var filename = str.substring(index + 1, str.length - 1);
+		index = filename.indexOf(':', filename.length - 20);
+		var key = filename;
+
+		if (BUILDERRORS[key]) {
+			console.log(BUILDERRORS[key]);
+			return;
+		}
+
+		var info = filename.substring(index + 1).split(':');
+		filename = filename.substring(0, index);
+
+		info[0] = +info[0];
+		info[1] = +info[1];
+
+		var buildname = U.getName(filename).replace(/\.js/g, '');
+
+		Fs.readFile(filename, function(e, response) {
+
+			if (e) {
+				// unhandled error
+				return;
+			}
+
+			var lines = response.toString('utf8').split('\n');
+
+			var f = info[0];
+			var name;
+			var minus = 1;
+
+			while (f > 0) {
+
+				var line = lines[f--].trim();
+
+				if (line.substring(0, 7) === '//@code') {
+					minus = f;
+					continue;
+				}
+
+				if (line.substring(0, 9) === '//@build ') {
+					// name
+					name = line.substring(9).trim();
+					break;
+				}
+			}
+
+			var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus - 2) + ' "' + err.message + '"';
+			BUILDERRORS[key] = msg;
+			console.log(msg);
+		});
+
+	} else
+		console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack ? err.stack : err);
 };
 
 /*
