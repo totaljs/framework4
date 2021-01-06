@@ -5074,18 +5074,19 @@ DEF.onError = function(err, name, uri) {
 				var line = lines[f--].trim();
 
 				if (line.substring(0, 7) === '//@code') {
-					minus = f;
+					minus = f + 1;
 					continue;
 				}
 
 				if (line.substring(0, 9) === '//@build ') {
 					// name
 					name = line.substring(9).trim();
+					minus++;
 					break;
 				}
 			}
 
-			var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus - 2) + ' "' + err.message + '"';
+			var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"';
 			BUILDERRORS[key] = msg;
 			console.log(msg);
 		});
