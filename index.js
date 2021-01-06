@@ -4838,10 +4838,13 @@ function install_build(name, filename, next) {
 			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
 		else
 			code = build.compiled.trim();
+
 		var tmp = PATH.temp(name + '.build.js');
 		Fs.writeFileSync(tmp, code);
 		F.builds[name] = require(tmp);
-		F.buildscount = Object.keys(F.builds).length;
+
+		if (!F.buildserrorhandling)
+			F.buildserrorhandling = code.indexOf('//@build') !== -1;
 	}
 	next();
 }
@@ -5035,7 +5038,7 @@ DEF.onError = function(err, name, uri) {
 
 	NOW = new Date();
 
-	if (F.buildscount && err.stack) {
+	if (F.buildserrorhandling && err.stack) {
 
 		var str = err.stack.split('\n')[1];
 		var index = str.lastIndexOf('(');
