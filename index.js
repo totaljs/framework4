@@ -4678,6 +4678,29 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('builds')) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
+			arr = [];
+
+			listing(dir, 0, arr, '.url');
+			listing(dir, 0, arr, '.build');
+
+			var unique = [];
+
+			// A simple prevention for same builds with .url and .build extension
+			for (var i = 0; i < arr.length; i++) {
+				var item = arr[i];
+				if (!unique.findItem('name', item.name)) {
+					unique.push(item);
+					dependencies.push(next => install_build(item.name, item.filename, next));
+				}
+			}
+
+			resume();
+		});
+	}
+
 	if (can('plugins')) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/plugins/' : CONF.directory_plugins);
@@ -4741,32 +4764,6 @@ F.$load = function(types, targetdirectory, callback) {
 
 				}, resume);
 			});
-
-			// listing(dir, 0, arr, '.js');
-			// arr.forEach(item => dependencies.push(next => install('source', item.name, item.filename, next)));
-			// resume();
-		});
-	}
-
-	if (can('builds')) {
-		operations.push(function(resume) {
-			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
-			arr = [];
-
-			listing(dir, 0, arr, '.url');
-			listing(dir, 0, arr, '.build');
-
-			var unique = [];
-
-			// A simple prevention for same builds with .url and .build extension
-			for (var i = 0; i < arr.length; i++) {
-				var item = arr[i];
-				if (!unique.findItem('name', item.name))
-					unique.push(item);
-			}
-
-			unique.forEach(item => dependencies.push(next => install_build(item.name, item.filename, next)));
-			resume();
 		});
 	}
 
