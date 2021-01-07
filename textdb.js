@@ -1416,8 +1416,13 @@ JD.$count = TD.$count = function() {
 	fs.ondocuments = NOOP;
 
 	fs.$callback = function() {
+
 		self.filesize = fs.stats.size;
 		self.total = fs.indexer;
+
+		if (CONF.textdb_inmemory)
+			self.inmemory = CONF.textdb_inmemory > (self.filesize / 1024 / 1024); // to MB
+
 		fs = null;
 		self.$reading--;
 		self.next(0);

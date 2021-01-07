@@ -1594,6 +1594,7 @@ function Framework() {
 		allow_persistent_images: true,
 
 		textdb_worker: true,
+		textdb_inmemory: 20, // 20 MB
 		logger: false,
 
 		// Used in F.service()

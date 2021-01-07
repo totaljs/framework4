@@ -10,6 +10,9 @@ var statsid;
 var lastusagedate;
 var instances = {};
 
+var inmemory = +(process.argv[3] || 0);
+CONF.textdb_inmemory = inmemory;
+
 process.totaldbworker = 1;
 process.title = 'totaldbworker';
 process.on('message', processcommand);
