@@ -7302,6 +7302,7 @@ F.$requestcontinue = function(req, res, headers) {
 		return;
 
 	var tmp;
+	var isCORS = (F._length_cors || F.routes.corsall) && req.headers.origin != null;
 
 	// Validates if this request is the file (static file)
 	if (req.isStaticFile) {
@@ -7327,12 +7328,15 @@ F.$requestcontinue = function(req, res, headers) {
 			return;
 		}
 
-		F.stats.request.file++;
-
-		if (F._length_files)
-			req.$total_file();
-		else
-			res.continue();
+		if (isCORS) {
+			F.$cors_static(req, res, cors_callbackfiles);
+		} else {
+			F.stats.request.file++;
+			if (F._length_files)
+				req.$total_file();
+			else
+				res.continue();
+		}
 
 		return;
 	}
@@ -7426,7 +7430,6 @@ F.$requestcontinue = function(req, res, headers) {
 		F.stats.request.xhr++;
 
 	F.$events.request_begin && EMIT('request_begin', req, res);
-	var isCORS = (F._length_cors || F.routes.corsall) && req.headers.origin != null;
 
 	switch (first) {
 		case 'G':
@@ -7488,6 +7491,14 @@ F.$requestcontinue = function(req, res, headers) {
 	req.$total_status(404);
 };
 
+function cors_callbackfiles(req) {
+	F.stats.request.file++;
+	if (F._length_files)
+		req.$total_file();
+	else
+		req.res.continue();
+}
+
 function cors_callback0(req) {
 	req.$total_end();
 }
@@ -7532,7 +7543,7 @@ F.$cors = function(req, res, fn, arg) {
 
 			if (cors.headers) {
 				isAllowed = false;
-				for (var i = 0, length = cors.headers.length; i < length; i++) {
+				for (var i = 0; i < cors.headers.length; i++) {
 					if (headers[cors.headers[i]]) {
 						isAllowed = true;
 						break;
@@ -7546,7 +7557,7 @@ F.$cors = function(req, res, fn, arg) {
 				isAllowed = false;
 				var current = headers['access-control-request-method'] || req.method;
 				if (current !== 'OPTIONS') {
-					for (var i = 0, length = cors.methods.length; i < length; i++) {
+					for (var i = 0; i < cors.methods.length; i++) {
 						if (current === cors.methods[i]) {
 							isAllowed = true;
 							break;
@@ -7561,7 +7572,7 @@ F.$cors = function(req, res, fn, arg) {
 				origin = headers.origin.toLowerCase().substring(headers.origin.indexOf('/') + 2);
 				if (origin !== headers.host) {
 					isAllowed = false;
-					for (var i = 0, length = cors.origin.length; i < length; i++) {
+					for (var i = 0; i < cors.origin.length; i++) {
 						if (cors.origin[i].indexOf(origin) !== -1) {
 							isAllowed = true;
 							break;
@@ -7575,6 +7586,70 @@ F.$cors = function(req, res, fn, arg) {
 			F.temporary.other[key] = stop ? 2 : 1;
 		}
 	} else if (CONF.default_cors) {
+		key = headers.origin;
+		if (F.temporary.other[key]) {
+			stop = F.temporary.other[key] === 2;
+		} else {
+			origin = key.toLowerCase().substring(key.indexOf('/') + 2);
+			stop = origin !== headers.host && CONF.default_cors.indexOf(origin) === -1;
+			F.temporary.other[key] = stop ? 2 : 1;
+		}
+	}
+
+	if (stop)
+		origin = 'null';
+	else
+		origin = headers.origin;
+
+	res.setHeader('Access-Control-Allow-Origin', origin);
+
+	if (!cors || cors.credentials)
+		res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+	var name = 'Access-Control-Allow-Methods';
+	var isOPTIONS = req.method === 'OPTIONS';
+
+	if (cors && cors.methods)
+		res.setHeader(name, cors.methods.join(', '));
+	else
+		res.setHeader(name, isOPTIONS ? headers['access-control-request-method'] || '*' : req.method);
+
+	name = 'Access-Control-Allow-Headers';
+
+	if (cors && cors.headers)
+		res.setHeader(name, cors.headers.join(', '));
+	else
+		res.setHeader(name, headers['access-control-request-headers'] || '*');
+
+	cors && cors.age && res.setHeader('Access-Control-Max-Age', cors.age);
+	res.setHeader('Access-Control-Expose-Headers', '*');
+
+	if (stop) {
+		fn = null;
+		F.$events.request_end && EMIT('request_end', req, res);
+		F.stats.request.blocked++;
+		res.writeHead(404);
+		res.end();
+		return;
+	}
+
+	if (!isOPTIONS)
+		return fn(req, res, arg);
+
+	fn = null;
+	F.$events.request_end && EMIT('request_end', req, res);
+	res.writeHead(200);
+	res.end();
+};
+
+F.$cors_static = function(req, res, fn, arg) {
+
+	var cors, origin;
+	var headers = req.headers;
+	var key;
+	var stop = false;
+
+	if (CONF.default_cors) {
 		key = headers.origin;
 		if (F.temporary.other[key]) {
 			stop = F.temporary.other[key] === 2;
