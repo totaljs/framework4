@@ -5069,16 +5069,17 @@ DEF.onError = function(err, name, uri) {
 
 	if (F.buildserrorhandling && err.stack) {
 
-		var str = err.stack.split('\n')[1];
+		var str = err.stack.split('\n')[1].trim();
 		var index = str.lastIndexOf('(');
-		var filename = str.substring(index + 1, str.length - 1);
-		index = filename.indexOf(':', filename.length - 20);
+		var filename = str.substring(index + 1, str.length - 1).replace(/at\s/, '');
 		var key = filename;
 
 		if (BUILDERRORS[key]) {
 			console.log(BUILDERRORS[key]);
 			return;
 		}
+
+		index = filename.indexOf(':', filename.length - 20);
 
 		var info = filename.substring(index + 1).split(':');
 		filename = filename.substring(0, index);
@@ -5120,7 +5121,6 @@ DEF.onError = function(err, name, uri) {
 
 			var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"';
 			BUILDERRORS[key] = msg;
-			console.log(msg);
 		});
 
 	} else
@@ -6590,7 +6590,6 @@ F.initialize = function(http, debug, options) {
 				});
 			} else
 				F.server.listen(F.port, F.ip);
-
 		};
 
 		// clears static files
