@@ -1420,8 +1420,11 @@ JD.$count = TD.$count = function() {
 		self.filesize = fs.stats.size;
 		self.total = fs.indexer;
 
-		if (CONF.textdb_inmemory)
+		if (CONF.textdb_inmemory) {
+			if (!process.totaldbworker)
+				self.clone = true;
 			self.inmemory = CONF.textdb_inmemory > (self.filesize / 1024 / 1024); // to MB
+		}
 
 		fs = null;
 		self.$reading--;
