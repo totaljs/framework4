@@ -224,7 +224,13 @@ QueryBuilder.prototype.prepare = function(doc) {
 		}
 
 	} else if (self.$fieldsremove) {
-		obj = doc;
+
+		obj = {};
+
+		var keys = Object.keys(doc);
+		for (var i = 0; i < keys.length; i++)
+			obj[keys[i]] = doc[keys[i]];
+
 		for (var i = 0; i < self.$fieldsremove.length; i++)
 			obj[self.$fieldsremove[i]] = undefined;
 	}
