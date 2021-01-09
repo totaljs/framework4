@@ -594,7 +594,7 @@ JD.$update = function() {
 
 	fs.$callback = function() {
 
-		if (self.id && self.inmemory)
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
 
 		fs = null;
@@ -630,7 +630,6 @@ JD.$reader = function(items, reader) {
 
 	filters.type = 'read';
 	filters.db = self;
-	// filters.cancelable = false;
 	filters.inmemory = false;
 
 	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
@@ -651,13 +650,21 @@ JD.$reader = function(items, reader) {
 	if (self.buffercount)
 		fs.buffercount = self.buffercount;
 
-	var memory = [];
+	var memory = !filters.cancelable && self.inmemory ? [] : null;
 
 	fs.ondocuments = function() {
+
 		try {
+
 			var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
-			self.inmemory && memory.push.apply(memory, docs);
+
+			if (memory) {
+				for (var i = 0; i < docs.length; i++)
+					memory.push(docs[i]);
+			}
+
 			return filters.compare(docs);
+
 		} catch (e) {
 			F.error('TextDB("' + self.filename + '").read()', e);
 			return false;
@@ -666,10 +673,11 @@ JD.$reader = function(items, reader) {
 
 	fs.$callback = function() {
 
-		if (self.id && self.inmemory)
+		if (self.id && memory)
 			CACHEITEMS[self.id] = memory;
 
 		self.filesize = fs.stats.size;
+		CONF.textdb_inmemory && self.$check();
 		self.$reading--;
 		filters.done();
 		fs = null;
@@ -730,6 +738,7 @@ JD.$reader2 = function() {
 
 	fs.$callback = function() {
 		self.filesize = fs.stats.size;
+		CONF.textdb_inmemory && self.$check();
 		filters.done();
 		self.$reading--;
 		fs = null;
@@ -840,14 +849,13 @@ JD.$remove = function() {
 
 	fs.$callback = function() {
 
-		if (self.id && self.inmemory)
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
 
 		filters.done();
 		fs = null;
 		self.$writting = false;
 		self.next(0);
-		// change && CLEANER[self.name] && (CLEANER[self.name] = 1);
 	};
 
 	fs.openupdate();
@@ -869,7 +877,7 @@ JD.$clear = function() {
 		for (var i = 0; i < filter.length; i++)
 			filter[i]();
 
-		if (self.id && self.inmemory)
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
 
 		self.next(0);
@@ -948,7 +956,7 @@ JD.$drop = TD.$drop = function() {
 	self.pending_drops = false;
 	var remove = [self.filename, self.filenamebackup, self.filenamelog];
 	remove.wait((filename, next) => Fs.unlink(filename, next), function() {
-		if (self.id && self.inmemory)
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
 		self.next(0);
 	}, 5);
@@ -1282,7 +1290,7 @@ TD.$reader = function() {
 	if (self.buffercount)
 		fs.buffercount = self.buffercount;
 
-	var memory = self.inmemory ? [] : null;
+	var memory = !filters.cancelable && self.inmemory ? [] : null;
 
 	fs.ondocuments = function() {
 
@@ -1301,9 +1309,12 @@ TD.$reader = function() {
 	};
 
 	fs.$callback = function() {
+
 		if (self.id && memory)
 			CACHEITEMS[self.id] = memory;
+
 		self.filesize = fs.stats.size;
+		CONF.textdb_inmemory && self.$check();
 		filters.done();
 		fs = null;
 		self.$reading--;
@@ -1374,6 +1385,7 @@ TD.$reader2 = function() {
 
 	fs.$callback = function() {
 		self.filesize = fs.stats.size;
+		CONF.textdb_inmemory && self.$check();
 		filters.done();
 		fs = null;
 		self.$reading--;
@@ -1419,12 +1431,7 @@ JD.$count = TD.$count = function() {
 
 		self.filesize = fs.stats.size;
 		self.total = fs.indexer;
-
-		if (CONF.textdb_inmemory) {
-			if (!process.totaldbworker)
-				self.clone = true;
-			self.inmemory = CONF.textdb_inmemory > (self.filesize / 1024 / 1024); // to MB
-		}
+		CONF.textdb_inmemory && self.$check();
 
 		fs = null;
 		self.$reading--;
@@ -1433,6 +1440,17 @@ JD.$count = TD.$count = function() {
 
 	fs.openread();
 	return self;
+};
+
+TD.$check = JD.$check = function() {
+	var self = this;
+	if (self.id) {
+		if (!process.totaldbworker)
+			self.clone = true;
+		self.inmemory = CONF.textdb_inmemory > (self.filesize / 1024 / 1024); // to MB
+		if (!self.inmemory)
+			delete CACHEITEMS[self.id];
+	}
 };
 
 TD.$update = function() {
@@ -1515,10 +1533,12 @@ TD.$update = function() {
 
 	fs.$callback = function() {
 
-		if (self.id && self.inmemory)
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
 
 		self.filesize = fs.stats.size;
+		CONF.textdb_inmemory && self.$check();
+
 		fs = null;
 		self.$writting = false;
 		self.next(0);
@@ -1598,14 +1618,16 @@ TD.$remove = function() {
 	};
 
 	fs.$callback = function() {
+
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
+			CACHEITEMS[self.id] = [];
+
 		filters.done();
 		self.filesize = fs.stats.size;
+		CONF.textdb_inmemory && self.$check();
 		fs = null;
 		self.$writting = false;
 		self.next(0);
-
-		if (self.id && self.inmemory)
-			CACHEITEMS[self.id] = [];
 	};
 
 	fs.openupdate();
@@ -1674,7 +1696,7 @@ TD.$clear = function() {
 		Fs.appendFile(self.filename, self.stringifySchema(self) + NEWLINE, function() {
 			for (var i = 0; i < filter.length; i++)
 				filter[i]();
-			if (self.id && self.inmemory)
+			if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 				CACHEITEMS[self.id] = [];
 			self.next(0);
 		});
@@ -2118,6 +2140,13 @@ if (process.totaldbworker) {
 	}, 60000 * 60);
 } else {
 	ON('service', function(counter) {
+
+		if (counter % 60 === 0) {
+			var keys = Object.keys(CACHEITEMS);
+			for (var i = 0; i < keys.length; i++)
+				CACHEITEMS[keys[i]] = [];
+		}
+
 		// 12 hours
 		if (counter % 720 === 0) {
 			for (var i = 0; i < INSTANCES.length; i++)

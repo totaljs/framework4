@@ -65,7 +65,6 @@ function processcommand(msg) {
 			});
 			break;
 
-
 		case 'insert':
 
 			callback = function(err, builder) {
