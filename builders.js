@@ -2241,7 +2241,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 	}, controller, null, self);
 
 	// Multiple responses
-	$.$multiple = index == null;
+	$.$multiple = true;
 
 	var process = function(err, response) {
 		a.pending--;

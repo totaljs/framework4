@@ -1221,6 +1221,9 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 			break;
 	}
 
+	if (method)
+		schema = schema.substring(1);
+
 	var meta = F.temporary.other[schema];
 	var tmp, index;
 
@@ -1228,7 +1231,6 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 
 		index = schema.indexOf('-->');
 
-		//var op = (schema.substring(index + 3).trim().trim() + ' ').split(/\s@/).trim();
 		var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
 		tmp = schema.substring(0, index).split(/\s|\t/).trim();
 
@@ -1239,13 +1241,13 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 
 		meta = {};
 		meta.method = method || tmp[0].toUpperCase();
-		meta.schema = tmp[1];
+		meta.schema = method ? tmp[0] : tmp[1];
 
 		if (meta.schema[0] === '*')
 			meta.schema = meta.schema.substring(1);
 
 		meta.op = [];
-		meta.opcallbackindex = -1;
+		// meta.opcallbackindex = null;
 
 		var o = GETSCHEMA(meta.schema);
 		if (!o) {
@@ -1297,10 +1299,16 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		F.temporary.other[schema] = meta;
 	}
 
+	if (!controller) {
+		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
+		controller.isConnected = false;
+	}
+
 	if (meta.validate) {
 
 		var $ = {};
-		$.controller = controller ? controller.req : null;
+
+		$.controller = controller;
 
 		if (meta.method === 'PATCH' || meta.method === 'DELETE') {
 			meta.validate = true;
@@ -1314,15 +1322,16 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		meta.schema.make(model, performsschemaaction_async, data, null, $);
 
 	} else
-		performsschemaaction(meta, null, callback, controller);
+		setImmediate(performsschemaaction, meta, null, callback, controller);
 
+	return controller;
 };
 
 function performsschemaaction_async(err, response, data) {
 	if (err)
-		data.callback(err);
+		setImmediate(data.callback, err);
 	else
-		performsschemaaction(data.meta, response, data.callback, data.controller);
+		setImmediate(performsschemaaction, data.meta, response, data.callback, data.controller);
 }
 
 function performsschemaaction(meta, model, callback, controller) {
