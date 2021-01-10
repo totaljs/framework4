@@ -1199,12 +1199,26 @@ function performschema(type, schema, model, opt, callback, controller, noprepare
 	return !!o;
 }
 
-global.$ACTION = function(schema, model, callback, controller) {
+global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 
 	if (typeof(model) === 'function') {
 		controller = callback;
 		callback = model;
 		model = null;
+	}
+
+	var method;
+
+	switch (schema[0]) {
+		case '+':
+			method = 'POST';
+			break;
+		case '#':
+			method = 'PATCH';
+			break;
+		case '-':
+			method = 'GET';
+			break;
 	}
 
 	var meta = F.temporary.other[schema];
@@ -1218,13 +1232,13 @@ global.$ACTION = function(schema, model, callback, controller) {
 		var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
 		tmp = schema.substring(0, index).split(/\s|\t/).trim();
 
-		if (tmp.length !== 2) {
+		if (!method && tmp.length !== 2) {
 			callback('Invalid "{0}" type.'.format(schema));
 			return;
 		}
 
 		meta = {};
-		meta.method = tmp[0].toUpperCase();
+		meta.method = method || tmp[0].toUpperCase();
 		meta.schema = tmp[1];
 
 		if (meta.schema[0] === '*')
@@ -1275,7 +1289,11 @@ global.$ACTION = function(schema, model, callback, controller) {
 
 		meta.multiple = meta.op.length > 1;
 		meta.schema = o;
-		meta.validate = meta.method !== 'GET' || (meta.method === 'DELETE' && model);
+		meta.validate = meta.method !== 'GET';
+
+		if (meta.method === 'DELETE' && (!model || model === EMPTYOBJECT))
+			meta.validate = false;
+
 		F.temporary.other[schema] = meta;
 	}
 
