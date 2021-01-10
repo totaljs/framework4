@@ -1207,6 +1207,10 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		model = null;
 	}
 
+	// Because "controller" can be SchemaOptions/OperationOptions/TaskOptions
+	if (controller && controller.controller)
+		controller = controller.controller;
+
 	var method;
 
 	switch (schema[0]) {
