@@ -79,6 +79,7 @@ const REG_CSS_10 = /\$[a-z0-9-_]+(\s)*:.*?;/gi;
 const REG_CSS_11 = /\$.*?(;|\}|!)/gi;
 const REG_CSS_12 = /(margin|padding):.*?(;|})/g;
 const REG_CSS_13 = /#(0{6}|1{6}|2{6}|3{6}|4{6}|5{6}|6{6}|7{6}|8{6}|9{6}|0{6}|A{6}|B{6}|C{6}|D{6}|E{6}|F{6})/gi;
+const REG_CSS_14 = /\s>\s/g;
 const REG_VIEW_PART = /\/\*PART.*?\*\//g;
 const AUTOVENDOR = ['appearance', 'user-select', 'font-smoothing', 'text-size-adjust', 'backface-visibility'];
 const ALLOWEDMARKUP = { G: 1, M: 1, R: 1, repository: 1, model: 1, CONF: 1, config: 1, global: 1, resource: 1, RESOURCE: 1, CONFIG: 1, author: 1, root: 1, functions: 1, NOW: 1, F: 1 };
@@ -387,7 +388,7 @@ function compile_autovendor(css) {
 				return search;
 		}
 		return ',';
-	}).replace(REG_CSS_7, '}').replace(REG_CSS_8, '{').replace(REG_CSS_9, '}').replace(REG_CSS_12, cssmarginpadding).replace(REG_CSS_13, csscolors).trim();
+	}).replace(REG_CSS_7, '}').replace(REG_CSS_8, '{').replace(REG_CSS_9, '}').replace(REG_CSS_12, cssmarginpadding).replace(REG_CSS_13, csscolors).replace(REG_CSS_14, '>').trim();
 }
 
 function csscolors(text) {
@@ -1668,26 +1669,29 @@ function compressCSS(html, index, filename, nomarkup) {
 	if (!CONF.allow_compile_style)
 		return html;
 
-	var strFrom = '<style type="text/css">';
+	var strFrom = '<style';
 	var strTo = '</style>';
 
 	var indexBeg = html.indexOf(strFrom, index || 0);
-	if (indexBeg === -1) {
-		strFrom = '<style>';
-		indexBeg = html.indexOf(strFrom, index || 0);
-		if (indexBeg === -1)
-			return html;
-	}
+	if (indexBeg === -1)
+		return html;
 
-	var indexEnd = html.indexOf(strTo, indexBeg + strFrom.length);
+	var indexBeg2 = html.indexOf('>', indexBeg + strFrom.length);
+	if (indexBeg2 === -1)
+		return html;
+
+	strFrom = html.substring(indexBeg, indexBeg2 + 1);
+
+	var indexEnd = html.indexOf(strTo, indexBeg2 + strFrom.length);
 	if (indexEnd === -1)
 		return html;
 
 	var css = html.substring(indexBeg, indexEnd + strTo.length);
 	var val = css.substring(strFrom.length, css.length - strTo.length).trim();
 	var compiled = exports.compile_css(val, filename, nomarkup);
+
 	html = html.replacer(css, (strFrom + compiled.trim() + strTo).trim());
-	return compressCSS(html, indexBeg + compiled.length + 8, filename, nomarkup);
+	return compressCSS(html, indexBeg2 + compiled.length + 8, filename, nomarkup);
 }
 
 function variablesCSS(content) {
