@@ -4266,6 +4266,12 @@ global.TASK = function(taskname, name, callback, options, value) {
 		name = tmp[1];
 	}
 
+	if (!(options instanceof SchemaOptions || options instanceof OperationOptions || options instanceof TaskBuilder || options instanceof Controller)) {
+		value = options;
+		options = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
+		options.isConnected = false;
+	}
+
 	var obj = new TaskBuilder(options);
 	obj.name = tmp[0];
 
