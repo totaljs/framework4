@@ -1628,6 +1628,8 @@ function Framework() {
 		textdb_inmemory: 0, // in MB
 		logger: false,
 
+		mail_smtp_keepalive: true,
+
 		// Used in F.service()
 		// All values are in minutes
 		default_interval_clear_resources: 20,

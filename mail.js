@@ -392,7 +392,7 @@ Message.prototype.send2 = function(callback) {
 	}
 
 	self.$callback2 = callback;
-	mailer.send(CONF.mail_smtp, opt, self, null, !!F.port);
+	mailer.send(CONF.mail_smtp, opt, self, null, CONF.mail_smtp_keepalive && !!F.port);
 	return self;
 };
 
