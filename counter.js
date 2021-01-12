@@ -91,6 +91,29 @@ CP.find = function() {
 	return this.db.find();
 };
 
+CP.count = function(id, callback) {
+
+	if (typeof(id) === 'function') {
+		callback = id;
+		id = null;
+	}
+
+	var self = this;
+	var builder = self.find();
+
+	builder.callback(callback);
+	builder.options.scalar = 'arg.count=(arg.count?arg.count:0)+doc.sum';
+	builder.options.scalararg = {};
+	id && builder.id(id);
+	builder.$custom = function() {
+		return function(err, response, meta) {
+			response = response.count || 0;
+			builder.$callback && builder.$callback(err, response, meta);
+		};
+	};
+
+};
+
 CP.scalar = function(type, field, callback) {
 
 	if (typeof(field) === 'function' || !field) {
