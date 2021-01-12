@@ -369,22 +369,18 @@ Message.prototype.send2 = function(callback) {
 
 
 	var opt = F.temporary.mail_settings;
-
 	if (!opt) {
 		var config = CONF.mail_smtp_options;
 		config && (opt = config);
 		F.temporary.mail_settings = opt || {};
-		if (CONNECTION)
-			mailer.destroy(CONNECTION);
+		CONNECTION && mailer.destroy(CONNECTION);
 	}
 
 	// Computes a hostname
 	if (!CONF.mail_smtp) {
 		var ea = (self.address_from.address || self.address_from) || '';
-
 		if (typeof(ea) !== 'string' || !ea)
 			throw new Error('Missing SMTP settings');
-
 		ea = ea.substring(ea.lastIndexOf('@') + 1);
 		if (ea)
 			ea = 'smtp.' + ea;
@@ -392,7 +388,7 @@ Message.prototype.send2 = function(callback) {
 	}
 
 	self.$callback2 = callback;
-	mailer.send(CONF.mail_smtp, opt, self, null, CONF.mail_smtp_keepalive && !!F.port);
+	mailer.send(CONF.mail_smtp, opt, self, null, F.port ? CONF.mail_smtp_keepalive : false);
 	return self;
 };
 
@@ -663,6 +659,8 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 				mailer.$writeline(obj, obj.buffer.shift());
 			}
 		};
+		obj.TS = NOW.add(cache === true ? '10 minutes' : typeof(cache) === 'number' ? (cache + ' minutes') : cache);
+		CONNECTION = obj;
 	}
 
 	obj.cached = cache;
@@ -1045,6 +1043,7 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 					obj.buffer = [];
 					obj.count--;
 					socket.emit('line', '999 TRY NEXT MESSAGE');
+
 				} else {
 					mailer.destroy(obj);
 					obj.callback && obj.callback(err);
@@ -1065,6 +1064,13 @@ Mailer.prototype.restart = function() {
 	INDEXSENDER = 0;
 	INDEXATTACHMENT = 0;
 };
+
+setImmediate(function() {
+	ON('service', function() {
+		if (CONNECTION && CONNECTION.TS < NOW && (!CONNECTION.messages || !CONNECTION.messages.length))
+			mailer.destroy(CONNECTION);
+	});
+});
 
 // Split Base64 to lines with 68 characters
 function prepareBASE64(value) {

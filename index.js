@@ -1628,7 +1628,7 @@ function Framework() {
 		textdb_inmemory: 0, // in MB
 		logger: false,
 
-		mail_smtp_keepalive: true,
+		mail_smtp_keepalive: '10 minutes',
 
 		// Used in F.service()
 		// All values are in minutes
