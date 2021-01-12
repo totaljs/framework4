@@ -112,6 +112,7 @@ CP.count = function(id, callback) {
 		};
 	};
 
+	return builder;
 };
 
 CP.scalar = function(type, field, callback) {
