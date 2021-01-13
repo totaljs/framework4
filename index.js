@@ -10462,6 +10462,16 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.successful = function(callback) {
+	var self = this;
+	return function(err, a, b, c) {
+		if (err)
+			self.invalid(err);
+		else
+			callback.call(self, a, b, c);
+	};
+};
+
 ControllerProto.clients = function() {
 	return EMPTYARRAY;
 };
