@@ -795,10 +795,10 @@ function request_process_timeout(req) {
 		req.socket.destroy();
 		req.socket.end();
 		req.destroy();
-		options.response.status = 503;
+		options.response.status = 408;
 		options.response.host = req.$uri.host;
 		options.canceled = true;
-		options.callback(exports.httpstatus(503), options.response);
+		options.callback(exports.httpstatus(408), options.response);
 		options.callback = null;
 	}
 }
