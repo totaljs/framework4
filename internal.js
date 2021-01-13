@@ -78,7 +78,7 @@ const REG_CSS_9 = /;\}/g;
 const REG_CSS_10 = /\$[a-z0-9-_]+(\s)*:.*?;/gi;
 const REG_CSS_11 = /\$.*?(;|\}|!)/gi;
 const REG_CSS_12 = /(margin|padding):.*?(;|})/g;
-const REG_CSS_13 = /#(0{6}|1{6}|2{6}|3{6}|4{6}|5{6}|6{6}|7{6}|8{6}|9{6}|0{6}|A{6}|B{6}|C{6}|D{6}|E{6}|F{6})/gi;
+const REG_CSS_13 = /#(0{6}|1{6}|2{6}|3{6}|4{6}|5{6}|6{6}|7{6}|8{6}|9{6}|0{6}|A{6}|B{6}|C{6}|D{6}|E{6}|F{6})[\s;,)}]+/gi;
 const REG_CSS_14 = /\s>\s/g;
 const REG_VIEW_PART = /\/\*PART.*?\*\//g;
 const AUTOVENDOR = ['appearance', 'user-select', 'font-smoothing', 'text-size-adjust', 'backface-visibility'];
@@ -392,7 +392,7 @@ function compile_autovendor(css) {
 }
 
 function csscolors(text) {
-	return text.substring(0, 4);
+	return text.substring(0, 4) + text.charAt(text.length - 1);
 }
 
 function cssmarginpadding(text) {
