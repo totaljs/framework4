@@ -2573,7 +2573,7 @@ global.GETSCHEMA = exports.getschema = function(name, fn, timeout) {
 	}
 
 	if (fn)
-		framework_utils.wait(() => !!schemasall[name], err => fn(err, schemasall[name]), timeout || 20000);
+		WAIT(() => !!schemasall[name], err => fn(err, schemasall[name]), timeout || 20000);
 	else
 		return schemasall[name];
 };
