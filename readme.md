@@ -1,22 +1,19 @@
 ![Total.js logo](https://www.totaljs.com/img/logo-totaljs.png)
 
-Node.js framework
-=================
+Total.js framework 4
+====================
 
+- [Website](https://www.totaljs.com/)
 - [__Documentation__](https://docs.totaljs.com/total4/)
 - [Chat support](https://platform.totaljs.com/?open=messenger)
 - [Join to __Total.js Telegram__](https://t.me/totalplatform)
+- [Support](https://www.totaljs.com/support/)
 
-__Total.js framework v4__ is a framework for Node.js platfrom written in `pure` JavaScript similar to PHP's Laravel or Python's Django or ASP.NET MVC. It can be used as web, desktop, service or IoT application.
+__Total.js framework v4__ is the framework for Node.js platform written in `pure` JavaScript similar to PHP's Laravel or Python's Django or ASP.NET MVC. It can be used as a web, desktop, service, or IoT application.
 
 ```bash
 $ npm install -g total4
 ```
-
-- [ ] missing `COUNTER()` features (monthly stats, yearly stats)
-- [ ] rewrite `INSTALL()` and `UNINSTALL()`
-- [ ] TextDB Wrapper doesn't contain `backups()`
-- [ ] Missing implementation for auto-cleaner TextDBs
 
 ## Social networks
 
@@ -30,18 +27,7 @@ Please support the framework on social networks.
 
 ## Contact
 
-- (c) 2018-2020 by Peter Širka - <petersirka@gmail.com>
+- (c) 2012-2021 by Peter Širka - <petersirka@gmail.com>
 - Contact <https://www.totaljs.com/contact/>
 - [Chat support](https://platform.totaljs.com/?open=messenger)
 - [Join to __Total.js Telegram__](https://t.me/totalplatform)
-
-[license-image]: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
-[license-url]: license.txt
-
-[npm-url]: https://npmjs.org/package/total.js
-[npm-version-image]: https://img.shields.io/npm/v/total.js.svg?style=flat
-[npm-downloads-image]: https://img.shields.io/npm/dm/total.js.svg?style=flat
-[npm-quality]: http://npm.packagequality.com/shield/total.js.svg
-
-[travis-url]: https://travis-ci.org/totaljs/framework
-[travis-image]: https://img.shields.io/travis/totaljs/framework.svg?style=flat
