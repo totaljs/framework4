@@ -2950,7 +2950,11 @@ ErrorBuilder.prototype._prepare = function() {
 		if (o.error[0] !== '@')
 			continue;
 
-		if (o.error.length === 1)
+		if (o.error[1] === '(') {
+			// auto-localize
+			var err = o.error.substring(2, o.error.length - 1);
+			o.error = this.onResource('T' + err.hash(true).toString(36)) || err;
+		} else if (o.error.length === 1)
 			o.error = this.onResource(o.prefix ? o.prefix : (this.resourcePrefix + o.name));
 		else
 			o.error = this.onResource(o.error.substring(1));
