@@ -458,6 +458,8 @@ global.REQUEST = function(opt) {
 	if (!opt.method)
 		opt.method = 'GET';
 
+	options.$totalinit = opt;
+
 	// opt.encrypt {String}
 	// opt.limit in kB
 	// opt.key {Buffer}
@@ -947,10 +949,10 @@ function request_response(res) {
 	options.length = +res.headers['content-length'] || 0;
 
 	// Shared cookies
-	if (options.cook) {
+	if (options.$totalinit.cook) {
 
-		if (!options.cookies)
-			options.cookies = {};
+		if (!options.$totalinit.cookies)
+			options.$totalinit.cookies = {};
 
 		var arr = (res.headers['set-cookie'] || '');
 
@@ -967,7 +969,7 @@ function request_response(res) {
 				line = line.substring(0, end);
 				var index = line.indexOf('=');
 				if (index !== -1)
-					options.cookies[line.substring(0, index)] = decodeURIComponent(line.substring(index + 1));
+					options.$totalinit.cookies[line.substring(0, index)] = decodeURIComponent(line.substring(index + 1));
 			}
 		}
 	}
