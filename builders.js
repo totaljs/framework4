@@ -4071,6 +4071,9 @@ function exec_callback(err, response) {
 	var type = err ? '' : response.headers['content-type'] || '';
 	var output = new RESTBuilderResponse();
 
+	if (self.options.cook && self.options.cookies)
+		output.cookies = self.options.cookies;
+
 	if (type) {
 		var index = type.lastIndexOf(';');
 		if (index !== -1)
