@@ -3902,7 +3902,7 @@ RESTP.plain = function(val) {
 };
 
 RESTP.cook = function(value) {
-	this.$persistentcookies = value !== false;
+	this.options.cook = value !== false;
 	return this;
 };
 
@@ -4208,21 +4208,22 @@ function exec_callback(err, response) {
 function RESTBuilderResponse() {}
 
 RESTBuilderResponse.prototype.cookie = function(name) {
-	var self = this;
 
+	var self = this;
 	if (self.cookies)
 		return $decodeURIComponent(self.cookies[name] || '');
 
-	var cookie = self.headers.cookie;
-	if (!cookie)
-		return '';
-
 	self.cookies = {};
 
-	var arr = cookie.split(';');
+	var cookies = self.headers['set-cookie'];
+	if (!cookies)
+		return '';
 
-	for (var i = 0, length = arr.length; i < length; i++) {
-		var line = arr[i].trim();
+	if (typeof(cookies) === 'string')
+		cookies = [cookies];
+
+	for (var i = 0; i < cookies.length; i++) {
+		var line = cookies[i].split(';', 1)[0];
 		var index = line.indexOf('=');
 		if (index !== -1)
 			self.cookies[line.substring(0, index)] = line.substring(index + 1);

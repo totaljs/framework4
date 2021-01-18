@@ -947,7 +947,11 @@ function request_response(res) {
 	options.length = +res.headers['content-length'] || 0;
 
 	// Shared cookies
-	if (options.cookies) {
+	if (options.cook) {
+
+		if (!options.cookies)
+			options.cookies = {};
+
 		var arr = (res.headers['set-cookie'] || '');
 
 		// Only the one value
@@ -955,7 +959,7 @@ function request_response(res) {
 			arr = [arr];
 
 		if (arr instanceof Array) {
-			for (var i = 0, length = arr.length; i < length; i++) {
+			for (var i = 0; i < arr.length; i++) {
 				var line = arr[i];
 				var end = line.indexOf(';');
 				if (end === -1)
