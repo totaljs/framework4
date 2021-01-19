@@ -6509,7 +6509,7 @@ global.LOAD = F.load = function(types, pwd, ready) {
  * @param  {Object} options
  * @return {Framework}
  */
-F.initialize = function(http, debug, options) {
+F.initialize = function(http, debug, options, callback) {
 
 	if (!options)
 		options = {};
@@ -6584,7 +6584,6 @@ F.initialize = function(http, debug, options) {
 					item.close();
 				}
 			});
-
 			F.server.close();
 		}
 
@@ -6608,23 +6607,26 @@ F.initialize = function(http, debug, options) {
 						meta.cert = Fs.readFileSync(meta.cert);
 				}
 
-				F.server = Http.createServer(meta, F.listener);
+				if (http)
+					F.server = http.createServer(meta, F.listener);
 
-			} else
-				F.server = Http.createServer(F.listener);
+			} else if (http)
+				F.server = http.createServer(F.listener);
 
 			CONF.allow_performance && F.server.on('connection', connection_tunning);
 			F.initwebsocket && F.initwebsocket();
 			F.consoledebug('HTTP listening');
 			setInterval(clear_pending_requests, 5000);
 
-			if (unixsocket) {
-				F.server.listen(unixsocket, function() {
-					if (options.unixsocket777)
-						Fs.chmodSync(unixsocket, 0o777);
-				});
-			} else
-				F.server.listen(F.port, F.ip);
+			if (F.server) {
+				if (unixsocket) {
+					F.server.listen(unixsocket, function() {
+						if (options.unixsocket777)
+							Fs.chmodSync(unixsocket, 0o777);
+					});
+				} else
+					F.server.listen(F.port, F.ip);
+			}
 		};
 
 		// clears static files
@@ -6655,6 +6657,8 @@ F.initialize = function(http, debug, options) {
 					F.console();
 
 				setTimeout(function() {
+
+					callback && callback();
 
 					try {
 						EMIT('load');
@@ -6892,8 +6896,17 @@ F.mode = function(http, name, options) {
 	F.initialize(http, debug, options);
 };
 
-F.custom = function(mode, http, request, response, options) {
+F.custom = function(mode, http, request, response, options, callback) {
+
+	if (typeof(options) === 'function') {
+		callback = options;
+		options = null;
+	}
+
 	var debug = false;
+
+	if (!options)
+		options = {};
 
 	if (options.directory)
 		F.directory = directory = options.directory;
@@ -6912,7 +6925,7 @@ F.custom = function(mode, http, request, response, options) {
 			break;
 	}
 
-	F.initialize(http, debug, options);
+	F.initialize(http, debug, options, callback);
 };
 
 F.console = function() {
