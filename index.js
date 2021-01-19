@@ -5098,66 +5098,68 @@ DEF.onError = function(err, name, uri) {
 
 	NOW = new Date();
 
-	console.log(F.buildserrorhandling, err.stack);
-	console.log('---');
 	if (F.buildserrorhandling && err.stack) {
-
 		var str = err.stack.split('\n')[1].trim();
-		var index = str.lastIndexOf('(');
-		var filename = str.substring(index + 1, str.length - 1).trim().replace(/^at\s/, '');
-		var key = filename;
+		if (str.lastIndexOf('.build.js') !== -1) {
 
-		if (BUILDERRORS[key]) {
-			console.log(BUILDERRORS[key]);
-			return;
-		}
+			var index = str.lastIndexOf('(');
+			var filename = str.substring(index + 1, str.length - 1).trim().replace(/^at\s/, '');
+			var key = filename;
 
-		index = filename.indexOf(':', filename.length - 20);
-		var info = filename.substring(index + 1).split(':');
-		filename = filename.substring(0, index);
-
-		info[0] = +info[0];
-		info[1] = +info[1];
-
-		var buildname = U.getName(filename).replace(/\.js/g, '');
-
-		Fs.readFile(filename, function(e, response) {
-
-			if (e) {
-				// unhandled error
+			if (BUILDERRORS[key]) {
+				console.log(BUILDERRORS[key]);
 				return;
 			}
 
-			var lines = response.toString('utf8').split('\n');
+			index = filename.indexOf(':', filename.length - 20);
+			var info = filename.substring(index + 1).split(':');
+			filename = filename.substring(0, index);
 
-			var f = info[0];
-			var name;
-			var minus = 1;
+			info[0] = +info[0];
+			info[1] = +info[1];
 
-			while (f > 0) {
+			var buildname = U.getName(filename).replace(/\.js/g, '');
 
-				var line = lines[f--].trim();
+			Fs.readFile(filename, function(e, response) {
 
-				if (line.substring(0, 7) === '//@code') {
-					minus = f + 1;
-					continue;
+				if (e) {
+					// unhandled error
+					return;
 				}
 
-				if (line.substring(0, 9) === '//@build ') {
-					// name
-					name = line.substring(9).trim();
-					minus++;
-					break;
+				var lines = response.toString('utf8').split('\n');
+
+				var f = info[0];
+				var name;
+				var minus = 1;
+
+				while (f > 0) {
+
+					var line = lines[f--].trim();
+
+					if (line.substring(0, 7) === '//@code') {
+						minus = f + 1;
+						continue;
+					}
+
+					if (line.substring(0, 9) === '//@build ') {
+						// name
+						name = line.substring(9).trim();
+						minus++;
+						break;
+					}
 				}
-			}
 
-			var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"';
-			BUILDERRORS[key] = msg;
-			console.log(msg);
-		});
+				var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"';
+				BUILDERRORS[key] = msg;
+				console.log(msg);
+			});
 
-	} else
-		console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack ? err.stack : err);
+			return;
+		}
+	}
+
+	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack ? err.stack : err);
 };
 
 /*
