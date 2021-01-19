@@ -3,9 +3,28 @@ var CALLBACKS = {};
 var COUNTER = 1;
 var INSTANCE;
 
+function makedate(obj) {
+	for (var m in obj) {
+		var v = obj[m];
+		if (v) {
+			var t = typeof(v);
+			if (t === 'string' && v.isJSONDate())
+				obj[m] = new Date(v);
+			else if (v instanceof Array) {
+				for (var i = 0; i < v.length; i++) {
+					var vv = v[i];
+					if (vv && typeof(vv) === 'object')
+						makedate(vv);
+				}
+			} else if (t === 'object')
+				makedate(v);
+		}
+	}
+}
+
 exports.init = function(directory, callback) {
 
-	INSTANCE = Fork(__dirname + '/textdb-worker.js', [F.directory, CONF.textdb_inmemory || '0'], { detached: true, serialization: 'advanced' });
+	INSTANCE = Fork(__dirname + '/textdb-worker.js', [F.directory, CONF.textdb_inmemory || '0'], { detached: true, serialization: 'json' });
 	CALLBACKS = {};
 	INSTANCE.on('message', function(msg) {
 
@@ -27,7 +46,19 @@ exports.init = function(directory, callback) {
 					delete CALLBACKS[msg.cid];
 					msg.TYPE = undefined;
 					msg.cid = undefined;
+
 					var response = msg.response;
+
+					// due to JSON serialization
+					if (msg.date && response) {
+						if (response instanceof Array) {
+							for (var i = 0; i < response.length; i++)
+								makedate(response[i]);
+						} else
+							makedate(response);
+					}
+
+					msg.date = undefined;
 					msg.response = undefined;
 					cb(null, response, msg);
 				}

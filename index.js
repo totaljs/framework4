@@ -1624,7 +1624,7 @@ function Framework() {
 		allow_reqlimit: 0,
 		allow_persistent_images: true,
 
-		textdb_worker: true,
+		textdb_worker: false,
 		textdb_inmemory: 0, // in MB
 		logger: false,
 

@@ -41,10 +41,12 @@ function processcommand(msg) {
 	var callback;
 
 	switch (msg.TYPE) {
+
 		case 'find':
 			reading++;
 			instance.find().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
+				builder.date = true;
 				process.send(builder);
 			});
 			break;
@@ -53,6 +55,7 @@ function processcommand(msg) {
 			reading++;
 			instance.find2().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
+				builder.date = true;
 				process.send(builder);
 			});
 			break;
