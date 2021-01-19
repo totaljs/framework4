@@ -7257,6 +7257,8 @@ function makeproxy(proxy, req, res) {
 	if (uri.headers.connection)
 		delete uri.headers.connection;
 
+	uri.headers['x-forwarded-for'] = req.ip;
+
 	if (uri.headers['content-type'])
 		delete uri.headers['content-type'];
 
