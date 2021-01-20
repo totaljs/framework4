@@ -4722,13 +4722,12 @@ F.$load = function(types, targetdirectory, callback) {
 			var unique = [];
 
 			// A simple prevention for same builds with .url and .build extension
-			for (var i = 0; i < arr.length; i++) {
-				var item = arr[i];
+			arr.forEach(function(item) {
 				if (!unique.findItem('name', item.name)) {
 					unique.push(item);
 					dependencies.push(next => install_build(item.name, item.filename, next));
 				}
-			}
+			});
 
 			resume();
 		});
