@@ -28,6 +28,7 @@ TextReader.prototype.add = function(builder) {
 };
 
 TextReader.prototype.compare2 = function(docs, custom, done) {
+
 	var self = this;
 
 	for (var i = 0; i < docs.length; i++) {
@@ -69,7 +70,8 @@ TextReader.prototype.compare2 = function(docs, custom, done) {
 				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
 					continue;
 
-				!is && (is = true);
+				if (!is)
+					is = true;
 
 				builder.counter++;
 
@@ -91,6 +93,75 @@ TextReader.prototype.compare2 = function(docs, custom, done) {
 
 		is && done && done(docs, doc, i, self.builders);
 	}
+};
+
+// For FILEDB
+TextReader.prototype.compare3 = function(docs, custom) {
+
+	var self = this;
+	var changed = false;
+
+	for (var i = 0; i < docs.length; i++) {
+
+		var doc = docs[i];
+		if (doc === EMPTYOBJECT)
+			continue;
+
+		if (self.builders.length === self.canceled) {
+			self.total = 0;
+			return 0;
+		}
+
+		self.total++;
+
+		for (var j = 0; j < self.builders.length; j++) {
+
+			var builder = self.builders[j];
+			if (builder.canceled)
+				continue;
+
+			builder.scanned++;
+
+			var can = false;
+
+			try {
+				can = builder.filterrule(doc, builder.filterarg, builder.tmp, builder.func);
+			} catch (e) {
+				can = false;
+				builder.canceled = true;
+				builder.error = e + '';
+			}
+
+			if (can) {
+
+				builder.count++;
+
+				if (!builder.$sort && ((builder.$skip && builder.$skip >= builder.count) || (builder.$take && builder.$take <= builder.counter)))
+					continue;
+
+				if (!changed)
+					changed = true;
+
+				builder.counter++;
+
+				var canceled = builder.canceled;
+				var c = custom(docs, doc, i, builder, j);
+
+				if (builder.$take === 1) {
+					builder.canceled = true;
+					self.canceled++;
+				} else if (!canceled && builder.canceled)
+					self.canceled++;
+
+				if (c === 1)
+					break;
+				else
+					continue;
+			}
+		}
+	}
+
+	return changed ? 2 : 1;
 };
 
 TextReader.prototype.compare = function(docs) {
@@ -269,6 +340,7 @@ TextReader.prototype.done = function() {
 		self.callback(builder);
 	}
 
+	self.diff = diff;
 	self.canceled = 0;
 	return self;
 };

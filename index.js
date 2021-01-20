@@ -2238,11 +2238,45 @@ function nosqlwrapper(name) {
 	return instance;
 }
 
+function textdbwrapper(name) {
+
+	var db = F.databases[name];
+	if (db)
+		return db;
+
+	var onetime = name[0] === '~';
+	var path = onetime ? name.substring(1) : PATH.databases('textdb-' + name);
+
+	if (F.textdbworker)
+		return F.databases[name] = require('./textdb-new').make('textdb', path, F.textdbworker, onetime);
+
+	if (!onetime)
+		PATH.verify('databases');
+
+	// Is web server?
+	if (F.port && CONF.textdb_worker)
+		F.textdbworker = framework_nosql.init(PATH.databases());
+
+	var instance = require('./textdb-wrapper').make('textdb', path, F.textdbworker, onetime);
+
+	if (!onetime)
+		F.databases[name] = instance;
+
+	return instance;
+}
+
 global.NOSQL = function(name) {
 	if (!global.framework_nosql)
 		global.framework_nosql = require('./textdb-process');
 	global.NOSQL = nosqlwrapper;
 	return nosqlwrapper(name);
+};
+
+global.TEXTDB = function(name) {
+	if (!global.framework_nosql)
+		global.framework_nosql = require('./textdb-new');
+	global.TEXTDB = textdbwrapper;
+	return textdbwrapper(name);
 };
 
 function inmemorywrapper(name) {

@@ -101,8 +101,14 @@ function Database(type, name, fork, onetime, schema) {
 				if (type === 'inmemory') {
 					t.fork[key] = require('./inmemory').load(name);
 				} else {
-					var db = require('./textdb');
-					t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
+					var db;
+					if (type === 'textdb') {
+						db = require('./textdb-new');
+						t.fork[key] = db.TextDB(name);
+					} else {
+						db = require('./textdb');
+						t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
+					}
 				}
 			}
 

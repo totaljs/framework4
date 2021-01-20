@@ -1,0 +1,674 @@
+// Copyright 2021 (c) Peter Širka <petersirka@gmail.com>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+/**
+ * @module TextDB / FileDB
+ * @version 1.0.0
+ */
+
+'use strict';
+
+require('./utils');
+
+const Fs = require('fs');
+const Path = require('path');
+const QueryBuilder = require('./textdb-builder').QueryBuilder;
+const TextReader = require('./textdb-reader');
+const REGDATE = /"\d{4}-\d{2}-\d{2}T[0-9.:]+Z"/g;
+const MAXREADERS = 3;
+const FILELIMIT = 512 * 1024; // Bytes
+const READOPT = { encoding: 'utf8' };
+
+var CACHEITEMS = {};
+
+function TextDB(filename) {
+
+	var t = this;
+
+	t.filename = filename;
+	t.duration = [];
+	t.pending_count = 0;
+	t.pending_update = [];
+	t.pending_append = [];
+	t.pending_reader = [];
+	t.pending_remove = [];
+	t.pending_reader2 = [];
+	t.pending_clear = [];
+	t.pending_locks = [];
+	t.step = 0;
+	t.pending_drops = false;
+	t.$timeoutmeta;
+	t.$writting = false;
+	t.$reading = 0;
+	t.total = 0;
+
+	t.inmemory = false;
+	t.files = [];
+
+	t.next2 = function() {
+		t.next(0);
+	};
+
+	t.refresh();
+}
+
+const TD = TextDB.prototype;
+
+function next_operation(self, type) {
+	self.next(type);
+}
+
+TD.refresh = function() {
+	setImmediate(next_operation, this, 99);
+};
+
+TD.$refresh = function() {
+
+	var self = this;
+	self.step = 99;
+
+	Fs.readdir(self.filename, function(err, files) {
+
+		if (err) {
+			PATH.mkdir(self.filename);
+			setTimeout(self.next2, 100);
+			return;
+		}
+
+		self.filesize = 0;
+		files.wait(function(item, next) {
+			var filename = Path.join(self.filename, item);
+			Fs.lstat(filename, function(err, stat) {
+				if (stat && stat.isFile()) {
+					self.files.push({ filename: filename, size: stat.size });
+					self.filesize += stat.size;
+				}
+				next();
+			});
+		}, self.next2, 5);
+	});
+};
+
+TD.insert = function() {
+	var self = this;
+	var builder = new QueryBuilder(self);
+	self.pending_append.push(builder);
+	setImmediate(next_operation, self, 1);
+	return builder;
+};
+
+TD.update = function() {
+	var self = this;
+	var builder = new QueryBuilder(self);
+	self.pending_update.push(builder);
+	setImmediate(next_operation, self, 2);
+	return builder;
+};
+
+TD.drop = function(callback) {
+	var self = this;
+	self.pending_drops = true;
+	setImmediate(next_operation, self, 7);
+	callback && callback({ success: true });
+	return self;
+};
+
+TD.clear = function(callback) {
+	var self = this;
+	self.pending_clear.push(callback || NOOP);
+	setImmediate(next_operation, self, 12);
+	return self;
+};
+
+TD.clean = function(callback) {
+	var self = this;
+	callback && callback();
+	setImmediate(next_operation, self, 13);
+	return self;
+};
+
+TD.remove = function() {
+	var self = this;
+	var builder = new QueryBuilder(self);
+	self.pending_remove.push(builder);
+	setImmediate(next_operation, self, 3);
+	return builder;
+};
+
+TD.find = TD.find2 = function(builder) {
+	var self = this;
+	if (builder instanceof QueryBuilder)
+		builder.db = self;
+	else
+		builder = new QueryBuilder(self);
+	self.pending_reader.push(builder);
+	setImmediate(next_operation, self, 4);
+	return builder;
+};
+
+TD.recount = function() {
+	var self = this;
+	self.pending_count++;
+	setImmediate(next_operation, self, 5);
+};
+
+//  1 append
+//  2 update
+//  3 remove
+//  4 reader
+//  5 counting
+//  7 drop
+//  8 backup
+//  9 restore
+// 10 streamer
+// 11 reader reverse
+// 12 clear
+// 13 clean
+// 14 locks
+
+const NEXTWAIT = { 99: true, 7: true, 8: true, 9: true, 12: true, 13: true, 14: true };
+
+TD.next = function(type) {
+
+	if (type && NEXTWAIT[this.step])
+		return;
+
+	if (this.step !== 99 && type === 99) {
+		this.$refresh();
+		return;
+	}
+
+	if (!this.$writting && !this.$reading) {
+
+		if (this.step !== 12 && this.pending_clear.length) {
+			this.$clear();
+			return;
+		}
+
+		if (this.step !== 7 && this.pending_drops) {
+			this.$drop();
+			return;
+		}
+
+		if (this.step !== 14 && this.pending_locks.length) {
+			this.$lock();
+			return;
+		}
+
+		if (this.step !== 5 && this.pending_count) {
+			this.$count();
+			return;
+		}
+	}
+
+	if (!this.$writting) {
+
+		if (this.step !== 1 && this.pending_append.length) {
+			this.$append();
+			return;
+		}
+
+		if (this.step !== 2 && !this.$writting && this.pending_update.length) {
+			this.$update();
+			return;
+		}
+
+		if (this.step !== 3 && !this.$writting && this.pending_remove.length) {
+			this.$remove();
+			return;
+		}
+
+	}
+
+	if (this.$reading < MAXREADERS) {
+
+		// if (this.step !== 4 && this.pending_reader.length) {
+		if (this.pending_reader.length) {
+			this.$reader();
+			return;
+		}
+
+	}
+
+	if (this.step !== type) {
+		this.step = 0;
+		setImmediate(next_operation, this, 0);
+	}
+};
+
+// ======================================================================
+// FILE OPERATIONS
+// ======================================================================
+
+function replacedate(text) {
+	return 'new Date(' + new Date(text.substring(1, text.length - 1)).getTime() + ')';
+}
+
+TD.lock = function(callback) {
+	var self = this;
+	self.pending_locks.push(callback || NOOP);
+	setImmediate(next_operation, self, 14);
+	return self;
+};
+
+TD.$lock = function() {
+
+	var self = this;
+	self.step = 14;
+
+	if (!self.pending_locks.length) {
+		self.next(0);
+		return;
+	}
+
+	var filter = self.pending_locks.splice(0);
+	filter.wait(function(fn, next) {
+		fn.call(self, next);
+	}, () => self.next(0));
+};
+
+TD.$append = function() {
+	var self = this;
+	self.step = 1;
+
+	if (!self.pending_append.length) {
+		self.next(0);
+		return;
+	}
+
+	self.$writting = true;
+	var now = Date.now();
+	var output = [];
+
+	self.files.wait(function(item, next) {
+
+		if (item.size > FILELIMIT) {
+			next();
+			return;
+		}
+
+		Fs.readFile(item.filename, READOPT, function(err, body) {
+
+			var diff = FILELIMIT - item.size;
+			var arr = body.length ? (new Function('return ' + body))() : [];
+			var is = false;
+
+			while (self.pending_append.length) {
+
+				var builder = self.pending_append.shift();
+				var length = Buffer.from(JSON.stringify(builder.payload)).length;
+
+				diff -= length;
+				item.size += length;
+				arr.push(builder.payload);
+
+				if (builder.$callback || builder.$callback2)
+					output.push(builder);
+
+				is = true;
+
+				if (diff <= 0)
+					break;
+			}
+
+			if (is)
+				Fs.writeFile(item.filename, JSON.stringify(arr).replace(REGDATE, replacedate), next);
+			else
+				next();
+
+		});
+
+	}, function() {
+
+		var arr = [];
+		var size = 0;
+
+		while (self.pending_append.length) {
+
+			var builder = self.pending_append.shift();
+			var length = Buffer.from(JSON.stringify(builder.payload)).length;
+
+			arr.push(builder.payload);
+
+			if (builder.$callback || builder.$callback2)
+				output.push(builder);
+
+			size += length;
+
+			if (size > FILELIMIT || !self.pending_append.length) {
+
+				var filename = Path.join(self.filename, Date.now().toString(36) + '.json');
+				self.files.push({ filename: filename, size: size });
+				Fs.writeFile(filename, JSON.stringify(arr).replace(REGDATE, replacedate), ERROR('filedb.insert'));
+				arr = [];
+				size = 0;
+			}
+		}
+
+		var diff = Date.now() - now;
+
+		if (self.duration.push({ type: 'insert', duration: diff }) > 20)
+			self.duration.shift();
+
+		for (var i = 0; i < output.length; i++) {
+			var builder = output[i];
+			builder.duration = diff;
+			builder.response = builder.counter = builder.count = 1;
+			builder.logrule && builder.logrule();
+			builder.done();
+		}
+
+		setImmediate(next_append, self);
+	});
+
+};
+
+function next_append(self) {
+	self.$writting = false;
+	self.next(0);
+}
+
+TD.$update = function() {
+
+	var self = this;
+	self.step = 2;
+
+	if (!self.pending_update.length) {
+		self.next(0);
+		return self;
+	}
+
+	self.$writting = true;
+
+	var filter = self.pending_update.splice(0);
+	var filters = TextReader.make();
+
+	filters.type = 'update';
+	filters.db = self;
+
+	for (var i = 0; i < filter.length; i++)
+		filters.add(filter[i], true);
+
+	var update = function(docs, doc, dindex, f) {
+		try {
+			f.modifyrule(docs[dindex], f.modifyarg);
+			f.backuprule && f.backuprule(doc);
+		} catch (e) {
+			f.canceled = true;
+			f.error = e + '';
+		}
+	};
+
+	var done = function() {
+
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
+			CACHEITEMS[self.id] = [];
+
+		self.$writting = false;
+		self.next(0);
+
+
+		var diff = filters.done().diff;
+
+		if (self.duration.push({ type: 'update', duration: diff }) > 20)
+			self.duration.shift();
+
+		if (filters.total > 0)
+			filters.db.total = filters.total;
+	};
+
+	self.files.wait(function(item, next) {
+
+		if (!next)
+			return;
+
+		Fs.readFile(item.filename, READOPT, function(err, body) {
+
+			if (!next)
+				return;
+
+			var docs = (new Function('return ' + body))();
+			var r = filters.compare3(docs, update);
+			if (r === 0) {
+				next = null;
+				done();
+				return;
+			}
+			if (r === 2)
+				Fs.writeFile(item.filename, JSON.stringify(docs).replace(REGDATE, replacedate), next);
+			else
+				next();
+		});
+
+	}, done, 3);
+
+	return self;
+};
+
+TD.$reader = function() {
+
+	var self = this;
+	self.step = 4;
+
+	if (!self.pending_reader.length) {
+		self.next(0);
+		return self;
+	}
+
+	var filters = TextReader.make(self.pending_reader.splice(0));
+
+	filters.type = 'read';
+	filters.db = self;
+	filters.inmemory = false;
+
+	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
+		filters.inmemory = true;
+		filters.compare(CACHEITEMS[self.id]);
+		filters.done();
+		self.next(0);
+		return self;
+	}
+
+	var memory = !filters.cancelable && self.inmemory ? [] : null;
+
+	var done = function() {
+		if (self.id && memory)
+			CACHEITEMS[self.id] = memory;
+
+		CONF.textdb_inmemory && self.$check();
+		self.$reading--;
+		filters.done();
+		self.next(0);
+	};
+
+	self.files.wait(function(item, next) {
+
+		if (!next)
+			return;
+
+		Fs.readFile(item.filename, READOPT, function(err, body) {
+			var docs = (new Function('return ' + body))();
+			if (filters.compare(docs)) {
+				next = null;
+				done();
+			} else
+				next();
+		});
+
+	}, done, 3);
+
+	return self;
+};
+
+TD.$remove = function() {
+
+	var self = this;
+	self.step = 3;
+
+	if (!self.pending_remove.length) {
+		self.next(0);
+		return;
+	}
+
+	self.$writting = true;
+
+	var filter = self.pending_remove.splice(0);
+	var filters = TextReader.make(filter);
+
+	filters.type = 'remove';
+	filters.db = self;
+
+	var removed = [];
+
+	var remove = function(docs, d, dindex, f) {
+		removed.push(d);
+		filters.total--;
+		f.backuprule && f.backuprule(d);
+		return 1;
+	};
+
+	// var memory = !filters.cancelable && self.inmemory ? [] : null;
+
+	var done = function() {
+
+		var diff = filters.done().diff;
+
+		if (self.duration.push({ type: 'remove', duration: diff }) > 20)
+			self.duration.shift();
+
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
+			CACHEITEMS[self.id] = [];
+
+		self.$writting = false;
+		self.next(0);
+	};
+
+	self.files.wait(function(item, next) {
+
+		if (!next)
+			return;
+
+		Fs.readFile(item.filename, READOPT, function(err, body) {
+
+			if (!next)
+				return;
+
+			var docs = (new Function('return ' + body))();
+			var r = filters.compare3(docs, remove);
+			if (r === 0) {
+				next = null;
+				done();
+				return;
+			}
+
+			if (r === 2) {
+				while (removed.length) {
+					var doc = removed.shift();
+					var index = docs.indexOf(doc);
+					docs.splice(index, 1);
+				}
+				Fs.writeFile(item.filename, JSON.stringify(docs).replace(REGDATE, replacedate), next);
+			} else
+				next();
+		});
+
+	}, done, 3);
+};
+
+TD.$clear = function() {
+
+	var self = this;
+	self.step = 12;
+
+	if (!self.pending_clear.length) {
+		self.next(0);
+		return;
+	}
+
+	var filter = self.pending_clear.splice(0);
+
+	self.files.wait(function(item, next) {
+		Fs.unlink(item.filename, next);
+	}, function() {
+		self.total = 0;
+		for (var i = 0; i < filter.length; i++)
+			filter[i]();
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
+			CACHEITEMS[self.id] = [];
+		self.files = [];
+		self.next(0);
+	}, 5);
+
+};
+
+TD.$drop = function() {
+	var self = this;
+	self.step = 7;
+
+	if (!self.pending_drops) {
+		self.next(0);
+		return;
+	}
+
+	self.pending_drops = false;
+	self.files.wait((item, next) => Fs.unlink(item.filename, next), function() {
+		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
+			CACHEITEMS[self.id] = [];
+		self.next(0);
+	}, 5);
+};
+
+TD.$count = function() {
+
+	var self = this;
+	self.step = 5;
+
+	if (!self.pending_count) {
+		self.next(0);
+		return self;
+	}
+
+	self.pending_count = 0;
+	self.$reading++;
+
+	self.filesize = 0;
+	self.total = 0;
+
+	self.files.wait(function(item, next) {
+		self.filesize += item.size;
+		Fs.readFile(item.filename, READOPT, function(err, body) {
+			var docs = body ? (new Function('return ' + body))() : EMPTYARRAY;
+			self.total += docs.length;
+			next();
+		});
+	}, function() {
+		CONF.textdb_inmemory && self.$check();
+		self.$reading--;
+		self.next(0);
+	});
+
+	return self;
+};
+
+exports.TextDB = function(name) {
+	var instance = new TextDB(name);
+	return instance;
+};
