@@ -2247,7 +2247,7 @@ function textdbwrapper(name) {
 	var onetime = name[0] === '~';
 
 	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-new').make('textdb', onetime ? name.substring(1) : name, F.textdbworker, onetime);
+		return F.databases[name] = require('./textdb-wrapper').make('textdb', onetime ? name.substring(1) : name, F.textdbworker, onetime);
 
 	var path = onetime ? name.substring(1) : PATH.databases('textdb-' + name);
 

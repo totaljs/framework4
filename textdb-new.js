@@ -318,7 +318,9 @@ TD.$append = function() {
 
 				diff -= length;
 				item.size += length;
-				arr.push(builder.payload);
+
+				// Adds as a first item
+				arr.unshift(builder.payload);
 
 				if (builder.$callback || builder.$callback2)
 					output.push(builder);
@@ -346,7 +348,8 @@ TD.$append = function() {
 			var builder = self.pending_append.shift();
 			var length = Buffer.from(JSON.stringify(builder.payload)).length;
 
-			arr.push(builder.payload);
+			// adds as a first item
+			// arr.unshift(builder.payload);
 
 			if (builder.$callback || builder.$callback2)
 				output.push(builder);

@@ -33,7 +33,7 @@ function processcommand(msg) {
 		var db;
 
 		if (msg.builder.type === 'textdb') {
-			filename = msg.builder.onetime ? msg.builder.database : PATH.databases('textdb-' + msg.builder.database);
+			filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database);
 			db = require('./textdb-new');
 			instance = db.TextDB(filename, !msg.builder.onetime);
 		} else {
@@ -209,7 +209,7 @@ function measure() {
 
 	for (var i = 0; i < keys.length; i++) {
 		var instance = instances[keys[i]];
-		pendingread += instance.pending_reader.length + instance.pending_reader2.length + instance.pending_streamer.length;
+		pendingread += instance.pending_reader.length + (instance.pending_reader2 ? instance.pending_reader2.length : 0) + (instance.pending_streamer ? instance.pending_streamer.length : 0);
 		pendingwrite += instance.pending_update.length + instance.pending_append.length + instance.pending_remove.length;
 		if (duration < instance.duration)
 			duration = instance.duration;
