@@ -37,9 +37,7 @@ const MAXREADERS = 3;
 const FILELIMIT = 512 * 1024; // Bytes
 const READOPT = { encoding: 'utf8' };
 
-var CACHEITEMS = {};
-
-function TextDB(filename) {
+function TextDB(filename, onetime) {
 
 	var t = this;
 
@@ -59,7 +57,6 @@ function TextDB(filename) {
 	t.$writting = false;
 	t.$reading = 0;
 	t.total = 0;
-
 	t.inmemory = false;
 	t.files = [];
 
@@ -386,6 +383,48 @@ function next_append(self) {
 	self.next(0);
 }
 
+TD.$reader = function() {
+
+	var self = this;
+	self.step = 4;
+
+	if (!self.pending_reader.length) {
+		self.next(0);
+		return self;
+	}
+
+	var filters = TextReader.make(self.pending_reader.splice(0));
+
+	filters.type = 'read';
+	filters.db = self;
+	filters.inmemory = false;
+
+	var done = function() {
+		CONF.textdb_inmemory && self.$check();
+		self.$reading--;
+		filters.done();
+		self.next(0);
+	};
+
+	self.files.wait(function(item, next) {
+
+		if (!next)
+			return;
+
+		Fs.readFile(item.filename, READOPT, function(err, body) {
+			var docs = (new Function('return ' + body))();
+			if (filters.compare(docs)) {
+				next = null;
+				done();
+			} else
+				next();
+		});
+
+	}, done, 3);
+
+	return self;
+};
+
 TD.$update = function() {
 
 	var self = this;
@@ -419,12 +458,8 @@ TD.$update = function() {
 
 	var done = function() {
 
-		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
-			CACHEITEMS[self.id] = [];
-
 		self.$writting = false;
 		self.next(0);
-
 
 		var diff = filters.done().diff;
 
@@ -452,63 +487,12 @@ TD.$update = function() {
 				done();
 				return;
 			}
-			if (r === 2)
-				Fs.writeFile(item.filename, JSON.stringify(docs).replace(REGDATE, replacedate), next);
-			else
-				next();
-		});
 
-	}, done, 3);
-
-	return self;
-};
-
-TD.$reader = function() {
-
-	var self = this;
-	self.step = 4;
-
-	if (!self.pending_reader.length) {
-		self.next(0);
-		return self;
-	}
-
-	var filters = TextReader.make(self.pending_reader.splice(0));
-
-	filters.type = 'read';
-	filters.db = self;
-	filters.inmemory = false;
-
-	if (self.id && self.inmemory && CACHEITEMS[self.id].length) {
-		filters.inmemory = true;
-		filters.compare(CACHEITEMS[self.id]);
-		filters.done();
-		self.next(0);
-		return self;
-	}
-
-	var memory = !filters.cancelable && self.inmemory ? [] : null;
-
-	var done = function() {
-		if (self.id && memory)
-			CACHEITEMS[self.id] = memory;
-
-		CONF.textdb_inmemory && self.$check();
-		self.$reading--;
-		filters.done();
-		self.next(0);
-	};
-
-	self.files.wait(function(item, next) {
-
-		if (!next)
-			return;
-
-		Fs.readFile(item.filename, READOPT, function(err, body) {
-			var docs = (new Function('return ' + body))();
-			if (filters.compare(docs)) {
-				next = null;
-				done();
+			if (r === 2) {
+				var buffer = Buffer.from(JSON.stringify(docs).replace(REGDATE, replacedate));
+				item.size = buffer.length;
+				item.modified = true;
+				Fs.writeFile(item.filename, buffer, next);
 			} else
 				next();
 		});
@@ -554,9 +538,6 @@ TD.$remove = function() {
 		if (self.duration.push({ type: 'remove', duration: diff }) > 20)
 			self.duration.shift();
 
-		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
-			CACHEITEMS[self.id] = [];
-
 		self.$writting = false;
 		self.next(0);
 	};
@@ -580,12 +561,18 @@ TD.$remove = function() {
 			}
 
 			if (r === 2) {
+
 				while (removed.length) {
 					var doc = removed.shift();
 					var index = docs.indexOf(doc);
 					docs.splice(index, 1);
 				}
-				Fs.writeFile(item.filename, JSON.stringify(docs).replace(REGDATE, replacedate), next);
+
+				var buffer = Buffer.from(JSON.stringify(docs).replace(REGDATE, replacedate));
+				item.size = buffer.length;
+				item.modified = true;
+				Fs.writeFile(item.filename, buffer, next);
+
 			} else
 				next();
 		});
@@ -609,10 +596,10 @@ TD.$clear = function() {
 		Fs.unlink(item.filename, next);
 	}, function() {
 		self.total = 0;
+
 		for (var i = 0; i < filter.length; i++)
 			filter[i]();
-		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
-			CACHEITEMS[self.id] = [];
+
 		self.files = [];
 		self.next(0);
 	}, 5);
@@ -629,11 +616,7 @@ TD.$drop = function() {
 	}
 
 	self.pending_drops = false;
-	self.files.wait((item, next) => Fs.unlink(item.filename, next), function() {
-		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
-			CACHEITEMS[self.id] = [];
-		self.next(0);
-	}, 5);
+	self.files.wait((item, next) => Fs.unlink(item.filename, next), self.next2, 5);
 };
 
 TD.$count = function() {
