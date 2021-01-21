@@ -130,6 +130,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.req.on('error', function(e) {
 		self.$events.error && self.emit('error', e);
 		self.$onclose();
+		reconnect_client_timer(self);
 	});
 
 	self.req.on('response', function() {
@@ -196,18 +197,28 @@ function websocket_close() {
 	websocket_close_force(this.$websocket);
 }
 
+function reconnect_client(client) {
+	client.isClosed = false;
+	client._isClosed = false;
+	client.$reconnecting = null;
+	client.reconnect++;
+	client.connect(client.url, client.protocol, client.origin);
+}
+
+function reconnect_client_timer(client) {
+	if (client.options.reconnect) {
+		client.$reconnecting && clearTimeout(client.$reconnecting);
+		client.$reconnecting = setTimeout(reconnect_client,  client.options.reconnect, client);
+	}
+}
+
 function websocket_close_force(client) {
 	if (client.closed)
 		return;
 	client.$events.close && client.emit('close', client.closecode, client.closemessage);
 	client.closed = true;
 	client.$onclose();
-	client.options.reconnect && setTimeout(function(client) {
-		client.isClosed = false;
-		client._isClosed = false;
-		client.reconnect++;
-		client.connect(client.url, client.protocol, client.origin);
-	}, client.options.reconnect, client);
+	reconnect_client_timer(client);
 }
 
 WebSocketClientProto.emit = function(name, a, b, c, d, e, f, g) {
