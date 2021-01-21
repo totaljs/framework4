@@ -95,12 +95,15 @@ TD.$refresh = function() {
 			var filename = Path.join(self.filename, item);
 			Fs.lstat(filename, function(err, stat) {
 				if (stat && stat.isFile()) {
-					self.files.push({ filename: filename, size: stat.size });
+					self.files.push({ filename: filename, size: stat.size, sortindex: parseInt(item, 36) });
 					self.filesize += stat.size;
 				}
 				next();
 			});
-		}, self.next2, 5);
+		}, function() {
+			self.files.quicksort('sortindex_desc');
+			self.next(0);
+		}, 5);
 	});
 };
 
@@ -351,10 +354,10 @@ TD.$append = function() {
 			size += length;
 
 			if (size > FILELIMIT || !self.pending_append.length) {
-
-				var filename = Path.join(self.filename, Date.now().toString(36) + '.json');
-				self.files.push({ filename: filename, size: size });
-				Fs.writeFile(filename, JSON.stringify(arr).replace(REGDATE, replacedate), ERROR('filedb.insert'));
+				var id = Date.now();
+				var filename = Path.join(self.filename, id.toString(36) + '.json');
+				self.files.unshift({ filename: filename, size: size, sortindex: id });
+				Fs.writeFile(filename, JSON.stringify(arr).replace(REGDATE, replacedate), ERROR('textdb'));
 				arr = [];
 				size = 0;
 			}
