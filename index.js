@@ -1502,7 +1502,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4000;
+	self.is4 = self.version = 4027;
 	self.version_header = '4.0.0';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
@@ -4735,16 +4735,6 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('sources')) {
-		operations.push(function(resume) {
-			dir = U.combine(targetdirectory, isPackage ? '/sources/' : CONF.directory_modules);
-			arr = [];
-			listing(dir, 0, arr, '.js');
-			arr.forEach(item => dependencies.push(next => install('source', item.name, item.filename, next)));
-			resume();
-		});
-	}
-
 	if (can('builds')) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
@@ -5066,6 +5056,10 @@ function install(type, name, filename, next) {
 		case 'model':
 			m.id = name;
 			F.models[name] = m;
+			break;
+		case 'source':
+			m.id = name;
+			F.sources[name] = m;
 			break;
 	}
 
@@ -7953,6 +7947,13 @@ global.MODEL = function(name) {
  * @return {Object}
  */
 global.INCLUDE = global.SOURCE = function(name) {
+	var obj = F.sources[name];
+	if (obj || obj === null)
+		return obj;
+	var filename = U.combine(CONF.directory_source, name + '.js');
+	existsSync(filename) && install('source', name, filename);
+	if (!F.sources[name])
+		F.sources[name] = null;
 	return F.sources[name];
 };
 
