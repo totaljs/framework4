@@ -286,6 +286,7 @@ TD.$lock = function() {
 };
 
 TD.$append = function() {
+
 	var self = this;
 	self.step = 1;
 
@@ -349,7 +350,7 @@ TD.$append = function() {
 			var length = Buffer.from(JSON.stringify(builder.payload)).length;
 
 			// adds as a first item
-			// arr.unshift(builder.payload);
+			arr.unshift(builder.payload);
 
 			if (builder.$callback || builder.$callback2)
 				output.push(builder);

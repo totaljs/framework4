@@ -2247,7 +2247,7 @@ function textdbwrapper(name) {
 	var onetime = name[0] === '~';
 
 	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('textdb', onetime ? name.substring(1) : name, F.textdbworker, onetime);
+		return F.databases[name] = require('./textdb-wrapper').make('textdb', onetime ? name.substring(1) : ('textdb-' + name), F.textdbworker, onetime);
 
 	var path = onetime ? name.substring(1) : PATH.databases('textdb-' + name);
 
@@ -2258,7 +2258,7 @@ function textdbwrapper(name) {
 	if (F.port && CONF.textdb_worker)
 		F.textdbworker = framework_nosql.init(PATH.databases());
 
-	var instance = require('./textdb-wrapper').make('textdb', F.textdbworker ? name : path, F.textdbworker, onetime);
+	var instance = require('./textdb-wrapper').make('textdb', F.textdbworker ? ('textdb-' + name) : path, F.textdbworker, onetime);
 	if (!onetime)
 		F.databases[name] = instance;
 
