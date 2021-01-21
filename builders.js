@@ -4275,7 +4275,8 @@ global.TASK = function(taskname, name, callback, options, value) {
 	}
 
 	if (!(options instanceof SchemaOptions || options instanceof OperationOptions || options instanceof TaskBuilder || options instanceof Controller)) {
-		value = options;
+		if (options)
+			value = options;
 		options = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
 		options.isConnected = false;
 	}
