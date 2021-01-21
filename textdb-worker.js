@@ -26,10 +26,22 @@ function processcommand(msg) {
 	var instance = instances[key];
 
 	if (!instance) {
-		var db = require('./textdb');
+
 		F.directory = process.argv[2];
-		var filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database);
-		instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, !msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, !msg.builder.onetime);
+
+		var filename;
+		var db;
+
+		if (msg.builder.type === 'textdb') {
+			filename = msg.builder.onetime ? msg.builder.database : PATH.databases('textdb-' + msg.builder.database);
+			db = require('./textdb-new');
+			instance = db.TextDB(filename, !msg.builder.onetime);
+		} else {
+			filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database);
+			db = require('./textdb');
+			instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, !msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, !msg.builder.onetime);
+		}
+
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
 			instance.recount();

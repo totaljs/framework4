@@ -24,7 +24,7 @@ function Database(type, name, fork, onetime, schema) {
 	t.type = type;
 	t.name = name;
 	t.directory = Path.dirname(name);
-	t.basename = Path.basename(name);
+	t.basename = type === 'textdb' ? name : Path.basename(name);
 	t.schema = schema;
 	t.id = onetime ? name : t.basename;
 
