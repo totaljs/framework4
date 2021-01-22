@@ -301,7 +301,7 @@ TD.$append = function() {
 
 	self.files.wait(function(item, next) {
 
-		if (item.size > FILELIMIT) {
+		if (item.size > FILELIMIT || item.failed) {
 			next();
 			return;
 		}
@@ -309,7 +309,17 @@ TD.$append = function() {
 		Fs.readFile(item.filename, READOPT, function(err, body) {
 
 			var diff = FILELIMIT - item.size;
-			var arr = body.length ? (new Function('return ' + body))() : [];
+			var arr;
+
+			try {
+				arr = body && body.length ? (new Function('return ' + body))() : [];
+			} catch (e) {
+				DEF.onError(e, item.filename);
+				item.failed = true;
+				next();
+				return;
+			}
+
 			var is = false;
 
 			while (self.pending_append.length) {
@@ -418,8 +428,23 @@ TD.$reader = function() {
 		if (!next)
 			return;
 
+		if (item.error) {
+			next();
+			return;
+		}
+
 		Fs.readFile(item.filename, READOPT, function(err, body) {
-			var docs = (new Function('return ' + body))();
+			var docs;
+
+			try {
+				docs = body ? (new Function('return ' + body))() : EMPTYARRAY;
+			} catch (e) {
+				item.failed = true;
+				DEF.onError(e, item.filename);
+				next();
+				return;
+			}
+
 			if (filters.compare(docs)) {
 				next = null;
 				done();
@@ -482,12 +507,27 @@ TD.$update = function() {
 		if (!next)
 			return;
 
+		if (item.failed) {
+			next();
+			return;
+		}
+
 		Fs.readFile(item.filename, READOPT, function(err, body) {
 
 			if (!next)
 				return;
 
-			var docs = (new Function('return ' + body))();
+			var docs;
+
+			try {
+				docs = body ? (new Function('return ' + body))() : EMPTYARRAY;
+			} catch (e) {
+				item.failed = true;
+				DEF.onError(e, item.filename);
+				next();
+				return;
+			}
+
 			var r = filters.compare3(docs, update);
 			if (r === 0) {
 				next = null;
@@ -554,12 +594,27 @@ TD.$remove = function() {
 		if (!next)
 			return;
 
+		if (item.failed) {
+			next();
+			return;
+		}
+
 		Fs.readFile(item.filename, READOPT, function(err, body) {
 
 			if (!next)
 				return;
 
-			var docs = (new Function('return ' + body))();
+			var docs;
+
+			try {
+				docs = body ? (new Function('return ' + body))() : EMPTYARRAY;
+			} catch (e) {
+				item.failed = true;
+				DEF.onError(e, item.filename);
+				next();
+				return;
+			}
+
 			var r = filters.compare3(docs, remove);
 			if (r === 0) {
 				next = null;
@@ -643,10 +698,25 @@ TD.$count = function() {
 	self.total = 0;
 
 	self.files.wait(function(item, next) {
+
+		if (item.failed) {
+			next();
+			return;
+		}
+
 		self.filesize += item.size;
 		Fs.readFile(item.filename, READOPT, function(err, body) {
-			var docs = body ? (new Function('return ' + body))() : EMPTYARRAY;
-			self.total += docs.length;
+
+			var docs;
+
+			try {
+				docs = body ? (new Function('return ' + body))() : EMPTYARRAY;
+				self.total += docs.length;
+			} catch (e) {
+				item.failed = true;
+				DEF.onError(e, item.filename);
+			}
+
 			next();
 		});
 	}, function() {
