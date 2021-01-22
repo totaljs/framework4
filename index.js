@@ -7315,6 +7315,9 @@ function makeproxy(proxy, req, res) {
 	F.stats.performance.external++;
 	F.stats.request.external++;
 
+	if (res.headersSent || res.success)
+		return;
+
 	var request;
 	var get = uri.method === 'GET' || uri.method === 'HEAD' || uri.method === 'OPTIONS';
 
@@ -7345,7 +7348,6 @@ function makeproxy(proxy, req, res) {
 		request.end();
 	else
 		req.pipe(request, PROXYOPTIONS);
-
 }
 
 function makeproxyerror(err) {
