@@ -2355,6 +2355,13 @@ F.stop = F.kill = function(signal) {
 		} catch (e) {}
 	}
 
+	for (var m in F.threads) {
+		var thread = F.threads[m];
+		try {
+			thread && thread.kill && thread.kill(signal);
+		} catch (e) {}
+	}
+
 	F.textdbworker && F.textdbworker.kill(0);
 	F.textdbworker = null;
 
@@ -7219,6 +7226,9 @@ F.listener = function(req, res) {
 		else
 			F.temporary.ddos[ip] = 1;
 	}
+	var headers = req.headers;
+	req.$protocol = ((req.connection && req.connection.encrypted) || ((headers['x-forwarded-proto'] || ['x-forwarded-protocol']) === 'https')) ? 'https' : 'http';
+	req.uri = framework_internal.parseURI(req);
 
 	if (F._request_check_proxy) {
 		for (var i = 0; i < F.routes.proxies.length; i++) {
@@ -7236,9 +7246,6 @@ F.listener = function(req, res) {
 		}
 	}
 
-	var headers = req.headers;
-	req.$protocol = ((req.connection && req.connection.encrypted) || ((headers['x-forwarded-proto'] || ['x-forwarded-protocol']) === 'https')) ? 'https' : 'http';
-	req.uri = framework_internal.parseURI(req);
 	F.$events.request && EMIT('request', req, res);
 
 	if (F._request_check_redirect) {
@@ -7305,8 +7312,10 @@ function makeproxy(proxy, req, res) {
 
 	uri.headers['x-forwarded-for'] = req.ip;
 
+	/*
+	// I don't know why I removed content-type
 	if (uri.headers['content-type'])
-		delete uri.headers['content-type'];
+		delete uri.headers['content-type'];*/
 
 	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
 	delete uri.headers.host;
