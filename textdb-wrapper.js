@@ -1127,6 +1127,20 @@ DB.on = function(a, b) {
 	return this;
 };
 
+function promise(fn) {
+	var self = this;
+	return new Promise(function(resolve, reject) {
+		self.callback(function(err, result) {
+			if (err)
+				reject(err);
+			else
+				resolve(fn == null ? result : fn(result));
+		});
+	});
+}
+
+DB.promise = promise;
+
 exports.make = function(type, name, fork, onetime, schema) {
 	return new Database(type, name, fork, onetime, schema);
 };
