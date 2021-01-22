@@ -480,6 +480,7 @@ global.REQUEST = function(opt) {
 		opt.headers['X-Requested-With'] = 'XMLHttpRequest';
 
 	options.response = opt.response ? opt.response : {};
+	options.response.body = '';
 
 	if (opt.resolve || opt.dnscache)
 		options.resolve = true;
