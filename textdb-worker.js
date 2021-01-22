@@ -63,6 +63,17 @@ function processcommand(msg) {
 			});
 			break;
 
+		case 'stats':
+			var tmp = {};
+			tmp.cid = msg.builder.cid;
+			tmp.pendingwrite = instance.pending_update.length + instance.pending_append.length + instance.pending_remove.length;
+			tmp.pendingread = instance.pending_reader.length + (instance.pending_reader2 ? instance.pending_reader2.length : 0) + (instance.pending_streamer ? instance.pending_streamer.length : 0);
+			tmp.documents = instance.total;
+			tmp.size = (instance.filesize || 0);
+			tmp.TYPE = 'response';
+			process.send(tmp);
+			break;
+
 		case 'find2':
 			reading++;
 			instance.find2().assign(msg.builder).callback(function(err, builder) {
@@ -205,6 +216,7 @@ function measure() {
 	var pendingwrite = 0;
 	var duration = 0;
 	var documents = 0;
+
 	STATS.size = 0;
 
 	for (var i = 0; i < keys.length; i++) {
