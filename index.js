@@ -9791,10 +9791,16 @@ FrameworkRouteProto.remove = function(nosort) {
 						delete F.routes.all[tmp.path];
 					}
 				}
-				if (keys.length === remcount)
+
+				if (keys.length === remcount) {
+					delete F.routes.all[tmp.path];
 					F.routes.web.splice(index, 1);
-			} else
+				}
+
+			} else {
+				delete F.routes.all[tmp.path];
 				F.routes.web.splice(index, 1);
+			}
 
 			if (!nosort)
 				F.routes_sort();
