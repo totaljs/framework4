@@ -2384,6 +2384,12 @@ F.stop = F.kill = function(signal) {
 
 global.PROXY = function(url, target, copypath, before, after, timeout) {
 
+	if (target === null) {
+		F.routes.proxies = F.routes.proxies.remove('url', url);
+		F._request_check_proxy = F.routes.proxies.length;
+		return;
+	}
+
 	if (typeof(copypath) == 'function') {
 		after = before;
 		before = copypath;
