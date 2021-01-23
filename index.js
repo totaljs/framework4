@@ -17455,6 +17455,8 @@ function runsnapshot() {
 	var stats = {};
 	var lastwarning = 0;
 
+	F.consumption = stats;
+
 	stats.id = F.id;
 	stats.version = {};
 	stats.version.node = process.version;
