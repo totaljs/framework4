@@ -331,6 +331,7 @@ TD.$append = function() {
 
 				// Adds as a first item
 				arr.unshift(builder.payload);
+				self.total++;
 
 				if (builder.$callback || builder.$callback2)
 					output.push(builder);
@@ -360,6 +361,7 @@ TD.$append = function() {
 
 			// adds as a first item
 			arr.unshift(builder.payload);
+			self.total++;
 
 			if (builder.$callback || builder.$callback2)
 				output.push(builder);
