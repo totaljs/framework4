@@ -328,6 +328,7 @@ TD.$append = function() {
 
 				diff -= length;
 				item.size += length;
+				self.filesize += length;
 
 				// Adds as a first item
 				arr.unshift(builder.payload);
@@ -362,6 +363,7 @@ TD.$append = function() {
 			// adds as a first item
 			arr.unshift(builder.payload);
 			self.total++;
+			self.filesize += length;
 
 			if (builder.$callback || builder.$callback2)
 				output.push(builder);
