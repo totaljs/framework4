@@ -190,6 +190,10 @@ function processcommand(msg) {
 			setTimeout(() => process.kill(0), 10000);
 			break;
 
+		case 'usage':
+			process.send({ TYPE: 'response', cid: msg.cid, documents: instance.total || 0, size: instance.filesize || 0 });
+			break;
+
 		case 'lock':
 			instance.lock(function(next) {
 				instance.unlock = next;

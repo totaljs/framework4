@@ -57,7 +57,6 @@ function TextDB(filename, onetime) {
 	t.$writting = false;
 	t.$reading = 0;
 	t.total = 0;
-	t.inmemory = false;
 	t.files = [];
 
 	t.next2 = function() {
@@ -414,10 +413,8 @@ TD.$reader = function() {
 
 	filters.type = 'read';
 	filters.db = self;
-	filters.inmemory = false;
 
 	var done = function() {
-		CONF.textdb_inmemory && self.$check();
 		self.$reading--;
 		filters.done();
 		self.next(0);
@@ -576,8 +573,6 @@ TD.$remove = function() {
 		return 1;
 	};
 
-	// var memory = !filters.cancelable && self.inmemory ? [] : null;
-
 	var done = function() {
 
 		var diff = filters.done().diff;
@@ -720,7 +715,6 @@ TD.$count = function() {
 			next();
 		});
 	}, function() {
-		CONF.textdb_inmemory && self.$check();
 		self.$reading--;
 		self.next(0);
 	});

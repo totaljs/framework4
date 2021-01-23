@@ -82,10 +82,9 @@ function Database(type, name, fork, onetime, schema) {
 						builder.$callback(() => t.fork.cmd_unlock(builder.options));
 					});
 					break;
-				case 'memory':
-					t.fork['cmd_' + builder.command](builder.options);
-					break;
 				case 'recount':
+				case 'memory':
+				case 'usage':
 					t.fork['cmd_' + builder.command](builder.options);
 					break;
 				default:
@@ -112,12 +111,7 @@ function Database(type, name, fork, onetime, schema) {
 				}
 			}
 
-			if (SPECIAL[builder.command]) {
-				t.fork[key][builder.command](builder.$callback);
-				return;
-			}
-
-			if (builder.command === 'lock') {
+			if (SPECIAL[builder.command] || builder.command === 'lock' || builder.command === 'recount') {
 				t.fork[key][builder.command](builder.$callback);
 				return;
 			}
@@ -132,8 +126,8 @@ function Database(type, name, fork, onetime, schema) {
 				return;
 			}
 
-			if (builder.command === 'recount') {
-				t.fork[key][builder.command](builder.$callback);
+			if (builder.command === 'usage') {
+				builder.$callback(null, { documents: t.fork[key].total || 0, filesize: t.fork[key].filesize || 0 });
 				return;
 			}
 
@@ -171,6 +165,14 @@ DP.find = DP.all = function() {
 DP.backups = function(callback) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'backups';
+	this.next(builder);
+	callback && builder.callback(callback);
+	return builder;
+};
+
+DP.usage = function(callback) {
+	var builder = new DatabaseBuilder();
+	builder.command = 'usage';
 	this.next(builder);
 	callback && builder.callback(callback);
 	return builder;
