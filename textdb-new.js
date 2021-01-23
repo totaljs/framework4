@@ -57,6 +57,7 @@ function TextDB(filename, onetime) {
 	t.$writting = false;
 	t.$reading = 0;
 	t.total = 0;
+	t.filesize = 0;
 	t.files = [];
 
 	t.next2 = function() {
@@ -80,7 +81,6 @@ TD.$refresh = function() {
 
 	var self = this;
 	self.step = 99;
-	self.filesize = 0;
 
 	Fs.readdir(self.filename, function(err, files) {
 

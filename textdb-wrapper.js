@@ -27,6 +27,7 @@ function Database(type, name, fork, onetime, schema) {
 	t.basename = type === 'textdb' ? name : Path.basename(name);
 	t.schema = schema;
 	t.id = onetime ? name : t.basename;
+	t.key = HASH(t.basename).toString(36);
 
 	t.fork = fork || {};
 	t.onetime = onetime;
@@ -94,7 +95,7 @@ function Database(type, name, fork, onetime, schema) {
 
 		} else {
 
-			var key = type + '_' + name;
+			var key = t.key;
 
 			if (!t.fork[key]) {
 				if (type === 'inmemory') {
