@@ -80,6 +80,7 @@ TD.$refresh = function() {
 
 	var self = this;
 	self.step = 99;
+	self.filesize = 0;
 
 	Fs.readdir(self.filename, function(err, files) {
 
