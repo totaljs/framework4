@@ -880,6 +880,8 @@ JD.$clear = function() {
 		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
 
+		self.total = 0;
+		self.filesize = 0;
 		self.next(0);
 	});
 };
@@ -958,6 +960,8 @@ JD.$drop = TD.$drop = function() {
 	remove.wait((filename, next) => Fs.unlink(filename, next), function() {
 		if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 			CACHEITEMS[self.id] = [];
+		self.total = 0;
+		self.filesize = 0;
 		self.next(0);
 	}, 5);
 };
@@ -1698,6 +1702,8 @@ TD.$clear = function() {
 				filter[i]();
 			if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 				CACHEITEMS[self.id] = [];
+			self.total = 0;
+			self.filesize = 0;
 			self.next(0);
 		});
 	});
@@ -2126,9 +2132,8 @@ if (process.totaldbworker) {
 	var CLEANERTICKS = 1;
 	setInterval(function() {
 
-		var keys = Object.keys(CACHEITEMS);
-		for (var i = 0; i < keys.length; i++)
-			CACHEITEMS[keys[i]] = [];
+		for (var key in CACHEITEMS)
+			CACHEITEMS[key] = [];
 
 		// 12 hours
 		if (CLEANERTICKS % 12 === 0) {
@@ -2142,9 +2147,8 @@ if (process.totaldbworker) {
 	ON('service', function(counter) {
 
 		if (counter % 60 === 0) {
-			var keys = Object.keys(CACHEITEMS);
-			for (var i = 0; i < keys.length; i++)
-				CACHEITEMS[keys[i]] = [];
+			for (var m in CACHEITEMS)
+				CACHEITEMS[m] = [];
 		}
 
 		// 12 hours

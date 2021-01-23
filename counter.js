@@ -26,7 +26,7 @@
 
 function Counter(name) {
 	var t = this;
-	t.db = require('./textdb-wrapper').make('nosql', PATH.databases(name + '.counter'), F.textdbworker);
+	t.db = require('./textdb-wrapper').make('nosql', PATH.databases(name + '.counter'));
 	t.cache = {};
 	ON('service', function(counter) {
 		if (counter % 5 === 0)
@@ -61,11 +61,9 @@ CP.hit = function(id, value) {
 CP.flush = function() {
 
 	var self = this;
-	var keys = Object.keys(self.cache);
 
-	for (var i = 0; i < keys.length; i++) {
+	for (var key in self.cache) {
 
-		var key = keys[i];
 		var val = self.cache[key];
 		var m = {};
 
@@ -147,12 +145,11 @@ CP.monthly = function(id, callback) {
 	builder.$custom = function() {
 		return function(err, response, meta) {
 
-			var keys = Object.keys(response);
 			var arr = [];
 
-			for (var i = 0; i < keys.length; i++) {
-				var item = response[keys[i]];
-				item.date = keys[i];
+			for (var key in response) {
+				var item = response[key];
+				item.date = key;
 				arr.push(item);
 			}
 
@@ -173,12 +170,11 @@ CP.yearly = function(id, callback) {
 	builder.$custom = function() {
 		return function(err, response, meta) {
 
-			var keys = Object.keys(response);
 			var arr = [];
 
-			for (var i = 0; i < keys.length; i++) {
-				var item = response[keys[i]];
-				item.date = keys[i];
+			for (var key in response) {
+				var item = response[key];
+				item.date = key;
 				arr.push(item);
 			}
 
@@ -216,11 +212,10 @@ CP.summarize = function(type, callback) {
 	builder.$custom = function() {
 		return function(err, response, meta) {
 
-			var keys = Object.keys(response);
 			var arr = [];
 
-			for (var i = 0; i < keys.length; i++) {
-				var item = response[keys[i]];
+			for (var key in response) {
+				var item = response[key];
 				item.date = item.ts + '';
 				arr.push(item);
 			}

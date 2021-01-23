@@ -69,10 +69,8 @@ exports.init = function(directory, callback) {
 	INSTANCE.on('error', err => console.log('TextDB error', err));
 
 	INSTANCE.on('close', function() {
-		var keys = Object.keys(CALLBACKS);
 		var err = 'TextDB worker has been detached';
-		for (var i = 0; i < keys.length; i++) {
-			var key = keys[i];
+		for (var key in CALLBACKS) {
 			CALLBACKS[key](err);
 			delete CALLBACKS[key];
 		}

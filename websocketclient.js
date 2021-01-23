@@ -111,17 +111,13 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.typebuffer = self.options.type === 'buffer';
 	self.istext = self.options.type !== 'binary' && !self.typebuffer;
 
-	var keys = Object.keys(self.headers);
-	for (var i = 0, length = keys.length; i < length; i++)
-		options.headers[keys[i]] = self.headers[keys[i]];
+	for (key in self.headers)
+		options.headers[key] = self.headers[key];
 
-	keys = Object.keys(self.cookies);
-	if (keys.length) {
-		var tmp = [];
-		for (var i = 0, length = keys.length; i < length; i++)
-			tmp.push(keys[i] + '=' + self.cookies[keys[i]]);
-		options.headers.Cookie = tmp.join(', ');
-	}
+	var tmp = [];
+	for (var key in self.cookies)
+		tmp.push(key + '=' + self.cookies[key]);
+	options.headers.Cookie = tmp.join(', ');
 
 	F.stats.performance.online++;
 	self.req = (secured ? Https : Http).get(options);
@@ -308,6 +304,9 @@ WebSocketClientProto.$ondata = function(data) {
 	var self = this;
 	if (self.isClosed)
 		return;
+
+	if (data)
+		F.stats.performance.download += data.length / 1024 / 1024;
 
 	var current = self.current;
 	if (data) {
@@ -643,18 +642,26 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 	var type = self.options.type;
 
 	if (self.istext) {
+
 		var data = type === 'json' ? (raw ? message : JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer) : (message + '');
+		var buffer;
 
 		if (self.options.encrypt)
 			data = framework_utils.encrypt_data(data, self.options.encrypt);
 
 		if (self.options.encodedecode === true && data)
 			data = encodeURIComponent(data);
+
 		if (self.deflate) {
-			self.deflatepending.push(Buffer.from(data, ENCODING));
+			buffer = Buffer.from(data, ENCODING);
+			self.deflatepending.push(buffer);
 			self.sendDeflate();
-		} else
-			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, ENCODING), 0x01, false, self.options.masking));
+		} else {
+			buffer = Buffer.from(data, ENCODING);
+			self.socket.write(U.getWebSocketFrame(0, buffer, 0x01, false, self.options.masking));
+		}
+
+		F.stats.performance.upload += buffer.length / 1024 / 1024;
 
 	} else if (message) {
 
@@ -666,6 +673,8 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 			self.sendDeflate();
 		} else
 			self.socket.write(U.getWebSocketFrame(0, message, 0x02, false, self.options.masking));
+
+		F.stats.performance.upload += message.length / 1024 / 1024;
 	}
 
 	F.stats.response.websocket++;

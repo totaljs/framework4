@@ -735,9 +735,8 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 	var length;
 
 	if (msg.headers) {
-		var headers = Object.keys(msg.headers);
-		for (var i = 0, length = headers.length; i < length; i++)
-			message.push(headers[i] + ': ' + msg.headers[headers[i]]);
+		for (var key in msg.headers)
+			message.push(key + ': ' + msg.headers[key]);
 	}
 
 	length = msg.address_to.length;

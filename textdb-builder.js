@@ -32,10 +32,12 @@ const NEWLINE = '\n';
 var PROPCACHE = {};
 var FUNCCACHE = {};
 
-process.totaldbworker && setTimeout(function() {
-	PROPCACHE = {};
-	FUNCCACHE = {};
-}, 60 * 1000 * 5); // 5 minutes cache
+ON('service', function(counter) {
+	if (counter % 5 === 0) {
+		PROPCACHE = {};
+		FUNCCACHE = {};
+	}
+});
 
 var errorhandling = () => {};
 var func = {};
@@ -227,9 +229,8 @@ QueryBuilder.prototype.prepare = function(doc) {
 
 		obj = {};
 
-		var keys = Object.keys(doc);
-		for (var i = 0; i < keys.length; i++)
-			obj[keys[i]] = doc[keys[i]];
+		for (var key in doc)
+			obj[key] = doc[key];
 
 		for (var i = 0; i < self.$fieldsremove.length; i++)
 			obj[self.$fieldsremove[i]] = undefined;
@@ -240,9 +241,8 @@ QueryBuilder.prototype.prepare = function(doc) {
 		// Clone data
 		if (!obj) {
 			obj = {};
-			var keys = Object.keys(doc);
-			for (var i = 0; i < keys.length; i++)
-				obj[keys[i]] = doc[keys[i]];
+			for (var key in doc)
+				obj[key] = doc[key];
 		}
 
 		self.transformrule(obj, self.transformarg);

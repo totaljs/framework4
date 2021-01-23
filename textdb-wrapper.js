@@ -2,6 +2,59 @@ const SPECIAL = { clear: 1, clean: 1, drop: 1 };
 const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
 const Path = require('path');
 
+var INSTANCES = {};
+var LOADSTATS = function() {
+
+	F.stats.textdb = {};
+
+	var writingstats = 0;
+	var readingstats = 0;
+	var reading = 0;
+	var writing = 0;
+
+	function measure(counter) {
+
+		var pendingread = 0;
+		var pendingwrite = 0;
+		var duration = 0;
+		var documents = 0;
+
+		F.stats.textdb.size = 0;
+
+		for (var m in INSTANCES) {
+
+			var instance = INSTANCES[m];
+			pendingread += instance.pending_reader.length + (instance.pending_reader2 ? instance.pending_reader2.length : 0) + (instance.pending_streamer ? instance.pending_streamer.length : 0);
+			pendingwrite += instance.pending_update.length + instance.pending_append.length + instance.pending_remove.length;
+			if (duration < instance.duration)
+				duration = instance.duration;
+			documents += instance.total;
+			F.stats.textdb.size += (instance.filesize || 0);
+		}
+
+		F.stats.textdb.size = (F.stats.textdb.size / 1024 / 1024).floor(3);
+		F.stats.textdb.pendingwrite = pendingwrite;
+		F.stats.textdb.pendingread = pendingread;
+		F.stats.textdb.duration = duration;
+		F.stats.textdb.documents = documents;
+
+		if (counter % 2 === 0) {
+			writingstats = Math.abs(writingstats - writing);
+			readingstats = Math.abs(writingstats - reading);
+			reading = 0;
+			writing = 0;
+		} else {
+			writingstats = writing;
+			readingstats = reading;
+		}
+
+		F.stats.textdb.reading = readingstats;
+		F.stats.textdb.writing = writingstats;
+	}
+
+	ON('service', measure);
+};
+
 function makedirectory(directory, main, id) {
 
 	var val = (HASH(id, true) % 10000) + '';
@@ -18,7 +71,7 @@ function makedirectory(directory, main, id) {
 	return Path.join(directory, main, val);
 }
 
-function Database(type, name, fork, onetime, schema) {
+function Database(type, name, onetime, schema) {
 
 	var t = this;
 	t.type = type;
@@ -27,22 +80,14 @@ function Database(type, name, fork, onetime, schema) {
 	t.basename = type === 'textdb' ? name : Path.basename(name);
 	t.schema = schema;
 	t.id = onetime ? name : t.basename;
-	t.key = HASH(t.basename).toString(36);
+	t.key = type + '_' + HASH(t.basename).toString(36);
 
-	t.fork = fork || {};
+	t.fork = {};
 	t.onetime = onetime;
 	t.exec = function(builder) {
 
 		var name = t.name;
 		if (builder.options) {
-
-			if (builder.options.bulk) {
-				for (var i = 0; i < builder.options.bulk.length; i++) {
-					var bulk = builder.options.bulk[i];
-					bulk.options.filter = bulk.options.filter.length ? bulk.options.filter.join('&&') : 'true';
-					builder.options.bulk[i] = bulk.options;
-				}
-			}
 
 			builder.options.onetime = t.onetime;
 			builder.options.filter = builder.options.filter.length ? builder.options.filter.join('&&') : 'true';
@@ -60,93 +105,57 @@ function Database(type, name, fork, onetime, schema) {
 					PATH.mkdir(dir, true);
 				builder.options.relation = undefined;
 			}
-
-			if (fork) {
-				builder.options.type = t.type;
-				builder.options.database = t.onetime ? name : t.id;
-			}
 		}
+		var key = t.key;
 
-		if (t.fork.cmd_find) {
-
-			if (SPECIAL[builder.command]) {
-				t.fork['cmd_' + builder.command](builder.options, builder.$callback);
-				return;
-			}
-
-			switch (builder.command) {
-				case 'alter':
-					t.fork['cmd_' + builder.command](builder.options, builder.$callback);
-					break;
-				case 'lock':
-					t.fork['cmd_' + builder.command](builder.options, function() {
-						builder.$callback(() => t.fork.cmd_unlock(builder.options));
-					});
-					break;
-				case 'recount':
-				case 'memory':
-				case 'usage':
-					t.fork['cmd_' + builder.command](builder.options);
-					break;
-				default:
-					t.fork['cmd_' + builder.command](builder.options, builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : builder.$callback);
-					break;
-			}
-
-		} else {
-
-			var key = t.key;
-
-			if (!t.fork[key]) {
-				if (type === 'inmemory') {
-					t.fork[key] = require('./inmemory').load(name);
+		if (!t.fork[key]) {
+			if (type === 'inmemory') {
+				t.fork[key] = require('./inmemory').load(name);
+			} else {
+				var db;
+				if (type === 'textdb') {
+					db = require('./textdb-new');
+					t.fork[key] = db.TextDB(name, !t.onetime);
 				} else {
-					var db;
-					if (type === 'textdb') {
-						db = require('./textdb-new');
-						t.fork[key] = db.TextDB(name, !t.onetime);
-					} else {
-						db = require('./textdb');
-						t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
-					}
+					db = require('./textdb');
+					t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
 				}
 			}
 
-			if (SPECIAL[builder.command] || builder.command === 'lock' || builder.command === 'recount') {
-				t.fork[key][builder.command](builder.$callback);
-				return;
-			}
+			INSTANCES[key] = t.fork[key];
 
-			if (builder.command === 'alter') {
-				t.fork[key][builder.command](builder.schema, builder.$callback);
-				return;
+			if (LOADSTATS) {
+				LOADSTATS();
+				LOADSTATS = null;
 			}
-
-			if (builder.command === 'memory') {
-				t.fork[key][builder.command](builder.options.count, builder.options.size);
-				return;
-			}
-
-			if (builder.command === 'usage') {
-				builder.$callback(null, { documents: t.fork[key].total || 0, filesize: t.fork[key].filesize || 0 });
-				return;
-			}
-
-			if (builder.options && builder.options.bulk) {
-				var b;
-				for (var i = 0; i < builder.options.bulk.length; i++) {
-					var bi = builder.options.bulk[i];
-					b = t.fork[key][builder.command]().assign(bi).$callback = bi.$custom ? bi.$custom() : bi.$callback;
-				}
-				if (b)
-					b.$callback2 = builder.$callback;
-			} else
-				t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : builder.$callback;
 		}
-	};
 
-	if (fork && schema)
-		t.fork.cmd_alter({ schema: schema, onetime: t.onetime, type: t.type, database: t.id });
+		if (SPECIAL[builder.command] || builder.command === 'lock' || builder.command === 'recount') {
+			t.fork[key][builder.command](builder.$callback);
+			if (builder.command === 'drop') {
+				delete t.fork[key];
+				delete INSTANCES[key];
+			}
+			return;
+		}
+
+		if (builder.command === 'alter') {
+			t.fork[key][builder.command](builder.schema, builder.$callback);
+			return;
+		}
+
+		if (builder.command === 'memory') {
+			t.fork[key][builder.command](builder.options.count, builder.options.size);
+			return;
+		}
+
+		if (builder.command === 'usage') {
+			builder.$callback(null, { documents: t.fork[key].total || 0, filesize: t.fork[key].filesize || 0 });
+			return;
+		}
+
+		t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : builder.$callback;
+	};
 }
 
 var DP = Database.prototype;
@@ -332,74 +341,16 @@ DP.insert = function(data, check, noeval) {
 	return bi;
 };
 
-DP.bulkinsert = function(fn) {
-	var self = this;
-	var builder = new DatabaseBuilder();
-	builder.command = 'insert';
-	builder.options.bulk = [];
-
-	var make = function(data) {
-		var b = self.insert(data, false, true);
-		builder.options.bulk.push(b);
-		return b;
-	};
-
-	fn(make);
-
-	this.next(builder);
-	return builder;
-};
-
-DP.bulkupdate = DP.bulkmodify = function(fn) {
-
-	var self = this;
-	var builder = new DatabaseBuilder();
-	builder.command = 'update';
-	builder.options.bulk = [];
-
-	var make = function(data, upsert) {
-		var b = self.update(data, upsert, true);
-		builder.options.bulk.push(b);
-		return b;
-	};
-
-	fn(make);
-
-	self.next(builder);
-	return builder;
-};
-
-DP.bulkremove = function(fn) {
-
-	var self = this;
-	var builder = new DatabaseBuilder();
-	builder.command = 'remove';
-	builder.options.bulk = [];
-
-	var make = function() {
-		var b = self.remove(true);
-		builder.options.bulk.push(b);
-		return b;
-	};
-
-	fn(make);
-
-	self.next(builder);
-	return builder;
-};
-
 DP.update = DP.modify = DP.mod = function(data, upsert, noeval) {
 
 	var self = this;
 	var builder = new DatabaseBuilder();
 	builder.command = 'update';
 
-	var keys = Object.keys(data);
 	var tmp = [];
 	var arg = {};
 
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in data) {
 		var val = data[key];
 
 		if (val === undefined)
@@ -618,9 +569,8 @@ DB.rule = function(code, arg) {
 	var self = this;
 
 	if (arg) {
-		var keys = Object.keys(arg);
-		for (var i = 0; i < keys.length; i++)
-			self.options.filterarg[keys[i]] = arg[keys[i]];
+		for (var key in arg)
+			self.options.filterarg[key] = arg[key];
 	}
 
 	self.options.filter.push(code);

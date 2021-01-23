@@ -420,6 +420,10 @@ var _prefix;
 require('./tangular');
 require('./test');
 
+function countuploadstats(chunk) {
+	F.stats.performance.upload += chunk.length / 1024 / 1024;
+}
+
 function sessionwrapper(name) {
 	if (!name)
 		name = 'default';
@@ -715,11 +719,10 @@ var authbuiltin = function(opt) {
 			id = $.sessionid;
 
 		if (id) {
-			var keys = Object.keys(opt.sessions);
-			for (var i = 0; i < keys.length; i++) {
-				var session = opt.sessions[keys[i]];
+			for (var key in opt.sessions) {
+				var session = opt.sessions[key];
 				if (session.sessionid === id) {
-					delete opt.sessions[keys[i]];
+					delete opt.sessions[key];
 					opt.onlogout && opt.onlogout(session);
 					opt.cookie && $.cookie && $.cookie(opt.cookie, '', '-1 day');
 					return true;
@@ -729,11 +732,10 @@ var authbuiltin = function(opt) {
 	};
 
 	opt.refresh = function(userid) {
-		var keys = Object.keys(opt.sessions);
-		for (var i = 0; i < keys.length; i++) {
-			var session = opt.sessions[keys[i]];
+		for (var key in opt.sessions) {
+			var session = opt.sessions[key];
 			if (session.userid === userid)
-				delete opt.sessions[keys[i]];
+				delete opt.sessions[key];
 		}
 	};
 
@@ -836,13 +838,11 @@ var authbuiltin = function(opt) {
 		if (counter % opt.cleaner)
 			return;
 
-		var keys = Object.keys(opt.sessions);
 		var expired = [];
 		var users_expired = {};
 		var users_live = {};
 
-		for (var i = 0; i < keys.length; i++) {
-			var key = keys[i];
+		for (var key in opt.sessions) {
 			var session = opt.sessions[key];
 			if (session.expire < NOW) {
 				expired.push(key);
@@ -853,9 +853,7 @@ var authbuiltin = function(opt) {
 		}
 
 		if (expired.length) {
-			keys = Object.keys(users_expired);
-			for (var i = 0; i < keys.length; i++) {
-				var key = keys[i];
+			for (var key in users_expired) {
 				if (users_live[key])
 					delete users_expired[key];
 			}
@@ -985,11 +983,9 @@ function makefake(type, max, name) {
 global.FAKE = function(schema, onlyrequired) {
 
 	var o = framework_builders.getschema(schema);
-	var keys = Object.keys(o.schema);
 	var output = {};
 
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in o.schema) {
 		var type = o.schema[key];
 
 		if (onlyrequired && !type.required)
@@ -1456,18 +1452,14 @@ function UIDGENERATOR_REFRESH() {
 	UIDGENERATOR.index = 1;
 	UIDGENERATOR.instance = random2string();
 
-	var keys;
-
 	if (UIDGENERATOR.multiple) {
-		keys = Object.keys(UIDGENERATOR.types);
-		for (var i = 0; i < keys.length; i++)
-			UIDGENERATOR.types[keys[i]] = 0;
+		for (var key in UIDGENERATOR.types)
+			UIDGENERATOR.types[key] = 0;
 	}
 
 	if (UIDGENERATOR.multiplenumber) {
-		keys = Object.keys(UIDGENERATOR.typesnumber);
-		for (var i = 0; i < keys.length; i++)
-			UIDGENERATOR.typesnumber[keys[i]] = 0;
+		for (var key in UIDGENERATOR.typesnumber)
+			UIDGENERATOR.typesnumber[key] = 0;
 	}
 }
 
@@ -1743,6 +1735,8 @@ function Framework() {
 		error: 0,
 
 		performance: {
+			download: 0,
+			upload: 0,
 			request: 0,
 			message: 0,
 			file: 0,
@@ -1782,7 +1776,8 @@ function Framework() {
 			blocked: 0,
 			'delete': 0,
 			mobile: 0,
-			desktop: 0
+			desktop: 0,
+			size: 0
 		},
 		response: {
 			ddos: 0,
@@ -1815,7 +1810,8 @@ function Framework() {
 			error431: 0,
 			error500: 0,
 			error501: 0,
-			error503: 0
+			error503: 0,
+			size: 0
 		}
 	};
 
@@ -1922,10 +1918,9 @@ F.refresh = function() {
 
 	CONF.allow_debug && F.consoledebug('clear temporary cache');
 
-	var keys = Object.keys(F.temporary.internal);
-	for (var i = 0; i < keys.length; i++)
-		if (!F.temporary.internal[keys[i]])
-			delete F.temporary.internal[keys[i]];
+	for (var key in F.temporary.internal)
+		if (!F.temporary.internal[key])
+			delete F.temporary.internal[key];
 
 	F.$events.clear && EMIT('clear', 'resources');
 	F.resources = {};
@@ -2017,9 +2012,8 @@ global.EMIT2 = function(name, a, b, c, d, e) {
 	} else {
 
 		if (F.threads) {
-			var keys = Object.keys(F.threads);
-			for (var i = 0; i < keys.length; i++) {
-				var child = F.threads[keys[i]];
+			for (var key in F.threads) {
+				var child = F.threads[key];
 				child.send(EMIT2MESSAGE);
 			}
 			F.$events[name] && EMIT(name, a, b, c, d, e);
@@ -2204,14 +2198,13 @@ F.routes_sort = function(type) {
 	F.routes.websocketscached = wcache;
 
 	// Clears cache
-	Object.keys(F.temporary.other).forEach(function(key) {
+	for (var key in F.temporary.other) {
 		if (key[0] === '1')
-			F.temporary.other[key] = undefined;
-	});
+			delete F.temporary.other[key];
+	}
 };
 
 F.parseComponent = parseComponent;
-F.textdbworker = null;
 
 function nosqlwrapper(name) {
 
@@ -2221,17 +2214,11 @@ function nosqlwrapper(name) {
 
 	var onetime = name[0] === '~';
 	var path = onetime ? name.substring(1) : PATH.databases(name + '.nosql');
-	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
 
 	if (!onetime)
 		PATH.verify('databases');
 
-	// Is web server?
-	if (F.port && CONF.textdb_worker)
-		F.textdbworker = framework_nosql.init(PATH.databases());
-
-	var instance = require('./textdb-wrapper').make('nosql', path, F.textdbworker, onetime);
+	var instance = require('./textdb-wrapper').make('nosql', path, onetime);
 	if (!onetime)
 		F.databases[name] = instance;
 
@@ -2245,20 +2232,12 @@ function textdbwrapper(name) {
 		return db;
 
 	var onetime = name[0] === '~';
-
-	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('textdb', onetime ? name.substring(1) : ('textdb-' + name), F.textdbworker, onetime);
-
 	var path = onetime ? name.substring(1) : PATH.databases('textdb-' + name);
 
 	if (!onetime)
 		PATH.verify('databases');
 
-	// Is web server?
-	if (F.port && CONF.textdb_worker)
-		F.textdbworker = framework_nosql.init(PATH.databases());
-
-	var instance = require('./textdb-wrapper').make('textdb', F.textdbworker ? ('textdb-' + name) : path, F.textdbworker, onetime);
+	var instance = require('./textdb-wrapper').make('textdb', path, onetime);
 	if (!onetime)
 		F.databases[name] = instance;
 
@@ -2266,15 +2245,11 @@ function textdbwrapper(name) {
 }
 
 global.NOSQL = function(name) {
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./textdb-process');
 	global.NOSQL = nosqlwrapper;
 	return nosqlwrapper(name);
 };
 
 global.TEXTDB = function(name) {
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./textdb-process');
 	global.TEXTDB = textdbwrapper;
 	return textdbwrapper(name);
 };
@@ -2313,18 +2288,10 @@ function tablewrapper(name) {
 	var onetime = name[0] === '~';
 	var path = onetime ? name.substring(1) : PATH.databases(name + '.table');
 
-	if (F.textdbworker)
-		return F.databases[name] = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime, CONF['table_' + name]);
-
 	if (!onetime)
 		PATH.verify('databases');
 
-	// Is web server?
-	if (F.port && CONF.textdb_worker)
-		F.textdbworker = framework_nosql.init(PATH.databases());
-
-	var instance = require('./textdb-wrapper').make('table', path, F.textdbworker, onetime, CONF['table_' + name]);
-
+	var instance = require('./textdb-wrapper').make('table', path, onetime, CONF['table_' + name]);
 	if (!onetime)
 		F.databases[name] = instance;
 
@@ -2332,8 +2299,6 @@ function tablewrapper(name) {
 }
 
 global.TABLE = function(name) {
-	if (!global.framework_nosql)
-		global.framework_nosql = require('./textdb-process');
 	global.TABLE = tablewrapper;
 	return tablewrapper(name);
 };
@@ -2362,13 +2327,9 @@ F.stop = F.kill = function(signal) {
 		} catch (e) {}
 	}
 
-	F.textdbworker && F.textdbworker.kill(0);
-	F.textdbworker = null;
-
 	if (F.threads) {
-		var keys = Object.keys(F.threads);
-		for (var i = 0; i < keys.length; i++)
-			F.threads[keys[i]].kill(0);
+		for (var key in F.threads)
+			F.threads[key].kill(0);
 	}
 
 	EMIT('exit', signal);
@@ -2495,6 +2456,11 @@ global.SCHEDULE = function(date, repeat, fn) {
 
 	item.remove = function() {
 		delete F.schedules[id];
+	};
+
+	item.exec = function() {
+		CONF.allow_debug && F.consoledebug('schedule', id);
+		item.fn();
 	};
 
 	return item;
@@ -2933,7 +2899,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 						if (item.url && item.url !== url)
 							sitemaproutes[item.url] = { name: sitemap.id, language: language };
 					});
-					Object.keys(sitemaproutes).forEach(key => F.route('#' + sitemap.id, funcExecute, flags, length, sitemaproutes[key].language));
+					Object.keys(sitemaproutes).forEach(key => ROUTE('#' + sitemap.id, funcExecute, flags, length, sitemaproutes[key].language));
 				}
 
 				if (tmp)
@@ -4884,11 +4850,8 @@ F.$load = function(types, targetdirectory, callback) {
 function loadpreferences(callback) {
 	DEF.onPrefLoad(function(value) {
 		if (value) {
-			var keys = Object.keys(value);
-			for (var i = 0; i < keys.length; i++) {
-				var key = keys[i];
+			for (var key in value)
 				F.pref[key] = global.PREF[key] = value[key];
-			}
 		}
 		callback && callback();
 	});
@@ -5352,10 +5315,8 @@ global.DOWNLOAD = function(url, filename, callback, timeout) {
  * @return {WebSocket}
  */
 F.findConnection = function(path) {
-	var arr = Object.keys(F.connections);
 	var is = path && path.test; // is regexp?
-	for (var i = 0, length = arr.length; i < length; i++) {
-		var key = arr[i];
+	for (var key in F.connections) {
 		if (is) {
 			if (path.test(key))
 				return F.connections[key];
@@ -5372,11 +5333,9 @@ F.findConnection = function(path) {
  * @return {WebSocket Array}
  */
 F.findConnections = function(path) {
-	var arr = Object.keys(F.connections);
 	var is = path && path.test; // is regexp?
 	var output = [];
-	for (var i = 0, length = arr.length; i < length; i++) {
-		var key = arr[i];
+	for (var key in F.connections) {
 		if (!path)
 			output.push(F.connections[key]);
 		else if (is)
@@ -5624,10 +5583,9 @@ F.usage = function(detailed) {
 		directory: process.cwd()
 	};
 
-	var keys = Object.keys(U.queuecache);
 	var pending = 0;
-	for (var i = 0, length = keys.length; i < length; i++)
-		pending += U.queuecache[keys[i]].pending.length;
+	for (var key in U.queuecache)
+		pending += U.queuecache[key].pending.length;
 
 	output.counter = {
 		resource: resources.length,
@@ -6617,13 +6575,13 @@ F.initialize = function(http, debug, options, callback) {
 
 		if (F.server) {
 			F.server.removeAllListeners();
-			Object.keys(F.connections).forEach(function(key) {
+			for (var key in F.connections) {
 				var item = F.connections[key];
 				if (item) {
 					item.removeAllListeners();
 					item.close();
 				}
-			});
+			}
 			F.server.close();
 		}
 
@@ -6778,9 +6736,8 @@ function threadforkmessage(m) {
 	if (m && m.TYPE === 'total:emit' && m.name) {
 		EMIT(m.name, m.a, m.b, m.c, m.d, m.e);
 		if (F.threads) {
-			var keys = Object.keys(F.threads);
-			for (var i = 0; i < keys.length; i++)
-				F.threads[keys[i]].send(m);
+			for (var key in F.threads)
+				F.threads[key].send(m);
 		}
 	}
 }
@@ -7081,15 +7038,13 @@ F.service = function(count) {
 		releasegc = true;
 		CONF.allow_debug && F.consoledebug('clear temporary cache');
 
-		keys = Object.keys(F.temporary.internal);
-		for (var i = 0; i < keys.length; i++)
-			if (!F.temporary.internal[keys[i]])
-				delete F.temporary.internal[keys[i]];
+		for (var key in F.temporary.internal) {
+			if (!F.temporary.internal[key])
+				delete F.temporary.internal[key];
+		}
 
 		// Clears released sessions
-		keys = Object.keys(F.sessions);
-		for (var i = 0; i < keys.length; i++) {
-			key = keys[i];
+		for (var key in F.sessions) {
 			if (F.sessions[key]) {
 				F.sessions[key].clean();
 				CONF.allow_sessions_unused && F.sessions[key].releaseunused(CONF.allow_sessions_unused);
@@ -7127,9 +7082,8 @@ F.service = function(count) {
 
 	// Session DDOS cleaner
 	if (F.sessionscount && count % 15 === 0) {
-		keys = Object.keys(F.sessions);
-		for (var i = 0; i < keys.length; i++) {
-			var session = F.sessions[keys[i]];
+		for (var key in F.sessions) {
+			var session = F.sessions[key];
 			if (session.ddosis) {
 				session.ddos = {};
 				session.ddosis = false;
@@ -7156,10 +7110,8 @@ F.service = function(count) {
 		WORKERID = 0;
 
 	if (BLOCKEDB.is) {
-		keys = Object.keys(BLOCKEDB);
 		BLOCKEDB.is = false;
-		for (var i = 0; i < keys.length; i++) {
-			key = keys[i];
+		for (var key in BLOCKEDB) {
 			if (key !== 'is') {
 				var tmp = BLOCKEDB[key];
 				if (tmp.expire < NOW)
@@ -7187,7 +7139,7 @@ F.service = function(count) {
 			else
 				delete F.schedules[key];
 			CONF.allow_debug && F.consoledebug('schedule', key);
-			schedule.fn.call(F);
+			schedule.fn();
 		}
 	}
 };
@@ -8588,12 +8540,11 @@ F.sitemap_navigation = function(parent, language) {
 	if (F.temporary.other[key])
 		return F.temporary.other[key];
 
-	var keys = Object.keys(F.routes.sitemap);
 	var arr = [];
 	var index = 0;
 
-	for (var i = 0, length = keys.length; i < length; i++) {
-		var item = F.routes.sitemap[keys[i]];
+	for (var key in F.routes.sitemap) {
+		var item = F.routes.sitemap[key];
 		if ((parent && item.parent !== parent) || (!parent && item.parent))
 			continue;
 
@@ -8786,10 +8737,8 @@ function configure_env(filename) {
 	}
 
 	data = data.parseENV();
-	var keys = Object.keys(data);
 
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in data) {
 		if (!process.env.hasOwnProperty(key))
 			process.env[key] = data[key];
 	}
@@ -9760,9 +9709,7 @@ FrameworkRouteProto.remove = function(nosort) {
 
 	} else if (self.isSYSTEM) {
 
-		var keys = Object.keys(F.routes.system);
-		for (var i = 0; i < keys.length; i++) {
-			var key = keys[i];
+		for (var key in F.routes.system) {
 			tmp = F.routes.system[key];
 			if (tmp === self) {
 				delete F.routes.all[tmp.path];
@@ -9782,12 +9729,11 @@ FrameworkRouteProto.remove = function(nosort) {
 			tmp = F.routes.web[index];
 			if (tmp.apiname) {
 				var api = F.routes.api[tmp.apiname];
-				var keys = Object.keys(api);
 				var remcount = 0;
-				for (var i = 0; i < keys.length; i++) {
-					if (api[keys[i]].path === tmp.path) {
+				for (var key in api) {
+					if (api[key].path === tmp.path) {
 						remcount++;
-						delete api[keys[i]];
+						delete api[key];
 						delete F.routes.all[tmp.path];
 					}
 				}
@@ -10066,18 +10012,13 @@ FrameworkCacheProto.load = function(callback) {
 
 FrameworkCacheProto.savepersistent = function() {
 	setTimeout2('framework_cachepersist', function(self) {
-		var keys = Object.keys(self.items);
 		var obj = {};
-
-		for (var i = 0, length = keys.length; i < length; i++) {
-			var key = keys[i];
+		for (var key in self.keys) {
 			var item = self.items[key];
 			if (item && item.persist)
 				obj[key] = item;
 		}
-
 		Fs.writeFile(PATH.temp(F.clusterid + 'framework.cache'), JSON.stringify(obj), NOOP);
-
 	}, 1000, 50, this);
 	return this;
 };
@@ -10088,9 +10029,7 @@ FrameworkCacheProto.loadpersistent = function(callback) {
 		if (!err) {
 			try {
 				data = JSON.parse(data.toString(ENCODING), (key, value) => typeof(value) === 'string' && value.isJSONDate() ? new Date(value) : value);
-				var keys = Object.keys(data);
-				for (var i = 0, length = keys.length; i < length; i++) {
-					var key = keys[i];
+				for (var key in data) {
 					var item = data[key];
 					if (item.expire >= NOW)
 						self.items[key] = item;
@@ -10146,7 +10085,13 @@ FrameworkCacheProto.recycle = function() {
 	F.temporary.service.dbrm = F.stats.performance.dbrm;
 	F.temporary.service.dbwm = F.stats.performance.dbwm;
 	F.temporary.service.external = F.stats.performance.external;
+	F.temporary.service.upload = F.stats.performance.upload;
+	F.temporary.service.download = F.stats.performance.download;
 
+	F.stats.request.size += F.stats.performance.download;
+	F.stats.response.size += F.stats.performance.upload;
+	F.stats.performance.upload = 0;
+	F.stats.performance.download = 0;
 	F.stats.performance.external = 0;
 	F.stats.performance.dbrm = 0;
 	F.stats.performance.dbwm = 0;
@@ -10896,10 +10841,9 @@ ControllerProto.component2 = function(name, settings, callback) {
 ControllerProto.$components = function(group, settings) {
 
 	if (group) {
-		var keys = Object.keys(F.components.instances);
 		var output = [];
-		for (var i = 0; i < keys.length; i++) {
-			var component = F.components.instances[keys[i]];
+		for (var key in F.components.instances) {
+			var component = F.components.instances[key];
 			if (component.group === group) {
 				if (component.render) {
 					!this.$viewasync && (this.$viewasync = []);
@@ -10908,7 +10852,7 @@ ControllerProto.$components = function(group, settings) {
 					this.$viewasync.push({ replace: name, name: component.name, settings: settings });
 					output.push(name);
 				} else {
-					var tmp = this.component(keys[i], settings, null, true);
+					var tmp = this.component(key, settings, null, true);
 					tmp && output.push(tmp);
 				}
 			}
@@ -11494,15 +11438,14 @@ ControllerProto.href = function(key, value) {
 
 			obj[key] = '\0';
 
-			var arr = Object.keys(obj);
-			for (var i = 0, length = arr.length; i < length; i++) {
-				var val = obj[arr[i]];
+			for (var m in obj) {
+				var val = obj[m];
 				if (val !== undefined) {
 					if (val instanceof Array) {
 						for (var j = 0; j < val.length; j++)
-							str += (str ? '&' : '') + arr[i] + '=' + (key === arr[i] ? '\0' : querystring_encode(val[j]));
+							str += (str ? '&' : '') + m + '=' + (key === m ? '\0' : querystring_encode(val[j]));
 					} else
-						str += (str ? '&' : '') + arr[i] + '=' + (key === arr[i] ? '\0' : querystring_encode(val));
+						str += (str ? '&' : '') + m + '=' + (key === m ? '\0' : querystring_encode(val));
 				}
 			}
 			self[cachekey] = str;
@@ -11718,9 +11661,8 @@ ControllerProto.head = function() {
 		var plus = '';
 		var components = self.repository[REPOSITORY_COMPONENTS];
 		if (components) {
-			var keys = Object.keys(components);
-			for (var i = 0; i < keys.length; i++) {
-				var com = F.components.groups[keys[i]];
+			for (var key in components) {
+				var com = F.components.groups[key];
 				if (com)
 					plus += com.links;
 			}
@@ -12956,9 +12898,8 @@ ControllerProto.proxy = function(opt) {
 			opt.url += '?' + tmp;
 	}
 
-	var keys = Object.keys(req.headers);
-	for (var i = 0; i < keys.length; i++) {
-		switch (keys[i]) {
+	for (var key in req.headers) {
+		switch (key) {
 			case 'x-forwarded-for':
 			case 'x-forwarded-protocol':
 			case 'x-nginx-proxy':
@@ -12967,7 +12908,7 @@ ControllerProto.proxy = function(opt) {
 			case 'accept-encoding':
 				break;
 			default:
-				opt.headers[keys[i]] = req.headers[keys[i]];
+				opt.headers[key] = req.headers[key];
 				break;
 		}
 	}
@@ -13325,10 +13266,9 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 
 		var components = self.repository[REPOSITORY_COMPONENTS];
 		if (components) {
-			var keys = Object.keys(components);
 			var plus = '';
-			for (var i = 0; i < keys.length; i++) {
-				var com = F.components.groups[keys[i]];
+			for (var key in components) {
+				var com = F.components.groups[key];
 				if (com)
 					plus += com.links;
 			}
@@ -14262,6 +14202,7 @@ WebSocketClientProto.$decode = function() {
 
 	var data = this.current.body;
 	F.stats.performance.message++;
+	F.stats.performance.download += data.length / 1024 / 1024;
 
 	// Buffer
 	if (this.typebuffer) {
@@ -14407,25 +14348,36 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 		return self;
 
 	if (self.type !== 1) {
+
 		var data = self.type === 3 ? (raw ? message : JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer) : (message + '');
+		var buffer;
 
 		if (self.container.$encrypt)
 			data = framework_utils.encrypt_data(data, CONF.secret_encryption);
 
 		if (self.container.encodedecode === true && data)
 			data = encodeURIComponent(data);
+
 		if (self.deflate) {
-			self.deflatepending.push(Buffer.from(data, ENCODING));
+			buffer = Buffer.from(data, ENCODING);
+			self.deflatepending.push(buffer);
 			self.sendDeflate();
-		} else
-			self.socket.write(U.getWebSocketFrame(0, Buffer.from(data, ENCODING), 0x01, false, self.masking));
+		} else {
+			buffer = Buffer.from(data, ENCODING);
+			self.socket.write(U.getWebSocketFrame(0, buffer, 0x01, false, self.masking));
+		}
+
 	} else if (message) {
+		buffer = message;
 		if (self.deflate) {
 			self.deflatepending.push(message);
 			self.sendDeflate();
 		} else
 			self.socket.write(U.getWebSocketFrame(0, message, 0x02, false, self.masking));
 	}
+
+	if (buffer)
+		F.stats.performance.upload += buffer.length / 1024 / 1024;
 
 	return self;
 };
@@ -15064,6 +15016,9 @@ function extend_request(PROTO) {
 
 		var route = this.$total_route;
 
+		if (this.bodydata)
+			F.stats.performance.download += this.bodydata.length / 1024 / 1024;
+
 		if (this.bodyexceeded) {
 			route = F.lookup_system(431);
 			this.bodydata = null;
@@ -15261,8 +15216,8 @@ function extend_request(PROTO) {
 		var keys = Object.keys(req.headers);
 		var max = 0;
 
-		for (var i = 0; i < keys.length; i++) {
-			var length = keys[i].length;
+		for (var key in req.headers) {
+			var length = key.length;
 			if (length > max)
 				max = length;
 		}
@@ -16032,10 +15987,14 @@ function extend_response(PROTO) {
 			res.end();
 		} else if (compress) {
 			res.writeHead(options.code || 200, headers);
-			Zlib.gzip(!options.encoding || options.encoding === 'binary' ? options.body : options.body.toString(options.encoding), (err, buffer) => res.end(buffer));
+			Zlib.gzip(!options.encoding || options.encoding === 'binary' ? options.body : options.body.toString(options.encoding), function(err, buffer) {
+				F.stats.performance.upload += buffer.length / 1024 / 1024;
+				res.end(buffer);
+			});
 		} else {
 			res.writeHead(options.code || 200, headers);
 			res.end(!options.encoding || options.encoding === 'binary' ? options.body : options.body.toString(options.encoding));
+			F.stats.performance.upload += options.body.length / 1024 / 1024;
 		}
 
 		response_end(res);
@@ -16108,12 +16067,12 @@ function extend_response(PROTO) {
 		if (compress) {
 			res.writeHead(options.code || 200, headers);
 			res.on('error', () => options.stream.close());
-			options.stream.pipe(Zlib.createGzip(GZIPSTREAM)).pipe(res);
+			options.stream.pipe(Zlib.createGzip(GZIPSTREAM)).pipe(res).on('data', countuploadstats);
 			framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
 		} else {
 			res.writeHead(options.code || 200, headers);
 			framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
-			options.stream.pipe(res);
+			options.stream.pipe(res).on('data', countuploadstats);
 		}
 
 		response_end(res);
@@ -16252,10 +16211,15 @@ function extend_response(PROTO) {
 
 			if (gzip) {
 				res.writeHead(options.code || 200, headers);
-				Zlib.gzip(options.body instanceof Buffer ? options.body : Buffer.from(options.body), (err, data) => res.end(data, res.options.encoding || ENCODING));
+				Zlib.gzip(options.body instanceof Buffer ? options.body : Buffer.from(options.body), function(err, data) {
+					F.stats.performance.upload += data.length / 1024 / 1024;
+					res.end(data, res.options.encoding || ENCODING);
+				});
 			} else {
+				var buffer = options.body instanceof Buffer ? options.body : Buffer.from(options.body);
+				F.stats.performance.upload += buffer.length / 1024 / 1024;
 				res.writeHead(options.code || 200, headers);
-				res.end(options.body, res.options.encoding || ENCODING);
+				res.end(buffer, res.options.encoding || ENCODING);
 			}
 		}
 
@@ -16399,7 +16363,7 @@ F.$file_notmodified = function(res, name) {
 
 function $file_nocompress(stream, next, res) {
 
-	stream.pipe(res);
+	stream.pipe(res).on('data', countuploadstats);
 
 	framework_internal.onFinished(res, function() {
 		next();
@@ -16457,7 +16421,7 @@ function $file_range_callback(stream, next, res) {
 		framework_internal.destroyStream(stream);
 		next();
 	});
-	stream.pipe(res);
+	stream.pipe(res).on('data', countuploadstats);
 	response_end(res);
 }
 
@@ -17478,9 +17442,6 @@ function runsnapshot() {
 		stats.date = NOW;
 		stats.textdb = F.stats.textdb;
 
-		if (stats.textdb)
-			stats.textdb.size = (stats.textdb.size / 1024 / 1024).floor(2);
-
 		stats.memory = (memory.heapUsed / 1024 / 1024).floor(2);
 		stats.rm = F.temporary.service.request || 0;      // request min
 		stats.fm = F.temporary.service.file || 0;         // files min
@@ -17488,6 +17449,8 @@ function runsnapshot() {
 		stats.em = F.temporary.service.external || 0;     // external requests min
 		stats.mm = F.temporary.service.mail || 0;         // mail min
 		stats.om = F.temporary.service.open || 0;         // open files min
+		stats.dm = (F.temporary.service.download || 0).floor(3);       // downloaded MB min
+		stats.um = (F.temporary.service.upload || 0).floor(3);         // uploaded MB min
 		stats.dbrm = F.temporary.service.dbrm || 0;       // db read
 		stats.dbwm = F.temporary.service.dbwm || 0;       // db write
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
@@ -17498,6 +17461,8 @@ function runsnapshot() {
 		stats.timeouts = F.stats.response.error408;
 		stats.online = F.stats.performance.online;
 		stats.uptime = F.cache.count;
+		stats.download = F.stats.request.size.floor(3);
+		stats.upload = F.stats.response.size.floor(3);
 
 		var err = F.errors[F.errors.length - 1];
 		var timeout = F.timeouts[F.timeouts.length - 1];
@@ -17550,9 +17515,7 @@ NEWCOMMAND('clear_smtpcache', function() {
 
 NEWCOMMAND('clear_viewscache', function() {
 	global.$VIEWCACHE = [];
-	var keys = Object.keys(F.temporary.other);
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in F.temporary.other) {
 		if (key.substring(0, 4) === 'view')
 			delete F.temporary.other[key];
 	}

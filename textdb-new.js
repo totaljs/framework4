@@ -657,7 +657,9 @@ TD.$clear = function() {
 	self.files.wait(function(item, next) {
 		Fs.unlink(item.filename, next);
 	}, function() {
+
 		self.total = 0;
+		self.filesize = 0;
 
 		for (var i = 0; i < filter.length; i++)
 			filter[i]();
@@ -678,6 +680,8 @@ TD.$drop = function() {
 	}
 
 	self.pending_drops = false;
+	self.total = 0;
+	self.filesize = 0;
 	self.files.wait((item, next) => Fs.unlink(item.filename, next), self.next2, 5);
 };
 

@@ -2521,6 +2521,8 @@ exports.parseMULTIPART = function(req, type, route) {
 
 	var parser = U.multipartparser(boundary, req, function(err, meta) {
 
+		F.stats.performance.download += meta.size / 1024 / 1024;
+
 		for (var i = 0; i < meta.files.length; i++) {
 			var item = meta.files[i];
 			var file = new HttpFile();

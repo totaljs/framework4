@@ -215,7 +215,6 @@ function measure() {
 	if (counter++ > 100000000)
 		counter = 0;
 
-	var keys = Object.keys(instances);
 	var pendingread = 0;
 	var pendingwrite = 0;
 	var duration = 0;
@@ -223,8 +222,8 @@ function measure() {
 
 	STATS.size = 0;
 
-	for (var i = 0; i < keys.length; i++) {
-		var instance = instances[keys[i]];
+	for (var key in instances) {
+		var instance = instances[key];
 		pendingread += instance.pending_reader.length + (instance.pending_reader2 ? instance.pending_reader2.length : 0) + (instance.pending_streamer ? instance.pending_streamer.length : 0);
 		pendingwrite += instance.pending_update.length + instance.pending_append.length + instance.pending_remove.length;
 		if (duration < instance.duration)

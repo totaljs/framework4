@@ -252,11 +252,9 @@ global.DIFFARR = exports.diffarr = function(prop, db, form) {
 };
 
 exports.toURLEncode = function(value) {
-	var keys = Object.keys(value);
 	var builder = [];
 
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in value) {
 		var val = value[key];
 
 		if (val == null || val === '')
@@ -757,11 +755,10 @@ function request_call(uri, options) {
 				return;
 			}
 
-			var keys = Object.keys(options.body);
-			for (var i = 0; i < keys.length; i++) {
-				var value = options.body[keys[i]];
+			for (var key in options.body) {
+				var value = options.body[key];
 				if (value != null) {
-					req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + keys[i] + '"' + NEWLINE + NEWLINE + value);
+					req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + key + '"' + NEWLINE + NEWLINE + value);
 					if (options.first)
 						options.first = false;
 				}
@@ -1139,18 +1136,17 @@ exports.trim = function(obj, clean) {
 	if (type !== 'object')
 		return obj;
 
-	var keys = Object.keys(obj);
-	for (var i = 0, length = keys.length; i < length; i++) {
-		var val = obj[keys[i]];
+	for (var key in obj) {
+		var val = obj[key];
 		var type = typeof(val);
 		if (type === 'object') {
 			exports.trim(val, clean);
 			continue;
 		} else if (type !== 'string')
 			continue;
-		obj[keys[i]] = val.trim();
-		if (clean && !obj[keys[i]])
-			obj[keys[i]] = undefined;
+		obj[key] = val.trim();
+		if (clean && !obj[key])
+			obj[key] = undefined;
 	}
 
 	return obj;
@@ -1345,9 +1341,7 @@ exports.reduce = function(source, prop, reverse) {
 
 	var output = {};
 
-	var keys = Object.keys(source);
-	for (var i = 0; i < keys.length; i++) {
-		var o = keys[i];
+	for (var o in source) {
 		if (reverse) {
 			if (prop.indexOf(o) === -1)
 				output[o] = source[o];
@@ -2591,11 +2585,10 @@ SP.parseComponent = function(tags) {
 	var beg = -1;
 	var end = -1;
 	var output = {};
-	var keys = Object.keys(tags);
 
-	for (var i = 0; i < keys.length; i++) {
+	for (var key in tags) {
 
-		var tagbeg = tags[keys[i]];
+		var tagbeg = tags[key];
 		var tagindex = tagbeg.indexOf(' ');
 
 		if (tagindex === -1)
@@ -2630,7 +2623,7 @@ SP.parseComponent = function(tags) {
 			if (end !== -1) {
 				var tmp = html.substring(html.indexOf('>', beg) + 1, end);
 				html = html.replace(html.substring(beg, end + tagend.length), '').trim();
-				output[keys[i]] = tmp.trim();
+				output[key] = tmp.trim();
 			}
 
 		}
@@ -2973,7 +2966,6 @@ SP.parseUA = function(structured) {
 		}
 
 		if (structured) {
-			var keys = Object.keys(data);
 			var output = { os: '', browser: '', device: 'desktop' };
 
 			if (data.Tablet)
@@ -2981,14 +2973,14 @@ SP.parseUA = function(structured) {
 			else if (data.Mobile)
 				output.device = 'mobile';
 
-			for (var i = 0; i < keys.length; i++) {
-				var val = data[keys[i]];
+			for (var key in data) {
+				var val = data[key];
 				switch (val) {
 					case 1:
-						output.browser += (output.browser ? ' ' : '') + keys[i];
+						output.browser += (output.browser ? ' ' : '') + key;
 						break;
 					case 2:
-						output.os += (output.os ? ' ' : '') + keys[i];
+						output.os += (output.os ? ' ' : '') + key;
 						break;
 					case 5:
 						output.device = 'tv';
@@ -4211,12 +4203,10 @@ SP.removeTags = function() {
 
 NP.between = function(condition, otherwise) {
 
-	var keys = Object.keys(condition);
 	var val = this;
 
-	for (var i = 0; i < keys.length; i++) {
+	for (var key in condition) {
 
-		var key = keys[i];
 		var arr = key.split('-');
 
 		var a = arr[0] ? +arr[0] : null;
@@ -5696,10 +5686,9 @@ exports.Chunker = Chunker;
 exports.ObjectToArray = function(obj) {
 	if (obj == null)
 		return EMPTYARRAY;
-	var keys = Object.keys(obj);
 	var output = [];
-	for (var i = 0, length = keys.length; i < length; i++)
-		output.push({ key: keys[i], value: obj[keys[i]]});
+	for (var key in obj)
+		output.push({ key: key, value: obj[key]});
 	return output;
 };
 
@@ -5887,8 +5876,10 @@ function MultipartParser(multipart, stream, callback) {
 	self.current = {};
 	self.body = {};
 	self.files = [];
+	self.size = 0;
 
 	self.ondata = function(chunk) {
+		self.size += chunk.length;
 		if (self.buffer) {
 			CONCAT[0] = self.buffer;
 			CONCAT[1] = chunk;

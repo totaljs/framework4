@@ -205,9 +205,8 @@ MP.send = function(outputindex, data) {
 
 	if (outputindex == null) {
 		if (self.instance.connections) {
-			outputs = Object.keys(self.instance.connections);
-			for (var i = 0; i < outputs.length; i++)
-				count += self.send(outputs[i]);
+			for (var key in self.instance.connections)
+				count += self.send(key);
 		}
 
 		if (!count)
@@ -398,13 +397,10 @@ FP.register = function(name, declaration, config, extend) {
 		self.unregister(name);
 	};
 
-	var keys = Object.keys(self.meta.flow);
-	if (keys.length) {
-		for (var i = 0; i < keys.length; i++) {
-			var f = self.meta.flow[keys[i]];
-			if (f.component === curr.id) {
-				self.initcomponent(keys[i], curr);
-			}
+	for (var key in self.meta.flow) {
+		var f = self.meta.flow[key];
+		if (f.component === curr.id) {
+			self.initcomponent(key, curr);
 		}
 	}
 
@@ -433,15 +429,10 @@ FP.cleanforce = function() {
 	if (!self.meta)
 		return self;
 
-	var keys = Object.keys(self.meta.flow);
-
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in self.meta.flow) {
 		var instance = self.meta.flow[key];
 		if (instance.connections) {
-			var keys2 = Object.keys(instance.connections);
-			for (var j = 0; j < keys2.length; j++) {
-				var key2 = keys2[j];
+			for (var key2 in instance.connections) {
 				var conn = instance.connections[key2];
 				var arr = conn.remove(c => self.meta.flow[c.id] == null);
 				if (arr.length)
@@ -664,9 +655,7 @@ FP.use = function(schema, callback, reinit) {
 			self.$events.schema && self.emit('schema', self.meta.flow);
 			callback && callback(err.length ? err : null);
 
-			var keys = Object.keys(self.meta.flow);
-			for (var i = 0; i < keys.length; i++) {
-				var key = keys[i];
+			for (var key in self.meta.flow) {
 				var instance = self.meta.flow[key];
 				var component = self.meta.components[instance.component];
 				if (instance.ts !== ts) {
