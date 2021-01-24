@@ -26,7 +26,7 @@
 
 exports.sort = function(builder, item) {
 	var length = builder.response.length;
-	if (length < builder.$take2) {
+	if (length <= builder.$take2) {
 		length = builder.response.push(item);
 		if (length >= builder.$take2) {
 			builder.response.sort(builder.$sort);
