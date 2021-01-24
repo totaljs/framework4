@@ -52,7 +52,6 @@ function TextDB(filename, onetime) {
 	t.pending_clear = [];
 	t.pending_locks = [];
 	t.step = 0;
-	t.pending_drops = false;
 	t.$timeoutmeta;
 	t.$writting = false;
 	t.$reading = 0;
@@ -125,9 +124,8 @@ TD.update = function() {
 
 TD.drop = function(callback) {
 	var self = this;
-	self.pending_drops = true;
+	self.pending_drops = callback || NOOP;
 	setImmediate(next_operation, self, 7);
-	callback && callback({ success: true });
 	return self;
 };
 
@@ -418,6 +416,7 @@ TD.$reader = function() {
 
 	filters.type = 'read';
 	filters.db = self;
+	self.$reading++;
 
 	var done = function() {
 		self.$reading--;
@@ -674,10 +673,13 @@ TD.$drop = function() {
 	var self = this;
 	self.step = 7;
 	if (self.pending_drops) {
-		self.pending_drops = false;
 		self.total = 0;
 		self.filesize = 0;
-		self.files.wait((item, next) => Fs.unlink(item.filename, next), () => Fs.rmdir(self.filename, self.next2), 5);
+		self.files.wait((item, next) => Fs.unlink(item.filename, next), () => Fs.rmdir(self.filename, function(err) {
+			self.pending_drops();
+			self.pending_drops = null;
+			self.next(0);
+		}), 5);
 	} else
 		self.next(0);
 };
