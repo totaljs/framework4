@@ -2208,7 +2208,8 @@ F.parseComponent = parseComponent;
 
 function nosqlwrapper(name) {
 
-	var db = F.databases[name];
+	var key = 'nosql_' + name;
+	var db = F.databases[key];
 	if (db)
 		return db;
 
@@ -2220,14 +2221,15 @@ function nosqlwrapper(name) {
 
 	var instance = require('./textdb-wrapper').make('nosql', path, onetime);
 	if (!onetime)
-		F.databases[name] = instance;
+		F.databases[key] = instance;
 
 	return instance;
 }
 
 function textdbwrapper(name) {
 
-	var db = F.databases[name];
+	var key = 'textdb_' + name;
+	var db = F.databases[key];
 	if (db)
 		return db;
 
@@ -2239,7 +2241,7 @@ function textdbwrapper(name) {
 
 	var instance = require('./textdb-wrapper').make('textdb', path, onetime);
 	if (!onetime)
-		F.databases[name] = instance;
+		F.databases[key] = instance;
 
 	return instance;
 }
@@ -2281,7 +2283,8 @@ global.COUNTER = function(name) {
 
 function tablewrapper(name) {
 
-	var db = F.databases[name];
+	var key = 'table_' + name;
+	var db = F.databases[key];
 	if (db)
 		return db;
 
@@ -2293,7 +2296,7 @@ function tablewrapper(name) {
 
 	var instance = require('./textdb-wrapper').make('table', path, onetime, CONF['table_' + name]);
 	if (!onetime)
-		F.databases[name] = instance;
+		F.databases[key] = instance;
 
 	return instance;
 }
