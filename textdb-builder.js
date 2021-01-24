@@ -124,7 +124,7 @@ function QueryBuilder(db) {
 	t.count = 0;
 	t.counter = 0;
 	t.scanned = 0;
-	t.$take = 1000;
+	t.$take = 0;
 	t.$skip = 0;
 
 	t.func = func;
