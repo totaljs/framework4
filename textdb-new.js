@@ -673,16 +673,13 @@ TD.$clear = function() {
 TD.$drop = function() {
 	var self = this;
 	self.step = 7;
-
-	if (!self.pending_drops) {
+	if (self.pending_drops) {
+		self.pending_drops = false;
+		self.total = 0;
+		self.filesize = 0;
+		self.files.wait((item, next) => Fs.unlink(item.filename, next), () => Fs.rmdir(self.filename, self.next2), 5);
+	} else
 		self.next(0);
-		return;
-	}
-
-	self.pending_drops = false;
-	self.total = 0;
-	self.filesize = 0;
-	self.files.wait((item, next) => Fs.unlink(item.filename, next), self.next2, 5);
 };
 
 TD.$count = function() {
