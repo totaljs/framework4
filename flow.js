@@ -651,7 +651,6 @@ FP.use = function(schema, callback, reinit) {
 
 		}, function() {
 
-
 			self.$events.schema && self.emit('schema', self.meta.flow);
 			callback && callback(err.length ? err : null);
 

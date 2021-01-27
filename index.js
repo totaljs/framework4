@@ -2198,7 +2198,7 @@ F.routes_sort = function(type) {
 	F.routes.websocketscached = wcache;
 
 	// Clears cache
-	for (var key in F.temporary.other) {
+	for (key in F.temporary.other) {
 		if (key[0] === '1')
 			delete F.temporary.other[key];
 	}
@@ -2328,11 +2328,6 @@ F.stop = F.kill = function(signal) {
 		try {
 			thread && thread.kill && thread.kill(signal);
 		} catch (e) {}
-	}
-
-	if (F.threads) {
-		for (var key in F.threads)
-			F.threads[key].kill(0);
 	}
 
 	EMIT('exit', signal);
