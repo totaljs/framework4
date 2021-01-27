@@ -2040,8 +2040,8 @@ function compressHTML(html, minify, isChunk) {
 		return c === '<' ? c : ' ' + c;
 	}).replace(REG_1, '').replace(REG_2, '');
 
-	for (var key in cache)
-		html = html.replacer(key, cache[key]);
+	for (var k in cache)
+		html = html.replacer(k, cache[k]);
 
 	return html;
 }

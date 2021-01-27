@@ -7013,7 +7013,6 @@ F.service = function(count) {
 
 	var releasegc = false;
 	var keys;
-	var key;
 
 	// clears short cahce temporary cache
 	F.temporary.shortcache = {};
@@ -7134,7 +7133,7 @@ F.service = function(count) {
 	var expire = NOW.getTime();
 
 	for (var i = 0; i < keys.length; i++) {
-		key = keys[i];
+		var key = keys[i];
 		var schedule = F.schedules[key];
 		if (schedule.expire <= expire) {
 			if (schedule.repeat)
@@ -8539,9 +8538,9 @@ global.SITEMAP = F.sitemap = function(name, me, language) {
  */
 F.sitemap_navigation = function(parent, language) {
 
-	var key = REPOSITORY_SITEMAP + '_n_' + (parent || '') + '$' + (language || '');
-	if (F.temporary.other[key])
-		return F.temporary.other[key];
+	var id = REPOSITORY_SITEMAP + '_n_' + (parent || '') + '$' + (language || '');
+	if (F.temporary.other[id])
+		return F.temporary.other[id];
 
 	var arr = [];
 	var index = 0;
@@ -8565,7 +8564,7 @@ F.sitemap_navigation = function(parent, language) {
 	}
 
 	arr.quicksort('name');
-	F.temporary.other[key] = arr;
+	F.temporary.other[id] = arr;
 	return arr;
 };
 
@@ -9733,6 +9732,7 @@ FrameworkRouteProto.remove = function(nosort) {
 			if (tmp.apiname) {
 				var api = F.routes.api[tmp.apiname];
 				var remcount = 0;
+				var keys = Object.keys(api);
 				for (var key in api) {
 					if (api[key].path === tmp.path) {
 						remcount++;
@@ -13369,11 +13369,10 @@ ControllerProto.memorize = function(key, expires, disabled, fnTo, fnFrom) {
 			break;
 	}
 
-	var length = output.repository.length;
-	for (var i = 0; i < length; i++) {
-		var key = output.repository[i].key;
-		if (self.repository[key] === undefined)
-			self.repository[key] = output.repository[i].value;
+	for (var i = 0; i < output.repository.length; i++) {
+		var k = output.repository[i].key;
+		if (self.repository[k] === undefined)
+			self.repository[k] = output.repository[i].value;
 	}
 
 	fnFrom && fnFrom.call(self);
