@@ -168,6 +168,36 @@ TD.recount = function() {
 	setImmediate(next_operation, self, 5);
 };
 
+/*
+TD.view = function(name, fn) {
+
+	var self = this;
+
+	if (!self.$views)
+		self.$views = {};
+
+	var emit = function(key, doc) {
+		// name
+		// key
+		// doc
+	};
+
+	self.$views[name] = { emit: emit, fn: typeof(fn) === 'string' ? new Function('$', fn) : fn };
+	return self;
+};
+
+TD.$reduce = function($) {
+	for (var key in this.$views) {
+		var item = this.$views[key];
+		$.emit = item.emit;
+		item.fn($);
+	}
+};
+
+TD.rebuild = function() {
+
+};*/
+
 //  1 append
 //  2 update
 //  3 remove
