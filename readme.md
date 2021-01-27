@@ -1,5 +1,3 @@
-![Total.js logo](https://www.totaljs.com/img/logo-totaljs.png)
-
 Total.js framework 4
 ====================
 
