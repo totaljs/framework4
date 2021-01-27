@@ -111,12 +111,13 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.typebuffer = self.options.type === 'buffer';
 	self.istext = self.options.type !== 'binary' && !self.typebuffer;
 
-	for (key in self.headers)
-		options.headers[key] = self.headers[key];
+	for (k in self.headers)
+		options.headers[k] = self.headers[k];
 
 	var tmp = [];
-	for (var key in self.cookies)
-		tmp.push(key + '=' + self.cookies[key]);
+	for (var k in self.cookies)
+		tmp.push(k + '=' + self.cookies[k]);
+
 	options.headers.Cookie = tmp.join(', ');
 
 	F.stats.performance.online++;
@@ -151,7 +152,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		if (response.headers['sec-websocket-accept'] !== digest) {
 			socket.destroy();
 			self.closed = true;
-			self.$events.error && self.emit('error', new Error('Invalid server key'));
+			self.$events.error && self.emit('error', new Error('Invalid server key'), response);
 			self.free();
 			return;
 		}
