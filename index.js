@@ -961,7 +961,7 @@ function makefake(type, max, name) {
 		case 'string':
 			return makefakename(name) || U.random_string(max ? (max / 2) : 12);
 		case 'base64':
-			return Buffer.alloc(U.random(10, 1)).toString('utf8');
+			return Buffer.from(GUID(10), 'ascii').toString('base64');
 		case 'uid':
 			return UID('fake');
 		case 'uid16':
