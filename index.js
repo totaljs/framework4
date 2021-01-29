@@ -1805,7 +1805,6 @@ function Framework() {
 			error401: 0,
 			error403: 0,
 			error404: 0,
-			error408: 0,
 			error409: 0,
 			error431: 0,
 			error500: 0,
@@ -4387,17 +4386,9 @@ F.$notModified = function(req, res, date) {
  * @return {Framework}
  */
 F.error = function(err, name, uri) {
-
 	if (!arguments.length)
 		return F.errorcallback;
-
-	if (err) {
-		F.stats.error++;
-		NOW = new Date();
-		if (F.errors.push({ error: err.stack ? err.stack : err, name: name, url: uri ? typeof(uri) === 'string' ? uri : Parser.format(uri) : undefined, date: NOW }) > 5)
-			F.errors.shift();
-		DEF.onError(err, name, uri);
-	}
+	err && DEF.onError(err, name, uri);
 };
 
 F.errorcallback = function(err) {
@@ -5088,6 +5079,14 @@ F.register = function(path) {
 
 var BUILDERRORS = {};
 
+
+function appenderror(err, name, uri) {
+	var obj = { error: err, name: name, url: uri, date: NOW };
+	if (F.errors.push(obj) > 5)
+		F.errors.shift();
+	EMIT('error', obj);
+}
+
 /**
  * Error handler
  * @param {Error} err
@@ -5099,6 +5098,13 @@ DEF.onError = function(err, name, uri) {
 
 	NOW = new Date();
 
+	if (uri) {
+		if (typeof(uri) !== 'string')
+			uri = Parser.format(uri);
+	}
+
+	F.stats.error++;
+
 	if (F.buildserrorhandling && err.stack) {
 		var str = err.stack.split('\n')[1].trim();
 		if (str.lastIndexOf('.build.js') !== -1) {
@@ -5109,6 +5115,7 @@ DEF.onError = function(err, name, uri) {
 
 			if (BUILDERRORS[key]) {
 				console.log(BUILDERRORS[key]);
+				appenderror(BUILDERRORS[key], name, uri);
 				return;
 			}
 
@@ -5151,16 +5158,18 @@ DEF.onError = function(err, name, uri) {
 					}
 				}
 
-				var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"';
+				var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"' + (uri ? (' (' + uri + ')') : '');
 				BUILDERRORS[key] = msg;
 				console.log(msg);
+				appenderror(msg, name, uri);
 			});
 
 			return;
 		}
 	}
 
-	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? ' (' + Parser.format(uri) + ')' : ''), err.stack ? err.stack : err);
+	appenderror(err.stack ? err.stack : err, name, uri);
+	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : err);
 };
 
 /*
@@ -14824,14 +14833,11 @@ function extend_request(PROTO) {
 			var key = 'error' + status;
 			F.stats.response[key]++;
 
-			if (status !== 500 && F.$events.error)
-				EMIT('error', this, res, this.$total_exception);
+			// "error" is executed from DEF.onError
+			// if (status !== 500 && F.$events.error)
+			// 	EMIT('error_response', this, res, this.$total_exception);
 
 			F.$events[key] && EMIT(key, this, res, this.$total_exception);
-			if (status === 408) {
-				if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.url) > 5)
-					F.timeouts.shift();
-			}
 		}
 
 		if (!route) {
@@ -14947,6 +14953,9 @@ function extend_request(PROTO) {
 	PROTO.$total_cancel = function() {
 
 		F.stats.response.timeout++;
+
+		if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.url) > 5)
+			F.timeouts.shift();
 
 		if (this.controller) {
 			this.controller.isTimeout = true;
@@ -16249,7 +16258,15 @@ function extend_response(PROTO) {
 	};
 
 	PROTO.throw408 = function(problem) {
-		this.options.code = 408;
+
+		// Timeout
+		F.stats.response.timeout++;
+
+		if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.req.url) > 5)
+			F.timeouts.shift();
+
+		// 408 status code isn't good for handle timeouts
+		this.options.code = 503;
 		problem && (this.options.problem = problem);
 		return this.$throw();
 	};
@@ -16276,6 +16293,13 @@ function extend_response(PROTO) {
 	PROTO.throw501 = function(problem) {
 		this.options.code = 501;
 		problem && (this.options.problem = problem);
+		return this.$throw();
+	};
+
+	PROTO.throw503 = function(error) {
+		error && F.error(error, null, this.req.uri);
+		this.options.code = 503;
+		this.options.body = U.httpstatus(503) + error ? prepare_error(error) : '';
 		return this.$throw();
 	};
 
@@ -17455,7 +17479,7 @@ function runsnapshot() {
 		stats.pending = F.stats.request.pending;
 		stats.external = F.stats.request.external || 0;
 		stats.errors = F.stats.error;
-		stats.timeouts = F.stats.response.error408;
+		stats.timeouts = F.stats.response.timeout;
 		stats.online = F.stats.performance.online;
 		stats.uptime = F.cache.count;
 		stats.download = F.stats.request.size.floor(3);
@@ -17464,7 +17488,7 @@ function runsnapshot() {
 		var err = F.errors[F.errors.length - 1];
 		var timeout = F.timeouts[F.timeouts.length - 1];
 
-		stats.lasterror = err ? (err.date.toJSON() + ' '  + (err.name ? (err.name + ' - ') : '') + (err.error ? err.error : err)) : undefined;
+		stats.lasterror = err ? (err.date.toJSON() + ' '  + (err.name ? (err.name + ' - ') : '') + err.error) : undefined;
 		stats.lasttimeout = timeout;
 
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
