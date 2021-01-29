@@ -4068,6 +4068,18 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	F.initwebsocket && F.initwebsocket();
 	F.routes.all[mypath] = instance;
 
+	r.compare = function(req) {
+		var url = this.url;
+		for (var i = 0; i < url.length; i++) {
+			var p = url[i];
+			if (p[0] === '{')
+				continue;
+			if (p !== req.split[i])
+				return false;
+		}
+		return true;
+	};
+
 	EMIT('route', 'websocket', r);
 	!CURRENT_CONTROLLER && F.routes_sort(2);
 	return instance;
