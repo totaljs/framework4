@@ -7791,7 +7791,7 @@ F.$upgrade = function(req, socket, head) {
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
 	if (!req.$total_route) {
-		req.websocket.$close(4004, '404: not found');
+		req.destroy();
 		return;
 	}
 
