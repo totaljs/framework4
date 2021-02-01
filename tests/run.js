@@ -536,7 +536,7 @@ ON('ready', function() {
 
 function run(counter) {
 
-	if (counter > 3) {
+	if (counter > 10) {
 		console.log('');
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
