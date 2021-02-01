@@ -1,7 +1,7 @@
 NEWSCHEMA('Methods', function(schema) {
 
-    schema.addWorkflow('exec', function($) {
-        $.success();
-    });
+	schema.addWorkflow('exec', function($) {
+		$.success();
+	});
 
-});
+});ß

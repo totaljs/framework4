@@ -5,31 +5,31 @@ var url = 'http://0.0.0.0:8000';
 var tests = [];
 
 // Routes
-tests.push(function (next) {
+tests.push(function(next) {
 
 	var subtests = [];
 	var name = 'ROUTES - ';
 
 	// Schema Names
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Schema names';
 
 		console.time(subname);
 
 		var names = ['query', 'read', 'insert', 'update', 'patch', 'remove', 'delete', 'workflow'];
-		names.wait(function (item, next) {
-			RESTBuilder.GET(url + '/names/' + item).exec(function (err) {
+		names.wait(function(item, next) {
+			RESTBuilder.GET(url + '/names/' + item).exec(function(err) {
 				assert.ok(err === null, subname + item);
 				next();
 			});
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
 	});
 
 	// Params
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Params';
 
 		console.time(subname);
@@ -49,29 +49,29 @@ tests.push(function (next) {
 			{ url: `/params/${item}/${item2}/${item3}/third/`, res: item3 }
 		];
 
-		items.wait(function (item, next) {
-			RESTBuilder.GET(url + item.url).exec(function (err, response) {
+		items.wait(function(item, next) {
+			RESTBuilder.GET(url + item.url).exec(function(err, response) {
 				assert.ok(response === item.res, subname + ' ' + item.url + ' - ' + item.res);
 				next();
 			});
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
 	});
 
 	// Http request methods
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Http request methods';
 		var tests = [];
 
 		console.time(subname);
 
 		// All possible methods
-		tests.push(function (next) {
+		tests.push(function(next) {
 			var methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-			methods.wait(function (method, next) {
-				RESTBuilder[method](url + '/methods/').exec(function (err, res) {
+			methods.wait(function(method, next) {
+				RESTBuilder[method](url + '/methods/').exec(function(err, res) {
 					assert.ok(err === null && res.success, subname + ' - ' + method);
 					next();
 				});
@@ -79,17 +79,17 @@ tests.push(function (next) {
 		})
 
 		// Wrong method - Path is correct but method is invalid
-		tests.push(function (next) {
-			RESTBuilder.POST(url + '/methods/wrong/').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.POST(url + '/methods/wrong/').exec(function(err, res, output) {
 				assert.ok(output.status === 404, subname + ' - Wrong method - Expecting error');
 				next();
 			});
 		});
 
 		// Run
-		tests.wait(function (item, next) {
+		tests.wait(function(item, next) {
 			item(next);
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
@@ -97,11 +97,11 @@ tests.push(function (next) {
 	});
 
 	// X-Token
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'X-Token';
 
 		var token = 'token123';
-		RESTBuilder.GET(url + '/xtoken').header('x-token', token).exec(function (err, res) {
+		RESTBuilder.GET(url + '/xtoken').header('x-token', token).exec(function(err, res) {
 			assert.ok(res === token, subname);
 			next();
 		});
@@ -109,84 +109,84 @@ tests.push(function (next) {
 	});
 
 	// Auth
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Auth';
 		var tests = [];
 
 		console.time(subname);
 
 		// Authorized user
-		tests.push(function (next) {
-			RESTBuilder.GET(url + '/auth/').cookie('auth', 'correct-cookie').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/auth/').cookie('auth', 'correct-cookie').exec(function(err, res, output) {
 				assert.ok(output.status === 200 && res.success && res.value.user, subname + ' - Authorized user');
 				next();
 			});
 		});
 
 		// Unauthorized user
-		tests.push(function (next) {
-			RESTBuilder.GET(url + '/auth/').cookie('auth', 'wrong-cookie').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/auth/').cookie('auth', 'wrong-cookie').exec(function(err, res, output) {
 				assert.ok(output.status === 200 && res.success, subname + ' - Unauthorized user');
 				next();
 			});
 		});
 
 		// Authorized route - Authorized user
-		tests.push(function (next) {
-			RESTBuilder.GET(url + '/auth/authorized/').cookie('auth', 'correct-cookie').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/auth/authorized/').cookie('auth', 'correct-cookie').exec(function(err, res, output) {
 				assert.ok(output.status === 200 && res.success, subname + ' - Authorized route - Authorized user');
 				next();
 			});
 		});
 
 		// Authorized route - Unauthorized user
-		tests.push(function (next) {
-			RESTBuilder.GET(url + '/auth/authorized/').cookie('auth', 'wrong-cookie').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/auth/authorized/').cookie('auth', 'wrong-cookie').exec(function(err, res, output) {
 				assert.ok(output.status === 401 && !res.success, subname + ' - Authorized route - Unauthorized user');
 				next();
 			});
 		});
 
 		// Unauthorized route - Authorized user
-		tests.push(function (next) {
-			RESTBuilder.GET(url + '/auth/unauthorized/').cookie('auth', 'correct-cookie').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/auth/unauthorized/').cookie('auth', 'correct-cookie').exec(function(err, res, output) {
 				assert.ok(output.status === 401 && !res.success, subname + ' - Unauthorized route - Authorized user');
 				next();
 			});
 		});
 
 		// Unauthorized route - Unauthorized user
-		tests.push(function (next) {
-			RESTBuilder.GET(url + '/auth/unauthorized/').cookie('auth', 'wrong-cookie').exec(function (err, res, output) {
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/auth/unauthorized/').cookie('auth', 'wrong-cookie').exec(function(err, res, output) {
 				assert.ok(output.status === 200 && res.success, subname + ' - Unauthorized route - Unauthorized user');
 				next();
 			});
 		});
 
 		// Run
-		tests.wait(function (item, next) {
+		tests.wait(function(item, next) {
 			item(next);
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
 
 	});
 
-	subtests.wait(function (item, next_subtest) {
+	subtests.wait(function(item, next_subtest) {
 		item(next_subtest);
 	}, next);
 
 });
 
 // Schema
-tests.push(function (next) {
+tests.push(function(next) {
 
 	var subtests = [];
 	var name = 'SCHEMA - ';
 
 	// Formatting - Mostly string formattings
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Formatting';
 
 		console.time(subname);
@@ -211,7 +211,7 @@ tests.push(function (next) {
 			body[key] = data[key].i;
 		}
 
-		RESTBuilder.POST(url + '/schema/formatting/', body).exec(function (err, res) {
+		RESTBuilder.POST(url + '/schema/formatting/', body).exec(function(err, res) {
 			for (var key in data)
 				assert.ok(res[key] === data[key].o, subname + ' - ' + key + ' - INPUT=' + data[key].i + ' OUTPUT=' + res[key] + ' EXPECTING=' + data[key].o);
 
@@ -248,13 +248,13 @@ tests.push(function (next) {
 	prefill_undefined(invalid);
 
 	// Valid data (Required)
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Valid data (Required)';
 
 		console.time(subname);
 
-		valid.wait(function (item, next) {
-			RESTBuilder.POST(url + '/schema/required/', item).exec(function (err) {
+		valid.wait(function(item, next) {
+			RESTBuilder.POST(url + '/schema/required/', item).exec(function(err) {
 				var items = [];
 				if (err && err.items && err.items.length)
 					items = err.items.map(i => i.name + '(' + item[i.name] + ')');
@@ -263,20 +263,20 @@ tests.push(function (next) {
 
 				next();
 			});
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
 	});
 
 	// Invalid data (Required)
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Invalid data (Required)';
 
 		console.time(subname);
 
-		invalid.wait(function (item, next) {
-			RESTBuilder.POST(url + '/schema/required/', item).exec(function (err) {
+		invalid.wait(function(item, next) {
+			RESTBuilder.POST(url + '/schema/required/', item).exec(function(err) {
 
 				// Remap
 				var errors = [];
@@ -292,20 +292,20 @@ tests.push(function (next) {
 
 				next();
 			});
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
 	});
 
 	// Invalid data (Not Required)
-	subtests.push(function (next) {
+	subtests.push(function(next) {
 		var subname = name + 'Invalid data (Not Required)';
 
 		console.time(subname);
 
-		invalid.wait(function (item, next) {
-			RESTBuilder.POST(url + '/schema/notrequired/', item).exec(function (err, res, output) {
+		invalid.wait(function(item, next) {
+			RESTBuilder.POST(url + '/schema/notrequired/', item).exec(function(err, res, output) {
 
 				var keys = Object.keys(item);
 				for (var i = 0; i < keys.length; i++) {
@@ -341,27 +341,86 @@ tests.push(function (next) {
 
 				next();
 			});
-		}, function () {
+		}, function() {
 			console.timeEnd(subname);
 			next();
 		});
 	});
 
-	subtests.wait(function (item, next) {
+	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
 
 });
 
+tests.push(function(next) {
+
+	var name = 'WEBSOCKET - ';
+
+	// Events
+	var open_timeout = 2000;
+	function open_failed() {
+		assert(false, name + 'failed to emit on.open (timeout)');
+	}
+
+	var close_timeout = 1000;
+	function close_failed() {
+		assert(false, name + 'failed to emit on.close (timeout)');
+	}
+
+	WEBSOCKETCLIENT(function(client) {
+
+		client.connect(url.replace('http', 'ws'));
+
+		// If 'on.open' event is not triggered 1s after 'client.connect' then fail test
+		setTimeout(open_failed, open_timeout);
+
+		client.on('open', function() {
+			clearTimeout(open_failed);
+		});
+
+		client.on('close', function() {
+			clearTimeout(close_failed);
+			next();
+		});
+
+		client.on('error', function(e) {
+			assert(false, name + ' error --> ' + e);
+		});
+
+		client.on('message', function(message) {
+
+			switch (message.type) {
+				case 'message_1':
+					client.send({ type: 'close' });
+					break;
+
+				case 'close':
+					client.close();
+
+					// Socket failed to close (timeout)
+					setTimeout(close_failed, close_timeout);
+					break;
+			}
+
+		});
+
+	});
+
+});
+
 // Run
-ON('ready', function () {
+ON('ready', function() {
+	console.time('Finished');
 	run(1);
 });
 
 function run(counter) {
 
-	if (counter > 1) {
-		return;
+	if (counter > 3) {
+		console.log('-----------------------------------');
+		console.timeEnd('Finished');
+		process.exit();
 	}
 
 	console.log('');
@@ -369,10 +428,8 @@ function run(counter) {
 	console.log(' Round: ' + counter);
 	console.log('-----------------------------------');
 
-	tests.wait(function (item, next) {
+	tests.wait(function(item, next) {
 		item(next);
 	}, () => run(counter + 1));
 
 }
-
-HTTP('debug');
