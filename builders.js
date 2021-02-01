@@ -4298,6 +4298,13 @@ global.TASK = function(taskname, name, callback, options, value) {
 
 global.NEWOPERATION = function(name, fn, repeat, stop, binderror, filter) {
 
+	if (typeof(repeat) === 'boolean') {
+		filter = binderror;
+		binderror = stop;
+		stop = repeat;
+		repeat = null;
+	}
+
 	if (typeof(repeat) === 'string') {
 		filter = repeat;
 		repeat = null;
