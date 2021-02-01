@@ -4520,7 +4520,7 @@ global.RUN = function(name, value, callback, param, controller, result) {
 		if (CONF.logger)
 			opt.duration = Date.now();
 
-		fn(opt, op.value);
+		fn(opt, opt.value);
 
 	}, () => callback(error.items.length ? error : null, result ? opt.output : opt.response, opt));
 };
