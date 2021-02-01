@@ -76,7 +76,7 @@ tests.push(function(next) {
 					next();
 				});
 			}, next);
-		})
+		});
 
 		// Wrong method - Path is correct but method is invalid
 		tests.push(function(next) {
