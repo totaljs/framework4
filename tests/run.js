@@ -537,9 +537,13 @@ ON('ready', function() {
 function run(counter) {
 
 	if (counter > 3) {
+		console.log('');
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
-		process.exit();
+		console.log('Happy coding!');
+		console.log('-----------------------------------');
+		console.log('');
+		process.exit(0);
 	}
 
 	console.log('');
@@ -552,3 +556,7 @@ function run(counter) {
 	}, () => run(counter + 1));
 
 }
+
+ON('error', function() {
+	process.exit(1);
+});

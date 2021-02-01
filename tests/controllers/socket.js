@@ -12,7 +12,7 @@ function socket() {
 		client.send({ command: 'query', data: client.query.query });
 	});
 
-	self.on('close', function(client) {
+	self.on('close', function() {
 
 	});
 
@@ -25,7 +25,7 @@ function socket() {
 				break;
 		}
 
-		// Commands		
+		// Commands
 		switch (message.command) {
 
 			case 'headers':
