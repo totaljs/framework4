@@ -553,10 +553,11 @@ function run(counter) {
 
 	tests.wait(function(item, next) {
 		item(next);
-	}, () => run(counter + 1));
+	}, () => setTimeout(() => run(counter + 1), 500));
 
 }
 
-ON('error', function() {
+ON('error', function(e) {
+	console.log(e);
 	process.exit(1);
 });
