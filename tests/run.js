@@ -355,22 +355,25 @@ tests.push(function(next) {
 
 tests.push(function(next) {
 
-	var name = 'WEBSOCKET - ';
+	var name = 'WEBSOCKET';
+	var test_message = 'message123';
+
+	console.time(name);
 
 	// Events
 	var open_timeout = 2000;
 	function open_failed() {
-		assert(false, name + 'failed to emit on.open (timeout)');
+		assert(false, name + 'failed to emit on.open (timeout ' + open_timeout + 'ms)');
 	}
 
 	var close_timeout = 1000;
 	function close_failed() {
-		assert(false, name + 'failed to emit on.close (timeout)');
+		assert(false, name + 'failed to emit on.close (timeout ' + close_timeout + 'ms)');
 	}
 
 	WEBSOCKETCLIENT(function(client) {
 
-		client.connect(url.replace('http', 'ws'));
+		client.connect(url.replace('http', 'ws') + '?query=' + test_message);
 
 		// If 'on.open' event is not triggered 1s after 'client.connect' then fail test
 		setTimeout(open_failed, open_timeout);
@@ -380,6 +383,7 @@ tests.push(function(next) {
 		});
 
 		client.on('close', function() {
+			console.timeEnd(name);
 			clearTimeout(close_failed);
 			next();
 		});
@@ -390,16 +394,50 @@ tests.push(function(next) {
 
 		client.on('message', function(message) {
 
-			switch (message.type) {
-				case 'message_1':
-					client.send({ type: 'close' });
+			switch (message.command) {
+				case 'query':
+					assert(message.data === test_message, name + 'Returned query is not the same');
+					client.headers['x-token'] = 'token-123';
+					client.send({ command: 'headers' });
+					break;
+
+				case 'headers':
+					assert(client.headers['x-token'] === 'token-123', name + 'Returned X-Token is not the same');
+					client.cookies['cookie'] = 'cookie-123';
+					client.send({ command: 'cookies' });
+					break;
+
+				case 'cookies':
+					assert(client.cookies['cookie'] === 'cookie-123', name + 'Returned Cookie is not the same');
+					client.options.compress = false;
+					client.send({ command: 'options_uncompressed', data: test_message });
+					break;
+
+				case 'options_uncompressed':
+					client.options.compress = true;
+					assert(message.data === test_message, name + 'Uncompressed message is not the same');
+					client.send({ command: 'options_compressed', data: test_message });
+					break;
+
+				case 'options_compressed':
+					assert(message.data === test_message, name + 'Compressed message is not the same');
+					client.options.command = 'binary';
+					client.send(Buffer.from(JSON.stringify({ command: 'options_type_binary', data: test_message })));
+					break;
+
+				case 'options_type_binary':
+					assert(message.data === test_message, name + 'Binary message is not the same');
+					client.options.type = 'json';
+					client.send({ command: 'close' });
 					break;
 
 				case 'close':
 					client.close();
-
-					// Socket failed to close (timeout)
 					setTimeout(close_failed, close_timeout);
+					break;
+
+				case 'error':
+					assert(error, name + data.message);
 					break;
 			}
 

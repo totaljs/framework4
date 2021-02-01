@@ -4,4 +4,4 @@ NEWSCHEMA('Methods', function(schema) {
 		$.success();
 	});
 
-});ß
+});
