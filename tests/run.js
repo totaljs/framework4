@@ -1,4 +1,5 @@
 var assert = require('assert');
+const { RESTBuilder } = require('../builders');
 require('../index');
 
 var url = 'http://0.0.0.0:8000';
@@ -7,8 +8,8 @@ var tests = [];
 // Routes
 tests.push(function(next) {
 
-	var subtests = [];
 	var name = 'ROUTES - ';
+	var subtests = [];
 
 	// Schema Names
 	subtests.push(function(next) {
@@ -182,8 +183,8 @@ tests.push(function(next) {
 // Schema
 tests.push(function(next) {
 
-	var subtests = [];
 	var name = 'SCHEMA - ';
+	var subtests = [];
 
 	// Formatting - Mostly string formattings
 	subtests.push(function(next) {
@@ -363,12 +364,12 @@ tests.push(function(next) {
 	// Events
 	var open_timeout = 2000;
 	function open_failed() {
-		assert(false, name + 'failed to emit on.open (timeout ' + open_timeout + 'ms)');
+		assert(false, name + ' - Failed to emit on.open (timeout ' + open_timeout + 'ms)');
 	}
 
 	var close_timeout = 1000;
 	function close_failed() {
-		assert(false, name + 'failed to emit on.close (timeout ' + close_timeout + 'ms)');
+		assert(false, name + ' - Failed to emit on.close (timeout ' + close_timeout + 'ms)');
 	}
 
 	WEBSOCKETCLIENT(function(client) {
@@ -396,37 +397,37 @@ tests.push(function(next) {
 
 			switch (message.command) {
 				case 'query':
-					assert(message.data === test_message, name + 'Returned query is not the same');
+					assert(message.data === test_message, name + ' - Returned query is not the same');
 					client.headers['x-token'] = 'token-123';
 					client.send({ command: 'headers' });
 					break;
 
 				case 'headers':
-					assert(client.headers['x-token'] === 'token-123', name + 'Returned X-Token is not the same');
+					assert(client.headers['x-token'] === 'token-123', name + ' - Returned X-Token is not the same');
 					client.cookies['cookie'] = 'cookie-123';
 					client.send({ command: 'cookies' });
 					break;
 
 				case 'cookies':
-					assert(client.cookies['cookie'] === 'cookie-123', name + 'Returned Cookie is not the same');
+					assert(client.cookies['cookie'] === 'cookie-123', name + ' - Returned Cookie is not the same');
 					client.options.compress = false;
 					client.send({ command: 'options_uncompressed', data: test_message });
 					break;
 
 				case 'options_uncompressed':
 					client.options.compress = true;
-					assert(message.data === test_message, name + 'Uncompressed message is not the same');
+					assert(message.data === test_message, name + ' - Uncompressed message is not the same');
 					client.send({ command: 'options_compressed', data: test_message });
 					break;
 
 				case 'options_compressed':
-					assert(message.data === test_message, name + 'Compressed message is not the same');
+					assert(message.data === test_message, name + ' - Compressed message is not the same');
 					client.options.command = 'binary';
 					client.send(Buffer.from(JSON.stringify({ command: 'options_type_binary', data: test_message })));
 					break;
 
 				case 'options_type_binary':
-					assert(message.data === test_message, name + 'Binary message is not the same');
+					assert(message.data === test_message, name + ' - Binary message is not the same');
 					client.options.type = 'json';
 					client.send({ command: 'close' });
 					break;
@@ -446,6 +447,83 @@ tests.push(function(next) {
 	});
 
 });
+
+
+tests.push(function(next) {
+
+	var name = 'OPERATIONS';
+	var subtests = [];
+	var test_message = 'message123';
+
+	console.time(name);
+
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/operations/success').exec(function(err, res) {
+			assert.ok(err === null && res.success, name + ' - Rouote operation (success)');
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/operations/invalid/').exec(function(err, res) {
+			assert.ok(err !== null && !res.success, name + ' - Route operation (invalid)');
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/operations/value/', { value: test_message }).exec(function(err, res) {
+			assert.ok(err === null && res.success && res.value === test_message, name + ' - Route operation (value)');
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/operations/schema/success/').exec(function(err, res) {
+			assert.ok(err === null && !res.success, name + ' - Schema operation (value)');
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/operations/schema/invalid/').exec(function(err, res) {
+			assert.ok(err !== null && !res.success, name + ' - Schema operation (invalid)');
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/operations/schema/value/', { value: test_message }).exec(function(err, res) {
+			assert.ok(err === null && res.success && res.value === test_message, name + ' - Schema operation (value)');
+			next();
+		});
+	});
+
+	// subtests.push(function(next) {
+	// 	RESTBuilder.POST(url + '/operations/schema/run/invalid/', { value: test_message }).exec(function(err, res) {
+	// 		console.log(err, res);
+	// 		assert.ok(err !== null && !res.success, name + ' - Schema operation (run invalid)');
+	// 		next();
+	// 	});
+	// });
+
+	// subtests.push(function(next) {
+	// 	RESTBuilder.POST(url + '/operations/schema/run/success/', { value: test_message }).exec(function(err, res) {
+	// 		console.log(err, res);
+	// 		assert.ok(err === null && res.success && res.value === test_message, name + ' - Schema operation (run success)');
+	// 		next();
+	// 	});
+	// });
+
+	subtests.wait(function(item, next) {
+		item(next);
+	}, function() {
+		console.timeEnd(name);
+		next();
+	});
+
+});
+
 
 // Run
 ON('ready', function() {
