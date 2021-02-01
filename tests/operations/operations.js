@@ -1,3 +1,5 @@
+var assert = require('assert');
+
 NEWOPERATION('OperationSuccess', function($) {
 
 	$.success();
@@ -8,15 +10,19 @@ NEWOPERATION('OperationInvalid', function($) {
 
 	$.invalid(404);
 
-});
+}, false);
 
 NEWOPERATION('OperationValue', function($, model) {
 
-	var value = model.value;
+	if (model.value === 'invalid')
+		assert(true, 'OPERATIONS - Schema operation (run invalid)');
 
-	if (value !== $.model.value)
-		value = -1;
+	$.success(model.value);
 
-	$.success(value);
+});
+
+NEWOPERATION('OperationStop', function($) {
+
+	$.invalid(404);
 
 });

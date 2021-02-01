@@ -15,11 +15,15 @@ NEWSCHEMA('Operations', function(schema) {
 	});
 
 	schema.addWorkflow('run_invalid', function($, model) {
-		RUN('OperationSuccess, OperationInvalid, OperationValue', model, $.callback);
-	}, 'OperationValue');
+		RUN('OperationSuccess, OperationInvalid, OperationValue', model, $.callback, 'OperationValue');
+	});
 
 	schema.addWorkflow('run_success', function($, model) {
-		RUN('OperationSuccess, OperationValue', model, $.callback);
+		RUN('OperationSuccess, OperationValue', model, $.callback, 'OperationValue');
+	});
+
+	schema.addWorkflow('run_stop', function($, model) {
+		RUN('OperationSuccess, OperationStop, OperationValue', model, $.callback, 'OperationValue');
 	});
 
 });
