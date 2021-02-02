@@ -1,4 +1,4 @@
-var assert = require('assert');
+const Assert = require('assert');
 
 NEWOPERATION('OperationSuccess', function($) {
 
@@ -15,7 +15,7 @@ NEWOPERATION('OperationInvalid', function($) {
 NEWOPERATION('OperationValue', function($, model) {
 
 	if (model.value === 'invalid')
-		assert(true, 'OPERATIONS - Schema operation (run invalid)');
+		Assert.ok(true, 'OPERATIONS - Schema operation (run invalid)');
 
 	$.success(model.value);
 

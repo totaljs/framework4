@@ -1,8 +1,10 @@
-var Assert = require('assert');
 require('../index');
 
-var url = 'http://0.0.0.0:8000';
-var tests = [];
+const Assert = require('assert');
+
+const url = 'http://0.0.0.0:8000';
+const tests = [];
+const schema_methods = ['query', 'read', 'insert', 'update', 'patch', 'remove', 'workflow'];
 
 // RESTBuilder
 tests.push(function(next) {
@@ -20,9 +22,16 @@ tests.push(function(next) {
 		});
 	});
 
-	// Invalid path
+	// Invalid path(s)
 	subtests.push(function(next) {
 		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err, res) {
+			Assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/not/existing/path').exec(function(err, res) {
 			Assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
 			next();
 		});
@@ -50,24 +59,6 @@ tests.push(function(next) {
 
 	var name = 'ROUTES - ';
 	var subtests = [];
-
-	// Schema Names
-	subtests.push(function(next) {
-		var subname = name + 'Schema names';
-
-		console.time(subname);
-
-		var names = ['query', 'read', 'insert', 'update', 'patch', 'remove', 'delete', 'workflow'];
-		names.wait(function(item, next) {
-			RESTBuilder.GET(url + '/names/' + item).exec(function(err) {
-				Assert.ok(err === null, subname + item);
-				next();
-			});
-		}, function() {
-			console.timeEnd(subname);
-			next();
-		});
-	});
 
 	// Params
 	subtests.push(function(next) {
@@ -151,6 +142,7 @@ tests.push(function(next) {
 
 	// Auth
 	subtests.push(function(next) {
+
 		var subname = name + 'Auth';
 		var tests = [];
 
@@ -216,6 +208,7 @@ tests.push(function(next) {
 
 	// Wildcards
 	subtests.push(function(next) {
+
 		var subname = name + 'Wildcards';
 		var tests = [];
 
@@ -263,6 +256,24 @@ tests.push(function(next) {
 
 	var name = 'SCHEMA - ';
 	var subtests = [];
+
+
+	// Schema methods
+	subtests.push(function(next) {
+		var subname = name + 'Methods';
+
+		console.time(subname);
+
+		schema_methods.wait(function(item, next) {
+			RESTBuilder.GET(url + '/schema/methods/' + item).exec(function(err) {
+				Assert.ok(err === null, subname + item);
+				next();
+			});
+		}, function() {
+			console.timeEnd(subname);
+			next();
+		});
+	});
 
 	// Formatting - Mostly string formattings
 	subtests.push(function(next) {
@@ -426,21 +437,40 @@ tests.push(function(next) {
 		});
 	});
 
-	// Schema Chaining
+	// Schema chaining
 	var data = { value: { one: 'one', two: 'two' } };
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/schema/chaining/one/', data).exec(function(err, res) {
-			Assert.ok(err === null && res.success && res.value === data.value.one, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
+			Assert.ok(err === null && res.success && res.value === data.value.one, name + ' Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/schema/chaining/two/', data).exec(function(err, res) {
-			Assert.ok(err === null && res.success && res.value === data.value.two, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
+			Assert.ok(err === null && res.success && res.value === data.value.two, name + 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
 			next();
 		});
+	});
+
+	// Schema extensions
+	subtests.push(function(next) {
+
+		var subname = name + 'Extensions';
+
+		console.time(subname);
+
+		schema_methods.wait(function(item, next) {
+			RESTBuilder.GET(url + '/schema/extensions/' + item).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === item + '_extended', subname + ' - expecting \'{0}\' got \'{1}\' instead'.format(item + '_extended', res.value));
+				next();
+			});
+		}, function() {
+			console.timeEnd(subname);
+			next();
+		});
+
 	});
 
 	subtests.wait(function(item, next) {
@@ -637,7 +667,6 @@ tests.push(function(next) {
 	// Route operation - multiple - one
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/multiple/one/', { value: 'success' }).exec(function(err, res) {
-			console.log(err, res);
 			Assert.ok(err === null && res.success && res.value !== 'success', name + ' - Route operation (multiple - one)');
 			next();
 		});
@@ -646,7 +675,6 @@ tests.push(function(next) {
 	// Route operation - multiple - two
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/multiple/two/', { value: 'success' }).exec(function(err, res) {
-			console.log(err, res);
 			Assert.ok(err === null && res.success && res.value === 'success', name + ' - Route operation (multiple - two)');
 			next();
 		});
