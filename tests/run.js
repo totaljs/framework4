@@ -779,7 +779,7 @@ tests.push(function(next) {
 		});
 	});
 
-	// Translated (Slovakian)
+	// Translated (Slovak)
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/sk/').exec(function(err, res, output) {
 			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
