@@ -101,7 +101,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.req.on('error', function(e) {
 		self.$events.error && self.emit('error', e);
 		self.$onclose();
-		reconnect_client_timer(self);
+		self.options.reconnectserver && reconnect_client_timer(self);
 	});
 
 	self.req.on('response', function() {
