@@ -1,0 +1,6 @@
+========================
+0.0.31
+========================
+
+- fixed reconnecting in `WEBSOCKETCLIENT()`
+- fixed `$.success()` and `$.done()` used in chaining
