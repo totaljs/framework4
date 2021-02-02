@@ -500,7 +500,8 @@ tests.push(function(next) {
 						break;
 
 					case 'error':
-						assert(false, name + data.message);
+						assert(false, name + message.data.message);
+						break;
 				}
 			});
 		});
