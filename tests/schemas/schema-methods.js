@@ -1,4 +1,4 @@
-NEWSCHEMA('Names', function(schema) {
+NEWSCHEMA('Schema/Methods', function(schema) {
 
 	schema.setQuery(function($) {
 		$.success();
