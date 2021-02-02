@@ -131,11 +131,12 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	});
 
 	self.req.on('response', function() {
+
 		self.$events.error && self.emit('error', new Error('Unexpected server response'));
 
 		if (self.options.reconnectserver) {
 			self.$onclose();
-			self.connect(url, protocol, origin);
+			reconnect_client_timer(self);
 		}
 
 		self.$onclose();
@@ -278,7 +279,7 @@ WebSocketClientProto.free = function() {
 	var self = this;
 
 	if (self.req) {
-		self.req.connection.destroy();
+		self.req.connection && self.req.connection.destroy();
 		self.req.removeAllListeners();
 		self.req.destroy();
 		CLEANUP(self.req);
