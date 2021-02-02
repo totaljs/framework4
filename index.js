@@ -1548,6 +1548,7 @@ function Framework() {
 		default_root: '',
 		default_response_maxage: '11111111',
 		default_errorbuilder_status: 400,
+		default_errorbuilder_forxhr: true,
 
 		// Default originators
 		default_cors: null,
@@ -14837,13 +14838,22 @@ function extend_request(PROTO) {
 				res.$text();
 			} else {
 
-				MODELERROR.code = status;
-				MODELERROR.status = U.httpstatus(status, false);
-				MODELERROR.error = this.$total_exception ? prepare_error(this.$total_exception) : null;
+				if (CONF.default_errorbuilder_forxhr && this.xhr) {
+					var err = new ErrorBuilder();
+					err.push(status);
+					this.$language && this.$total_exception.setResource(this.$language);
+					res.options.body = err.output(true);
+					res.options.code = err.status || status || 404;
+					res.options.type = err.contentType;
+				} else {
+					MODELERROR.code = status;
+					MODELERROR.status = U.httpstatus(status, false);
+					MODELERROR.error = this.$total_exception ? prepare_error(this.$total_exception) : null;
+					res.options.body = VIEW('.' + PATHMODULES + 'error', MODELERROR);
+					res.options.type = CT_HTML;
+					res.options.code = status || 404;
+				}
 
-				res.options.body = VIEW('.' + PATHMODULES + 'error', MODELERROR);
-				res.options.type = CT_HTML;
-				res.options.code = status || 404;
 				res.$text();
 			}
 			return;
@@ -16310,6 +16320,7 @@ function extend_response(PROTO) {
 			F.stats.response[key]++;
 			response_end(res);
 		} else {
+
 			req.$total_route = F.lookup_system(res.options.code);
 			req.$total_exception = res.options.problem;
 			req.$total_execute(res.options.code, true);

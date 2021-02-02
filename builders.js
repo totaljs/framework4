@@ -2942,7 +2942,7 @@ ErrorBuilder.prototype._prepare = function() {
 				o.error = U.httpstatus(o.status);
 				o.status = undefined;
 			}
-			if (!o.status || !o.error)
+			if (!o.error)
 				o.error = 'The field "' + o.name + '" is invalid';
 		}
 	}

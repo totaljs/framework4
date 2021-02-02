@@ -2,5 +2,7 @@
 0.0.31
 ========================
 
+- added `CONF.default_errorbuilder_forxhr` key (default: `true`)
+- errors in requests with `xhr` are serialized via ErrorBuilder
 - fixed reconnecting in `WEBSOCKETCLIENT()`
 - fixed `$.success()` and `$.done()` used in chaining
