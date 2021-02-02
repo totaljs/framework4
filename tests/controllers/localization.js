@@ -13,4 +13,4 @@ exports.install = function() {
 		this.view('/index');
 	});
 
-}
+};
