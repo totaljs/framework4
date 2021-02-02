@@ -1,9 +1,49 @@
 var assert = require('assert');
-const { RESTBuilder } = require('../builders');
 require('../index');
 
 var url = 'http://0.0.0.0:8000';
 var tests = [];
+
+// RESTBuilder
+tests.push(function(next) {
+
+	var name = 'RESTBUILDER';
+	var subtests = [];
+
+	console.time(name);
+
+	// HTML page
+	subtests.push(function(next) {
+		RESTBuilder.GET('https://www.totaljs.com').exec(function(err, res) {
+			assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
+			next();
+		});
+	});
+
+	// Invalid path
+	subtests.push(function(next) {
+		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err, res) {
+			assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
+			next();
+		});
+	});
+
+	// JSON
+	subtests.push(function(next) {
+		RESTBuilder.GET('https://www.totaljs.com/api/json/').exec(function(err, res) {
+			assert.ok(err === null && res !== EMPTYOBJECT, name + ' - Expecting data');
+			next();
+		});
+	});
+
+	subtests.wait(function(item, next_subtest) {
+		item(next_subtest);
+	}, function() {
+		console.timeEnd(name);
+		next();
+	});
+
+});
 
 // Routes
 tests.push(function(next) {
@@ -51,8 +91,8 @@ tests.push(function(next) {
 		];
 
 		items.wait(function(item, next) {
-			RESTBuilder.GET(url + item.url).exec(function(err, response) {
-				assert.ok(response === item.res, subname + ' ' + item.url + ' - ' + item.res);
+			RESTBuilder.GET(url + item.url).exec(function(err, res) {
+				assert.ok(res === item.res, subname + ' ' + item.url + ' - ' + item.res);
 				next();
 			});
 		}, function() {
