@@ -1,8 +1,0 @@
-======= 0.0.1
-
-- added new start script `helpers/index.js` which supports `--release` mode (default: `debug`)
-- added `LOADCONFIG(string/array/object)`
-- added `FAKE(schemaname, [required_only])`, suggested by Helfo
-- added `MAPSCHEMA(schema, pk)` returns a function
-
-- updated `FILE('/readme.md', PATH.root('readme.md'))` or `FILE('/readme.md', 'https://wiki.totaljs.com')`
