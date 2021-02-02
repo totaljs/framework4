@@ -643,6 +643,49 @@ tests.push(function(next) {
 
 });
 
+// Localization
+tests.push(function(next) {
+
+	var name = 'LOCALIZATION';
+	var subtests = [];
+
+	console.time(name);
+
+	var regex = /<h1>(.*?)<\/h1>/;
+
+	// Default (English)
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/localization/en/').exec(function(err, res, output) {
+			assert.ok(output.response.match(regex)[1] === 'Hello world!', `Expecting 'Hello world!'`);
+			next();
+		});
+	});
+
+	// Translated (Slovakian)
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/localization/sk/').exec(function(err, res, output) {
+			assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
+			next();
+		});
+	});
+
+	// Query string language
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/localization/?lang=sk').exec(function(err, res, output) {
+			assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
+			next();
+		});
+	});
+
+	subtests.wait(function(item, next) {
+		item(next);
+	}, function() {
+		console.timeEnd(name);
+		next();
+	});
+
+});
+
 // Run
 ON('ready', function() {
 	console.time('Finished');
