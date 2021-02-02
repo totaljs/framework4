@@ -1,12 +1,26 @@
 exports.install = function() {
 
-	ROUTE('SOCKET  /', socket);
-	ROUTE('+SOCKET /authorized/', simple_socket);
-	ROUTE('-SOCKET /unauthorized/', simple_socket);
+	ROUTE('SOCKET  /', main);
+	ROUTE('SOCKET  /reconnect/', reconnect);
+	ROUTE('+SOCKET /authorized/', simple);
+	ROUTE('-SOCKET /unauthorized/', simple);
 
 };
 
-function simple_socket() {
+function reconnect() {
+
+	var self = this;
+	var disconnect_after = 2000;
+
+	self.on('open', function(client, message) {
+		setTimeout(function() {
+			client.close();
+		}, disconnect_after);
+	});
+
+}
+
+function simple() {
 
 	var self = this;
 
@@ -17,7 +31,7 @@ function simple_socket() {
 
 }
 
-function socket() {
+function main() {
 
 	var self = this;
 	var name = 'WEBSOCKET SERVER';

@@ -45,8 +45,8 @@ tests.push(function(next) {
 		});
 	});
 
-	subtests.wait(function(item, next_subtest) {
-		item(next_subtest);
+	subtests.wait(function(item, next) {
+		item(next);
 	}, function() {
 		console.timeEnd(name);
 		next();
@@ -236,8 +236,8 @@ tests.push(function(next) {
 		});
 
 		// Run
-		tests.wait(function(item, next_subtest) {
-			item(next_subtest);
+		tests.wait(function(item, next) {
+			item(next);
 		}, function() {
 			console.timeEnd(subname);
 			next();
@@ -245,8 +245,8 @@ tests.push(function(next) {
 
 	});
 
-	subtests.wait(function(item, next_subtest) {
-		item(next_subtest);
+	subtests.wait(function(item, next) {
+		item(next);
 	}, next);
 
 });
@@ -623,9 +623,33 @@ tests.push(function(next) {
 
 	});
 
+	// WEBSOCKETCLIENT reconnect - Forced disconnect by server and client attempts to reconnect back
+	subtests.push(function(next) {
+
+		// WEBSOCKETCLIENT(function(client) {
+
+		// 	client.connect(url.replace('http', 'ws') + '/reconnect/');
+
+		// 	client.on('open', function() {
+		// 		console.log("A");
+		// 	});
+
+		// 	client.on('close', function() {
+		// 		console.log("B");
+		// 	});
+
+		// });
+
+		// console.log('SOM TU', next);
+		console.log('SOM TU');
+
+	});
+
+	console.log('SOM TU 1');
 	subtests.wait(function(item, next) {
 		item(next);
 	}, function() {
+		console.log('SOM TU 2');
 		console.timeEnd(name);
 		next();
 	});
@@ -788,7 +812,7 @@ ON('ready', function() {
 
 function run(counter) {
 
-	if (counter > 10) {
+	if (counter > 1) {
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
 		console.log('Happy coding!');
