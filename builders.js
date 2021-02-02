@@ -305,8 +305,10 @@ SchemaOptionsProto.success = function(a, b) {
 	// Because if the response will contain same SUCCESS() objects then the value will be same due to reference
 	if (this.$multiple) {
 		var obj = {};
-		for (var m in o)
-			obj[m] = o[m];
+		for (var m in o) {
+			if (o[m] != null)
+				obj[m] = o[m];
+		}
 		o = obj;
 	}
 
@@ -339,8 +341,10 @@ SchemaOptionsProto.done = function(arg) {
 			// Because if the response will contain same SUCCESS() objects then the value will be same due to reference
 			if (self.$multiple) {
 				var obj = {};
-				for (var m in o)
-					obj[m] = o[m];
+				for (var m in o) {
+					if (o[m] != null)
+						obj[m] = o[m];
+				}
 				o = obj;
 			}
 
@@ -4457,6 +4461,7 @@ global.RUN = function(name, value, callback, param, controller, result) {
 	opt.meta.items = name;
 	opt.response = {};
 	opt.errors = error;
+	opt.$multiple = true;
 
 	opt.callback = function(value) {
 
@@ -4672,10 +4677,24 @@ OperationOptionsProto.done = function(arg) {
 			self.error.push(err);
 			self.callback();
 		} else {
+
+			var o;
+
 			if (arg)
-				self.callback(SUCCESS(err == null, arg === true ? response : arg));
+				o = SUCCESS(err == null, arg === true ? response : arg);
 			else
-				self.callback(SUCCESS(err == null));
+				o = SUCCESS(err == null);
+
+			if (self.$multiple) {
+				var obj = {};
+				for (var m in o) {
+					if (o[m] != null)
+						obj[m] = o[m];
+				}
+				o = obj;
+			}
+
+			self.callback(o);
 		}
 	};
 };
@@ -4687,7 +4706,18 @@ OperationOptionsProto.success = function(a, b) {
 		a = true;
 	}
 
-	this.callback(SUCCESS(a === undefined ? true : a, b));
+	var o = SUCCESS(a === undefined ? true : a, b);
+
+	if (this.$multiple) {
+		var obj = {};
+		for (var m in o) {
+			if (o[m] != null)
+				obj[m] = o[m];
+		}
+		o = obj;
+	}
+
+	this.callback(o);
 	return this;
 };
 
