@@ -610,13 +610,15 @@ tests.push(function(next) {
 
 	console.time(name);
 
+	// Route operation - success
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/operations/success').exec(function(err, res) {
-			Assert.ok(err === null && res.success, name + ' - Rouote operation (success)');
+			Assert.ok(err === null && res.success, name + ' - Route operation (success)');
 			next();
 		});
 	});
 
+	// Route operation - invalid
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/operations/invalid/').exec(function(err, res) {
 			Assert.ok(err !== null && !res.success, name + ' - Route operation (invalid)');
@@ -624,6 +626,7 @@ tests.push(function(next) {
 		});
 	});
 
+	// Route operation - value
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/value/', { value: 'value' }).exec(function(err, res) {
 			Assert.ok(err === null && res.success && res.value === 'value', name + ' - Route operation (value)');
@@ -631,6 +634,25 @@ tests.push(function(next) {
 		});
 	});
 
+	// Route operation - multiple - one
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/operations/multiple/one/', { value: 'success' }).exec(function(err, res) {
+			console.log(err, res);
+			Assert.ok(err === null && res.success && res.value !== 'success', name + ' - Route operation (multiple - one)');
+			next();
+		});
+	});
+
+	// Route operation - multiple - two
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/operations/multiple/two/', { value: 'success' }).exec(function(err, res) {
+			console.log(err, res);
+			Assert.ok(err === null && res.success && res.value === 'success', name + ' - Route operation (multiple - two)');
+			next();
+		});
+	});
+
+	// Schema operations - success
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/success/').exec(function(err, res) {
 			Assert.ok(err === null && !res.success, name + ' - Schema operation (value)');
@@ -638,6 +660,7 @@ tests.push(function(next) {
 		});
 	});
 
+	// Schema operations - invalid
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/operations/schema/invalid/').exec(function(err, res) {
 			Assert.ok(err !== null && !res.success, name + ' - Schema operation (invalid)');
@@ -645,6 +668,7 @@ tests.push(function(next) {
 		});
 	});
 
+	// Schema operations - value
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/value/', { value: 'value' }).exec(function(err, res) {
 			Assert.ok(err === null && res.success && res.value === 'value', name + ' - Schema operation (value)');
@@ -652,23 +676,26 @@ tests.push(function(next) {
 		});
 	});
 
+	// Schema operations - run - stop
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/run/stop/', { value: 'stop' }).exec(function(err, res) {
-			Assert.ok(err !== null && !res.success, name + ' - Schema operation (run stop)');
+			Assert.ok(err !== null && !res.success, name + ' - Schema operation (run - stop)');
 			next();
 		});
 	});
 
+	// Schema operations - run - invalid
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/run/invalid/', { value: 'invalid' }).exec(function(err, res) {
-			Assert.ok(err === null && res.success && res.value === 'invalid', name + ' - Schema operation (run invalid)');
+			Assert.ok(err === null && res.success && res.value === 'invalid', name + ' - Schema operation (run - invalid)');
 			next();
 		});
 	});
 
+	// Schema operations - run - success
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/run/success/', { value: 'success' }).exec(function(err, res) {
-			Assert.ok(err === null && res.success && res.value === 'success', name + ' - Schema operation (run success)');
+			Assert.ok(err === null && res.success && res.value === 'success', name + ' - Schema operation (run - success)');
 			next();
 		});
 	});
