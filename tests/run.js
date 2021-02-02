@@ -214,6 +214,44 @@ tests.push(function(next) {
 
 	});
 
+	// Wildcards
+	subtests.push(function(next) {
+		var subname = name + 'Wildcards';
+		var tests = [];
+
+		console.time(subname);
+
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/wildcards/wild').exec(function(err, res) {
+				Assert.ok(err === null && res.success, subname);
+				next();
+			});
+		});
+
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/wildcards/wild/route').exec(function(err, res) {
+				Assert.ok(err === null && res.success, subname);
+				next();
+			});
+		});
+
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/wildcards/wild/wild/route').exec(function(err, res) {
+				Assert.ok(err === null && res.success, subname);
+				next();
+			});
+		});
+
+		// Run
+		tests.wait(function(item, next_subtest) {
+			item(next_subtest);
+		}, function() {
+			console.timeEnd(subname);
+			next();
+		});
+
+	});
+
 	subtests.wait(function(item, next_subtest) {
 		item(next_subtest);
 	}, next);
