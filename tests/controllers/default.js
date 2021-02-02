@@ -40,4 +40,9 @@ exports.install = function() {
 	ROUTE('POST      /schema/formatting/                         *Schema/Formatting    --> exec');
 	ROUTE('POST      /schema/required/                           *Schema/Required      --> exec');
 	ROUTE('POST      /schema/notrequired/                        *Schema/Notrequired   --> exec');
+
+	// Schema - Chaining
+	ROUTE('POST      /schema/chaining/one/                       *Schema/Chaining    --> one (response) two');
+	ROUTE('POST      /schema/chaining/two/                       *Schema/Chaining    --> one two (response)');
+
 };

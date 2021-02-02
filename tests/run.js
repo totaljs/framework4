@@ -348,6 +348,23 @@ tests.push(function(next) {
 		});
 	});
 
+	// Schema Chaining
+	var data = { value: { one: 'one', two: 'two' } };
+
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/schema/chaining/one/', data).exec(function(err, res) {
+			assert.ok(err === null && res.success && res.value === data.value.one, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
+			next();
+		});
+	});
+
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/schema/chaining/two/', data).exec(function(err, res) {
+			assert.ok(err === null && res.success && res.value === data.value.two, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
+			next();
+		});
+	});
+
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
