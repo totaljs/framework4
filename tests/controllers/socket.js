@@ -1,5 +1,3 @@
-var assert = require('assert');
-
 exports.install = function() {
 
 	ROUTE('SOCKET  /', socket);

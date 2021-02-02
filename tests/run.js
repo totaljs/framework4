@@ -1,4 +1,4 @@
-var assert = require('assert');
+var Assert = require('assert');
 require('../index');
 
 var url = 'http://0.0.0.0:8000';
@@ -15,7 +15,7 @@ tests.push(function(next) {
 	// HTML page
 	subtests.push(function(next) {
 		RESTBuilder.GET('https://www.totaljs.com').exec(function(err, res) {
-			assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
+			Assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
 			next();
 		});
 	});
@@ -23,7 +23,7 @@ tests.push(function(next) {
 	// Invalid path
 	subtests.push(function(next) {
 		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err, res) {
-			assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
+			Assert.ok(err === null && res === EMPTYOBJECT, name + ' - Expecting empty Object');
 			next();
 		});
 	});
@@ -31,7 +31,7 @@ tests.push(function(next) {
 	// JSON
 	subtests.push(function(next) {
 		RESTBuilder.GET('https://www.totaljs.com/api/json/').exec(function(err, res) {
-			assert.ok(err === null && res !== EMPTYOBJECT, name + ' - Expecting data');
+			Assert.ok(err === null && res !== EMPTYOBJECT, name + ' - Expecting data');
 			next();
 		});
 	});
@@ -60,7 +60,7 @@ tests.push(function(next) {
 		var names = ['query', 'read', 'insert', 'update', 'patch', 'remove', 'delete', 'workflow'];
 		names.wait(function(item, next) {
 			RESTBuilder.GET(url + '/names/' + item).exec(function(err) {
-				assert.ok(err === null, subname + item);
+				Assert.ok(err === null, subname + item);
 				next();
 			});
 		}, function() {
@@ -92,7 +92,7 @@ tests.push(function(next) {
 
 		items.wait(function(item, next) {
 			RESTBuilder.GET(url + item.url).exec(function(err, res) {
-				assert.ok(res === item.res, subname + ' ' + item.url + ' - ' + item.res);
+				Assert.ok(res === item.res, subname + ' ' + item.url + ' - ' + item.res);
 				next();
 			});
 		}, function() {
@@ -113,7 +113,7 @@ tests.push(function(next) {
 			var methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 			methods.wait(function(method, next) {
 				RESTBuilder[method](url + '/methods/').exec(function(err, res) {
-					assert.ok(err === null && res.success, subname + ' - ' + method);
+					Assert.ok(err === null && res.success, subname + ' - ' + method);
 					next();
 				});
 			}, next);
@@ -122,7 +122,7 @@ tests.push(function(next) {
 		// Wrong method - Path is correct but method is invalid
 		tests.push(function(next) {
 			RESTBuilder.POST(url + '/methods/wrong/').exec(function(err, res, output) {
-				assert.ok(output.status === 404, subname + ' - Wrong method - Expecting error');
+				Assert.ok(output.status === 404, subname + ' - Wrong method - Expecting error');
 				next();
 			});
 		});
@@ -143,7 +143,7 @@ tests.push(function(next) {
 
 		var token = 'token123';
 		RESTBuilder.GET(url + '/xtoken').header('x-token', token).exec(function(err, res) {
-			assert.ok(res === token, subname);
+			Assert.ok(res === token, subname);
 			next();
 		});
 
@@ -159,7 +159,7 @@ tests.push(function(next) {
 		// Authorized user
 		tests.push(function(next) {
 			RESTBuilder.GET(url + '/auth/').cookie('auth', 'correct-cookie').exec(function(err, res, output) {
-				assert.ok(output.status === 200 && res.success && res.value.user, subname + ' - Authorized user');
+				Assert.ok(output.status === 200 && res.success && res.value.user, subname + ' - Authorized user');
 				next();
 			});
 		});
@@ -167,7 +167,7 @@ tests.push(function(next) {
 		// Unauthorized user
 		tests.push(function(next) {
 			RESTBuilder.GET(url + '/auth/').cookie('auth', 'wrong-cookie').exec(function(err, res, output) {
-				assert.ok(output.status === 200 && res.success, subname + ' - Unauthorized user');
+				Assert.ok(output.status === 200 && res.success, subname + ' - Unauthorized user');
 				next();
 			});
 		});
@@ -175,7 +175,7 @@ tests.push(function(next) {
 		// Authorized route - Authorized user
 		tests.push(function(next) {
 			RESTBuilder.GET(url + '/auth/authorized/').cookie('auth', 'correct-cookie').exec(function(err, res, output) {
-				assert.ok(output.status === 200 && res.success, subname + ' - Authorized route - Authorized user');
+				Assert.ok(output.status === 200 && res.success, subname + ' - Authorized route - Authorized user');
 				next();
 			});
 		});
@@ -183,7 +183,7 @@ tests.push(function(next) {
 		// Authorized route - Unauthorized user
 		tests.push(function(next) {
 			RESTBuilder.GET(url + '/auth/authorized/').cookie('auth', 'wrong-cookie').exec(function(err, res, output) {
-				assert.ok(output.status === 401 && !res.success, subname + ' - Authorized route - Unauthorized user');
+				Assert.ok(output.status === 401 && !res.success, subname + ' - Authorized route - Unauthorized user');
 				next();
 			});
 		});
@@ -191,7 +191,7 @@ tests.push(function(next) {
 		// Unauthorized route - Authorized user
 		tests.push(function(next) {
 			RESTBuilder.GET(url + '/auth/unauthorized/').cookie('auth', 'correct-cookie').exec(function(err, res, output) {
-				assert.ok(output.status === 401 && !res.success, subname + ' - Unauthorized route - Authorized user');
+				Assert.ok(output.status === 401 && !res.success, subname + ' - Unauthorized route - Authorized user');
 				next();
 			});
 		});
@@ -199,7 +199,7 @@ tests.push(function(next) {
 		// Unauthorized route - Unauthorized user
 		tests.push(function(next) {
 			RESTBuilder.GET(url + '/auth/unauthorized/').cookie('auth', 'wrong-cookie').exec(function(err, res, output) {
-				assert.ok(output.status === 200 && res.success, subname + ' - Unauthorized route - Unauthorized user');
+				Assert.ok(output.status === 200 && res.success, subname + ' - Unauthorized route - Unauthorized user');
 				next();
 			});
 		});
@@ -254,7 +254,7 @@ tests.push(function(next) {
 
 		RESTBuilder.POST(url + '/schema/formatting/', body).exec(function(err, res) {
 			for (var key in data)
-				assert.ok(res[key] === data[key].o, subname + ' - ' + key + ' - INPUT=' + data[key].i + ' OUTPUT=' + res[key] + ' EXPECTING=' + data[key].o);
+				Assert.ok(res[key] === data[key].o, subname + ' - ' + key + ' - INPUT=' + data[key].i + ' OUTPUT=' + res[key] + ' EXPECTING=' + data[key].o);
 
 			console.timeEnd(subname);
 			next();
@@ -300,7 +300,7 @@ tests.push(function(next) {
 				if (err && err.items && err.items.length)
 					items = err.items.map(i => i.name + '(' + item[i.name] + ')');
 
-				assert.ok(!items.length, subname + ' - fields are not valid --> ' + items);
+				Assert.ok(!items.length, subname + ' - fields are not valid --> ' + items);
 
 				next();
 			});
@@ -329,7 +329,7 @@ tests.push(function(next) {
 				// Check
 				var keys = Object.keys(item);
 				for (var i = 0; i < keys.length; i++)
-					assert.ok(errors.includes(keys[i]), subname + ' - field was accepted --> ' + keys[i] + '(' + item[keys[i]] + ')');
+					Assert.ok(errors.includes(keys[i]), subname + ' - field was accepted --> ' + keys[i] + '(' + item[keys[i]] + ')');
 
 				next();
 			});
@@ -377,7 +377,7 @@ tests.push(function(next) {
 
 					}
 
-					assert.ok(output === default_value, subname + ' - field was not cleared --> ' + keys[i]);
+					Assert.ok(output === default_value, subname + ' - field was not cleared --> ' + keys[i]);
 				}
 
 				next();
@@ -393,14 +393,14 @@ tests.push(function(next) {
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/schema/chaining/one/', data).exec(function(err, res) {
-			assert.ok(err === null && res.success && res.value === data.value.one, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
+			Assert.ok(err === null && res.success && res.value === data.value.one, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/schema/chaining/two/', data).exec(function(err, res) {
-			assert.ok(err === null && res.success && res.value === data.value.two, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
+			Assert.ok(err === null && res.success && res.value === data.value.two, 'Chaining failed - expecting \'{0}\' got \'{1}\' instead'.format(data.value.one, res.value));
 			next();
 		});
 	});
@@ -424,12 +424,12 @@ tests.push(function(next) {
 		// Events
 		var open_timeout_duration = 2000;
 		function open_failed() {
-			assert(false, name + ' - Failed to emit on.open (timeout ' + open_timeout_duration + 'ms)');
+			Assert.ok(false, name + ' - Failed to emit on.open (timeout ' + open_timeout_duration + 'ms)');
 		}
 
 		var close_timeout_duration = 1000;
 		function close_failed() {
-			assert(false, name + ' - Failed to emit on.close (timeout ' + close_timeout_duration + 'ms)');
+			Assert.ok(false, name + ' - Failed to emit on.close (timeout ' + close_timeout_duration + 'ms)');
 		}
 
 		WEBSOCKETCLIENT(function(client) {
@@ -452,44 +452,44 @@ tests.push(function(next) {
 			});
 
 			client.on('error', function(e) {
-				assert(false, name + ' error --> ' + e);
+				Assert.ok(false, name + ' error --> ' + e);
 			});
 
 			client.on('message', function(message) {
 
 				switch (message.command) {
 					case 'query':
-						assert(message.data === test_message, name + ' - Returned query is not the same');
+						Assert.ok(message.data === test_message, name + ' - Returned query is not the same');
 						client.headers['x-token'] = 'token-123';
 						client.send({ command: 'headers' });
 						break;
 
 					case 'headers':
-						assert(client.headers['x-token'] === 'token-123', name + ' - Returned X-Token is not the same');
+						Assert.ok(client.headers['x-token'] === 'token-123', name + ' - Returned X-Token is not the same');
 						client.cookies['cookie'] = 'cookie-123';
 						client.send({ command: 'cookies' });
 						break;
 
 					case 'cookies':
-						assert(client.cookies['cookie'] === 'cookie-123', name + ' - Returned Cookie is not the same');
+						Assert.ok(client.cookies['cookie'] === 'cookie-123', name + ' - Returned Cookie is not the same');
 						client.options.compress = false;
 						client.send({ command: 'options_uncompressed', data: test_message });
 						break;
 
 					case 'options_uncompressed':
 						client.options.compress = true;
-						assert(message.data === test_message, name + ' - Uncompressed message is not the same');
+						Assert.ok(message.data === test_message, name + ' - Uncompressed message is not the same');
 						client.send({ command: 'options_compressed', data: test_message });
 						break;
 
 					case 'options_compressed':
-						assert(message.data === test_message, name + ' - Compressed message is not the same');
+						Assert.ok(message.data === test_message, name + ' - Compressed message is not the same');
 						client.options.command = 'binary';
 						client.send(Buffer.from(JSON.stringify({ command: 'options_type_binary', data: test_message })));
 						break;
 
 					case 'options_type_binary':
-						assert(message.data === test_message, name + ' - Binary message is not the same');
+						Assert.ok(message.data === test_message, name + ' - Binary message is not the same');
 						client.options.type = 'json';
 						client.send({ command: 'close' });
 						break;
@@ -500,7 +500,7 @@ tests.push(function(next) {
 						break;
 
 					case 'error':
-						assert(false, name + message.data.message);
+						Assert.ok(false, name + message.data);
 						break;
 				}
 			});
@@ -524,7 +524,7 @@ tests.push(function(next) {
 			});
 
 			client.on('error', function(e) {
-				assert(false, name + ' error --> ' + e);
+				Assert.ok(false, name + ' error --> ' + e);
 			});
 
 			client.on('message', function(message) {
@@ -547,7 +547,7 @@ tests.push(function(next) {
 			client.connect(url.replace('http', 'ws') + '/unauthorized/');
 
 			client.on('error', function(e) {
-				assert(true, name + ' error --> ' + e);
+				Assert.ok(true, name + ' error --> ' + e);
 				next();
 			});
 
@@ -574,63 +574,63 @@ tests.push(function(next) {
 
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/operations/success').exec(function(err, res) {
-			assert.ok(err === null && res.success, name + ' - Rouote operation (success)');
+			Assert.ok(err === null && res.success, name + ' - Rouote operation (success)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/operations/invalid/').exec(function(err, res) {
-			assert.ok(err !== null && !res.success, name + ' - Route operation (invalid)');
+			Assert.ok(err !== null && !res.success, name + ' - Route operation (invalid)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/value/', { value: 'value' }).exec(function(err, res) {
-			assert.ok(err === null && res.success && res.value === 'value', name + ' - Route operation (value)');
+			Assert.ok(err === null && res.success && res.value === 'value', name + ' - Route operation (value)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/success/').exec(function(err, res) {
-			assert.ok(err === null && !res.success, name + ' - Schema operation (value)');
+			Assert.ok(err === null && !res.success, name + ' - Schema operation (value)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/operations/schema/invalid/').exec(function(err, res) {
-			assert.ok(err !== null && !res.success, name + ' - Schema operation (invalid)');
+			Assert.ok(err !== null && !res.success, name + ' - Schema operation (invalid)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/value/', { value: 'value' }).exec(function(err, res) {
-			assert.ok(err === null && res.success && res.value === 'value', name + ' - Schema operation (value)');
+			Assert.ok(err === null && res.success && res.value === 'value', name + ' - Schema operation (value)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/run/stop/', { value: 'stop' }).exec(function(err, res) {
-			assert.ok(err !== null && !res.success, name + ' - Schema operation (run stop)');
+			Assert.ok(err !== null && !res.success, name + ' - Schema operation (run stop)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/run/invalid/', { value: 'invalid' }).exec(function(err, res) {
-			assert.ok(err === null && res.success && res.value === 'invalid', name + ' - Schema operation (run invalid)');
+			Assert.ok(err === null && res.success && res.value === 'invalid', name + ' - Schema operation (run invalid)');
 			next();
 		});
 	});
 
 	subtests.push(function(next) {
 		RESTBuilder.POST(url + '/operations/schema/run/success/', { value: 'success' }).exec(function(err, res) {
-			assert.ok(err === null && res.success && res.value === 'success', name + ' - Schema operation (run success)');
+			Assert.ok(err === null && res.success && res.value === 'success', name + ' - Schema operation (run success)');
 			next();
 		});
 	});
@@ -657,7 +657,7 @@ tests.push(function(next) {
 	// Default (English)
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/en/').exec(function(err, res, output) {
-			assert.ok(output.response.match(regex)[1] === 'Hello world!', `Expecting 'Hello world!'`);
+			Assert.ok(output.response.match(regex)[1] === 'Hello world!', `Expecting 'Hello world!'`);
 			next();
 		});
 	});
@@ -665,7 +665,7 @@ tests.push(function(next) {
 	// Translated (Slovakian)
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/sk/').exec(function(err, res, output) {
-			assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
+			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
 			next();
 		});
 	});
@@ -673,7 +673,7 @@ tests.push(function(next) {
 	// Query string language
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/?lang=sk').exec(function(err, res, output) {
-			assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
+			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
 			next();
 		});
 	});
