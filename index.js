@@ -9612,8 +9612,9 @@ global.UPDATE = function(versions, callback, pauseserver, noarchive) {
 			opt.callback(err);
 		};
 
-		var fn = new Function('$', response);
-		fn(opt, response.toString(ENCODING));
+		// The "require()" method isn't defined if it is not defined manually.
+		var fn = new Function('$', 'require', response);
+		fn(opt, require, response.toString(ENCODING));
 
 	}, function() {
 		var err = errorbuilder.length ? errorbuilder : null;
