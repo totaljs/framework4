@@ -1,19 +1,35 @@
+var assert = require('assert');
+
 exports.install = function() {
 
-	ROUTE('SOCKET /', socket);
+	ROUTE('SOCKET  /', socket);
+	ROUTE('+SOCKET /authorized/', simple_socket);
+	ROUTE('-SOCKET /unauthorized/', simple_socket);
 
 };
+
+function simple_socket() {
+
+	var self = this;
+
+	self.on('message', function(client, message) {
+		if (message.command === 'start')
+			client.send({ command: 'close' });
+	});
+
+}
 
 function socket() {
 
 	var self = this;
+	var name = 'WEBSOCKET SERVER';
 
-	self.on('open', function(client) {
-		client.send({ command: 'query', data: client.query.query });
+	self.on('open', function() {
+		console.time(name);
 	});
 
 	self.on('close', function() {
-
+		console.timeEnd(name);
 	});
 
 	self.on('message', function(client, message) {
@@ -27,6 +43,10 @@ function socket() {
 
 		// Commands
 		switch (message.command) {
+
+			case 'start':
+				client.send({ command: 'query', data: client.query.query });
+				break;
 
 			case 'headers':
 				client.send({ command: 'headers', data: client.headers['x-token'] });

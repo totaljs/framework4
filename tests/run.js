@@ -357,93 +357,151 @@ tests.push(function(next) {
 tests.push(function(next) {
 
 	var name = 'WEBSOCKET';
+	var subtests = [];
 	var test_message = 'message123';
 
 	console.time(name);
 
-	// Events
-	var open_timeout = 2000;
-	function open_failed() {
-		assert(false, name + ' - Failed to emit on.open (timeout ' + open_timeout + 'ms)');
-	}
+	subtests.push(function(next) {
 
-	var close_timeout = 1000;
-	function close_failed() {
-		assert(false, name + ' - Failed to emit on.close (timeout ' + close_timeout + 'ms)');
-	}
+		// Events
+		var open_timeout_duration = 2000;
+		function open_failed() {
+			assert(false, name + ' - Failed to emit on.open (timeout ' + open_timeout_duration + 'ms)');
+		}
 
-	WEBSOCKETCLIENT(function(client) {
+		var close_timeout_duration = 1000;
+		function close_failed() {
+			assert(false, name + ' - Failed to emit on.close (timeout ' + close_timeout_duration + 'ms)');
+		}
 
-		client.connect(url.replace('http', 'ws') + '?query=' + test_message);
+		WEBSOCKETCLIENT(function(client) {
 
-		// If 'on.open' event is not triggered 1s after 'client.connect' then fail test
-		setTimeout(open_failed, open_timeout);
+			var open_timeout, close_timeout;
 
-		client.on('open', function() {
-			clearTimeout(open_failed);
+			client.connect(url.replace('http', 'ws') + '?query=' + test_message);
+
+			// If 'on.open' event is not triggered 1s after 'client.connect' then fail test
+			open_timeout = setTimeout(open_failed, open_timeout_duration);
+
+			client.on('open', function() {
+				clearTimeout(open_timeout);
+				client.send({ command: 'start' });
+			});
+
+			client.on('close', function() {
+				clearTimeout(close_timeout);
+				next();
+			});
+
+			client.on('error', function(e) {
+				assert(false, name + ' error --> ' + e);
+			});
+
+			client.on('message', function(message) {
+
+				switch (message.command) {
+					case 'query':
+						assert(message.data === test_message, name + ' - Returned query is not the same');
+						client.headers['x-token'] = 'token-123';
+						client.send({ command: 'headers' });
+						break;
+
+					case 'headers':
+						assert(client.headers['x-token'] === 'token-123', name + ' - Returned X-Token is not the same');
+						client.cookies['cookie'] = 'cookie-123';
+						client.send({ command: 'cookies' });
+						break;
+
+					case 'cookies':
+						assert(client.cookies['cookie'] === 'cookie-123', name + ' - Returned Cookie is not the same');
+						client.options.compress = false;
+						client.send({ command: 'options_uncompressed', data: test_message });
+						break;
+
+					case 'options_uncompressed':
+						client.options.compress = true;
+						assert(message.data === test_message, name + ' - Uncompressed message is not the same');
+						client.send({ command: 'options_compressed', data: test_message });
+						break;
+
+					case 'options_compressed':
+						assert(message.data === test_message, name + ' - Compressed message is not the same');
+						client.options.command = 'binary';
+						client.send(Buffer.from(JSON.stringify({ command: 'options_type_binary', data: test_message })));
+						break;
+
+					case 'options_type_binary':
+						assert(message.data === test_message, name + ' - Binary message is not the same');
+						client.options.type = 'json';
+						client.send({ command: 'close' });
+						break;
+
+					case 'close':
+						client.close();
+						close_timeout = setTimeout(close_failed, close_timeout_duration);
+						break;
+
+					case 'error':
+						assert(false, name + data.message);
+				}
+			});
+		});
+	});
+
+	// Authorized socket - Authorized user
+	subtests.push(function(next) {
+
+		WEBSOCKETCLIENT(function(client) {
+
+			client.cookies['auth'] = 'correct-cookie';
+			client.connect(url.replace('http', 'ws') + '/authorized/');
+
+			client.on('open', function() {
+				client.send({ command: 'start' });
+			});
+
+			client.on('close', function() {
+				next();
+			});
+
+			client.on('error', function(e) {
+				assert(false, name + ' error --> ' + e);
+			});
+
+			client.on('message', function(message) {
+				switch (message.command) {
+					case 'close':
+						client.close();
+						break;
+				}
+			});
 		});
 
-		client.on('close', function() {
-			console.timeEnd(name);
-			clearTimeout(close_failed);
-			next();
-		});
+	});
 
-		client.on('error', function(e) {
-			assert(false, name + ' error --> ' + e);
-		});
+	// Unauthorized socket - Authorized user
+	subtests.push(function(next) {
 
-		client.on('message', function(message) {
+		WEBSOCKETCLIENT(function(client) {
 
-			switch (message.command) {
-				case 'query':
-					assert(message.data === test_message, name + ' - Returned query is not the same');
-					client.headers['x-token'] = 'token-123';
-					client.send({ command: 'headers' });
-					break;
+			client.cookies['auth'] = 'correct-cookie';
+			client.connect(url.replace('http', 'ws') + '/unauthorized/');
 
-				case 'headers':
-					assert(client.headers['x-token'] === 'token-123', name + ' - Returned X-Token is not the same');
-					client.cookies['cookie'] = 'cookie-123';
-					client.send({ command: 'cookies' });
-					break;
-
-				case 'cookies':
-					assert(client.cookies['cookie'] === 'cookie-123', name + ' - Returned Cookie is not the same');
-					client.options.compress = false;
-					client.send({ command: 'options_uncompressed', data: test_message });
-					break;
-
-				case 'options_uncompressed':
-					client.options.compress = true;
-					assert(message.data === test_message, name + ' - Uncompressed message is not the same');
-					client.send({ command: 'options_compressed', data: test_message });
-					break;
-
-				case 'options_compressed':
-					assert(message.data === test_message, name + ' - Compressed message is not the same');
-					client.options.command = 'binary';
-					client.send(Buffer.from(JSON.stringify({ command: 'options_type_binary', data: test_message })));
-					break;
-
-				case 'options_type_binary':
-					assert(message.data === test_message, name + ' - Binary message is not the same');
-					client.options.type = 'json';
-					client.send({ command: 'close' });
-					break;
-
-				case 'close':
-					client.close();
-					setTimeout(close_failed, close_timeout);
-					break;
-
-				case 'error':
-					assert(error, name + data.message);
-					break;
-			}
+			client.on('error', function(e) {
+				assert(true, name + ' error --> ' + e);
+				next();
+			});
 
 		});
 
+	});
+
+	subtests.wait(function(item, next) {
+		item(next);
+	}, function() {
+		console.timeEnd(name);
+		next();
 	});
 
 });
@@ -537,7 +595,6 @@ ON('ready', function() {
 function run(counter) {
 
 	if (counter > 10) {
-		console.log('');
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
 		console.log('Happy coding!');
