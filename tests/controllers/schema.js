@@ -33,4 +33,8 @@ exports.install = function() {
 	// Schema - Verify
 	ROUTE('POST     /schema/verify/                              *Schema/Verify        --> exec');
 
+	// Schema - Middleware
+	ROUTE('GET      /schema/middleware/valid/                    *Schema/Middleware    --> one');
+	ROUTE('GET      /schema/middleware/invalid/                  *Schema/Middleware    --> two');
+
 }

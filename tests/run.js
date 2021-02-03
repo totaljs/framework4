@@ -508,6 +508,22 @@ tests.push(function(next) {
 		});
 	});
 
+	// Schena middleware - Valid
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/schema/middleware/valid/').exec(function(err, res) {
+			Assert.ok(err === null && res.success, name + 'Schema middleware should return success');
+			next();
+		});
+	});
+
+	// Schena middleware - Invalid
+	subtests.push(function(next) {
+		RESTBuilder.GET(url + '/schema/middleware/invalid/').exec(function(err, res) {
+			Assert.ok(err !== null && !res.success, name + 'Schema middleware should return error');
+			next();
+		});
+	});
+
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -868,7 +884,7 @@ ON('ready', function() {
 
 function run(counter) {
 
-	if (counter > 10) {
+	if (counter > 1) {
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
 		console.log('Happy coding!');
