@@ -490,7 +490,7 @@ global.REQUEST = function(opt) {
 	}
 
 	if (opt.files) {
-		options.boundary = '----totaljs' + Math.random().toString(16).substring(2);
+		options.boundary = '----TOTALFILE_' + Math.random().toString(36).substring(3);
 		opt.headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
 		options.files = opt.files;
 		options.upload = true;
@@ -724,17 +724,14 @@ function request_call(uri, options) {
 			request_writefile(req, options, file, next);
 		}, function() {
 
-			if (!options.body) {
-				req.end();
-				return;
-			}
-
-			for (var key in options.body) {
-				var value = options.body[key];
-				if (value != null) {
-					req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + key + '"' + NEWLINE + NEWLINE + value);
-					if (options.first)
-						options.first = false;
+			if (options.body) {
+				for (var key in options.body) {
+					var value = options.body[key];
+					if (value != null) {
+						req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + key + '"' + NEWLINE + NEWLINE + value);
+						if (options.first)
+							options.first = false;
+					}
 				}
 			}
 
@@ -5853,6 +5850,7 @@ function MultipartParser(multipart, stream, callback) {
 	self.size = 0;
 
 	self.ondata = function(chunk) {
+		console.log(chunk.toString('utf8'));
 		self.size += chunk.length;
 		if (self.buffer) {
 			CONCAT[0] = self.buffer;
