@@ -10,7 +10,7 @@
     "total4": "./bin/total4"
   },
   "scripts": {
-    "test": "node tests/test-release.js"
+    "test": "cd tests && node test-release.js"
   },
   "repository": {
     "type": "git",
