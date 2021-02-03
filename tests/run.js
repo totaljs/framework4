@@ -886,9 +886,18 @@ tests.push(function(next) {
 	console.time(name);
 
 	subtests.push(function(next) {
-		RESTBuilder.POST(url + '/upload/').file('dummy', PATH.root('dummy.txt')).exec(function(err, res) {
-			console.log('res -->', err, res);
-			next();
+		var filename = 'dummy.txt';
+		Fs.readFile(filename, function(err, data) {
+			if (err) throw err;
+
+			RESTBuilder.POST(url + '/upload/').file(filename.split('.')[0], PATH.root(filename)).exec(function(err, res) {
+				console.log('res -->', err, res);
+				console.log('expecting -->', data.toString());
+				console.log('recieved -->', res.value[0]);
+				//Assert.ok(err === null && res.success && res.value[0] === data.toString(), name + ' - Recieved file content is not the same');
+				// next();
+			});
+
 		});
 	});
 
