@@ -5850,7 +5850,6 @@ function MultipartParser(multipart, stream, callback) {
 	self.size = 0;
 
 	self.ondata = function(chunk) {
-		console.log(chunk.toString('utf8'));
 		self.size += chunk.length;
 		if (self.buffer) {
 			CONCAT[0] = self.buffer;
