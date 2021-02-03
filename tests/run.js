@@ -475,16 +475,35 @@ tests.push(function(next) {
 
 	// Schema filters
 	subtests.push(function(next) {
-		var data = { string: 'string', number: 123, float: 123.456789, email: 'abc@abc.abc', phone: '+421123456789', boolean: true, uid: UID(), url: 'https://www.totaljs.com', object: {}, date: NOW, json: '{}' };
+		var data = { string: 'string', number: 123, float: 123.456789, email: 'abc@abc.abc', phone: '+421123456789', boolean: true, uid: UID(), url: 'https://www.totaljs.com', date: +NOW.format('YYYYmmDD'), json: '{}' };
 
 		RESTBuilder.POST(QUERIFY(url + '/schema/filters/', data)).exec(function(err, res) {
-			console.log(err, res);
 
-			Assert.ok(err === null && res.success && res.value, name + ' - Schema filters failed in response');
+			Assert.ok(err === null && res.success && res.value, name + 'Schema filters failed in response');
 
 			for (var key in res.value)
-				Assert.ok(res.value[key] === data[key], name + ' - Schema filters expecting {0} got {1} instead'.format(res.value[key], data[key]));
+				Assert.ok(typeof res.value[key] === typeof data[key], name + 'Schema filters expecting {0} got {1} instead'.format(typeof res.value[key], typeof data[key]));
 
+			next();
+		});
+	});
+
+	// Schema verify - Valid
+	subtests.push(function(next) {
+		var data = { countryid: 'sk' };
+
+		RESTBuilder.POST(url + '/schema/verify/', data).exec(function(err, res) {
+			Assert.ok(err === null && res.success && res.value.countryid === data.countryid, name + 'Schema verify is not as expected');
+			next();
+		});
+	});
+
+	// Schema verify - Invalid
+	subtests.push(function(next) {
+		var data = { countryid: 'hu' };
+
+		RESTBuilder.POST(url + '/schema/verify/', data).exec(function(err, res) {
+			Assert.ok(err !== null && !res.success, name + 'Schema verify returned value (It shouldn\'t)');
 			next();
 		});
 	});
@@ -497,7 +516,7 @@ tests.push(function(next) {
 
 tests.push(function(next) {
 
-	var name = 'WEBSOCKET';
+	var name = 'WEBSOCKET CLIENT';
 	var subtests = [];
 	var test_message = 'message123';
 
@@ -618,6 +637,7 @@ tests.push(function(next) {
 						break;
 				}
 			});
+
 		});
 
 	});
@@ -848,7 +868,7 @@ ON('ready', function() {
 
 function run(counter) {
 
-	if (counter > 1) {
+	if (counter > 10) {
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
 		console.log('Happy coding!');
