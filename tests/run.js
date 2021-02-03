@@ -1,6 +1,7 @@
 require('../index');
 
 const Assert = require('assert');
+const Fs = require('fs');
 
 const url = 'http://0.0.0.0:8000';
 const tests = [];
@@ -875,6 +876,31 @@ tests.push(function(next) {
 	});
 
 });
+
+// Upload
+tests.push(function(next) {
+
+	var name = "UPLOAD";
+	var subtests = [];
+
+	console.time(name);
+
+	subtests.push(function(next) {
+		RESTBuilder.POST(url + '/upload/').file('dummy', PATH.root('dummy.txt')).exec(function(err, res) {
+			console.log('res -->', err, res);
+			next();
+		});
+	});
+
+	subtests.wait(function(item, next) {
+		item(next);
+	}, function() {
+		console.timeEnd(name);
+		next();
+	});
+
+});
+
 
 // Run
 ON('ready', function() {
