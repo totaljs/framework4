@@ -12249,22 +12249,23 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 	return self;
 };
 
-ControllerProto.success = function(is, value) {
-	var t = typeof(is);
-	if (value === undefined && (is == null || t === 'boolean')) {
+ControllerProto.success = function(a, b) {
+
+	if (a && b === undefined && typeof(a) !== 'boolean') {
+		b = a;
+		a = true;
+	}
+
+	if (b == null) {
 		F.stats.response.json++;
 		var res = this.res;
-		res.options.body = '{"success":' + (is == null ? 'true' : is) + '}';
+		res.options.body = '{"success":' + (a == null ? 'true' : a) + '}';
 		res.options.type = CT_JSON;
 		res.options.compress = false;
 		res.$text();
-	} else {
-		if (t && t !== 'boolean') {
-			value = t;
-			t = true;
-		}
-		this.json(SUCCESS(is == null ? true : is, value));
-	}
+	} else
+		this.json(SUCCESS(a === undefined ? true : a, b));
+
 	return this;
 };
 
