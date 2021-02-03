@@ -5956,11 +5956,10 @@ MultipartParser.prototype.parse_head = function() {
 	var beg = header.indexOf('filename="');
 	var isfile = beg !== -1;
 
-	self.current.filename = isfile ? header.substring(beg + 10, header.indexOf('"', beg + 10)) : null;
-	if (!self.current.filename) {
-		self.kill('2: Invalid part header');
+	self.current.filename = isfile ? header.substring(beg + 10, header.indexOf('"', beg + 10)).trim() : null;
+
+	if (isfile && !self.current.filename)
 		return;
-	}
 
 	beg = header.indexOf('name="');
 	if (beg === -1) {
