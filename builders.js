@@ -2155,7 +2155,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 		return self;
 	}
 
-	var opfilter = self.meta[type + 'filter' + (name ? ('#' + name) : '')];
+	var opfilter = self.meta[type + 'filter' + (name ? ('_' + name) : '')];
 	if (opfilter && $.controller) {
 		$.controller.$filterschema = opfilter;
 		$.controller.$filter = null;
