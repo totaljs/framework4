@@ -312,10 +312,10 @@ tests.push(function(next) {
 
 	// Valid values - Will crash if invalid (Make sure first row is filled completly, incompleted rows will be prefilled with it)
 	var valid = [
-		{ number: 123, email: 'abc@abc.abc', phone: '+421123456789', boolean: true, uid: UID(), url: 'https://www.google.com', object: {}, date: NOW, json: '{}' },
-		{ number: 123.123456, email: 'abc@abc.abc', boolean: '1', url: 'http://www.google.com', date: new Date() },
-		{ email: 'abc.abc@abc.abc', url: 'http://google.com' },
-		{ url: 'https://google.com' }
+		{ number: 123, email: 'abc@abc.abc', phone: '+421123456789', boolean: true, uid: UID(), url: 'https://www.totaljs.com', object: {}, date: NOW, json: '{}' },
+		{ number: 123.123456, email: 'abc@abc.abc', boolean: '1', url: 'http://www.totaljs.com', date: new Date() },
+		{ email: 'abc.abc@abc.abc', url: 'http://totaljs.com' },
+		{ url: 'https://totaljs.com' }
 	];
 
 	// Intentionally invalid values - Will crash if valid (Make sure first row is filled completly, incompleted rows will be prefilled with it)
@@ -473,6 +473,22 @@ tests.push(function(next) {
 
 	});
 
+	// Schema filters
+	subtests.push(function(next) {
+		var data = { string: 'string', number: 123, float: 123.456789, email: 'abc@abc.abc', phone: '+421123456789', boolean: true, uid: UID(), url: 'https://www.totaljs.com', object: {}, date: NOW, json: '{}' };
+
+		RESTBuilder.POST(QUERIFY(url + '/schema/filters/', data)).exec(function(err, res) {
+			console.log(err, res);
+
+			Assert.ok(err === null && res.success && res.value, name + ' - Schema filters failed in response');
+
+			for (var key in res.value)
+				Assert.ok(res.value[key] === data[key], name + ' - Schema filters expecting {0} got {1} instead'.format(res.value[key], data[key]));
+
+			next();
+		});
+	});
+
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -623,33 +639,53 @@ tests.push(function(next) {
 
 	});
 
-	// WEBSOCKETCLIENT reconnect - Forced disconnect by server and client attempts to reconnect back
+	// WEBSOCKETCLIENT reconnect - Forced disconnect from server and client attempts to reconnect back + send test message after reconnect
 	subtests.push(function(next) {
 
-		// WEBSOCKETCLIENT(function(client) {
+		var connect_count = 0;
 
-		// 	client.connect(url.replace('http', 'ws') + '/reconnect/');
+		function reconnect_fail() {
+			return Assert.ok(false, name + " - WEBSOCKET failed to reconnect");
+		}
 
-		// 	client.on('open', function() {
-		// 		console.log("A");
-		// 	});
+		function message_fail() {
+			return Assert.ok(false, name + " - WEBSOCKET failed to send message after reconnect");
+		}
 
-		// 	client.on('close', function() {
-		// 		console.log("B");
-		// 	});
+		WEBSOCKETCLIENT(function(client) {
 
-		// });
+			client.connect(url.replace('http', 'ws') + '/reconnect/');
 
-		// console.log('SOM TU', next);
-		console.log('SOM TU');
+			var reconnect_timeout, message_timeout;
+			client.on('open', function() {
+				clearTimeout(reconnect_timeout);
+				message_timeout = setTimeout(message_fail, 2000);
+				client.send({ type: 'ping' });
+				connect_count++;
+			});
+
+			client.on('message', function(message) {
+				if (message.type === 'ping')
+					clearTimeout(message_timeout);
+			});
+
+			client.on('close', function() {
+				reconnect_timeout = setTimeout(reconnect_fail, 5000);
+
+				if (connect_count > 1) {
+					clearTimeout(reconnect_timeout);
+					client.close();
+					next();
+				}
+			});
+
+		});
 
 	});
 
-	console.log('SOM TU 1');
 	subtests.wait(function(item, next) {
 		item(next);
 	}, function() {
-		console.log('SOM TU 2');
 		console.timeEnd(name);
 		next();
 	});

@@ -10,12 +10,17 @@ exports.install = function() {
 function reconnect() {
 
 	var self = this;
-	var disconnect_after = 2000;
+	var disconnect_after = 1000;
 
-	self.on('open', function(client, message) {
+	self.on('open', function(client) {
 		setTimeout(function() {
 			client.close();
 		}, disconnect_after);
+	});
+
+	self.on('message', function(client, message) {
+		if (message.type === 'ping')
+			client.send({ type: 'ping' });
 	});
 
 }

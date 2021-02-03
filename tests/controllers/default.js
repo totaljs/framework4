@@ -33,13 +33,13 @@ exports.install = function() {
 	ROUTE('-GET      /auth/unauthorized/                         *Auth                 --> exec');
 
 	// Schema - Methods
-	ROUTE('GET       /schema/methods/query/                      *Schema/Methods                --> query');
-	ROUTE('GET       /schema/methods/read/                       *Schema/Methods                --> read');
-	ROUTE('GET       /schema/methods/insert/                     *Schema/Methods                --> insert');
-	ROUTE('GET       /schema/methods/update/                     *Schema/Methods                --> update');
-	ROUTE('GET       /schema/methods/patch/                      *Schema/Methods                --> patch');
-	ROUTE('GET       /schema/methods/remove/                     *Schema/Methods                --> remove');
-	ROUTE('GET       /schema/methods/workflow/                   *Schema/Methods                --> workflow');
+	ROUTE('GET       /schema/methods/query/                      *Schema/Methods       --> query');
+	ROUTE('GET       /schema/methods/read/                       *Schema/Methods       --> read');
+	ROUTE('GET       /schema/methods/insert/                     *Schema/Methods       --> insert');
+	ROUTE('GET       /schema/methods/update/                     *Schema/Methods       --> update');
+	ROUTE('GET       /schema/methods/patch/                      *Schema/Methods       --> patch');
+	ROUTE('GET       /schema/methods/remove/                     *Schema/Methods       --> remove');
+	ROUTE('GET       /schema/methods/workflow/                   *Schema/Methods       --> workflow');
 
 	// Schema - Validation
 	ROUTE('POST      /schema/formatting/                         *Schema/Formatting    --> exec');
@@ -47,8 +47,8 @@ exports.install = function() {
 	ROUTE('POST      /schema/notrequired/                        *Schema/Notrequired   --> exec');
 
 	// Schema - Chaining
-	ROUTE('POST      /schema/chaining/one/                       *Schema/Chaining    --> one (response) two');
-	ROUTE('POST      /schema/chaining/two/                       *Schema/Chaining    --> one two (response)');
+	ROUTE('POST      /schema/chaining/one/                       *Schema/Chaining      --> one (response) two');
+	ROUTE('POST      /schema/chaining/two/                       *Schema/Chaining      --> one two (response)');
 
 	// Schema - Extension
 	ROUTE('GET      /schema/extensions/query/                    *Schema/Extensions    --> query');
@@ -58,5 +58,8 @@ exports.install = function() {
 	ROUTE('GET      /schema/extensions/update/                   *Schema/Extensions    --> update');
 	ROUTE('GET      /schema/extensions/remove/                   *Schema/Extensions    --> remove');
 	ROUTE('GET      /schema/extensions/workflow/                 *Schema/Extensions    --> workflow');
+
+	// Schema - Filters
+	ROUTE('POST     /schema/filters/                             *Schema/Filters       --> exec');
 
 };
