@@ -682,11 +682,11 @@ tests.push(function(next) {
 		var connect_count = 0;
 
 		function reconnect_fail() {
-			return Assert.ok(false, name + " - WEBSOCKET failed to reconnect");
+			return Assert.ok(false, name + ' - WEBSOCKET failed to reconnect');
 		}
 
 		function message_fail() {
-			return Assert.ok(false, name + " - WEBSOCKET failed to send message after reconnect");
+			return Assert.ok(false, name + ' - WEBSOCKET failed to send message after reconnect');
 		}
 
 		WEBSOCKETCLIENT(function(client) {
@@ -880,24 +880,52 @@ tests.push(function(next) {
 // Upload
 tests.push(function(next) {
 
-	var name = "UPLOAD";
+	var name = 'UPLOAD';
 	var subtests = [];
 
 	console.time(name);
 
+	// File upload with body
 	subtests.push(function(next) {
-		var filename = 'dummy.txt';
-		Fs.readFile(filename, function(err, data) {
+		var filename = 'symbols.txt';
+
+		Fs.readFile(filename, function(err, buffer) {
 			if (err) throw err;
 
-			RESTBuilder.POST(url + '/upload/').file(filename.split('.')[0], PATH.root(filename)).exec(function(err, res) {
-				console.log('res -->', err, res);
-				console.log('expecting -->', data.toString());
-				console.log('recieved -->', res.value[0]);
-				//Assert.ok(err === null && res.success && res.value[0] === data.toString(), name + ' - Recieved file content is not the same');
-				// next();
+			RESTBuilder.POST(url + '/upload/', { value: 'value' }).file(filename.split('.')[0], PATH.root(filename)).exec(function(err, res, output) {
+				Assert.ok(err === null && res.success && res.value.files[0] === buffer.toString() && res.value.value === 'value', name + ' - Recieved file content is not the same');
+				next();
 			});
 
+		});
+	});
+
+	// Multiple upload
+	subtests.push(function(next) {
+		var filenames = ['symbols.txt', 'important.txt'];
+		var buffers = [];
+
+		filenames.wait(function(file, next) {
+			// Get buffers from files
+			Fs.readFile(file, function(err, data) {
+				if (err) throw err;
+
+				buffers.push(data);
+				next();
+			});
+		}, function() {
+			var builder = RESTBuilder.POST(url + '/upload/', { value: 'value' });
+
+			// Append files to builder
+			for (var i = 0; i < buffers.length; i++)
+				builder = builder.file(filenames[i].split('.')[0], PATH.root(filenames[i]));
+
+			builder.exec(function(err, res) {
+				for (var i = 0; i < buffers.length; i++)
+					Assert.ok(err === null && res.success && res.value.files[i] === buffers[i].toString(), name + ' - Recieved content of files are not the same');
+
+				next();
+			});
 		});
 	});
 
@@ -919,7 +947,7 @@ ON('ready', function() {
 
 function run(counter) {
 
-	if (counter > 1) {
+	if (counter > 10) {
 		console.log('-----------------------------------');
 		console.timeEnd('Finished');
 		console.log('Happy coding!');

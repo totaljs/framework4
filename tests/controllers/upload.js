@@ -8,16 +8,17 @@ function upload() {
 
 	var self = this;
 	var files = self.files;
-	var response = [];
+	var response = {};
+	response.files = [];
 
 	files.wait(function(file, next) {
 		file.read(function(err, data) {
 			if (err) throw err;
-			response.push(data.toString());
+			response.files.push(data.toString());
 			next();
 		});
 	}, function() {
-		console.log('sending -->', response);
+		response.value = self.body.value;
 		self.success(response);
 	});
 
