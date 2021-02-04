@@ -5863,20 +5863,29 @@ function MultipartParser(multipart, stream, callback) {
 		}
 	};
 
-	self.onend = () => self.free();
+	self.onend = function() {
+		self.isend = true;
+		self.checkready();
+	};
 	self.onclose = () => self.free('3: Request closed');
 	self.callback = callback;
 	self.stream = stream;
 	self.stream.on('data', self.ondata);
 	self.stream.on('end', self.onend);
 	self.stream.on('close', self.onclose);
+	self.stream.on('abort', self.onclose);
 }
 
 MultipartParser.prototype.free = function(err) {
 	var self = this;
+
+	if (!self.stream)
+		return;
+
 	self.stream.removeListener('data', self.ondata);
 	self.stream.removeListener('end', self.onend);
 	self.stream.removeListener('close', self.onclose);
+	self.stream.removeListener('abort', self.onclose);
 	self.current.stream && self.current.stream.end();
 	self.stream = null;
 	self.buffer = null;
@@ -5936,6 +5945,28 @@ MultipartParser.prototype.parse_meta = function(type) {
 
 MultipartParser.prototype.kill = function(err) {
 	this.free(err);
+};
+
+var multipartfileready = function() {
+	this.$mpfile.ready = true;
+	this.$mpfile = null;
+	this.$mpinstance.checkready();
+	this.$mpinstance = null;
+};
+
+MultipartParser.prototype.checkready = function() {
+
+	var self = this;
+
+	if (!self.stream || !self.isend)
+		return;
+
+	for (var i = 0; i < self.files.length; i++) {
+		if (!self.files[i].ready)
+			return;
+	}
+
+	self.free();
 };
 
 MultipartParser.prototype.parse_head = function() {
@@ -6014,7 +6045,11 @@ MultipartParser.prototype.parse_head = function() {
 
 		self.current.path = self.tmp + (UPLOADINDEXER++) + '.bin';
 		self.current.stream = Fs.createWriteStream(self.current.path);
-		self.current.file = { path: self.current.path, name: self.current.name, filename: self.current.filename, size: 0, type: self.current.type, width: 0, height: 0 };
+		var file = { path: self.current.path, name: self.current.name, filename: self.current.filename, size: 0, type: self.current.type, width: 0, height: 0 };
+		self.current.file = file;
+		self.current.stream.$mpfile = file;
+		self.current.stream.$mpinstance = self;
+		self.current.stream.on('close', multipartfileready);
 	} else
 		self.current.file = null;
 

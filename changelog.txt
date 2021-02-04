@@ -6,6 +6,7 @@
 - fixed `DELETE` method for the schemas, now it works same like `PATCH` method
 - fixed `FlowStream.use()` method
 - fixed: command injection in `Image.pipe()` and `Image.stream()`
+- fixed: parsing of uploaded files (sometimes was the writeable stream unclosed)
 
 ========================
 0.0.31
