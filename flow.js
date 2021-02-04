@@ -618,6 +618,7 @@ FP.use = function(schema, callback, reinit) {
 				self.initcomponent(key, component).ts = ts;
 			} else {
 				U.extend(fi.config, instance.config);
+				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
 			}
 
