@@ -2,6 +2,7 @@
 0.0.35
 ========================
 
+- extended `EXEC()` by adding support for `Tasks` and `Operations`
 - fixed `FlowStream.use()` method
 
 ========================

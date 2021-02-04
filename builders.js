@@ -5056,6 +5056,14 @@ exports.uninstall = function(owner) {
 	});
 };
 
+exports.check_task = function(name) {
+	return tasks[name];
+};
+
+exports.check_operation = function(name) {
+	return operations[name];
+};
+
 TaskBuilderProto.invalid = function(err, msg) {
 	var self = this;
 	if (!self.$done) {

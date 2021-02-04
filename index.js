@@ -1205,77 +1205,120 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 
 		index = schema.indexOf('-->');
 
-		var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
-		tmp = schema.substring(0, index).split(/\s|\t/).trim();
+		if (index === -1) {
 
-		if (!method && tmp.length !== 2) {
-			callback('Invalid "{0}" type.'.format(schema));
-			return;
-		}
+			// Task or Operation
+			var tmp = schema.split('/');
 
-		meta = {};
-		meta.method = method || tmp[0].toUpperCase();
-		meta.schema = method ? tmp[0] : tmp[1];
+			// Is task?
+			if (tmp[1]) {
+				if (framework_builders.check_task(tmp[0])) {
+					meta = {};
+					meta.type = 1;
+					meta.name = tmp[0];
+					meta.init = tmp[1];
+				} else {
+					callback('Invalid "{0}" type.'.format(schema));
+					return;
+				}
 
-		if (meta.schema[0] === '*')
-			meta.schema = meta.schema.substring(1);
-
-		meta.op = [];
-		// meta.opcallbackindex = null;
-
-		var o = GETSCHEMA(meta.schema);
-		if (!o) {
-			callback(new ErrorBuilder().push('', 'Schema "{0}" not found'.format(meta.schema)));
-			return;
-		}
-
-		for (var i = 0; i < op.length; i++) {
-
-			tmp = {};
-
-			var item = op[i];
-			if (item[0] === '@')
-				item = item.substring(1);
-
-			index = item.indexOf('(');
-
-			if (index !== -1) {
-				meta.opcallbackindex = i - 1;
-				tmp.response = true;
-				item = item.substring(0, index).trim();
-				continue;
-			}
-
-			tmp.name = item;
-			if (!o.meta[item]) {
-				if (o.meta['workflow_' + item])
-					tmp.type = 'workflow';
-				else if (o.meta['operation_' + item])
-					tmp.type = 'operation';
-				else if (o.meta['task_' + item])
-					tmp.type = 'task';
-				else {
-					callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
+			} else {
+				// operation
+				if (framework_builders.check_operation(tmp[0])) {
+					meta = {};
+					meta.name = tmp[0];
+					meta.type = 2;
+				} else {
+					callback('Invalid "{0}" type.'.format(schema));
 					return;
 				}
 			}
 
-			meta.op.push(tmp);
+			F.temporary.other[schema] = meta;
+
+		} else {
+
+			var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
+			tmp = schema.substring(0, index).split(/\s|\t/).trim();
+
+			if (!method && tmp.length !== 2) {
+				callback('Invalid "{0}" type.'.format(schema));
+				return;
+			}
+
+			meta = {};
+
+			meta.method = method || tmp[0].toUpperCase();
+			meta.schema = method ? tmp[0] : tmp[1];
+
+			if (meta.schema[0] === '*')
+				meta.schema = meta.schema.substring(1);
+
+			meta.op = [];
+			// meta.opcallbackindex = null;
+
+			var o = GETSCHEMA(meta.schema);
+			if (!o) {
+				callback(new ErrorBuilder().push('', 'Schema "{0}" not found'.format(meta.schema)));
+				return;
+			}
+
+			for (var i = 0; i < op.length; i++) {
+
+				tmp = {};
+
+				var item = op[i];
+				if (item[0] === '@')
+					item = item.substring(1);
+
+				index = item.indexOf('(');
+
+				if (index !== -1) {
+					meta.opcallbackindex = i - 1;
+					tmp.response = true;
+					item = item.substring(0, index).trim();
+					continue;
+				}
+
+				tmp.name = item;
+				if (!o.meta[item]) {
+					if (o.meta['workflow_' + item])
+						tmp.type = 'workflow';
+					else if (o.meta['operation_' + item])
+						tmp.type = 'operation';
+					else if (o.meta['task_' + item])
+						tmp.type = 'task';
+					else {
+						callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
+						return;
+					}
+				}
+
+				meta.op.push(tmp);
+			}
+
+			meta.multiple = meta.op.length > 1;
+			meta.schema = o;
+			meta.validate = meta.method !== 'GET';
+
+			if (meta.method === 'DELETE' && (!model || model === EMPTYOBJECT))
+				meta.validate = false;
+
+			F.temporary.other[schema] = meta;
 		}
-
-		meta.multiple = meta.op.length > 1;
-		meta.schema = o;
-		meta.validate = meta.method !== 'GET';
-
-		if (meta.method === 'DELETE' && (!model || model === EMPTYOBJECT))
-			meta.validate = false;
-
-		F.temporary.other[schema] = meta;
 	}
 
 	if (!controller) {
 		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
 		controller.isConnected = false;
+	}
+
+	if (meta.type) {
+		if (meta.type === 1)
+			TASK(meta.name + '/' + meta.init, callback, controller, model);
+		else
+			OPERATION(meta.name, model, callback, null, controller);
+		return;
 	}
 
 	if (meta.validate) {
