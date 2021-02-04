@@ -262,11 +262,7 @@ ImageProto.pipe = function(stream, type, options) {
 
 	!self.builder.length && self.minify();
 
-	if (type) {
-		// check invalid characters
-		if (REGEXP_CHECK.test(type))
-			type = self.outputType;
-	} else
+	if (!type || !SUPPORTEDIMAGES[type])
 		type = self.outputType;
 
 	var cmd = Spawn(CMD_CONVERT[self.cmdarg], self.arg(self.filename ? wrap(self.filename) : '-', (type ? type + ':' : '') + '-'), SPAWN_OPT);
@@ -303,13 +299,7 @@ ImageProto.stream = function(type, writer) {
 
 	!self.builder.length && self.minify();
 
-	if (type) {
-		// check invalid characters
-		if (REGEXP_CHECK.test(type))
-			type = self.outputType;
-		else if (!SUPPORTEDIMAGES[type])
-			type = self.outputType;
-	} else
+	if (!type || !SUPPORTEDIMAGES[type])
 		type = self.outputType;
 
 	F.stats.performance.open++;
