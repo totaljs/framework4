@@ -18,6 +18,7 @@ const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
 const COMPARER = global.Intl.Collator().compare;
+const SKIPPORTS = { '80': 1, '443': 1 };
 
 const COMPARER_DESC = function(a, b) {
 	var val = global.Intl.Collator().compare(a, b);
@@ -858,7 +859,7 @@ function request_response(res) {
 				} else {
 					options.response.status = 0;
 					options.response.host = uri.host;
-					options.callback('Too many redirects.', options.response);
+					options.callback('Too many redirects', options.response);
 				}
 				options.callback = null;
 			}
@@ -876,7 +877,7 @@ function request_response(res) {
 		var proto = loc.substring(0, 6);
 
 		if (proto !== 'http:/' && proto !== 'https:')
-			loc = uri.protocol + '//' + uri.hostname + loc;
+			loc = uri.protocol + '//' + uri.hostname + (uri.port && !SKIPPORTS[uri.port] ? (':' + uri.port) : '') + loc;
 
 		var tmp = Url.parse(loc);
 		tmp.headers = uri.headers;
