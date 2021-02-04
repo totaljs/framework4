@@ -8,7 +8,6 @@ const Fs = require('fs');
 const REGEXP_SVG = /(width="\d+")+|(height="\d+")+/g;
 const REGEXP_PATH = /\//g;
 const REGEXP_ESCAPE = /'/g;
-const REGEXP_CHECK = /["|;|'|`|\\]/;
 const SPAWN_OPT = { shell: true };
 const D = require('os').platform().substring(0, 3).toLowerCase() === 'win' ? '"' : '\'';
 const CMD_CONVERT = { gm: 'gm', im: 'convert', magick: 'magick' };
