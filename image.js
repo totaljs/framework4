@@ -1,13 +1,14 @@
 'use strict';
 
-const sof = { 0xc0: true, 0xc1: true, 0xc2: true, 0xc3: true, 0xc5: true, 0xc6: true, 0xc7: true, 0xc9: true, 0xca: true, 0xcb: true, 0xcd: true, 0xce: true, 0xcf: true };
-const child = require('child_process');
-const exec = child.exec;
-const spawn = child.spawn;
+const SOF = { 0xc0: true, 0xc1: true, 0xc2: true, 0xc3: true, 0xc5: true, 0xc6: true, 0xc7: true, 0xc9: true, 0xca: true, 0xcb: true, 0xcd: true, 0xce: true, 0xcf: true };
+const Child = require('child_process');
+const Exec = Child.exec;
+const Spawn = Child.spawn;
 const Fs = require('fs');
 const REGEXP_SVG = /(width="\d+")+|(height="\d+")+/g;
 const REGEXP_PATH = /\//g;
 const REGEXP_ESCAPE = /'/g;
+const REGEXP_CHECK = /["|;|'|`|\\]/;
 const SPAWN_OPT = { shell: true };
 const D = require('os').platform().substring(0, 3).toLowerCase() === 'win' ? '"' : '\'';
 const CMD_CONVERT = { gm: 'gm', im: 'convert', magick: 'magick' };
@@ -46,7 +47,7 @@ exports.measureJPG = function(buffer) {
 		while (o < len) {
 			while (0xff != buffer[o]) o++;
 			while (0xff == buffer[o]) o++;
-			if (sof[buffer[o]])
+			if (SOF[buffer[o]])
 				return { width: u16(buffer, o + 6), height: u16(buffer, o + 4) };
 			else
 				o += u16(buffer, ++o);
@@ -203,7 +204,7 @@ ImageProto.save = function(filename, callback, writer) {
 	if (F.isWindows)
 		command = command.replace(REGEXP_PATH, '\\');
 
-	var cmd = exec(command, function(err) {
+	var cmd = Exec(command, function(err) {
 
 		// clean up
 		cmd.kill();
@@ -260,9 +261,15 @@ ImageProto.pipe = function(stream, type, options) {
 	}
 
 	!self.builder.length && self.minify();
-	!type && (type = self.outputType);
 
-	var cmd = spawn(CMD_CONVERT[self.cmdarg], self.arg(self.filename ? wrap(self.filename) : '-', (type ? type + ':' : '') + '-'), SPAWN_OPT);
+	if (type) {
+		// check invalid characters
+		if (REGEXP_CHECK.test(type))
+			type = self.outputType;
+	} else
+		type = self.outputType;
+
+	var cmd = Spawn(CMD_CONVERT[self.cmdarg], self.arg(self.filename ? wrap(self.filename) : '-', (type ? type + ':' : '') + '-'), SPAWN_OPT);
 	cmd.stderr.on('data', stream.emit.bind(stream, 'error'));
 	cmd.stdout.on('data', stream.emit.bind(stream, 'data'));
 	cmd.stdout.on('end', stream.emit.bind(stream, 'end'));
@@ -296,11 +303,17 @@ ImageProto.stream = function(type, writer) {
 
 	!self.builder.length && self.minify();
 
-	if (!type || !SUPPORTEDIMAGES[type])
+	if (type) {
+		// check invalid characters
+		if (REGEXP_CHECK.test(type))
+			type = self.outputType;
+		else if (!SUPPORTEDIMAGES[type])
+			type = self.outputType;
+	} else
 		type = self.outputType;
 
 	F.stats.performance.open++;
-	var cmd = spawn(CMD_CONVERT[self.cmdarg], self.arg(self.filename ? wrap(self.filename) : '-', (type ? type + ':' : '') + '-'), SPAWN_OPT);
+	var cmd = Spawn(CMD_CONVERT[self.cmdarg], self.arg(self.filename ? wrap(self.filename) : '-', (type ? type + ':' : '') + '-'), SPAWN_OPT);
 	if (self.currentStream) {
 		if (self.currentStream instanceof Buffer)
 			cmd.stdin.end(self.currentStream);
@@ -378,7 +391,7 @@ ImageProto.arg = function(first, last) {
 
 ImageProto.identify = function(callback) {
 	var self = this;
-	exec((self.cmdarg === 'gm' ? 'gm ' : '') + 'identify' + wrap(self.filename, true), function(err, stdout) {
+	Exec((self.cmdarg === 'gm' ? 'gm ' : '') + 'identify' + wrap(self.filename, true), function(err, stdout) {
 
 		if (err) {
 			callback(err, null);

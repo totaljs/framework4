@@ -5,6 +5,7 @@
 - extended `EXEC()` by adding support for `Tasks` and `Operations`
 - fixed `DELETE` method for the schemas, now it works same like `PATCH` method
 - fixed `FlowStream.use()` method
+- fixed: command injection in `Image.pipe()` and `Image.stream()`
 
 ========================
 0.0.31
