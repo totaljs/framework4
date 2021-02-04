@@ -2095,7 +2095,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
 
-	if (type === 'patch')
+	if (type === 'patch' || type === 'remove')
 		$.keys = directcall ? model ? Object.keys(model) : EMPTYARRAY : controller && controller.req ? controller.req.keys : EMPTYARRAY;
 	else
 		$.keys = null;

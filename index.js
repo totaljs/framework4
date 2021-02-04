@@ -15012,7 +15012,7 @@ function extend_request(PROTO) {
 		var self = this;
 		self.$total_schema = false;
 
-		if (!self.$total_route.schema || self.method === 'DELETE')
+		if (!self.$total_route.schema)
 			return next(self, code);
 
 		if (!self.$total_route.schema[1]) {
