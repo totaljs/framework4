@@ -1,7 +1,7 @@
 Makefile
 tools/
 helpers/
-test/
+tests/
 *.markdown
 *.md
 .editorconfig
