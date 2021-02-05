@@ -500,6 +500,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 	var schema = this;
 	var self = schema.main;
+	var count = 0;
 
 	if (schema && schema.ready && schema.component) {
 		var instance = self.meta.components[schema.component];
@@ -514,6 +515,8 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					var target = self.meta.flow[m.id];
 					if (!target || !target.message)
 						continue;
+
+					count++;
 
 					var message = new Message();
 					message.$events = events || {};
@@ -565,6 +568,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 			}
 		}
 	}
+	return count;
 };
 
 FP.use = function(schema, callback, reinit) {
