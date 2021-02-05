@@ -39,15 +39,6 @@ function simple() {
 function main() {
 
 	var self = this;
-	var name = 'WEBSOCKET SERVER';
-
-	self.on('open', function() {
-		console.time(name);
-	});
-
-	self.on('close', function() {
-		console.timeEnd(name);
-	});
 
 	self.on('message', function(client, message) {
 

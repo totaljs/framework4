@@ -1,6 +1,6 @@
 NEWSCHEMA('Schema/MethodsValidation', function(schema) {
 
-	schema.define('value', 'String', true);
+	schema.define('email', 'Email', true);
 
 	schema.addWorkflow('exec', function($) {
 		$.success();
