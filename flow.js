@@ -594,6 +594,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 			}
 		}
 	}
+
 	return count;
 };
 
@@ -651,6 +652,7 @@ FP.use = function(schema, callback, reinit) {
 				self.meta.flow[key] = instance;
 				self.initcomponent(key, component).ts = ts;
 			} else {
+				fi.connections = instance.connections;
 				U.extend(fi.config, instance.config);
 				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
