@@ -223,7 +223,7 @@ MP.send = function(outputindex, data) {
 		var schema = meta.flow[output.id];
 		if (schema && schema.message && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.connected && !next.disabled) {
+			if (next && next.connected && !next.disabled && next.$inputs[output.index]) {
 
 				var inputindex = output.index;
 				var message = self.clone();
@@ -358,11 +358,35 @@ FP.register = function(name, declaration, config, extend) {
 
 	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {} };
 	if (extend)
-		declaration(curr);
+		declaration(curr, require);
 	else
 		curr.make = declaration;
 
 	curr.config = CLONE(curr.config || curr.options);
+
+	curr.$inputs = {};
+	curr.$outputs = {};
+
+	if (curr.inputs) {
+		for (var i = 0; i < curr.inputs.length; i++) {
+			var m = curr.inputs[i];
+			if (curr.$inputs[m.id])
+				curr.$inputs[m.id]++;
+			else
+				curr.$inputs[m.id] = 1;
+		}
+	}
+
+	if (curr.outputs) {
+		for (var i = 0; i < curr.outputs.length; i++) {
+			var m = curr.outputs[i];
+			if (curr.$outputs[m.id])
+				curr.$outputs[m.id]++;
+			else
+				curr.$outputs[m.id] = 1;
+		}
+	}
+
 	self.meta.components[name] = curr;
 	self.$events.register && self.emit('register', name, curr);
 
@@ -379,6 +403,7 @@ FP.register = function(name, declaration, config, extend) {
 		}
 	}
 
+	self.clean();
 	return curr;
 };
 
@@ -517,6 +542,10 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					var m = conn[i];
 					var target = self.meta.flow[m.id];
 					if (!target || !target.message || !self.$can(true, m.id, m.index))
+						continue;
+
+					var com = self.meta.components[target.component];
+					if (!com || !com.$inputs[m.index])
 						continue;
 
 					count++;
@@ -847,17 +876,23 @@ FP.add = function(name, body) {
 	var self = this;
 	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', js: '<script>', html: '<body>', template: '<template>' });
 	meta.id = name;
-	meta.checksum = HASH(meta.be || '').toString(36);
+	meta.checksum = (meta.be || '').md5();
 	var component = self.meta.components[name];
 
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
 		component.ts = Date.now();
 	} else {
-		var fn = new Function('exports', meta.be);
-		delete meta.be;
-		component = self.register(meta.id, fn, null, true);
-		component.ui = meta;
+
+		try {
+			var fn = new Function('exports', 'require', meta.be);
+			delete meta.be;
+			component = self.register(meta.id, fn, null, true);
+			component.ui = meta;
+		} catch (e) {
+			F.error(e, 'Flow component: ' + name);
+			return null;
+		}
 	}
 
 	return component;
