@@ -372,9 +372,10 @@ FP.register = function(name, declaration, config, extend) {
 	};
 
 	for (var key in self.meta.flow) {
-		var f = self.meta.flow[key];
-		if (f.component === curr.id) {
-			self.initcomponent(key, curr);
+		if (key !== 'paused') {
+			var f = self.meta.flow[key];
+			if (f.component === curr.id)
+				self.initcomponent(key, curr);
 		}
 	}
 
@@ -404,15 +405,17 @@ FP.cleanforce = function() {
 		return self;
 
 	for (var key in self.meta.flow) {
-		var instance = self.meta.flow[key];
-		if (instance.connections) {
-			for (var key2 in instance.connections) {
-				var conn = instance.connections[key2];
-				var arr = conn.remove(c => self.meta.flow[c.id] == null);
-				if (arr.length)
-					instance.connections[key2] = arr;
-				else
-					delete instance.connections[key2];
+		if (key !== 'paused') {
+			var instance = self.meta.flow[key];
+			if (instance.connections) {
+				for (var key2 in instance.connections) {
+					var conn = instance.connections[key2];
+					var arr = conn.remove(c => self.meta.flow[c.id] == null);
+					if (arr.length)
+						instance.connections[key2] = arr;
+					else
+						delete instance.connections[key2];
+				}
 			}
 		}
 	}
@@ -504,7 +507,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 	if (schema && schema.ready && schema.component) {
 		var instance = self.meta.components[schema.component];
-		if (instance && instance.connected && !instance.disabled) {
+		if (instance && instance.connected && !instance.disabled && self.$can(false, schema.id, outputindex)) {
 
 			var conn = schema.connections[outputindex];
 			if (conn && conn.length) {
@@ -513,7 +516,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					var m = conn[i];
 					var target = self.meta.flow[m.id];
-					if (!target || !target.message)
+					if (!target || !target.message || !self.$can(true, m.id, m.index))
 						continue;
 
 					count++;
@@ -595,9 +598,13 @@ FP.use = function(schema, callback, reinit) {
 		var keys = Object.keys(schema);
 		var ts = Date.now();
 
+		if (self.meta.flow.paused)
+			delete self.meta.flow.paused;
+
 		keys.wait(function(key, next) {
 
 			if (key === 'paused') {
+				self.meta.flow.paused = schema.paused;
 				next();
 				return;
 			}
@@ -634,12 +641,14 @@ FP.use = function(schema, callback, reinit) {
 			callback && callback(err.length ? err : null);
 
 			for (var key in self.meta.flow) {
-				var instance = self.meta.flow[key];
-				var component = self.meta.components[instance.component];
-				if (instance.ts !== ts) {
-					component.ready = false;
-					instance.close && instance.close.call(instance);
-					delete self.meta.flow[key];
+				if (key !== 'paused') {
+					var instance = self.meta.flow[key];
+					var component = self.meta.components[instance.component];
+					if (instance.ts !== ts) {
+						component.ready = false;
+						instance.close && instance.close.call(instance);
+						delete self.meta.flow[key];
+					}
 				}
 			}
 
@@ -857,14 +866,14 @@ FP.add = function(name, body) {
 FP.instances = function() {
 
 	var self = this;
-	var keys = Object.keys(self.meta.flow);
 	var arr = [];
 
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
-		var instance = self.meta.flow[key];
-		if (instance.ready)
-			arr.push(instance);
+	for (var key in self.meta.flow) {
+		if (key !== 'paused') {
+			var instance = self.meta.flow[key];
+			if (instance.ready)
+				arr.push(instance);
+		}
 	}
 
 	return arr;
