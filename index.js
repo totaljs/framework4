@@ -7771,7 +7771,6 @@ F.$cors_static = function(req, res, fn, arg) {
 
 	if (stop) {
 		fn = null;
-		F.$events.request_end && EMIT('request_end', req, res);
 		F.stats.request.blocked++;
 		res.writeHead(404);
 		res.end();
@@ -7782,7 +7781,6 @@ F.$cors_static = function(req, res, fn, arg) {
 		return fn(req, res, arg);
 
 	fn = null;
-	F.$events.request_end && EMIT('request_end', req, res);
 	res.writeHead(200);
 	res.end();
 };
@@ -14838,11 +14836,18 @@ function extend_request(PROTO) {
 		else
 			F.stats.request.blocked++;
 
-		this.res.writeHead(status);
-		this.res.end(U.httpstatus(status));
-		F.$events.request_end && EMIT('request_end', this, this.res);
-		this.bodydata = null;
-		this.clear(true);
+		this.$total_route = F.lookup_system(status);
+
+		if (this.$total_route) {
+			this.$total_execute(status, true);
+		} else {
+			this.res.writeHead(status);
+			this.res.end(U.httpstatus(status));
+			if (!this.isStaticFile)
+				F.$events.request_end && EMIT('request_end', this, this.res);
+			this.bodydata = null;
+			this.clear(true);
+		}
 	};
 
 	PROTO.$total_end = function() {
