@@ -111,6 +111,21 @@ tests.push(function(next) {
 			}, next);
 		});
 
+		// Method validation
+		tests.push(function(next) {
+			var methods = [{ name: 'GET', validate: false }, { name: 'POST', validate: true }, { name: 'PUT', validate: true }, { name: 'PATCH', validate: false }, { name: 'DELETE', validate: false }];
+			methods.wait(function(method, next) {
+				RESTBuilder[method.name](url + '/schema/methods/validation/').exec(function(err, res) {
+					if (method.validate)
+						Assert.ok(err !== null && !res.success, subname + ' - method ' + method.name + ' should validate data');
+					else
+						Assert.ok(err === null && res.success, subname + ' - method ' + method.name + ' shouldn\'t validate data');
+
+					next();
+				});
+			}, next);
+		});
+
 		// Wrong method - Path is correct but method is invalid
 		tests.push(function(next) {
 			RESTBuilder.POST(url + '/methods/wrong/').exec(function(err, res, output) {
