@@ -601,7 +601,10 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 	obj.count = 0;
 	obj.socket;
 	obj.tls = false;
-	obj.date = global.NOW ? global.NOW : new Date();
+	obj.date = new Date();
+
+	if (global.NOW)
+		global.NOW = obj.date;
 
 	smtp = smtp || null;
 
@@ -693,13 +696,15 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 		global.F.$events.mail && EMIT('mail', msg);
 	}
 
-	obj.boundary = '--totaljs' + obj.date.getTime() + obj.count;
+	var dt = obj.date.getTime();
+
+	obj.boundary = '--totaljs' + dt + obj.count;
 	obj.files = msg.files;
 	obj.count++;
 
 	message.push('MIME-Version: 1.0');
 	buffer.push('MAIL FROM: <' + msg.address_from.address + '>');
-	message.push('Message-ID: <total' + (INDEXATTACHMENT++) + '@WIN-t' + (INDEXATTACHMENT) + '>');
+	message.push('Message-ID: <total4_' + obj.date.toString(36) + '_' + (INDEXATTACHMENT++) + '_' + (INDEXATTACHMENT) + '>');
 
 	self.$priority && message.push('X-Priority: ' + self.$priority);
 	self.$confidential && message.push('Sensitivity: Company-Confidential');
