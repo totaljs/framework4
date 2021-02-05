@@ -202,8 +202,10 @@ MP.send = function(outputindex, data) {
 		self.instance.stats.duration = now - self.duration2;
 	}
 
-	if (!self.main.$can(false, self.toid, outputindex))
+	if (!self.main.$can(false, self.toid, outputindex)) {
+		self.destroy();
 		return count;
+	}
 
 	var tid = self.toid + '__' + outputindex;
 
@@ -223,7 +225,7 @@ MP.send = function(outputindex, data) {
 		var schema = meta.flow[output.id];
 		if (schema && schema.message && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.connected && !next.disabled && next.$inputs[output.index]) {
+			if (next && next.connected && !next.disabled && (next.$inputs && next.$inputs[output.index])) {
 
 				var inputindex = output.index;
 				var message = self.clone();
@@ -298,8 +300,9 @@ MP.destroy = function() {
 	self.$events = null;
 };
 
-function Flow(name) {
+function Flow(name, errorhandler) {
 	var t = this;
+	t.error = errorhandler || NOOP;
 	t.name = name;
 	t.meta = {};
 	t.meta.components = {};
@@ -364,28 +367,19 @@ FP.register = function(name, declaration, config, extend) {
 
 	curr.config = CLONE(curr.config || curr.options);
 
-	curr.$inputs = {};
-	curr.$outputs = {};
-
-	if (curr.inputs) {
-		for (var i = 0; i < curr.inputs.length; i++) {
-			var m = curr.inputs[i];
-			if (curr.$inputs[m.id])
-				curr.$inputs[m.id]++;
-			else
-				curr.$inputs[m.id] = 1;
+	if (extend) {
+		curr.$inputs = {};
+		if (curr.inputs) {
+			for (var i = 0; i < curr.inputs.length; i++) {
+				var m = curr.inputs[i];
+				if (curr.$inputs[m.id])
+					curr.$inputs[m.id]++;
+				else
+					curr.$inputs[m.id] = 1;
+			}
 		}
-	}
-
-	if (curr.outputs) {
-		for (var i = 0; i < curr.outputs.length; i++) {
-			var m = curr.outputs[i];
-			if (curr.$outputs[m.id])
-				curr.$outputs[m.id]++;
-			else
-				curr.$outputs[m.id] = 1;
-		}
-	}
+	} else
+		self.$inputs = null;
 
 	self.meta.components[name] = curr;
 	self.$events.register && self.emit('register', name, curr);
@@ -545,7 +539,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						continue;
 
 					var com = self.meta.components[target.component];
-					if (!com || !com.$inputs[m.index])
+					if (!com || (com.$inputs && !com.$inputs[m.index]))
 						continue;
 
 					count++;
@@ -600,6 +594,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 			}
 		}
 	}
+
 	return count;
 };
 
@@ -657,6 +652,7 @@ FP.use = function(schema, callback, reinit) {
 				self.meta.flow[key] = instance;
 				self.initcomponent(key, component).ts = ts;
 			} else {
+				fi.connections = instance.connections;
 				U.extend(fi.config, instance.config);
 				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
@@ -685,6 +681,7 @@ FP.use = function(schema, callback, reinit) {
 
 	} else {
 		err.push('schema', 'Flow schema is invalid.');
+		self.error(err);
 		callback && callback(err);
 	}
 
@@ -890,7 +887,9 @@ FP.add = function(name, body) {
 			component = self.register(meta.id, fn, null, true);
 			component.ui = meta;
 		} catch (e) {
-			F.error(e, 'Flow component: ' + name);
+			var err = new ErrorBuilder();
+			err.push('component', 'Flow component: ' + name + ' - ' + e);
+			self.error(err);
 			return null;
 		}
 	}
@@ -948,6 +947,6 @@ FP.components = function(prepare_export) {
 	return arr;
 };
 
-exports.make = function(name) {
-	return new Flow(name);
+exports.make = function(name, errorhandler) {
+	return new Flow(name, errorhandler);
 };

@@ -10,6 +10,7 @@
 - fixed command injection in `Image.pipe()` and `Image.stream()`
 - fixed parsing of uploaded files (sometimes was the writeable stream unclosed)
 - fixed execution of system routes
+- fixed `FlowStream.use()`
 
 ========================
 0.0.31
