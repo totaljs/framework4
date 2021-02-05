@@ -3,9 +3,9 @@ require('../index');
 const Assert = require('assert');
 const Fs = require('fs');
 
-const rounds = 2;
-const width = 50;
 const url = 'http://0.0.0.0:8000';
+const rounds = 10;
+const width = 50;
 const tests = [];
 const schema_methods = ['query', 'read', 'insert', 'update', 'patch', 'remove', 'workflow'];
 
@@ -14,7 +14,7 @@ function log(name, depth, is_last) {
 	for (var i = 0; i < depth; i++)
 		str += '  ';
 	if (depth > 0)
-		str += is_last ? '└ ' : '├ ';
+		str += is_last ? '└─ ' : '├──';
 	return (str + name).padEnd(width - 12);
 }
 
@@ -136,6 +136,8 @@ tests.push(function(next) {
 		console.log(subtest_log);
 
 		var tests = [];
+		var test_name;
+		var test_log;
 
 		// All possible methods
 		tests.push(function(next) {
@@ -361,8 +363,9 @@ tests.push(function(next) {
 
 // Schema
 tests.push(function(next) {
-	group_name = 'Schemas';
-	group_log = log(group_name, 0);
+	var group_name = 'Schemas';
+	var group_log = log(group_name, 0);
+
 	console.log(group_log);
 
 	var subtests = [];
@@ -652,13 +655,12 @@ tests.push(function(next) {
 
 tests.push(function(next) {
 
-	group_name = 'Websocket client';
-	group_log = log(group_name, 0);
-	console.log(group_log);
-
+	var group_name = 'Websocket client';
+	var group_log = log(group_name, 0);
 	var subtests = [];
-
 	var test_message = 'message123';
+
+	console.log(group_log);
 
 	subtests.push(function(next) {
 		subtest_name = 'Basic';
@@ -865,11 +867,11 @@ tests.push(function(next) {
 
 
 tests.push(function(next) {
-	group_name = 'Operations';
-	group_log = log(group_name, 0, true);
-	console.time(group_log);
-
+	var group_name = 'Operations';
+	var group_log = log(group_name, 0, true);
 	var subtests = [];
+
+	console.time(group_log);
 
 	// Route operation - success
 	subtests.push(function(next) {
@@ -971,13 +973,12 @@ tests.push(function(next) {
 // Localization
 tests.push(function(next) {
 
-	group_name = 'Localization';
-	group_log = log(group_name, 0, true);
-	console.time(group_log);
-
+	var group_name = 'Localization';
+	var group_log = log(group_name, 0, true);
 	var subtests = [];
-
 	var regex = /<h1>(.*?)<\/h1>/;
+
+	console.time(group_log);
 
 	// Default (English)
 	subtests.push(function(next) {
@@ -1015,11 +1016,11 @@ tests.push(function(next) {
 // Upload
 tests.push(function(next) {
 
-	group_name = 'Upload';
-	group_log = log(group_name, 0);
-	console.log(group_log);
-
+	var group_name = 'Upload';
+	var group_log = log(group_name, 0);
 	var subtests = [];
+
+	console.log(group_log);
 
 	// File upload with body
 	subtests.push(function(next) {
