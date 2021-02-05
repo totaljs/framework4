@@ -181,16 +181,16 @@ global.NEWCOMMAND = function(name, fn) {
 		F.commands[name] = [fn];
 };
 
-function flowwrapper(name) {
+function flowwrapper(name, errorhandler) {
 	if (!name)
 		name = 'default';
-	return F.flows[name] ? F.flows[name] : F.flows[name] = framework_flow.make(name);
+	return F.flows[name] ? F.flows[name] : F.flows[name] = framework_flow.make(name, errorhandler);
 }
 
-global.FLOWSTREAM = function(name) {
+global.FLOWSTREAM = function(name, errorhandler) {
 	global.framework_flow = require('./flow');
 	global.FLOW = flowwrapper;
-	return flowwrapper(name);
+	return flowwrapper(name, errorhandler);
 };
 
 var DEF = global.DEF = {};
