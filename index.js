@@ -242,7 +242,7 @@ HEADERS.file_lastmodified[HEADER_CACHE] = 'public, max-age=11111111';
 HEADERS.file_lastmodified['X-Powered-By'] = 'Total.js';
 HEADERS.file_release_compress = {};
 HEADERS.file_release_compress[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release_compress.Vary = 'Accept-Encoding';
+HEADERS.file_release_compress.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_release_compress['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release_compress['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release_compress['Content-Encoding'] = 'gzip';
@@ -250,7 +250,7 @@ HEADERS.file_release_compress['X-Powered-By'] = 'Total.js';
 HEADERS.file_release_compress_range = {};
 HEADERS.file_release_compress_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_release_compress_range[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release_compress_range.Vary = 'Accept-Encoding';
+HEADERS.file_release_compress_range.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_release_compress_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release_compress_range['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release_compress_range['Content-Encoding'] = 'gzip';
@@ -259,14 +259,14 @@ HEADERS.file_release_compress_range['Content-Range'] = '';
 HEADERS.file_release_compress_range['X-Powered-By'] = 'Total.js';
 HEADERS.file_release = {};
 HEADERS.file_release[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release.Vary = 'Accept-Encoding';
+HEADERS.file_release.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_release['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release['X-Powered-By'] = 'Total.js';
 HEADERS.file_release_range = {};
 HEADERS.file_release_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_release_range[HEADER_CACHE] = 'public, max-age=11111111';
-HEADERS.file_release_range.Vary = 'Accept-Encoding';
+HEADERS.file_release_range.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_release_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_release_range['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 HEADERS.file_release_range[HEADER_LENGTH] = '0';
@@ -274,7 +274,7 @@ HEADERS.file_release_range['Content-Range'] = '';
 HEADERS.file_release_range['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug_compress = {};
 HEADERS.file_debug_compress[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug_compress.Vary = 'Accept-Encoding';
+HEADERS.file_debug_compress.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_debug_compress['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_debug_compress.Pragma = 'no-cache';
 HEADERS.file_debug_compress.Expires = '-1';
@@ -283,7 +283,7 @@ HEADERS.file_debug_compress['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug_compress_range = {};
 HEADERS.file_debug_compress_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_debug_compress_range[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug_compress_range.Vary = 'Accept-Encoding';
+HEADERS.file_debug_compress_range.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_debug_compress_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_debug_compress_range['Content-Encoding'] = 'gzip';
 HEADERS.file_debug_compress_range.Pragma = 'no-cache';
@@ -293,7 +293,7 @@ HEADERS.file_debug_compress_range['Content-Range'] = '';
 HEADERS.file_debug_compress_range['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug = {};
 HEADERS.file_debug[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug.Vary = 'Accept-Encoding';
+HEADERS.file_debug.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_debug.Pragma = 'no-cache';
 HEADERS.file_debug.Expires = '-1';
 HEADERS.file_debug['Access-Control-Allow-Origin'] = '*';
@@ -301,7 +301,7 @@ HEADERS.file_debug['X-Powered-By'] = 'Total.js';
 HEADERS.file_debug_range = {};
 HEADERS.file_debug_range['Accept-Ranges'] = 'bytes';
 HEADERS.file_debug_range[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.file_debug_range.Vary = 'Accept-Encoding';
+HEADERS.file_debug_range.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.file_debug_range['Access-Control-Allow-Origin'] = '*';
 HEADERS.file_debug_range.Pragma = 'no-cache';
 HEADERS.file_debug_range.Expires = '-1';
@@ -321,13 +321,13 @@ HEADERS.content_mobile.Expires = '-1';
 HEADERS.content_mobile['X-Powered-By'] = 'Total.js';
 HEADERS.content_compress = {};
 HEADERS.content_compress[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.content_compress.Vary = 'Accept-Encoding';
+HEADERS.content_compress.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.content_compress['Content-Encoding'] = 'gzip';
 HEADERS.content_compress.Expires = '-1';
 HEADERS.content_compress['X-Powered-By'] = 'Total.js';
 HEADERS.content = {};
 HEADERS.content[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-HEADERS.content.Vary = 'Accept-Encoding';
+HEADERS.content.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 HEADERS.content.Expires = '-1';
 HEADERS.content['X-Powered-By'] = 'Total.js';
 HEADERS.stream_release_compress = {};
@@ -15476,7 +15476,7 @@ function extend_response(PROTO) {
 		var headers = {};
 
 		headers[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
-		headers.Vary = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
+		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 
 		if ((/text|application/).test(contentType))
 			contentType += '; charset=utf-8';
@@ -15905,11 +15905,7 @@ function extend_response(PROTO) {
 				headers = range ? HEADERS.file_debug_range : HEADERS.file_debug;
 		}
 
-		if (req.$mobile)
-			headers.Vary = 'Accept-Encoding, User-Agent';
-		else
-			headers.Vary = 'Accept-Encoding';
-
+		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 		headers[HEADER_TYPE] = contentType;
 		if (REG_TEXTAPPLICATION.test(contentType))
 			headers[HEADER_TYPE] += '; charset=utf-8';
@@ -16020,7 +16016,7 @@ function extend_response(PROTO) {
 		var compress = CONF.allow_gzip && COMPRESSION[options.type] && accept.indexOf('gzip') !== -1;
 		var headers = compress ? HEADERS.binary_compress : HEADERS.binary;
 
-		headers.Vary = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
+		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 
 		if (options.download)
 			headers['Content-Disposition'] = 'attachment; filename=' + encodeURIComponent(options.download);
@@ -16088,7 +16084,7 @@ function extend_response(PROTO) {
 				headers = HEADERS.stream_debug;
 		}
 
-		headers.Vary = 'Accept-Encoding' + (req.$mobile ? ', User-Agent' : '');
+		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 
 		if (RELEASE) {
 			headers.Expires = DATE_EXPIRES;
