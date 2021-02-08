@@ -5405,8 +5405,14 @@ DEF.onSchema = function(req, route, callback) {
 
 	var $ = {};
 
-	if ((req.method === 'PATCH' || req.method === 'DELETE') && req.body)
-		req.keys = $.keys = Object.keys(req.body);
+	if ((req.method === 'PATCH' || req.method === 'DELETE') && req.body) {
+		req.keys = $.keys = [];
+		for (var i = 0; i < schema.properties.length; i++) {
+			var key = schema.properties[i];
+			if (key && req.body[key] != null)
+				req.keys.push(key);
+		}
+	}
 
 	if (schema)
 		schema.make(req.body, onSchema_callback, callback, route.novalidate, $);
