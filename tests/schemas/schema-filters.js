@@ -4,4 +4,4 @@ NEWSCHEMA('Schema/Filters', function(schema) {
 		$.success($.filter);
 	}, 'string:String,number:Number,float:Number,email:Email,phone:Phone,boolean:Boolean,uid:UID,url:URL,date:Number,json:JSON');
 
-})
+});

@@ -22,4 +22,4 @@ NEWSCHEMA('Schema/Verify', function(schema) {
 		$.success(model);
 	});
 
-})
+});
