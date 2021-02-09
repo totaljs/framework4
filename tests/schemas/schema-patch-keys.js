@@ -1,12 +1,10 @@
 NEWSCHEMA('Schema/PatchKeys', function(schema) {
 
-	schema.define('valid', 'String(5)');
-	schema.define('valid_required', 'String(5)', true);
+	schema.define('valid', 'String');
+	schema.define('valid_required', 'String', true);
 
 	schema.addWorkflow('exec', function($, model) {
-		console.log(model);
-		console.log('keys', $.keys, $.req.method);
-		$.success($.keys);
+		$.success({ keys: $.keys, model: model });
 	});
 
 });
