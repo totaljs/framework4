@@ -1327,7 +1327,12 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 
 		if (meta.method === 'PATCH' || meta.method === 'DELETE') {
 			meta.validate = true;
-			$.keys = model ? Object.keys(model) : EMPTYARRAY;
+			controller.req.keys = $.keys = [];
+			for (var i = 0; i < o.fields.length; i++) {
+				var val = model[o.fields[i]];
+				if (val != null)
+					$.keys.push(o.fields[i]);
+			}
 		}
 
 		var data = {};

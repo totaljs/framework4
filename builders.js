@@ -1496,6 +1496,7 @@ SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $) {
 					}
 				}
 
+				options.keys = $.keys;
 				options.cache = verify.cache;
 				options.cachekey = cachekey;
 				options.entity = item.entity;
@@ -2073,7 +2074,7 @@ SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, directcall) {
+SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare) {
 
 	var error = new ErrorBuilder();
 	var self = this;
@@ -2097,8 +2098,6 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	if (controller && controller.req && controller.req.keys)
 		$.keys = controller.req.keys;
-	else if (type === 'patch' || type === 'remove')
-		$.keys = directcall ? model ? Object.keys(model) : EMPTYARRAY : controller && controller.req ? controller.req.keys : EMPTYARRAY;
 	else
 		$.keys = null;
 
