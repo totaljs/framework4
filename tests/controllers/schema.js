@@ -44,4 +44,7 @@ exports.install = function() {
 	ROUTE('GET      /schema/middleware/valid/                    *Schema/Middleware    --> one');
 	ROUTE('GET      /schema/middleware/invalid/                  *Schema/Middleware    --> two');
 
+	// PATCH $.keys
+	ROUTE('PATCH      /schema/patchkeys/                         *Schema/PatchKeys    --> exec');
+
 }

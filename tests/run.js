@@ -14,7 +14,7 @@ function log(name, depth, is_last) {
 	for (var i = 0; i < depth; i++)
 		str += '  ';
 	if (depth > 0)
-		str += is_last ? '└─ ' : '├──';
+		str += is_last ? '└─ ' : '├── ';
 	return (str + name).padEnd(width - 12);
 }
 
@@ -215,6 +215,29 @@ tests.push(function(next) {
 			});
 		});
 
+		// PATCH - $.keys
+		tests.push(function(next) {
+			test_name = 'PATCH - $.keys';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'string', valid_required: 'string' };
+
+			RESTBuilder.PATCH(url + '/schema/patchkeys/', data).exec(function(err, res) {
+				console.log(err, res);
+				// Assert.ok(err === null && res.success && res.value, subtest_name + ' - Shouldn\'t return error');
+				// var value = res.value;
+
+				// Assert.ok(value.valid === 'valid', subtest_name + ' - Not as expected');
+				// Assert.ok(value.invalid === 'invalid', subtest_name + ' - Shouldn\'t be returned');
+				// Assert.ok(value.empty === 'empty', subtest_name + ' - Shouldn\'t be returned');
+				// Assert.ok(value.empty_invalid === 'empty_valid', subtest_name + ' - Shouldn\'t be returned');
+
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
 		// Wrong method - Path is correct but method is invalid
 		tests.push(function(next) {
 			test_name = 'Wrong method';
@@ -319,7 +342,7 @@ tests.push(function(next) {
 	// Wildcards
 	subtests.push(function(next) {
 		subtest_name = 'Wildcards';
-		subtest_log = log(subtest_name, 1);
+		subtest_log = log(subtest_name, 1, true);
 		console.time(subtest_log);
 
 		var tests = [];
@@ -814,7 +837,7 @@ tests.push(function(next) {
 	// WEBSOCKETCLIENT reconnect - Forced disconnect from server and client attempts to reconnect back + send test message after reconnect
 	subtests.push(function(next) {
 		subtest_name = 'Reconnect';
-		subtest_log = log(subtest_name, 1);
+		subtest_log = log(subtest_name, 1, true);
 		console.time(subtest_log);
 
 		var connect_count = 0;
