@@ -5,6 +5,7 @@
 - improved HTTP cache
 - fixed parsing of schema keys in `PATCH` method
 - fixed predefined session functionality (a problem with cache)
+- fixed `API` routes with empty model
 
 ========================
 0.0.35
