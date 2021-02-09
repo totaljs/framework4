@@ -1320,18 +1320,16 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 	}
 
 	if (meta.validate) {
-
 		var $ = {};
-
 		$.controller = controller;
-
 		if (meta.method === 'PATCH' || meta.method === 'DELETE') {
 			meta.validate = true;
 			controller.req.keys = $.keys = [];
-			for (var i = 0; i < o.fields.length; i++) {
-				var val = model[o.fields[i]];
+			var fields = meta.schema.fields;
+			for (var i = 0; i < fields.length; i++) {
+				var val = model[fields[i]];
 				if (val != null)
-					$.keys.push(o.fields[i]);
+					$.keys.push(fields[i]);
 			}
 		}
 
