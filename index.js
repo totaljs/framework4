@@ -1320,6 +1320,10 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 	}
 
 	if (meta.validate) {
+
+		if (!model)
+			model = {};
+
 		var $ = {};
 		$.controller = controller;
 		if (meta.method === 'PATCH' || meta.method === 'DELETE') {
@@ -10814,7 +10818,7 @@ function controller_api() {
 		self.req.$bodyencrypt = true;
 
 	// Evaluates action
-	$ACTION(s.action, model.data, self.callback(), self);
+	EXEC(s.action, model.data, self.callback(), self);
 }
 
 ControllerProto.getSchema = function() {
