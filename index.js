@@ -5405,8 +5405,8 @@ DEF.onSchema = function(req, route, callback) {
 
 	if ((req.method === 'PATCH' || req.method === 'DELETE') && req.body) {
 		req.keys = $.keys = [];
-		for (var i = 0; i < schema.properties.length; i++) {
-			var key = schema.properties[i];
+		for (var i = 0; i < schema.fields.length; i++) {
+			var key = schema.fields[i];
 			if (key && req.body[key] != null)
 				req.keys.push(key);
 		}
