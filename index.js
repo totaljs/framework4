@@ -737,16 +737,27 @@ var authbuiltin = function(opt) {
 			return;
 		}
 
-		var session = opt.sessions[sessionid];
-		if (session) {
-			if (session.ua === $.ua) {
-				$.req.sessionid = meta.sessionid;
-				$.success(session.data);
-			} else {
-				$.invalid();
-				sessionid = null;
+		var id = sessionid.decrypt(opt.secret);
+
+		if (id) {
+			id = id.split('-');
+
+			if (!id[0] || !id[1] || !id[2])
+				id = null;
+
+			if (id) {
+				var session = opt.sessions[id[0]];
+				if (session) {
+					if (session.ua === $.ua) {
+						$.req.sessionid = session.sessionid;
+						$.success(session.data);
+					} else {
+						$.invalid();
+						sessionid = null;
+					}
+					return;
+				}
 			}
-			return;
 		}
 
 		if (opt.ddos && opt.blocked[$.ip] > opt.ddos) {
@@ -755,17 +766,6 @@ var authbuiltin = function(opt) {
 			return;
 		}
 
-		if (!sessionid) {
-			if (opt.ddos) {
-				if (opt.blocked[$.ip])
-					opt.blocked[$.ip]++;
-				else
-					opt.blocked[$.ip] = 1;
-			}
-			return;
-		}
-
-		var id = sessionid.decrypt(opt.secret);
 		if (!id) {
 
 			if (opt.ddos) {
@@ -779,8 +779,6 @@ var authbuiltin = function(opt) {
 			$.invalid();
 			return;
 		}
-
-		id = id.split('-');
 
 		var meta = { ip: $.req.ip, ua: $.ua, sessionid: id[0], userid: id[1] };
 
