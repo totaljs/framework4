@@ -369,8 +369,8 @@ function SchemaBuilderEntity(name) {
 	// this.onQuery;
 	// this.onError;
 	// this.dependencies;
-	// this.fields;
 	// this.fields_allow;
+	this.fields = [];
 }
 
 const SchemaBuilderEntityProto = SchemaBuilderEntity.prototype;
@@ -2095,7 +2095,9 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
 
-	if (type === 'patch' || type === 'remove')
+	if (controller && controller.req && controller.req.keys)
+		$.keys = controller.req.keys;
+	else if (type === 'patch' || type === 'remove')
 		$.keys = directcall ? model ? Object.keys(model) : EMPTYARRAY : controller && controller.req ? controller.req.keys : EMPTYARRAY;
 	else
 		$.keys = null;
