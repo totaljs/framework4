@@ -4,7 +4,7 @@ const Assert = require('assert');
 const Fs = require('fs');
 
 const url = 'http://0.0.0.0:8000';
-const rounds = 1;
+const rounds = 10;
 const width = 50;
 const tests = [];
 const schema_methods = ['query', 'read', 'insert', 'update', 'patch', 'remove', 'workflow'];
@@ -146,6 +146,7 @@ tests.push(function(next) {
 			console.time(test_log);
 
 			var methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
 			methods.wait(function(method, next) {
 				RESTBuilder[method](url + '/methods/').exec(function(err, res) {
 					Assert.ok(err === null && res.success, subtest_name + ' - ' + method);
@@ -164,6 +165,7 @@ tests.push(function(next) {
 			console.time(test_log);
 
 			var methods = [{ name: 'GET', validate: false }, { name: 'POST', validate: true }, { name: 'PUT', validate: true }, { name: 'PATCH', validate: false }, { name: 'DELETE', validate: false }];
+
 			methods.wait(function(method, next) {
 				RESTBuilder[method.name](url + '/schema/methods/validation/').exec(function(err, res) {
 					if (method.validate)
@@ -186,6 +188,7 @@ tests.push(function(next) {
 			console.time(test_log);
 
 			var methods = ['PATCH', 'DELETE'];
+
 			methods.wait(function(method, next) {
 				RESTBuilder[method](url + '/schema/methods/validation/', { email: 'not_email' }).exec(function(err, res) {
 					Assert.ok(err !== null && !res.success, subtest_name + ' - Method ' + method + ' should return error');
@@ -204,6 +207,7 @@ tests.push(function(next) {
 			console.time(test_log);
 
 			var methods = ['PATCH', 'DELETE'];
+
 			methods.wait(function(method, next) {
 				RESTBuilder[method](url + '/schema/methods/validation/', { email: 'abc@abc.abc' }).exec(function(err, res) {
 					Assert.ok(err === null && res.success, subtest_name + ' - Method ' + method + ' should\'t return error');
@@ -222,7 +226,7 @@ tests.push(function(next) {
 			console.time(test_log);
 
 			var methods = ['PATCH', 'DELETE'];
-			var data = { valid: 'string', valid_required: 'string' };
+			var data = { valid: 'valid', valid_required: 'required' };
 
 			methods.wait(function(method, next) {
 				RESTBuilder.PATCH(url + '/schema/patchkeys/', data).exec(function(err, res) {
@@ -242,6 +246,32 @@ tests.push(function(next) {
 			}, function() {
 				console.timeEnd(test_log);
 				next();
+			});
+		});
+
+		// PATCH - EXEC
+		tests.push(function(next) {
+			test_name = 'PATCH - EXEC';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			EXEC('#Schema/PatchKeys --> exec', data, function(err, res) {
+
+				Assert.ok(err === null && res.success && res.value, subtest_name + ' - Shouldn\'t return error');
+
+				var keys = res.value.keys;
+				Assert.ok(keys.includes('valid'), subtest_name + ' - Key must be included');
+				Assert.ok(!keys.includes('invalid'), subtest_name + ' - Key must be not included');
+
+				var model = res.value.model;
+				Assert.ok(model.valid === data.valid, subtest_name + ' - Model must be included');
+				Assert.ok(model.invalid !== data.invalid, subtest_name + ' - Model must be not included');
+
+				console.timeEnd(test_log);
+				next();
+
 			});
 		});
 
@@ -400,39 +430,78 @@ tests.push(function(next) {
 			test_log = log(test_name, 2);
 			console.time(test_log);
 
-			// TODO
-			next();
-			return;
-
-			console.log(url + route_path);
-
 			RESTBuilder.API(url + route_path, 'api_basic').exec(function(err, res) {
-				console.log(err, res);
-				//Assert.ok(err === null && res.success, subtest_name + ' - ' + test_name);
+				Assert.ok(err === null && res.success, subtest_name + ' - ' + test_name);
 				console.timeEnd(test_log);
 				next();
 			});
 		});
 
 		// Data validation (+)
+		tests.push(function(next) {
+			test_name = 'Validation (+)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_validation', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value && res.value.valid === data.valid, subtest_name + ' - ' + test_name + ' - cannot be error');
+				Assert.ok(res.value.invalid !== data.invalid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
 
 		// Without data validation (-)
+		tests.push(function(next) {
+			test_name = 'Validation (-)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_novalidation', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value && res.value.valid !== data.valid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				Assert.ok(res.value.invalid !== data.invalid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
 
 		// Patch validation (#)
-		// tests.push(function(next) {
-		// 	test_name = 'Patch #';
-		// 	test_log = log(test_name, 2);
-		// 	console.time(test_log);
+		tests.push(function(next) {
+			test_name = 'Patch validation (#)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
 
-		// 	var value = value;
+			var data = { valid: 'valid', invalid: 'invalid' };
 
-		// 	RESTBuilder.API(url + route_path, 'api_patch', { value: value }).exec(function(err, res) {
-		// 		console.log('res', err, res);
-		// 		Assert.ok(err === null && res.success && res.value === data.value, subtest_name + ' - ' + test_name);
-		// 		console.timeEnd(test_log);
-		// 		next();
-		// 	});
-		// });
+			RESTBuilder.API(url + route_path, 'api_patch', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value.valid === data.valid, subtest_name + ' - cannot be error');
+				Assert.ok(res.value.invalid !== data.invalid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Patch Keys
+		tests.push(function(next) {
+			test_name = 'Patch keys';
+			test_log = log(test_name, 2, true);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_keys', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success, subtest_name + ' - cannot be error');
+				Assert.ok(res.value.includes('valid'), subtest_name + ' - cannot be error');
+				Assert.ok(!res.value.includes('invalid'), subtest_name + ' - cannot be returned');
+
+				console.timeEnd(test_log);
+				next();
+			});
+		});
 
 		// Run
 		tests.wait(function(item, next) {
