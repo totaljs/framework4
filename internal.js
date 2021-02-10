@@ -1160,6 +1160,9 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case '!cookie':
 			return '$STRING(' + command + ')';
 
+		case 'csrf':
+			return 'self.csrf()';
+
 		case 'root':
 			var r = CONF.default_root;
 			return '\'' + (r ? r.substring(0, r.length - 1) : r) + '\'';

@@ -375,6 +375,11 @@ function SchemaBuilderEntity(name) {
 
 const SchemaBuilderEntityProto = SchemaBuilderEntity.prototype;
 
+SchemaBuilderEntityProto.csrf = function(value) {
+	this.$csrf = value == null || value === true;
+	return this;
+};
+
 SchemaBuilderEntityProto.encrypt = function(value) {
 	this.$bodyencrypt = value == null || value === true;
 	return this;
@@ -3913,6 +3918,11 @@ function execrestbuilder(instance, callback) {
 
 RESTP.callback = function(callback) {
 	setImmediate(execrestbuilder, this, callback);
+	return this;
+};
+
+RESTP.csrf = function(value) {
+	this.options.headers['X-Csrf-Token'] = value;
 	return this;
 };
 

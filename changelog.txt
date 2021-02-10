@@ -1,4 +1,19 @@
 ========================
+0.0.37
+========================
+
+- added CSRF
+	- `CONF.secret_csrf`
+	- `CONF.default_csrf_maxage`
+	- `DEF.onCSRFcreate(req)`
+	- `DEF.onCSRFcheck(req)`
+	- `controller.csrf()` generates token
+	- `@{csrf}` generates token in View engine
+	- `schema.csrf()` enables csrf for schemas and their routes
+	- `csrf` flag in `ROUTE()` method
+	- `RESTBuilder.csrf(token)`
+
+========================
 0.0.36
 ========================
 

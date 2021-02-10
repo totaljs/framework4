@@ -1306,6 +1306,14 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		}
 	}
 
+	if (controller && controller.$checkcsrf === 1) {
+		controller.$checkcsrf = 2;
+		if (!DEF.onCSRFcheck(controller.req)) {
+			callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
+			return;
+		}
+	}
+
 	if (!controller) {
 		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
 		controller.isConnected = false;
@@ -1533,6 +1541,7 @@ function Framework() {
 		secret: self.syshash,
 		secret_uid: self.syshash.substring(10),
 		secret_encryption: null,
+		secret_csrf: null,
 
 		'security.txt': 'Contact: mailto:support@totaljs.com\nContact: https://www.totaljs.com/contact/',
 		etag_version: '',
@@ -1603,6 +1612,7 @@ function Framework() {
 
 		// Seconds (2 minutes)
 		default_cors_maxage: 120,
+		default_csrf_maxage: '30 minutes',
 
 		// in milliseconds
 		default_request_timeout: 3000,
@@ -3156,6 +3166,9 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 					membertype = 2;
 					priority += 2;
 					tmp.push('unauthorize');
+					break;
+				case 'csrf':
+					tmp.push('csrf');
 					break;
 				case 'referer':
 				case 'referrer':
@@ -5207,6 +5220,23 @@ DEF.onError = function(err, name, uri) {
 	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : err);
 };
 
+DEF.onCSRFcreate = function(req) {
+	var data = [req.ip, (req.headers['user-agent'] || '').hash(true), NOW.add(CONF.default_csrf_maxage).getTime()];
+	return JSON.stringify(data).encrypt(CONF.secret_csrf);
+};
+
+DEF.onCSRFcheck = function(req) {
+	var token = req.headers['x-csrf-token'];
+	var is = false;
+	if (token && token.length > 10) {
+		var data = token.decrypt(CONF.secret_csrf);
+		if (data)
+			data = data.parseJSON();
+		is = data && data[0] === req.ip && data[2] >= NOW.getTime() && data[1] === (req.headers['user-agent'] || '').hash(true) ? true : false;
+	}
+	return is;
+};
+
 /*
 	Authorization handler
 	@req {Request}
@@ -5417,6 +5447,11 @@ DEF.onSchema = function(req, route, callback) {
 			if (key && req.body[key] != null)
 				req.keys.push(key);
 		}
+	}
+
+	if (schema.$csrf && !DEF.onCSRFcheck(req)) {
+		callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
+		return;
 	}
 
 	if (schema)
@@ -10530,6 +10565,10 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.csrf = function() {
+	return DEF.onCSRFcreate(this.req);
+};
+
 ControllerProto.successful = function(callback) {
 	var self = this;
 	return function(err, a, b, c) {
@@ -10816,6 +10855,9 @@ function controller_api() {
 
 	if (self.route.isENCRYPT)
 		self.req.$bodyencrypt = true;
+
+	if (CONF.secret_csrf)
+		self.$checkcsrf = 1;
 
 	// Evaluates action
 	EXEC(s.action, model.data, self.callback(), self);
@@ -14821,7 +14863,15 @@ function extend_request(PROTO) {
 	PROTO.$total_multipart = function(header) {
 		F.stats.request.upload++;
 		this.$total_route = F.lookup(this);
+
+		if (this.$total_route && this.$total_route.flags2.csrf && CONF.secret_csrf && !DEF.onCSRFcheck(this)) {
+			this.$total_exception = 'Invalid CSRF token';
+			this.$total_status(403);
+			return;
+		}
+
 		this.$total_header = header;
+
 		if (this.$total_route) {
 			PATH.verify('temp');
 			framework_internal.parseMULTIPART(this, header, this.$total_route);
@@ -14832,6 +14882,13 @@ function extend_request(PROTO) {
 	PROTO.$total_urlencoded = function() {
 		this.$total_route = F.lookup(this);
 		if (this.$total_route) {
+
+			if (this.$total_route.flags2.csrf && CONF.secret_csrf && !DEF.onCSRFcheck(this)) {
+				this.$total_exception = 'Invalid CSRF token';
+				this.$total_status(403);
+				return;
+			}
+
 			this.bodyhas = true;
 			this.bodyexceeded = false;
 			this.on('data', this.$total_parsebody);
