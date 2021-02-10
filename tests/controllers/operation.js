@@ -1,8 +1,8 @@
 exports.install = function() {
 
-	ROUTE('GET     /operations/success/               *             --> OperationSuccess');
-	ROUTE('GET     /operations/invalid/               *             --> OperationInvalid');
-	ROUTE('POST    /operations/value/                 *             --> OperationValue');
+	ROUTE('GET     /operations/success/                *             --> OperationSuccess');
+	ROUTE('GET     /operations/invalid/                *             --> OperationInvalid');
+	ROUTE('POST    /operations/value/                  *             --> OperationValue');
 
 	ROUTE('POST     /operations/multiple/one/          *            --> OperationSuccess (response) OperationValue');
 	ROUTE('POST     /operations/multiple/two/          *            --> OperationSuccess OperationValue (response)');

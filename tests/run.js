@@ -18,7 +18,7 @@ function log(name, depth, is_last) {
 	return (str + name).padEnd(width - 12);
 }
 
-var subtest_name, subtest_log, others_name, others_log;
+var subtest_name, subtest_log, test_name, test_log, others_name, others_log;
 
 // RESTBuilder
 tests.push(function(next) {
@@ -136,8 +136,6 @@ tests.push(function(next) {
 		console.log(subtest_log);
 
 		var tests = [];
-		var test_name;
-		var test_log;
 
 		// All possible methods
 		tests.push(function(next) {
