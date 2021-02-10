@@ -14822,6 +14822,10 @@ function extend_request(PROTO) {
 		return self;
 	};
 
+	PROTO.csrf = function() {
+		return DEF.onCSRFcreate(this);
+	};
+
 	/**
 	 * Get host name from URL
 	 * @param {String} path Additional path.

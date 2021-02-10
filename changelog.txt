@@ -7,8 +7,9 @@
 	- `CONF.default_csrf_maxage`
 	- `DEF.onCSRFcreate(req)`
 	- `DEF.onCSRFcheck(req)`
-	- `controller.csrf()` generates token
-	- `@{csrf}` generates token in View engine
+	- `req.csrf()` generates a token
+	- `controller.csrf()` generates a token
+	- `@{csrf}` generates a token in View engine
 	- `schema.csrf()` enables csrf for schemas and their routes
 	- `csrf` flag in `ROUTE()` method
 	- `RESTBuilder.csrf(token)`
