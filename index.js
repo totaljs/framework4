@@ -5255,7 +5255,7 @@ DEF.onCSRFcreate = function(req) {
 };
 
 DEF.onCSRFcheck = function(req) {
-	var token = req.headers['x-csrf-token'];
+	var token = req.headers['x-csrf-token'] || req.query.csrf;
 	var is = false;
 	if (token && token.length > 10) {
 		var data = token.decrypt(CONF.secret_csrf);
