@@ -792,16 +792,16 @@ var authbuiltin = function(opt) {
 
 		var meta = { ip: $.req.ip, ua: $.ua, sessionid: id[0], userid: id[1] };
 
-		if (opt.pending[id[0]]) {
-			opt.pending[id[0]].push($);
+		if (opt.pending[meta.sessionid]) {
+			opt.pending[meta.sessionid].push($);
 			return;
 		}
 
-		opt.pending[id[0]] = [];
+		opt.pending[meta.sessionid] = [];
 		opt.onread(meta, function(err, data) {
 
-			var pending = opt.pending[id[0]];
-			delete opt.pending[id[0]];
+			var pending = opt.pending[meta.sessionid];
+			delete opt.pending[meta.sessionid];
 
 			if (!err && data) {
 
@@ -810,8 +810,7 @@ var authbuiltin = function(opt) {
 				$.success(data);
 
 				if (pending.length)
-					setTimeout(callpending, 50, pending, data);
-
+					setImmediate(callpending, pending, data);
 
 			} else {
 
@@ -826,7 +825,7 @@ var authbuiltin = function(opt) {
 				$.invalid();
 
 				if (pending.length)
-					setTimeout(callpending, 50, pending);
+					setImmediate(callpending, pending);
 			}
 
 		}, $);
