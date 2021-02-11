@@ -757,7 +757,7 @@ var authbuiltin = function(opt) {
 
 			if (id) {
 				var session = opt.sessions[id[0]];
-				if (session) {
+				if (session && session.data) {
 					if (session.ua === $.ua) {
 						$.req.sessionid = session.sessionid;
 						$.success(session.data);
@@ -1632,6 +1632,7 @@ function Framework() {
 		default_timezone: 'utc',
 		default_root: '',
 		default_response_maxage: '11111111',
+		default_errorbuilder_errors: false,
 		default_errorbuilder_status: 400,
 		default_errorbuilder_forxhr: true,
 
@@ -14978,6 +14979,7 @@ function extend_request(PROTO) {
 		}
 
 		if (!route) {
+
 			if (status === 400 && this.$total_exception instanceof framework_builders.ErrorBuilder) {
 				F.stats.response.errorbuilder++;
 				this.$language && this.$total_exception.setResource(this.$language);
@@ -14985,9 +14987,10 @@ function extend_request(PROTO) {
 				res.options.code = this.$total_exception.status;
 				res.options.type = this.$total_exception.contentType;
 				res.$text();
+
 			} else {
 
-				if (CONF.default_errorbuilder_forxhr && this.xhr) {
+				if (CONF.default_errorbuilder_errors || (CONF.default_errorbuilder_forxhr && this.xhr)) {
 					var err = new ErrorBuilder();
 					err.push(status);
 					this.$language && this.$total_exception.setResource(this.$language);
