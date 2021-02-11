@@ -1689,7 +1689,7 @@ function Framework() {
 		default_interval_clear_resources: 20,
 		default_interval_clear_cache: 10,
 		default_interval_clear_dnscache: 30,
-		default_interval_websocket_ping: 3
+		default_interval_websocket_ping: 1
 	};
 
 	global.REPO = {};
@@ -14188,6 +14188,7 @@ WebSocketClientProto.$ondata = function(data) {
 			break;
 
 		case 0x08:
+
 			// close
 			self.closemessage = current.buffer.slice(4).toString(ENCODING);
 			self.closecode = current.buffer[2] << 8 | current.buffer[3];
@@ -14258,7 +14259,7 @@ WebSocketClientProto.$parse = function() {
 
 	// Solving a problem with The value "-1" is invalid for option "size"
 	if (length <= 0)
-		return;
+		return current.final;
 
 	var index = current.buffer[1] & 0x7f;
 	index = ((index === 126) ? 4 : (index === 127 ? 10 : 2)) + (current.isMask ? 4 : 0);

@@ -408,7 +408,7 @@ WebSocketClientProto.$parse = function() {
 
 	// Solving a problem with The value "-1" is invalid for option "size"
 	if (length <= 0)
-		return;
+		return current.final;
 
 	var index = current.buffer[1] & 0x7f;
 	index = ((index === 126) ? 4 : (index === 127 ? 10 : 2)) + (current.isMask ? 4 : 0);
