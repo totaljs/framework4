@@ -222,6 +222,13 @@ var SchemaOptionsProto = SchemaOptions.prototype;
 
 SchemaOptionsProto.cancel = function() {
 	var self = this;
+
+	if (self.$async) {
+		self.$async.tasks = null;
+		self.$async.op = null;
+		self.$async = null;
+	}
+
 	self.callback = self.next = null;
 	self.error = null;
 	self.controller = null;
@@ -2226,6 +2233,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 
 	// Multiple responses
 	$.$multiple = true;
+	$.$async = a;
 
 	var process = function(err, response) {
 		a.pending--;
@@ -2315,9 +2323,8 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 				}
 			}, null, null, model == null);
 		}
-	} else {
+	} else
 		setImmediate(a.next);
-	}
 
 	return add;
 };
