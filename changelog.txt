@@ -12,6 +12,7 @@
 	- `@{csrf}` generates a token in View engine
 	- `schema.csrf()` enables csrf for schemas and their routes
 	- `csrf` flag in `ROUTE()` method
+	- `csrf` verification via `x-csrf-token` header or via URL argument `?csrf=TOKEN`
 	- `RESTBuilder.csrf(token)`
 - `CONF.default_errorbuilder_errors` for handling of all HTTP errors via ErrorBuilder
 - decreased `default_interval_websocket_ping` to `1` minute (from `3`)
