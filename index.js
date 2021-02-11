@@ -678,6 +678,7 @@ var authbuiltin = function(opt) {
 
 	opt.sessions = {};
 	opt.blocked = {};
+	opt.pending = {};
 
 	if (!opt.cleaner)
 		opt.cleaner = 5;
@@ -726,6 +727,15 @@ var authbuiltin = function(opt) {
 	if (!opt.expire)
 		opt.expire = '5 minutes';
 
+	var callpending = function(pending, data) {
+		for (var i = 0; i < pending.length; i++) {
+			if (data)
+				pending[i].success(data);
+			else
+				pending[i].invalid();
+		}
+	};
+
 	DEF.onAuthorize = framework_builders.AuthOptions.wrap(function($) {
 
 		var sessionid = opt.cookie ? $.cookie(opt.cookie) : null;
@@ -738,8 +748,8 @@ var authbuiltin = function(opt) {
 		}
 
 		var id = sessionid.decrypt(opt.secret);
-
 		if (id) {
+
 			id = id.split('-');
 
 			if (!id[0] || !id[1] || !id[2])
@@ -782,12 +792,27 @@ var authbuiltin = function(opt) {
 
 		var meta = { ip: $.req.ip, ua: $.ua, sessionid: id[0], userid: id[1] };
 
+		if (opt.pending[id[0]]) {
+			opt.pending[id[0]].push($);
+			return;
+		}
+
+		opt.pending[id[0]] = [];
 		opt.onread(meta, function(err, data) {
 
+			var pending = opt.pending[id[0]];
+			delete opt.pending[id[0]];
+
 			if (!err && data) {
+
 				opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
 				$.req.sessionid = meta.sessionid;
 				$.success(data);
+
+				if (pending.length)
+					setTimeout(callpending, 50, pending, data);
+
+
 			} else {
 
 				if (opt.ddos) {
@@ -799,6 +824,9 @@ var authbuiltin = function(opt) {
 
 				opt.cookie && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
 				$.invalid();
+
+				if (pending.length)
+					setTimeout(callpending, 50, pending);
 			}
 
 		}, $);
