@@ -759,6 +759,7 @@ var authbuiltin = function(opt) {
 				var session = opt.sessions[id[0]];
 				if (session && session.data) {
 					if (session.ua === $.ua) {
+						$.req.session = session;
 						$.req.sessionid = session.sessionid;
 						$.success(session.data);
 					} else {
@@ -805,7 +806,7 @@ var authbuiltin = function(opt) {
 
 			if (!err && data) {
 
-				opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
+				$.req.session = opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
 				$.req.sessionid = meta.sessionid;
 				$.success(data);
 
@@ -10832,7 +10833,7 @@ function controller_api() {
 	}
 
 	// Authorization
-	if (s.member && ((s.member === 1 && !self.req.isAuthorized) || (s.member === 2 && self.req.isAuthorized))) {
+	if (s.member && ((s.member === 1 && (!self.req.isAuthorized || !self.user)) || (s.member === 2 && self.req.isAuthorized))) {
 		self.throw401();
 		return;
 	}
