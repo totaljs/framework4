@@ -1344,11 +1344,14 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 	}
 
 	if (controller && controller.$checkcsrf === 1) {
-		controller.$checkcsrf = 2;
-		if (!DEF.onCSRFcheck(controller.req)) {
-			callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
-			return;
-		}
+		if (controller.route.flags2.csrf || meta.schema.$csrf) {
+			controller.$checkcsrf = 2;
+			if (!DEF.onCSRFcheck(controller.req)) {
+				callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
+				return;
+			}
+		} else
+			controller.$checkcsrf = 2;
 	}
 
 	if (!controller) {
