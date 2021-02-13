@@ -4064,6 +4064,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 				tmp.push('unauthorize');
 				break;
 			case 'get':
+			case 'csrf':
 			case 'http':
 			case 'https':
 			case 'debug':
@@ -7881,7 +7882,7 @@ F.$upgrade = function(req, socket, head) {
 	req.uri = framework_internal.parseURI(req);
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
-	if (!req.$total_route) {
+	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req))) {
 		req.destroy();
 		return;
 	}
