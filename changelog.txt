@@ -14,6 +14,7 @@
 	- `csrf` flag in `ROUTE()` method
 	- `csrf` verification via `x-csrf-token` header or via URL argument `?csrf=TOKEN`
 	- `RESTBuilder.csrf(token)`
+- added `HTMLMAIL(address, subject, body, [language], [callback])` for sending of raw HTML mail messages
 - `CONF.default_errorbuilder_errors` for handling of all HTTP errors via ErrorBuilder
 - decreased `default_interval_websocket_ping` to `1` minute (from `3`)
 - fixed `message` with `closing bytes` in WebSocket and `WEBSOCKETCLIENT()`

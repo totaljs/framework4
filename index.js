@@ -8064,20 +8064,37 @@ global.MAIL = function(address, subject, view, model, language, callback) {
 	else
 		controller.themeName = '';
 
-	var replyTo;
-
 	// Translation
 	if (typeof(language) === 'string') {
 		subject = subject.indexOf('@(') === -1 ? TRANSLATE(language, subject) : TRANSLATOR(language, subject);
 		controller.language = language;
 	}
 
-	var mail = controller.mail(address, subject, view, model, callback, replyTo);
+	var mail = controller.mail(address, subject, view, model, callback);
 
 	if (language != null)
 		mail.language = language;
 
 	return mail;
+};
+
+global.HTMLMAIL = function(address, subject, body, language, callback) {
+
+	if (typeof(language) === 'function') {
+		var tmp = language;
+		language = callback;
+		callback = tmp;
+	}
+
+	// Translation
+	if (typeof(language) === 'string') {
+		subject = subject.indexOf('@(') === -1 ? TRANSLATE(language, subject) : TRANSLATOR(language, subject);
+		if (body.indexOf('@(') !== -1)
+			body = TRANSLATOR(language, body);
+	}
+
+	var body = body.indexOf('<body>') === -1 ? ('<!DOCTYPE html><html><head><title>' + subject + '</title><meta charset="utf-8" /></head><body>' + body + '</body></html>') : body;
+	return DEF.onMail(address, subject, body, callback);
 };
 
 /**
