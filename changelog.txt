@@ -11,7 +11,7 @@
 	- `controller.csrf()` generates a token
 	- `@{csrf}` generates a token in View engine
 	- `schema.csrf()` enables csrf for schemas and their routes
-	- `csrf` flag in `ROUTE()` method
+	- new `csrf` flag in `ROUTE()` method
 	- `csrf` verification via `x-csrf-token` header or via URL argument `?csrf=TOKEN`
 	- `RESTBuilder.csrf(token)`
 - added `HTMLMAIL(address, subject, body, [language], [callback])` for sending of raw HTML mail messages
