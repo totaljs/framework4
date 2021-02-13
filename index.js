@@ -94,11 +94,20 @@ global.REQUIRE = function(path) {
 };
 
 global.IMPORT = function(url, callback) {
+
 	var filename = PATH.temp((F.id ? (F.id + '_') : '') + url.makeid() + '.js');
+
+	if (F.temporary.dependencies[filename]) {
+		callback && callback(null, require(filename));
+		return;
+	}
+
 	DOWNLOAD(url, filename, function(err, response) {
 		var m;
-		if (!err)
-			m = require(response.filename);
+		if (!err) {
+			m = require(filename);
+			F.temporary.dependencies[filename] = 1;
+		}
 		callback && callback(err, m, response);
 	});
 };
