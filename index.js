@@ -93,6 +93,13 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+global.NPMINSTALL = function(name, callback) {
+	PATH.mkdir(PATH.root('node_modules'));
+	require('child_process').exec('npm install ' + name, function(err) {
+		callback && callback(err);
+	});
+};
+
 global.IMPORT = function(url, callback) {
 
 	var filename = PATH.temp((F.id ? (F.id + '_') : '') + url.makeid() + '.js');
