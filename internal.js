@@ -1230,7 +1230,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 			return '$STRING(' + command.substring(1) + ')';
 
 		case 'resource':
-			return '$STRING(self.' + command + ', 1)';
+			return '$STRING(RESOURCE' + command.substring(8) + ', 1)';
 		case 'RESOURCE':
 			return '$STRING(' + command + ', 1)';
 
