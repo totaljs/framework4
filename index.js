@@ -16639,7 +16639,13 @@ function $image_nocache(res) {
 		var image = framework_image.load(options.stream);
 		options.make.call(image, image, res);
 		options.type = U.getContentType(image.outputType);
-		options.stream = image;
+
+		// Loaded from FileStorage
+		if (image.custom)
+			options.stream = Fs.createReadStream(image.filename, { fd: image.fd, start: image.start });
+		else
+			options.stream = image;
+
 		F.stats.response.image++;
 		res.$stream();
 		return;
@@ -16677,7 +16683,7 @@ function $image_stream(exists, size, isFile, stats, res) {
 		F.temporary.path[req.$key] = [options.name, stats.size, stats.mtime.toUTCString()];
 		res.options.filename = options.name;
 
-		if (options.stream) {
+		if (options.stream && !options.stream.custom) {
 			options.stream.once('error', NOOP); // sometimes is throwed: Bad description
 			DESTROY(options.stream);
 			options.stream = null;
@@ -16689,6 +16695,9 @@ function $image_stream(exists, size, isFile, stats, res) {
 	}
 
 	PATH.verify('temp');
+
+	if (options.stream.custom)
+		options.stream = Fs.createReadStream(options.stream.filename, { fd: options.stream.fd, start: options.stream.start });
 
 	var image = framework_image.load(options.stream);
 	options.make.call(image, image, res);
