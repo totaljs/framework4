@@ -18,8 +18,10 @@
 - added `NPMINSTALL(name, callback)` for installing of 3rd party NPM dependencies
 - `CONF.default_errorbuilder_errors` for handling of all HTTP errors via ErrorBuilder
 - decreased `default_interval_websocket_ping` to `1` minute (from `3`)
+- improved image cache in `FILESTORAGE()`
 - fixed `message` with `closing bytes` in WebSocket and `WEBSOCKETCLIENT()`
 - fixed `@{resource()}` method in View engine
+- fixed read stream in `FILESTORAGE()`
 
 ========================
 0.0.36
