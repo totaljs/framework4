@@ -15031,7 +15031,7 @@ function extend_request(PROTO) {
 				if (CONF.default_errorbuilder_errors || (CONF.default_errorbuilder_forxhr && this.xhr)) {
 					var err = new ErrorBuilder();
 					err.push(status);
-					this.$language && this.$total_exception.setResource(this.$language);
+					this.$language && err.setResource(this.$language);
 					res.options.body = err.output(true);
 					res.options.code = err.status || status || 404;
 					res.options.type = err.contentType;
