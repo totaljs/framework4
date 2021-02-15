@@ -470,6 +470,24 @@ FP.readmeta = function(id, callback, keepfd) {
 	return self;
 };
 
+FP.image = function(id, callback) {
+	var self = this;
+	self.readmeta(id, function(err, obj, filename, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
+		var image = Image.load(stream);
+		callback(err, image, obj);
+		CLEANUP(stream);
+	}, true);
+
+	return self;
+};
+
 FP.res = function(res, options, checkcustom) {
 
 	var self = this;
