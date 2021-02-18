@@ -1,4 +1,34 @@
 ========================
+0.0.38
+========================
+
+========================
+0.0.37
+========================
+
+- added CSRF
+	- `CONF.secret_csrf`
+	- `CONF.default_csrf_maxage`
+	- `DEF.onCSRFcreate(req)`
+	- `DEF.onCSRFcheck(req)`
+	- `req.csrf()` generates a token
+	- `controller.csrf()` generates a token
+	- `@{csrf}` generates a token in View engine
+	- `schema.csrf()` enables csrf for schemas and their routes
+	- new `csrf` flag in `ROUTE()` method
+	- `csrf` verification via `x-csrf-token` header or via URL argument `?csrf=TOKEN`
+	- `RESTBuilder.csrf(token)`
+- added `HTMLMAIL(address, subject, body, [language], [callback])` for sending of raw HTML mail messages
+- added `NPMINSTALL(name, callback)` for installing of 3rd party NPM dependencies
+- added `FILESTORAGE().image()` method for reading of images
+- `CONF.default_errorbuilder_errors` for handling of all HTTP errors via ErrorBuilder
+- decreased `default_interval_websocket_ping` to `1` minute (from `3`)
+- improved image cache in `FILESTORAGE()`
+- fixed `message` with `closing bytes` in WebSocket and `WEBSOCKETCLIENT()`
+- fixed `@{resource()}` method in View engine
+- fixed read stream in `FILESTORAGE()`
+
+========================
 0.0.36
 ========================
 

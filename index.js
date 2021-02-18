@@ -93,12 +93,28 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+global.NPMINSTALL = function(name, callback) {
+	PATH.mkdir(PATH.root('node_modules'));
+	require('child_process').exec('npm install ' + name, function(err) {
+		callback && callback(err);
+	});
+};
+
 global.IMPORT = function(url, callback) {
+
 	var filename = PATH.temp((F.id ? (F.id + '_') : '') + url.makeid() + '.js');
+
+	if (F.temporary.dependencies[filename]) {
+		callback && callback(null, require(filename));
+		return;
+	}
+
 	DOWNLOAD(url, filename, function(err, response) {
 		var m;
-		if (!err)
-			m = require(response.filename);
+		if (!err) {
+			m = require(filename);
+			F.temporary.dependencies[filename] = 1;
+		}
 		callback && callback(err, m, response);
 	});
 };
@@ -678,6 +694,7 @@ var authbuiltin = function(opt) {
 
 	opt.sessions = {};
 	opt.blocked = {};
+	opt.pending = {};
 
 	if (!opt.cleaner)
 		opt.cleaner = 5;
@@ -726,6 +743,15 @@ var authbuiltin = function(opt) {
 	if (!opt.expire)
 		opt.expire = '5 minutes';
 
+	var callpending = function(pending, data) {
+		for (var i = 0; i < pending.length; i++) {
+			if (data)
+				pending[i].success(data);
+			else
+				pending[i].invalid();
+		}
+	};
+
 	DEF.onAuthorize = framework_builders.AuthOptions.wrap(function($) {
 
 		var sessionid = opt.cookie ? $.cookie(opt.cookie) : null;
@@ -738,8 +764,8 @@ var authbuiltin = function(opt) {
 		}
 
 		var id = sessionid.decrypt(opt.secret);
-
 		if (id) {
+
 			id = id.split('-');
 
 			if (!id[0] || !id[1] || !id[2])
@@ -747,8 +773,9 @@ var authbuiltin = function(opt) {
 
 			if (id) {
 				var session = opt.sessions[id[0]];
-				if (session) {
+				if (session && session.data) {
 					if (session.ua === $.ua) {
+						$.req.session = session;
 						$.req.sessionid = session.sessionid;
 						$.success(session.data);
 					} else {
@@ -782,12 +809,26 @@ var authbuiltin = function(opt) {
 
 		var meta = { ip: $.req.ip, ua: $.ua, sessionid: id[0], userid: id[1] };
 
+		if (opt.pending[meta.sessionid]) {
+			opt.pending[meta.sessionid].push($);
+			return;
+		}
+
+		opt.pending[meta.sessionid] = [];
 		opt.onread(meta, function(err, data) {
 
+			var pending = opt.pending[meta.sessionid];
+			delete opt.pending[meta.sessionid];
+
 			if (!err && data) {
-				opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
+
+				$.req.session = opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
 				$.req.sessionid = meta.sessionid;
 				$.success(data);
+
+				if (pending.length)
+					setImmediate(callpending, pending, data);
+
 			} else {
 
 				if (opt.ddos) {
@@ -799,6 +840,9 @@ var authbuiltin = function(opt) {
 
 				opt.cookie && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
 				$.invalid();
+
+				if (pending.length)
+					setImmediate(callpending, pending);
 			}
 
 		}, $);
@@ -1306,6 +1350,17 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		}
 	}
 
+	if (controller && controller.$checkcsrf === 1) {
+		if (controller.route.flags2.csrf || meta.schema.$csrf) {
+			controller.$checkcsrf = 2;
+			if (!DEF.onCSRFcheck(controller.req)) {
+				callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
+				return;
+			}
+		} else
+			controller.$checkcsrf = 2;
+	}
+
 	if (!controller) {
 		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
 		controller.isConnected = false;
@@ -1516,7 +1571,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4027;
+	self.is4 = self.version = 4038;
 	self.version_header = '4.0.0';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
@@ -1533,6 +1588,7 @@ function Framework() {
 		secret: self.syshash,
 		secret_uid: self.syshash.substring(10),
 		secret_encryption: null,
+		secret_csrf: null,
 
 		'security.txt': 'Contact: mailto:support@totaljs.com\nContact: https://www.totaljs.com/contact/',
 		etag_version: '',
@@ -1595,6 +1651,7 @@ function Framework() {
 		default_timezone: 'utc',
 		default_root: '',
 		default_response_maxage: '11111111',
+		default_errorbuilder_errors: false,
 		default_errorbuilder_status: 400,
 		default_errorbuilder_forxhr: true,
 
@@ -1603,6 +1660,7 @@ function Framework() {
 
 		// Seconds (2 minutes)
 		default_cors_maxage: 120,
+		default_csrf_maxage: '30 minutes',
 
 		// in milliseconds
 		default_request_timeout: 3000,
@@ -1650,7 +1708,7 @@ function Framework() {
 		default_interval_clear_resources: 20,
 		default_interval_clear_cache: 10,
 		default_interval_clear_dnscache: 30,
-		default_interval_websocket_ping: 3
+		default_interval_websocket_ping: 1
 	};
 
 	global.REPO = {};
@@ -3157,6 +3215,9 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 					priority += 2;
 					tmp.push('unauthorize');
 					break;
+				case 'csrf':
+					tmp.push('csrf');
+					break;
 				case 'referer':
 				case 'referrer':
 					tmp.push('referer');
@@ -4022,6 +4083,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 				tmp.push('unauthorize');
 				break;
 			case 'get':
+			case 'csrf':
 			case 'http':
 			case 'https':
 			case 'debug':
@@ -5207,6 +5269,23 @@ DEF.onError = function(err, name, uri) {
 	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : err);
 };
 
+DEF.onCSRFcreate = function(req) {
+	var data = [req.ip, (req.headers['user-agent'] || '').hash(true), NOW.add(CONF.default_csrf_maxage).getTime()];
+	return JSON.stringify(data).encrypt(CONF.secret_csrf);
+};
+
+DEF.onCSRFcheck = function(req) {
+	var token = req.headers['x-csrf-token'] || req.query.csrf;
+	var is = false;
+	if (token && token.length > 10) {
+		var data = token.decrypt(CONF.secret_csrf);
+		if (data)
+			data = data.parseJSON();
+		is = data && data[0] === req.ip && data[2] >= NOW.getTime() && data[1] === (req.headers['user-agent'] || '').hash(true) ? true : false;
+	}
+	return is;
+};
+
 /*
 	Authorization handler
 	@req {Request}
@@ -5417,6 +5496,11 @@ DEF.onSchema = function(req, route, callback) {
 			if (key && req.body[key] != null)
 				req.keys.push(key);
 		}
+	}
+
+	if (schema.$csrf && !DEF.onCSRFcheck(req)) {
+		callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
+		return;
 	}
 
 	if (schema)
@@ -7817,7 +7901,7 @@ F.$upgrade = function(req, socket, head) {
 	req.uri = framework_internal.parseURI(req);
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
-	if (!req.$total_route) {
+	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req))) {
 		req.destroy();
 		return;
 	}
@@ -8000,20 +8084,37 @@ global.MAIL = function(address, subject, view, model, language, callback) {
 	else
 		controller.themeName = '';
 
-	var replyTo;
-
 	// Translation
 	if (typeof(language) === 'string') {
 		subject = subject.indexOf('@(') === -1 ? TRANSLATE(language, subject) : TRANSLATOR(language, subject);
 		controller.language = language;
 	}
 
-	var mail = controller.mail(address, subject, view, model, callback, replyTo);
+	var mail = controller.mail(address, subject, view, model, callback);
 
 	if (language != null)
 		mail.language = language;
 
 	return mail;
+};
+
+global.HTMLMAIL = function(address, subject, body, language, callback) {
+
+	if (typeof(language) === 'function') {
+		var tmp = language;
+		language = callback;
+		callback = tmp;
+	}
+
+	// Translation
+	if (typeof(language) === 'string') {
+		subject = subject.indexOf('@(') === -1 ? TRANSLATE(language, subject) : TRANSLATOR(language, subject);
+		if (body.indexOf('@(') !== -1)
+			body = TRANSLATOR(language, body);
+	}
+
+	var body = body.indexOf('<body>') === -1 ? ('<!DOCTYPE html><html><head><title>' + subject + '</title><meta charset="utf-8" /></head><body>' + body + '</body></html>') : body;
+	return DEF.onMail(address, subject, body, callback);
 };
 
 /**
@@ -10530,6 +10631,10 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
+ControllerProto.csrf = function() {
+	return DEF.onCSRFcreate(this.req);
+};
+
 ControllerProto.successful = function(callback) {
 	var self = this;
 	return function(err, a, b, c) {
@@ -10765,7 +10870,7 @@ function controller_api() {
 	}
 
 	// Authorization
-	if (s.member && ((s.member === 1 && !self.req.isAuthorized) || (s.member === 2 && self.req.isAuthorized))) {
+	if (s.member && ((s.member === 1 && (!self.req.isAuthorized || !self.user)) || (s.member === 2 && self.req.isAuthorized))) {
 		self.throw401();
 		return;
 	}
@@ -10816,6 +10921,9 @@ function controller_api() {
 
 	if (self.route.isENCRYPT)
 		self.req.$bodyencrypt = true;
+
+	if (CONF.secret_csrf)
+		self.$checkcsrf = 1;
 
 	// Evaluates action
 	EXEC(s.action, model.data, self.callback(), self);
@@ -14117,6 +14225,7 @@ WebSocketClientProto.$ondata = function(data) {
 			break;
 
 		case 0x08:
+
 			// close
 			self.closemessage = current.buffer.slice(4).toString(ENCODING);
 			self.closecode = current.buffer[2] << 8 | current.buffer[3];
@@ -14187,7 +14296,7 @@ WebSocketClientProto.$parse = function() {
 
 	// Solving a problem with The value "-1" is invalid for option "size"
 	if (length <= 0)
-		return;
+		return current.final;
 
 	var index = current.buffer[1] & 0x7f;
 	index = ((index === 126) ? 4 : (index === 127 ? 10 : 2)) + (current.isMask ? 4 : 0);
@@ -14780,6 +14889,10 @@ function extend_request(PROTO) {
 		return self;
 	};
 
+	PROTO.csrf = function() {
+		return DEF.onCSRFcreate(this);
+	};
+
 	/**
 	 * Get host name from URL
 	 * @param {String} path Additional path.
@@ -14821,7 +14934,15 @@ function extend_request(PROTO) {
 	PROTO.$total_multipart = function(header) {
 		F.stats.request.upload++;
 		this.$total_route = F.lookup(this);
+
+		if (this.$total_route && this.$total_route.flags2.csrf && CONF.secret_csrf && !DEF.onCSRFcheck(this)) {
+			this.$total_exception = 'Invalid CSRF token';
+			this.$total_status(403);
+			return;
+		}
+
 		this.$total_header = header;
+
 		if (this.$total_route) {
 			PATH.verify('temp');
 			framework_internal.parseMULTIPART(this, header, this.$total_route);
@@ -14832,6 +14953,13 @@ function extend_request(PROTO) {
 	PROTO.$total_urlencoded = function() {
 		this.$total_route = F.lookup(this);
 		if (this.$total_route) {
+
+			if (this.$total_route.flags2.csrf && CONF.secret_csrf && !DEF.onCSRFcheck(this)) {
+				this.$total_exception = 'Invalid CSRF token';
+				this.$total_status(403);
+				return;
+			}
+
 			this.bodyhas = true;
 			this.bodyexceeded = false;
 			this.on('data', this.$total_parsebody);
@@ -14889,6 +15017,7 @@ function extend_request(PROTO) {
 		}
 
 		if (!route) {
+
 			if (status === 400 && this.$total_exception instanceof framework_builders.ErrorBuilder) {
 				F.stats.response.errorbuilder++;
 				this.$language && this.$total_exception.setResource(this.$language);
@@ -14896,12 +15025,13 @@ function extend_request(PROTO) {
 				res.options.code = this.$total_exception.status;
 				res.options.type = this.$total_exception.contentType;
 				res.$text();
+
 			} else {
 
-				if (CONF.default_errorbuilder_forxhr && this.xhr) {
+				if (CONF.default_errorbuilder_errors || (CONF.default_errorbuilder_forxhr && this.xhr)) {
 					var err = new ErrorBuilder();
 					err.push(status);
-					this.$language && this.$total_exception.setResource(this.$language);
+					this.$language && err.setResource(this.$language);
 					res.options.body = err.output(true);
 					res.options.code = err.status || status || 404;
 					res.options.type = err.contentType;
@@ -16509,7 +16639,13 @@ function $image_nocache(res) {
 		var image = framework_image.load(options.stream);
 		options.make.call(image, image, res);
 		options.type = U.getContentType(image.outputType);
-		options.stream = image;
+
+		// Loaded from FileStorage
+		if (image.custom)
+			options.stream = Fs.createReadStream(image.filename, { fd: image.fd, start: image.start });
+		else
+			options.stream = image;
+
 		F.stats.response.image++;
 		res.$stream();
 		return;
@@ -16547,7 +16683,7 @@ function $image_stream(exists, size, isFile, stats, res) {
 		F.temporary.path[req.$key] = [options.name, stats.size, stats.mtime.toUTCString()];
 		res.options.filename = options.name;
 
-		if (options.stream) {
+		if (options.stream && !options.stream.custom) {
 			options.stream.once('error', NOOP); // sometimes is throwed: Bad description
 			DESTROY(options.stream);
 			options.stream = null;
@@ -16559,6 +16695,9 @@ function $image_stream(exists, size, isFile, stats, res) {
 	}
 
 	PATH.verify('temp');
+
+	if (options.stream.custom)
+		options.stream = Fs.createReadStream(options.stream.filename, { fd: options.stream.fd, start: options.stream.start });
 
 	var image = framework_image.load(options.stream);
 	options.make.call(image, image, res);

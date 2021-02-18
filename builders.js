@@ -222,6 +222,13 @@ var SchemaOptionsProto = SchemaOptions.prototype;
 
 SchemaOptionsProto.cancel = function() {
 	var self = this;
+
+	if (self.$async) {
+		self.$async.tasks = null;
+		self.$async.op = null;
+		self.$async = null;
+	}
+
 	self.callback = self.next = null;
 	self.error = null;
 	self.controller = null;
@@ -374,6 +381,11 @@ function SchemaBuilderEntity(name) {
 }
 
 const SchemaBuilderEntityProto = SchemaBuilderEntity.prototype;
+
+SchemaBuilderEntityProto.csrf = function(value) {
+	this.$csrf = value == null || value === true;
+	return this;
+};
 
 SchemaBuilderEntityProto.encrypt = function(value) {
 	this.$bodyencrypt = value == null || value === true;
@@ -2221,6 +2233,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 
 	// Multiple responses
 	$.$multiple = true;
+	$.$async = a;
 
 	var process = function(err, response) {
 		a.pending--;
@@ -2310,9 +2323,8 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 				}
 			}, null, null, model == null);
 		}
-	} else {
+	} else
 		setImmediate(a.next);
-	}
 
 	return add;
 };
@@ -3913,6 +3925,11 @@ function execrestbuilder(instance, callback) {
 
 RESTP.callback = function(callback) {
 	setImmediate(execrestbuilder, this, callback);
+	return this;
+};
+
+RESTP.csrf = function(value) {
+	this.options.headers['X-Csrf-Token'] = value;
 	return this;
 };
 

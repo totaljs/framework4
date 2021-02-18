@@ -235,9 +235,8 @@ FP.read = function(id, callback, nostream) {
 		var buffer = Buffer.alloc(HEADERSIZE);
 		Fs.read(fd, buffer, 0, HEADERSIZE, 0, function(err) {
 
-			Fs.close(fd, NOOP);
-
 			if (err) {
+				Fs.close(fd, NOOP);
 				callback(err);
 				return;
 			}
@@ -246,6 +245,7 @@ FP.read = function(id, callback, nostream) {
 			meta.id = id;
 
 			if (meta.expire && meta.expire < NOW) {
+				Fs.close(fd, NOOP);
 				callback('File is expired');
 				return;
 			}
@@ -254,7 +254,8 @@ FP.read = function(id, callback, nostream) {
 				F.stats.performance.open++;
 				meta.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
 				CLEANUP(meta.stream, () => Fs.close(fd, NOOP));
-			}
+			} else
+				Fs.close(fd, NOOP);
 
 			callback(err, meta);
 		});
@@ -469,6 +470,24 @@ FP.readmeta = function(id, callback, keepfd) {
 	return self;
 };
 
+FP.image = function(id, callback) {
+	var self = this;
+	self.readmeta(id, function(err, obj, filename, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
+		var image = Image.load(stream);
+		callback(err, image, obj);
+		CLEANUP(stream);
+	}, true);
+
+	return self;
+};
+
 FP.res = function(res, options, checkcustom) {
 
 	var self = this;
@@ -502,13 +521,13 @@ FP.res = function(res, options, checkcustom) {
 		} else {
 
 			if (RELEASE && req.$key && F.temporary.path[req.$key]) {
+				Fs.close(fd, NOOP);
 				res.$file();
 				return res;
 			}
 
 			F.stats.performance.open++;
 			res.options.type = obj.type;
-			res.options.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
 			res.options.lastmodified = true;
 
 			!options.headers && (options.headers = {});
@@ -528,11 +547,13 @@ FP.res = function(res, options, checkcustom) {
 			res.options.done = options.done;
 
 			if (options.image) {
+				res.options.stream = { filename: filename, fd: fd, start: HEADERSIZE, custom: true };
 				res.options.make = options.make;
 				res.options.cache = options.cache !== false;
 				res.options.persistent = false;
 				res.$image();
 			} else {
+				res.options.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
 				res.options.compress = options.nocompress ? false : true;
 				res.$stream();
 			}
