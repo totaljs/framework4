@@ -1,31 +1,33 @@
 NEWSCHEMA('Schema/Methods', function(schema) {
 
-	schema.setQuery(function($) {
-		$.success();
+	schema.define('value', 'String');
+
+	schema.setQuery(function($, model) {
+		$.success(model);
 	});
 
-	schema.setRead(function($) {
-		$.success();
+	schema.setRead(function($, model) {
+		$.success(model);
 	});
 
-	schema.setInsert(function($) {
-		$.success();
+	schema.setInsert(function($, model) {
+		$.success(model);
 	});
 
-	schema.setUpdate(function($) {
-		$.success();
+	schema.setUpdate(function($, model) {
+		$.success(model);
 	});
 
-	schema.setPatch(function($) {
-		$.success();
+	schema.setPatch(function($, model) {
+		$.success(model);
 	});
 
-	schema.setRemove(function($) {
-		$.success();
+	schema.setRemove(function($, model) {
+		$.success(model);
 	});
 
-	schema.addWorkflow('workflow', function($) {
-		$.success();
+	schema.addWorkflow('workflow', function($, model) {
+		$.success(model);
 	});
 
 });

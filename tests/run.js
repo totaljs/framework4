@@ -523,15 +523,32 @@ tests.push(function(next) {
 
 	var subtests = [];
 
-	// Schema methods
+	// Schema methods (GET)
 	subtests.push(function(next) {
-		subtest_name = 'Methods';
+		subtest_name = 'Methods (GET)';
 		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
 		schema_methods.wait(function(item, next) {
-			RESTBuilder.GET(url + '/schema/methods/' + item).exec(function(err) {
-				Assert.ok(err === null, subtest_name + item);
+			RESTBuilder.GET(url + '/schema/methods/' + item, { value: 'value' }).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value.value !== 'value', subtest_name + item);
+				next();
+			});
+		}, function() {
+			console.timeEnd(subtest_log);
+			next();
+		});
+	});
+
+	// Schema methods (POST)
+	subtests.push(function(next) {
+		subtest_name = 'Methods (POST)';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		schema_methods.wait(function(item, next) {
+			RESTBuilder.POST(url + '/schema/methods/' + item, { value: 'value' }).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value.value === 'value', subtest_name + item);
 				next();
 			});
 		}, function() {
