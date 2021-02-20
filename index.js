@@ -1905,7 +1905,6 @@ function Framework() {
 	self._request_check_robot = false;
 	self._request_check_mobile = false;
 	self._request_check_proxy = false;
-	self._length_middleware = 0;
 	self._length_request_middleware = 0;
 	self._length_files = 0;
 	self._length_wait = 0;
@@ -3775,7 +3774,6 @@ global.MAP = function(url, filename, filter) {
  */
 global.MIDDLEWARE = function(name, fn) {
 	F.routes.middleware[name] = fn;
-	F._length_middleware = Object.keys(F.routes.middleware).length;
 	F.dependencies['middleware_' + name] = fn;
 };
 
@@ -4970,6 +4968,7 @@ function install_build(name, filename, next) {
 			});
 		} else
 			next();
+
 		return;
 	}
 
@@ -4977,6 +4976,7 @@ function install_build(name, filename, next) {
 	var build = Fs.readFileSync(filename).toString('utf8').parseJSON();
 	if (build && build.compiled) {
 		var code;
+
 		if ((/^base64\s/i).test(build.compiled))
 			code = decodeURIComponent(Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64'));
 		else if ((/^hex\s/i).test(build.compiled))
@@ -4991,6 +4991,7 @@ function install_build(name, filename, next) {
 		if (!F.buildserrorhandling)
 			F.buildserrorhandling = code.indexOf('//@build') !== -1;
 	}
+
 	next();
 }
 
@@ -17182,15 +17183,11 @@ function async_middleware(index, req, res, middleware, callback, options, contro
 	opt.index = index;
 	output = item(opt);
 
-	if (res.headersSent || res.finished) {
+	if (res.headersSent || res.finished || output === false) {
 		req.$total_route && req.$total_success();
 		callback = null;
-		return;
-	} else if (output !== false)
-		return;
+	}
 
-	req.$total_route && req.$total_success();
-	callback = null;
 }
 
 global.setTimeout2 = function(name, fn, timeout, limit, param) {
@@ -17227,6 +17224,7 @@ global.setTimeout2 = function(name, fn, timeout, limit, param) {
 };
 
 global.clearTimeout2 = function(name) {
+
 	var key = ':' + name;
 
 	if (F.temporary.internal[key]) {
