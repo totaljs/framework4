@@ -3,6 +3,7 @@
 ========================
 
 - fixed measuring dimension for `.gif` images
+- improved some parts of code
 
 ========================
 0.0.37
