@@ -3766,6 +3766,10 @@ global.MAP = function(url, filename, filter) {
 	}, isPackage ? 500 : 1);
 };
 
+global.PAUSE = function(value) {
+	F.paused = !!value;
+};
+
 /**
  * Add a middleware
  * @param {String} name
@@ -4941,12 +4945,19 @@ function loadpreferences(callback) {
 	});
 }
 
+function internal_next(next) {
+	if (F.paused)
+		setTimeout(internal_next, 100, next);
+	else
+		setImmediate(next);
+}
+
 function install_package(name, filename, next) {
 
 	var dir = CONF.directory_temp[0] === '~' ? Path.join(CONF.directory_temp.substring(1), name + '.package') : Path.join(PATH.root(), CONF.directory_temp, name + '.package');
 	F.routes.packages[name] = dir;
 
-	var restorecb = () => install('package', name, Path.join(dir, 'index.js'), next);
+	var restorecb = () => install('package', name, Path.join(dir, 'index.js'), () => internal_next(next));
 
 	if (F.$bundling)
 		RESTORE(filename, dir, restorecb);
@@ -4962,12 +4973,12 @@ function install_build(name, filename, next) {
 			filename = filename.replace(/\.url$/, '.build');
 			DOWNLOAD(url, filename, function(err) {
 				if (err)
-					next();
+					internal_next(next);
 				else
-					install_build(name, filename, next);
+					install_build(name, filename, () => internal_next(next));
 			});
 		} else
-			next();
+			internal_next(next);
 
 		return;
 	}
@@ -4992,7 +5003,7 @@ function install_build(name, filename, next) {
 			F.buildserrorhandling = code.indexOf('//@build') !== -1;
 	}
 
-	next();
+	internal_next(next);
 }
 
 function install_component(name, filename, next) {
@@ -5052,13 +5063,13 @@ function install_component(name, filename, next) {
 
 		} catch(e) {
 			F.error(e, 'Component: ' + name);
-			next && next();
+			next && internal_next(next);
 			return;
 		}
 
 	} else if (next) {
 		obj = {};
-		next();
+		internal_next(next);
 	}
 
 	if (!obj.group)
@@ -5132,7 +5143,7 @@ function install(type, name, filename, next) {
 	}
 
 	F.routes_sort();
-	next && setImmediate(next);
+	next && internal_next(next);
 	F.temporary.ready[key] = NOW;
 	EMIT(key, m);
 	EMIT('install', type, name, m);
