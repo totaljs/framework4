@@ -7,6 +7,7 @@
 - fixed measuring dimension for `.gif` images
 - fixed `BACKUP()` method (a problem with sockets)
 - fixed potential remote code execution in `U.set()` founded by [Snyk](https://snyk.io/vuln)
+- fixed routing with camel-Case URL addresses
 
 ========================
 0.0.37

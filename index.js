@@ -3532,7 +3532,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			var p = url[i];
 			if (p[0] === '{')
 				continue;
-			if (p !== req.split[i])
+			if (p !== req.split2[i])
 				return false;
 		}
 		return true;
@@ -4161,7 +4161,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 			var p = url[i];
 			if (p[0] === '{')
 				continue;
-			if (p !== req.split[i])
+			if (p !== req.split2[i])
 				return false;
 		}
 		return true;
@@ -9357,7 +9357,7 @@ F.lookup = function(req, membertype, skipflags) {
 	var route;
 	var item;
 
-	var url = req.uri.pathname[req.uri.pathname.length - 1] === '/' ? req.uri.pathname.substring(1, req.uri.pathname.length - 1) : req.uri.pathname.substring(1);
+	var url = (req.uri.pathname[req.uri.pathname.length - 1] === '/' ? req.uri.pathname.substring(1, req.uri.pathname.length - 1) : req.uri.pathname.substring(1)).toLowerCase();
 
 	// Checks fixed URL
 	var routes = tmp[url];
@@ -14746,6 +14746,12 @@ function extend_request(PROTO) {
 	Object.defineProperty(PROTO, 'split', {
 		get: function() {
 			return this.$path ? this.$path : this.$path = framework_internal.routeSplit(this.uri.pathname, true);
+		}
+	});
+
+	Object.defineProperty(PROTO, 'split2', {
+		get: function() {
+			return this.$path2 ? this.$path2 : this.$path2 = framework_internal.routeSplit(this.uri.pathname);
 		}
 	});
 
