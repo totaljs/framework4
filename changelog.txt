@@ -3,9 +3,10 @@
 ========================
 
 - added `PAUSE(is_paused)` method that can pause loading of all Total.js dependencies
-- fixed measuring dimension for `.gif` images
 - improved some parts of code
+- fixed measuring dimension for `.gif` images
 - fixed `BACKUP()` method (a problem with sockets)
+- fixed potential remote code execution in `U.set()` founded by [Snyk](https://snyk.io/vuln)
 
 ========================
 0.0.37
