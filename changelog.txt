@@ -5,6 +5,7 @@
 - added `PAUSE(is_paused)` method that can pause loading of all Total.js dependencies
 - fixed measuring dimension for `.gif` images
 - improved some parts of code
+- fixed `BACKUP()` method (a problem with sockets)
 
 ========================
 0.0.37

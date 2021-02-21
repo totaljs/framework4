@@ -6385,7 +6385,13 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 
 				if (err) {
 					F.error(err, 'BACKUP()', filename);
-					return next();
+					next();
+					return;
+				}
+
+				if (stats.isSocket()) {
+					next();
+					return;
 				}
 
 				if (stats.isDirectory()) {
@@ -6442,6 +6448,9 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 					data.length && writer.write(data.toString('base64'));
 					writer.write('\n', ENCODING);
 					counter++;
+					setImmediate(next);
+				}).on('error', function(err) {
+					F.error(err, 'BACKUP("' + file + '")');
 					setImmediate(next);
 				});
 
