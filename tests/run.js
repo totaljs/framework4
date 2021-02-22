@@ -121,18 +121,28 @@ tests.push(function(next) {
 		});
 	});
 
-	// Middleware - F.use
-	// subtests.push(function(next) {
-	// 	subtest_name = 'Middleware (F.use)';
-	// 	subtest_log = log(subtest_name, 1);
-	// 	console.time(subtest_log);
+	// Middleware (F.use)
+	subtests.push(function(next) {
+		subtest_name = 'Middleware (F.use)';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
 
-	// 	RESTBuilder.GET(url + '/middleware/invalid/').exec(function(err, res, out) {
-	// 		Assert.ok(out.status === 400, group + ' - Expecting error');
-	// 		console.timeEnd(subtest_log);
-	// 		next();
-	// 	});
-	// });
+		function fail() {
+			return Assert.fail('Middleware was not emited');
+		}
+
+		ON('fuse', () => clearTimeout(timeout_fail));
+
+		F.use('middleware-fuse', '/middleware/fuse');
+
+		var timeout_fail = setTimeout(fail, 1000);
+
+		RESTBuilder.GET(url + '/middleware/fuse/').exec(function(err, res) {
+			Assert.ok(err === null && res && res.success, group + ' - Expecting success');
+			console.timeEnd(subtest_log);
+			next();
+		});
+	});
 
 	subtests.wait(function(item, next) {
 		item(next);
@@ -1108,13 +1118,13 @@ tests.push(function(next) {
 			});
 
 			client.on('close', function() {
+				OFF('socket_middleware_close');
 				clearTimeout(middleware_timeout);
 				console.timeEnd(subtest_log);
 				next();
 			});
 
 		});
-
 
 	});
 

@@ -8,7 +8,11 @@ MIDDLEWARE('middleware-invalid', function($) {
 });
 
 MIDDLEWARE('middleware-socket', function($) {
-	console.log('EMITING');
 	EMIT('socket_middleware_close');
+	$.next();
+});
+
+MIDDLEWARE('middleware-fuse', function($) {
+	EMIT('fuse');
 	$.next();
 });

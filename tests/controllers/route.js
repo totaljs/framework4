@@ -38,7 +38,8 @@ exports.install = function() {
 	});
 
 	// Middleware
-	ROUTE('GET /middleware/success/ *Middleware --> exec', ['#middleware-success']);
-	ROUTE('GET /middleware/invalid/ *Middleware --> exec', ['#middleware-invalid']);
+	ROUTE('GET /middleware/success/  *Middleware --> exec', ['#middleware-success']);
+	ROUTE('GET /middleware/invalid/  *Middleware --> exec', ['#middleware-invalid']);
+	ROUTE('GET /middleware/fuse/     *Middleware --> exec');
 
 };
