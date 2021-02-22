@@ -121,6 +121,19 @@ tests.push(function(next) {
 		});
 	});
 
+	// Middleware - F.use
+	// subtests.push(function(next) {
+	// 	subtest_name = 'Middleware (F.use)';
+	// 	subtest_log = log(subtest_name, 1);
+	// 	console.time(subtest_log);
+
+	// 	RESTBuilder.GET(url + '/middleware/invalid/').exec(function(err, res, out) {
+	// 		Assert.ok(out.status === 400, group + ' - Expecting error');
+	// 		console.timeEnd(subtest_log);
+	// 		next();
+	// 	});
+	// });
+
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -1065,6 +1078,46 @@ tests.push(function(next) {
 			});
 
 		});
+
+	});
+
+	// Websocket - middleware
+	subtests.push(function(next) {
+		next();
+		return;
+
+		subtest_name = 'Middleware';
+		subtest_log = log(subtest_name, 1, true);
+		console.time(subtest_log);
+
+		function middleware_fail() {
+			return Assert.fail(subtest_name + ' - failed to emit');
+		};
+
+		WEBSOCKETCLIENT(function(client) {
+
+			client.connect(url.replace('http', 'ws') + '/middleware/');
+
+			var middleware_timeout;
+			client.on('open', function() {
+				middleware_timeout = setTimeout(middleware_fail, 1000);
+				client.send({ type: 'ping' });
+			});
+
+			ON('socket_middleware_close', function() {
+				console.log("closing..");
+				client.close();
+			});
+
+			client.on('close', function() {
+				console.log('close');
+				clearTimeout(middleware_timeout);
+				console.timeEnd(subtest_log);
+				next();
+			});
+
+		});
+
 
 	});
 

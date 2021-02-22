@@ -4,6 +4,7 @@ exports.install = function() {
 	ROUTE('SOCKET  /reconnect/', reconnect);
 	ROUTE('+SOCKET /authorized/', simple);
 	ROUTE('-SOCKET /unauthorized/', simple);
+	ROUTE('SOCKET  /middleware/', simple, ['#middleware-socket']);
 
 };
 
