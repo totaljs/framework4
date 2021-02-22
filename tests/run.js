@@ -72,7 +72,7 @@ tests.push(function(next) {
 	// JSON
 	subtests.push(function(next) {
 		subtest_name = 'JSON';
-		subtest_log = log(subtest_name, 1, true);
+		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
 		RESTBuilder.GET('https://www.totaljs.com/api/json/').exec(function(err, res) {
@@ -124,7 +124,7 @@ tests.push(function(next) {
 	// Middleware (F.use)
 	subtests.push(function(next) {
 		subtest_name = 'Middleware (F.use)';
-		subtest_log = log(subtest_name, 1);
+		subtest_log = log(subtest_name, 1, true);
 		console.time(subtest_log);
 
 		function fail() {
@@ -1046,7 +1046,7 @@ tests.push(function(next) {
 	// WEBSOCKETCLIENT reconnect - Forced disconnect from server and client attempts to reconnect back + send test message after reconnect
 	subtests.push(function(next) {
 		subtest_name = 'Reconnect';
-		subtest_log = log(subtest_name, 1, true);
+		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
 		var connect_count = 0;
