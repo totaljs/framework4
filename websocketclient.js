@@ -761,7 +761,7 @@ WebSocketClientProto.close = function(message, code) {
 	} else
 		message = undefined;
 
-	if (!self.isClosed) {
+	if (!self.isClosed && self.socket) {
 		self.isClosed = true;
 		if (message && self.options.encodedecode)
 			message = encodeURIComponent(message);

@@ -3776,9 +3776,100 @@ global.PAUSE = function(value) {
  * @param {Function(req, res, next, options)} funcExecute
  * @return {Framework}
  */
-global.MIDDLEWARE = function(name, fn) {
+global.MIDDLEWARE = function(name, fn, assign, first) {
+
+	var route;
+
+	// Removes middleware
+	if (fn == null) {
+
+		delete F.routes.middleware[name];
+		F.dependencies['middleware_' + name];
+
+		var index = F.routes.request.indexOf(name);
+		if (index !== -1) {
+			F.routes.request.splice(index, 1);
+			F._length_request_middleware = F.routes.request.length;
+		}
+
+		for (var i = 0; i < F.routes.web.length; i++) {
+			route = F.routes.web[i];
+			if (route.middleware) {
+				index = route.middleware.indexOf(name);
+				if (index !== -1)
+					route.middleware.splice(index, 1);
+				if (!route.middleware.length)
+					route.middleware = null;
+			}
+		}
+
+		for (var i = 0; i < F.routes.files.length; i++) {
+			route = F.routes.files[i];
+			if (route.middleware) {
+				index = route.middleware.indexOf(name);
+				if (index !== -1)
+					route.middleware.splice(index, 1);
+				if (!route.middleware.length)
+					route.middleware = null;
+			}
+		}
+
+		for (var i = 0; i < F.routes.websockets.length; i++) {
+			route = F.routes.websockets[i];
+			if (route.middleware) {
+				index = route.middleware.indexOf(name);
+				if (index !== -1)
+					route.middleware.splice(index, 1);
+				if (!route.middleware.length)
+					route.middleware = null;
+			}
+		}
+
+		return;
+	}
+
 	F.routes.middleware[name] = fn;
 	F.dependencies['middleware_' + name] = fn;
+
+	if (!assign)
+		return;
+
+	if (typeof(assign) === 'string')
+		assign = assign.split(',').trim();
+
+	var tmp = {};
+	for (var i = 0; i < assign.length; i++)
+		tmp[assign[i].toLowerCase()] = 1;
+
+	if (tmp['*'] || tmp.all) {
+		F.routes.request.push(name);
+		F._length_request_middleware = F.routes.request.length;
+	}
+
+	if (tmp.route || tmp.web || tmp.dynamic || tmp.routes || tmp.http || tmp.https) {
+		for (var i = 0; i < F.routes.web.length; i++) {
+			route = F.routes.web[i];
+			!route.middleware && (route.middleware = []);
+			merge_middleware(route.middleware, name, first);
+		}
+	}
+
+	if (tmp.files || tmp.file) {
+		for (var i = 0; i < F.routes.files.length; i++) {
+			route = F.routes.files[i];
+			!route.middleware && (route.middleware = []);
+			merge_middleware(route.middleware, name, first);
+		}
+	}
+
+	if (tmp.websocket || tmp.socket || tmp.wss || tmp.ws || tmp.sockets || tmp.websockets) {
+		for (var i = 0; i < F.routes.websockets.length; i++) {
+			route = F.routes.websockets[i];
+			!route.middleware && (route.middleware = []);
+			merge_middleware(route.middleware, name, first);
+		}
+	}
+
 };
 
 /**
@@ -7908,6 +7999,7 @@ F.$cors_static = function(req, res, fn, arg) {
  * @param {Buffer} head
  */
 const REGWS = /websocket/i;
+
 F.$upgrade = function(req, socket, head) {
 
 	if (!REGWS.test(req.headers.upgrade || '') || F._length_wait)
@@ -7943,9 +8035,9 @@ F.$upgrade = function(req, socket, head) {
 	if (DEF.onLocale)
 		req.$language = DEF.onLocale(req, socket);
 
-	if (F._length_request_middleware)
+	if (F._length_request_middleware) {
 		async_middleware(0, req, req.websocket, F.routes.request, websocketcontinue_middleware);
-	else
+	} else
 		F.$websocketcontinue(req, req.$wspath, headers);
 };
 
