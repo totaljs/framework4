@@ -1083,8 +1083,6 @@ tests.push(function(next) {
 
 	// Websocket - middleware
 	subtests.push(function(next) {
-		next();
-		return;
 
 		subtest_name = 'Middleware';
 		subtest_log = log(subtest_name, 1, true);
@@ -1092,25 +1090,24 @@ tests.push(function(next) {
 
 		function middleware_fail() {
 			return Assert.fail(subtest_name + ' - failed to emit');
-		};
+		}
 
 		WEBSOCKETCLIENT(function(client) {
 
 			client.connect(url.replace('http', 'ws') + '/middleware/');
 
 			var middleware_timeout;
+
 			client.on('open', function() {
 				middleware_timeout = setTimeout(middleware_fail, 1000);
 				client.send({ type: 'ping' });
 			});
 
 			ON('socket_middleware_close', function() {
-				console.log("closing..");
-				client.close();
+				setTimeout(() => client.close(), 500);
 			});
 
 			client.on('close', function() {
-				console.log('close');
 				clearTimeout(middleware_timeout);
 				console.timeEnd(subtest_log);
 				next();

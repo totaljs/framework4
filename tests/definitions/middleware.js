@@ -8,7 +8,7 @@ MIDDLEWARE('middleware-invalid', function($) {
 });
 
 MIDDLEWARE('middleware-socket', function($) {
-	console.log("EMITING");
+	console.log('EMITING');
 	EMIT('socket_middleware_close');
 	$.next();
 });
