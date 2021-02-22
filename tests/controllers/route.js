@@ -32,4 +32,13 @@ exports.install = function() {
 	ROUTE('+GET      /auth/authorized/                           *Auth                 --> exec');
 	ROUTE('-GET      /auth/unauthorized/                         *Auth                 --> exec');
 
+	// Uppercase
+	ROUTE('GET       /uPperCase', function() {
+		this.success();
+	});
+
+	// Middleware
+	ROUTE('GET /middleware/success/ *Middleware --> exec', ['#middleware-success']);
+	ROUTE('GET /middleware/invalid/ *Middleware --> exec', ['#middleware-invalid']);
+
 };

@@ -82,6 +82,45 @@ tests.push(function(next) {
 		});
 	});
 
+	// Sensitive case
+	subtests.push(function(next) {
+		subtest_name = 'Sensitive case';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		RESTBuilder.GET(url + '/uPperCase/').exec(function(err, res) {
+			Assert.ok(err === null && res && res.success === true, group + ' - Uppercase - expecting success');
+			console.timeEnd(subtest_log);
+			next();
+		});
+	});
+
+	// Route Middleware (success)
+	subtests.push(function(next) {
+		subtest_name = 'Middleware (success)';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		RESTBuilder.GET(url + '/middleware/success/').exec(function(err, res) {
+			Assert.ok(err === null && res && res.success === true, group + ' - Expecting success');
+			console.timeEnd(subtest_log);
+			next();
+		});
+	});
+
+	// Route Middleware (invalid)
+	subtests.push(function(next) {
+		subtest_name = 'Middleware (invalid)';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		RESTBuilder.GET(url + '/middleware/invalid/').exec(function(err, res, out) {
+			Assert.ok(out.status === 400, group + ' - Expecting error');
+			console.timeEnd(subtest_log);
+			next();
+		});
+	});
+
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -103,7 +142,7 @@ tests.push(function(next) {
 		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
-		var item = 'hello1';
+		var item = 'HELLO';
 		var item2 = 'hello2';
 		var item3 = 'hello3';
 		var items = [
