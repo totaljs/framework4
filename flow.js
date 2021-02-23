@@ -525,7 +525,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 	var self = schema.main;
 	var count = 0;
 
-	if (schema && schema.ready && schema.component) {
+	if (schema && schema.ready && schema.component && schema.connections) {
 		var instance = self.meta.components[schema.component];
 		if (instance && instance.connected && !instance.disabled && self.$can(false, schema.id, outputindex)) {
 
@@ -749,11 +749,9 @@ function sendmessage(instance, message, event) {
 		message.main.$events.message && message.main.emit('message', message);
 	}
 
-	instance.message.$events.message && instance.message.$events.message.call(message.instance, message);
 	instance.message && instance.message.call(message.instance, message);
-
 	var key = 'message_' + message.toindex;
-	instance.message[key] && instance.message[key].call(message.instance, message);
+	instance[key] && instance[key].call(message.instance, message);
 }
 
 FP.$can = function(isinput, id, index) {
