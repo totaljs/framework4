@@ -223,7 +223,7 @@ MP.send = function(outputindex, data) {
 			continue;
 
 		var schema = meta.flow[output.id];
-		if (schema && schema.message && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
+		if (schema && (schema.message || schema['message_' + output.index]) && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
 			if (next && next.connected && !next.disabled && (next.$inputs && next.$inputs[output.index])) {
 
@@ -301,6 +301,7 @@ MP.destroy = function() {
 };
 
 function Flow(name, errorhandler) {
+
 	var t = this;
 	t.error = errorhandler || NOOP;
 	t.name = name;
@@ -535,7 +536,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					var m = conn[i];
 					var target = self.meta.flow[m.id];
-					if (!target || !target.message || !self.$can(true, m.id, m.index))
+					if (!target || (!target.message && !target['message_' + m.index]) || !self.$can(true, m.id, m.index))
 						continue;
 
 					var com = self.meta.components[target.component];
@@ -748,7 +749,11 @@ function sendmessage(instance, message, event) {
 		message.main.$events.message && message.main.emit('message', message);
 	}
 
-	instance.message.call(message.instance, message);
+	instance.message.$events.message && instance.message.$events.message.call(message.instance, message);
+	instance.message && instance.message.call(message.instance, message);
+
+	var key = 'message_' + message.toindex;
+	instance.message[key] && instance.message[key].call(message.instance, message);
 }
 
 FP.$can = function(isinput, id, index) {
@@ -769,7 +774,7 @@ FP.trigger = function(path, data, controller, events) {
 	var inputindex = path.length === 1 ? 0 : path[1];
 
 	var schema = self.meta.flow[path[0]];
-	if (schema && schema.ready && schema.component && schema.message) {
+	if (schema && schema.ready && schema.component && (schema.message || schema['message_' + inputindex])) {
 
 		var instance = self.meta.components[schema.component];
 		if (instance && instance.connected && !instance.disabled && self.$can(true, path[0], path[1])) {
