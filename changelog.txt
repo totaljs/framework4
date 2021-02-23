@@ -3,12 +3,14 @@
 ========================
 
 - added `PAUSE(is_paused)` method that can pause loading of all Total.js dependencies
+- added dynamic delegates for receiving of messages in FlowStream in the form `instance.mesage_<INPUT_NAME>`
 - improved some parts of code
 - improved `MIDDLEWARE(name, fn, [assign], [first])` method
 - fixed measuring dimension for `.gif` images
 - fixed `BACKUP()` method (a problem with sockets)
 - fixed potential remote code execution in `U.set()` founded by [Snyk](https://snyk.io/vuln)
 - fixed routing with camel-Case URL addresses
+- fixed sending of messages via inline registered components in FlowStream
 
 ========================
 0.0.37

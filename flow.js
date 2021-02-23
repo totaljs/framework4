@@ -146,8 +146,10 @@ MP.clone = function() {
 MP.end = MP.destroy = function() {
 	var self = this;
 	self.processed = 0;
-	self.main.stats.pending--;
-	self.instance.stats.pending--;
+	if (self.main)
+		self.main.stats.pending--;
+	if (self.instance)
+		self.instance.stats.pending--;
 	return self;
 };
 
@@ -171,7 +173,7 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
-MP.send = function(outputindex, data) {
+MP.send = function(outputindex, data, clonedata) {
 
 	var self = this;
 	var outputs;
@@ -207,7 +209,7 @@ MP.send = function(outputindex, data) {
 		return count;
 	}
 
-	var tid = self.toid + '__' + outputindex;
+	var tid = self.toid + D + outputindex;
 
 	if (self.main.stats.traffic[tid]) {
 		self.main.stats.traffic[tid]++;
@@ -223,15 +225,25 @@ MP.send = function(outputindex, data) {
 			continue;
 
 		var schema = meta.flow[output.id];
+
 		if (schema && (schema.message || schema['message_' + output.index]) && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.connected && !next.disabled && (next.$inputs && next.$inputs[output.index])) {
+			if (next && next.connected && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
 
 				var inputindex = output.index;
 				var message = self.clone();
 
 				if (data)
 					message.data = data;
+
+				if (clonedata && message.data && typeof(message.data) === 'object') {
+					if (message.data instanceof Buffer) {
+						var buf = Buffer.alloc(message.data.length);
+						buf.copy(message.data);
+						message.data = buf;
+					} else
+						message.data = CLONE(message.data);
+				}
 
 				message.used++;
 				message.instance = schema;
@@ -545,7 +557,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					count++;
 
-					var message = new Message();
+					var message = data instanceof Message ? data.clone() : new Message();
 					message.$events = events || {};
 					message.duration = message.duration2 = Date.now();
 					message.controller = controller;
@@ -581,7 +593,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.count = message.main.stats.messages;
 
 					if (message.fromid) {
-						var tid = message.fromid + '__' + message.fromindex;
+						var tid = message.fromid + D + message.fromindex;
 						if (message.main.stats.traffic[tid])
 							message.main.stats.traffic[tid]++;
 						else {
@@ -814,7 +826,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.count = message.main.stats.messages;
 
 			if (message.fromid) {
-				var tid = message.fromid + '__' + message.fromindex;
+				var tid = message.fromid + D + message.fromindex;
 				if (message.main.stats.traffic[tid])
 					message.main.stats.traffic[tid]++;
 				else {
@@ -865,7 +877,7 @@ FP.find = function(id) {
 
 FP.send = function(path, body) {
 	var self = this;
-	path = path.split('__');
+	path = path.split(D);
 	var instance = self.meta.flow[path[0]];
 	if (instance)
 		instance.send(path[1], body);
