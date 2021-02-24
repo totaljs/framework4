@@ -4,6 +4,7 @@
 
 - added `PAUSE(is_paused)` method that can pause loading of all Total.js dependencies
 - added dynamic delegates for receiving of messages in FlowStream in the form `instance.mesage_<INPUT_NAME>`
+- added `response.proxy(target, [copypath], [after], [timeout])`
 - improved some parts of code
 - improved `MIDDLEWARE(name, fn, [assign], [first])` method
 - fixed measuring dimension for `.gif` images

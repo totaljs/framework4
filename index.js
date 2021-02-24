@@ -2442,7 +2442,7 @@ global.PROXY = function(url, target, copypath, before, after, timeout) {
 	}
 
 	if ((/^(https|http):\/\//).test(target))
-		target = require('url').parse(target);
+		target = Parser.parse(target);
 	else
 		target = { socketPath: target };
 
@@ -6928,7 +6928,7 @@ function loadthreads(options) {
 
 		F.threads = {};
 
-		var tmp = require('os').tmpdir();
+		var tmp = Os.tmpdir();
 		var id = Date.now().toString(36);
 		var runscript = U.getName(process.argv[1] || 'index.js').replace(/\.js$/g, '');
 
@@ -7005,7 +7005,7 @@ function extendinitoptions(options) {
 
 	if (val) {
 		if (val.substring(0, 7) === 'http://') {
-			tmp = require('url').parse(val);
+			tmp = Parser.parse(val);
 			if (!options.ip)
 				options.ip = tmp.host;
 			if (options.port)
@@ -7506,12 +7506,6 @@ function makeproxy(proxy, req, res) {
 		delete uri.headers.connection;
 
 	uri.headers['x-forwarded-for'] = req.ip;
-
-	/*
-	// I don't know why I removed content-type
-	if (uri.headers['content-type'])
-		delete uri.headers['content-type'];*/
-
 	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
 	delete uri.headers.host;
 
@@ -15666,6 +15660,18 @@ function extend_response(PROTO) {
 
 		self.$nocache = true;
 		return self;
+	};
+
+	PROTO.proxy = function(target, copypath, after, timeout) {
+
+		if ((/^(https|http):\/\//).test(target))
+			target = Parser.parse(target);
+		else
+			target = { socketPath: target };
+
+		var obj = { uri: Parser.parse(target), after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
+		F.stats.response.proxy++;
+		makeproxy(obj, this.req, this);
 	};
 
 	// For express middleware
