@@ -12,6 +12,7 @@
 - fixed potential remote code execution in `U.set()` founded by [Snyk](https://snyk.io/vuln)
 - fixed routing with camel-Case URL addresses
 - fixed sending of messages via inline registered components in FlowStream
+- fixed a problem with FileStorage and opened file descriptors
 
 ========================
 0.0.37

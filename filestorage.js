@@ -554,6 +554,7 @@ FP.res = function(res, options, checkcustom) {
 				res.$image();
 			} else {
 				res.options.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
+				res.options.stream.$totalfd = fd;
 				res.options.compress = options.nocompress ? false : true;
 				res.$stream();
 			}

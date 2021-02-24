@@ -2230,6 +2230,11 @@ exports.parseURI = function(req) {
 	return { auth: null, hash: null, host: req.host, hostname: hostname, href: req.$protocol + '://' + req.host + req.url, path: req.url, pathname: pathname, port: port, protocol: req.$protocol + ':', query: query, search: search, slashes: true };
 };
 
+function destroyStreamopen() {
+	if (typeof(this.fd) === 'number')
+		this.close();
+}
+
 /**
  * Destroy the stream
  * @param {Stream} stream
@@ -2239,13 +2244,17 @@ exports.parseURI = function(req) {
  * @see {@link https://github.com/stream-utils/destroy}
  */
 function destroyStream(stream) {
+
 	if (stream instanceof ReadStream) {
 		stream.destroy();
-		typeof(stream.close) === 'function' && stream.on('open', function() {
-			typeof(this.fd) === 'number' && this.close();
-		});
+		typeof(stream.close) === 'function' && stream.on('open', destroyStreamopen);
 	} else if (stream instanceof Stream)
 		typeof(stream.destroy) === 'function' && stream.destroy();
+
+	if (stream.$totalfd) {
+		Fs.close(stream.$totalfd, NOOP);
+		stream.$totalfd = null;
+	}
 	return stream;
 }
 
