@@ -5306,8 +5306,8 @@ DEF.onError = function(err, name, uri) {
 	F.stats.error++;
 
 	if (F.buildserrorhandling && err.stack) {
-		var str = err.stack.split('\n')[1].trim();
-		if (str.lastIndexOf('.build.js') !== -1) {
+		var str = (err.stack.split('\n')[1] || '').trim();
+		if (str && str.lastIndexOf('.build.js') !== -1) {
 
 			var index = str.lastIndexOf('(');
 			var filename = str.substring(index + 1, str.length - 1).trim().replace(/^at\s/, '');
