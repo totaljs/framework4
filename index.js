@@ -16766,10 +16766,9 @@ function $image_nocache(res) {
 		options.type = U.getContentType(image.outputType);
 
 		// Loaded from FileStorage
-		if (image.custom) {
-			options.stream = Fs.createReadStream(image.filename, { fd: image.fd, start: image.start });
-			options.stream.$totalfd = image.fd;
-		} else
+		if (image.custom)
+			options.stream = Fs.createReadStream(image.filename, { start: image.start });
+		else
 			options.stream = image;
 
 		F.stats.response.image++;
@@ -16822,10 +16821,8 @@ function $image_stream(exists, size, isFile, stats, res) {
 
 	PATH.verify('temp');
 
-	if (options.stream.custom) {
-		options.stream = Fs.createReadStream(options.stream.filename, { fd: options.stream.fd, start: options.stream.start });
-		options.stream.$totalfd = options.stream.fd;
-	}
+	if (options.stream.custom)
+		options.stream = Fs.createReadStream(options.stream.filename, { start: options.stream.start });
 
 	var image = framework_image.load(options.stream);
 	options.make.call(image, image, res);

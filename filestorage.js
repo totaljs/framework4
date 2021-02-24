@@ -481,6 +481,7 @@ FP.image = function(id, callback) {
 
 		var stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
 		var image = Image.load(stream);
+		stream.$totalfd = fd;
 		callback(err, image, obj);
 		CLEANUP(stream);
 	}, true);
@@ -546,15 +547,16 @@ FP.res = function(res, options, checkcustom) {
 			res.options.headers = options.headers;
 			res.options.done = options.done;
 
+			Fs.close(fd, NOOP);
+
 			if (options.image) {
-				res.options.stream = { filename: filename, fd: fd, start: HEADERSIZE, custom: true };
+				res.options.stream = { filename: filename, start: HEADERSIZE, custom: true };
 				res.options.make = options.make;
 				res.options.cache = options.cache !== false;
 				res.options.persistent = false;
 				res.$image();
 			} else {
-				res.options.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
-				res.options.stream.$totalfd = fd;
+				res.options.stream = Fs.createReadStream(filename, { start: HEADERSIZE });
 				res.options.compress = options.nocompress ? false : true;
 				res.$stream();
 			}
@@ -582,6 +584,7 @@ FP.readbase64 = function(id, callback, count) {
 		F.stats.performance.open++;
 		meta.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE, encoding: 'base64' });
 		callback(null, meta);
+		framework_internal.onFinished(meta.stream, () => Fs.close(fd, NOOP));
 
 	}, true);
 
