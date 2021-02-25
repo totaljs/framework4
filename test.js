@@ -10,17 +10,30 @@ function Action() {
 		if (t.opt.id)
 			t.response[t.opt.id] = value;
 
+		var obj = {};
+		obj.err = obj.error = err;
+		obj.value = value;
+		obj.response = t.response;
+		obj.name = t.opt.name;
+
+		if (t.opt.fail || t.opt.pass) {
+			obj.throw = obj.invalid = function(e) {
+				if (e)
+					err = e;
+			};
+		}
+
 		try {
 			if (t.opt.pass) {
-				t.$fail(t.opt.pass(err, value, t.response) != true, t.opt.name, err);
+				t.$fail(t.opt.pass(obj) != true, obj.name, err);
 			} else if (t.opt.fail) {
-				t.$fail(t.opt.fail(err, value, t.response) == true, t.opt.name, err);
+				t.$fail(t.opt.fail(obj) == true, obj.name, err);
 			} else if (t.opt.done && !err)
 				t.opt.done(value);
 			else
-				t.$fail(!!err, t.opt.name, err);
+				t.$fail(!!err, obj.name, err);
 		} catch (e) {
-			t.$fail(true, t.opt.name, e);
+			t.$fail(true, obj.name, e);
 		}
 
 		t.opt.callback && t.opt.callback(err, value);
@@ -133,6 +146,7 @@ function Test() {
 	t.next = function() {
 		t.$next && clearImmediate(t.$next);
 		t.$next = null;
+
 		var action = t.pending.shift();
 		if (action) {
 			t.ts = Date.now();
