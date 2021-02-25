@@ -10,14 +10,18 @@ function Action() {
 		if (t.opt.id)
 			t.response[t.opt.id] = value;
 
-		if (t.opt.pass) {
-			t.$fail(t.opt.pass(err, value, t.response) != true, t.opt.name, err);
-		} else if (t.opt.fail) {
-			t.$fail(t.opt.fail(err, value, t.response) == true, t.opt.name, err);
-		} else if (t.opt.done && !err)
-			t.opt.done(value);
-		else
-			t.$fail(!!err, t.opt.name, err);
+		try {
+			if (t.opt.pass) {
+				t.$fail(t.opt.pass(err, value, t.response) != true, t.opt.name, err);
+			} else if (t.opt.fail) {
+				t.$fail(t.opt.fail(err, value, t.response) == true, t.opt.name, err);
+			} else if (t.opt.done && !err)
+				t.opt.done(value);
+			else
+				t.$fail(!!err, t.opt.name, err);
+		} catch (e) {
+			t.$fail(true, t.opt.name, e);
+		}
 
 		t.opt.callback && t.opt.callback(err, value);
 		t.$next();
