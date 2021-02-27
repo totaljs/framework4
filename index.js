@@ -7467,7 +7467,7 @@ F.listener = function(req, res) {
 	else if (DEF.onLocale)
 		req.$language = DEF.onLocale(req, res, req.isStaticFile);
 
-	req.on('aborted', onrequesterror);
+	req.on('abort', onrequesterror);
 
 	if (F._length_request_middleware)
 		async_middleware(0, req, res, F.routes.request, requestcontinue_middleware);

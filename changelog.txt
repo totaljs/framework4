@@ -2,6 +2,7 @@
 0.0.39
 ========================
 
+- fixed `abort` event for incoming `request`
 - improved unit-testing
 
 ========================
