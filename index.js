@@ -12500,7 +12500,7 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 		if (self.req.$bodycompress && !replacer)
 			replacer = true;
 
-		if (obj) {
+		if (obj != null) {
 			if (beautify)
 				obj = JSON.stringify(obj, replacer == true ? framework_utils.json2replacer : replacer, 4);
 			else

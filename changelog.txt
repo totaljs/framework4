@@ -3,6 +3,7 @@
 ========================
 
 - fixed `abort` event for incoming `request`
+- fixed `controller.json()` method
 - improved unit-testing
 
 ========================
