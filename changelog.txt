@@ -2,6 +2,7 @@
 0.0.39
 ========================
 
+- added a new alias `request.proxy()` to `response.proxy()`
 - fixed `abort` event for incoming `request`
 - fixed `controller.json()` method
 - improved unit-testing

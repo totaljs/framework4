@@ -15006,6 +15006,10 @@ function extend_request(PROTO) {
 		return DEF.onCSRFcreate(this);
 	};
 
+	PROTO.proxy = function(target, copypath, after, timeout) {
+		this.res.proxy(target, copypath, after, timeout);
+	};
+
 	/**
 	 * Get host name from URL
 	 * @param {String} path Additional path.
