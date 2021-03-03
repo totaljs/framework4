@@ -17,10 +17,29 @@ const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
-const COMPARER = global.Intl.Collator().compare;
 const SKIPPORTS = { '80': 1, '443': 1 };
 
+const COMPARER = function(a, b) {
+	if (!a && b)
+		return -1;
+	if (a && !b)
+		return 1;
+	if (a === b)
+		return 0;
+	return global.Intl.Collator().compare(a, b);
+};
+
 const COMPARER_DESC = function(a, b) {
+
+	if (!a && b)
+		return 1;
+
+	if (a && !b)
+		return -1;
+
+	if (a === b)
+		return 0;
+
 	var val = global.Intl.Collator().compare(a, b);
 	return val ? val * -1 : 0;
 };
@@ -4572,7 +4591,7 @@ AP.quicksort = function(sort) {
 		return self;
 	}
 
-	if (arguments[1] === true)
+	if (arguments[1] === true || arguments[1] === 2)
 		sort += '_desc';
 
 	shellsort(self, exports.sortcomparer(sort));
@@ -4627,7 +4646,7 @@ exports.sortcomparer = function(sort) {
 			if (col.type) {
 				switch (col.type) {
 					case 1:
-						tmp = va && vb ? (col.desc ? COMPARER(vb, va) : COMPARER(va, vb)) : 0;
+						tmp = col.desc ? COMPARER_DESC(va, vb) : COMPARER(va, vb);
 						if (tmp)
 							return tmp;
 						break;
