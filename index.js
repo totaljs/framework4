@@ -1899,6 +1899,15 @@ function Framework() {
 	self.cache = new FrameworkCache();
 	self.path = global.PATH = new FrameworkPath();
 
+	// Added links to modules
+	self.path.fs = Fs;
+	self.Zlib = Zlib;
+	self.Fs = Fs;
+	self.Crypto = Crypto;
+	self.Child = Child;
+	self.OS = Os;
+	self.Url = Parser;
+
 	self._request_check_redirect = false;
 	self._request_check_referer = false;
 	self._request_check_POST = false;
