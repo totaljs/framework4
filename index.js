@@ -12148,7 +12148,7 @@ ControllerProto.$import = function() {
 
 			// MERGE
 			var merge = filename.split('+');
-			var hash = 'merge' + F.timestamp + '_' + filename.hash(true).toString(36);
+			var hash = 'merge' + filename.hash(true).toString(36);
 
 			if ($importmergecache[hash]) {
 				builder += F.temporary.other[k] = $importmergecache[hash];
@@ -12169,7 +12169,7 @@ ControllerProto.$import = function() {
 				crc += merge[j].crc32(true);
 			}
 
-			var outputname = mergename.substring(0, index) + crc + mergename.substring(index);
+			var outputname = F.timestamp + crc + mergename.substring(index);
 			outputname = ext === 'css' ? self.public_css(outputname) : self.public_js(outputname);
 
 			var tmp = ext === 'css' ? self.public_css(outputname, true) : self.public_js(outputname, true);
