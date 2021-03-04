@@ -1576,6 +1576,7 @@ function Framework() {
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
 	self.pref = global.PREF;
+	self.timestamp = Date.now().toString(36);
 
 	global.CONF = {
 
@@ -3620,13 +3621,13 @@ global.MERGE = function(url) {
 
 	var arr = [];
 
-	for (var i = 1, length = arguments.length; i < length; i++) {
+	for (var i = 1; i < arguments.length; i++) {
 
 		var items = arguments[i];
 		if (!(items instanceof Array))
 			items = [items];
 
-		for (var j = 0, lengthsub = items.length; j < lengthsub; j++) {
+		for (var j = 0; j < items.length; j++) {
 			var fn = items[j];
 			var c = fn[0];
 			if (c === '@')
@@ -12095,7 +12096,6 @@ var $importmergecache = {};
 
 ControllerProto.$import = function() {
 
-
 	var self = this;
 	var builder = '';
 
@@ -12148,7 +12148,7 @@ ControllerProto.$import = function() {
 
 			// MERGE
 			var merge = filename.split('+');
-			var hash = 'merge' + filename.hash(true).toString(36);
+			var hash = 'merge' + F.timestamp + '_' + filename.hash(true).toString(36);
 
 			if ($importmergecache[hash]) {
 				builder += F.temporary.other[k] = $importmergecache[hash];
