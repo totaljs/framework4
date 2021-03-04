@@ -10,13 +10,13 @@ exports.install = function() {
 	ROUTE('GET       /schema/methods/workflow/                   *Schema/Methods       --> workflow');
 
 	// Methods (with data)
-	ROUTE('POST       /schema/methods/query/                      *Schema/Methods       --> query');
-	ROUTE('POST       /schema/methods/read/                       *Schema/Methods       --> read');
-	ROUTE('POST       /schema/methods/insert/                     *Schema/Methods       --> insert');
-	ROUTE('POST       /schema/methods/update/                     *Schema/Methods       --> update');
-	ROUTE('POST       /schema/methods/patch/                      *Schema/Methods       --> patch');
-	ROUTE('POST       /schema/methods/remove/                     *Schema/Methods       --> remove');
-	ROUTE('POST       /schema/methods/workflow/                   *Schema/Methods       --> workflow');
+	ROUTE('POST       /schema/methods/query/                     *Schema/Methods       --> query');
+	ROUTE('POST       /schema/methods/read/                      *Schema/Methods       --> read');
+	ROUTE('POST       /schema/methods/insert/                    *Schema/Methods       --> insert');
+	ROUTE('POST       /schema/methods/update/                    *Schema/Methods       --> update');
+	ROUTE('POST       /schema/methods/patch/                     *Schema/Methods       --> patch');
+	ROUTE('POST       /schema/methods/remove/                    *Schema/Methods       --> remove');
+	ROUTE('POST       /schema/methods/workflow/                  *Schema/Methods       --> workflow');
 
 	// Methods data validation
 	ROUTE('GET       /schema/methods/validation/                 *Schema/MethodsValidation       --> exec');

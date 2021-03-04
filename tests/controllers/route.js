@@ -20,7 +20,7 @@ exports.install = function() {
 	ROUTE('GET       /params/{id}/{id2}/{id3}/third/             *Params               --> params3');
 
 	// Wildcards
-	ROUTE('GET       /wildcards/*/                               *Wildcards            --> exec');
+	ROUTE('GET       /wildcards/*                                *Wildcards            --> exec');
 	ROUTE('GET       /wildcards/*/route/                         *Wildcards            --> exec');
 	ROUTE('GET       /wildcards/*/*/route/                       *Wildcards            --> exec');
 
