@@ -2876,7 +2876,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			FILE(url, funcExecute, flags);
 			return;
 		}
-
 	}
 
 	if (typeof(flags) === 'number') {
@@ -2907,7 +2906,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			flags.push(first === '-' ? 'unauthorized' : 'authorized');
 		}
 
-		url = url.replace(/(^|\s?)\*([{}a-z0-9}]|\s).*?$/i, function(text) {
+		//url = url.replace(/(^|\s?)\*([{}a-z0-9}]|\s)?.*?$/i, function(text) {
+		url = url.replace(/\s\*([{}a-z0-9}]|\s)?.*?$/i, function(text) {
 			!flags && (flags = []);
 
 			if (text.indexOf('*') !== -1)
@@ -3359,7 +3359,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	}
 
 	var url2 = framework_internal.preparepath(url.trim());
-	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
+	var urlraw = U.path(url2) + (isWILDCARD ? '*/' : '');
 	var hash = url2.hash(true);
 	var routeURL = framework_internal.routeSplitCreate(url2);
 	var arr = [];
@@ -9492,7 +9492,7 @@ F.lookup = function(req, membertype, skipflags) {
 
 	// Wildcard
 	routes = [];
-	for (var i = 1; i < length; i++) {
+	for (var i = 0; i < length; i++) {
 		var url = req.split.slice(0, length - i).join('/') + '/*';
 		item = tmp[url];
 		if (item) {
@@ -9561,7 +9561,7 @@ F.lookup_websocket = function(req, membertype, skipflags) {
 
 	// Wildcard
 	routes = [];
-	for (var i = 1; i < length; i++) {
+	for (var i = 0; i < length; i++) {
 		var url = req.split.slice(0, length - i).join('/') + '/*';
 		item = tmp[url];
 		if (item) {
