@@ -6,6 +6,7 @@
 - fixed `abort` event for incoming `request`
 - fixed `controller.json()` method
 - fixed `array.quicksort()` method
+- improved HTTP caching in merged files
 - improved unit-testing
 
 ========================
