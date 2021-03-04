@@ -20,9 +20,9 @@ exports.install = function() {
 	ROUTE('GET       /params/{id}/{id2}/{id3}/third/             *Params               --> params3');
 
 	// Wildcards
-	ROUTE('GET       /wildcards/*                                *Wildcards            --> exec');
-	ROUTE('GET       /wildcards/*/route/                         *Wildcards            --> exec');
-	ROUTE('GET       /wildcards/*/*/route/                       *Wildcards            --> exec');
+	ROUTE('POST       /wildcards/*                               *Wildcards            --> one');
+	ROUTE('POST       /wildcards/overwrite/                      *Wildcards            --> two');
+	ROUTE('POST       /wildcards/overwrite/overwrite/            *Wildcards            --> three');
 
 	// Token
 	ROUTE('GET       /xtoken/                                    *Headers              --> xtoken');

@@ -1,7 +1,15 @@
 NEWSCHEMA('Wildcards', function(schema) {
 
-	schema.addWorkflow('exec', function($) {
-		$.success();
+	schema.addWorkflow('one', function($) {
+		$.success(1);
+	});
+
+	schema.addWorkflow('two', function($) {
+		$.success(2);
+	});
+
+	schema.addWorkflow('three', function($) {
+		$.success(3);
 	});
 
 });

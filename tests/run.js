@@ -445,22 +445,51 @@ tests.push(function(next) {
 		var tests = [];
 
 		tests.push(function(next) {
-			RESTBuilder.GET(url + '/wildcards/wild').exec(function(err, res) {
-				Assert.ok(err === null && res.success, subtest_name);
+			RESTBuilder.POST(url + '/wildcards').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 1, subtest_name);
 				next();
 			});
 		});
 
 		tests.push(function(next) {
-			RESTBuilder.GET(url + '/wildcards/wild/route').exec(function(err, res) {
-				Assert.ok(err === null && res.success, subtest_name);
+			RESTBuilder.POST(url + '/wildcards/wild').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 1, subtest_name);
 				next();
 			});
 		});
 
 		tests.push(function(next) {
-			RESTBuilder.GET(url + '/wildcards/wild/wild/route').exec(function(err, res) {
-				Assert.ok(err === null && res.success, subtest_name);
+			RESTBuilder.POST(url + '/wildcards/wild/wild/wild').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 1, subtest_name);
+				next();
+			});
+		});
+
+		tests.push(function(next) {
+			RESTBuilder.POST(url + '/wildcards/wild/wild').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 1, subtest_name);
+				next();
+			});
+		});
+
+		tests.push(function(next) {
+			RESTBuilder.POST(url + '/wildcards/wild/wild/wild').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 1, subtest_name);
+				next();
+			});
+		});
+
+		// Overwrite wildcard
+		tests.push(function(next) {
+			RESTBuilder.POST(url + '/wildcards/overwrite').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 2, subtest_name);
+				next();
+			});
+		});
+
+		tests.push(function(next) {
+			RESTBuilder.POST(url + '/wildcards/overwrite/overwrite').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 3, subtest_name);
 				next();
 			});
 		});
