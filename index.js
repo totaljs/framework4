@@ -11225,7 +11225,7 @@ ControllerProto.error = function(err) {
 	return self;
 };
 
-ControllerProto.invalid = function(status) {
+ControllerProto.invalid = function(status, error) {
 
 	var self = this;
 
@@ -11241,10 +11241,10 @@ ControllerProto.invalid = function(status) {
 
 	var builder = new ErrorBuilder();
 
-	if (type === 'string')
+	if (status instanceof Error)
 		builder.push(status);
-	else if (status instanceof Error)
-		builder.push(status);
+	else
+		builder.push(status, error);
 
 	setImmediate(next_controller_invalid, self, builder);
 	return builder;
