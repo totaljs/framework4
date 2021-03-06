@@ -23,6 +23,7 @@ exports.install = function() {
 	ROUTE('POST       /wildcards/*                               *Wildcards            --> one');
 	ROUTE('POST       /wildcards/overwrite/                      *Wildcards            --> two');
 	ROUTE('POST       /wildcards/overwrite/overwrite/            *Wildcards            --> three');
+	ROUTE('GET        /params/{id}/{id2}/{id3}/third/wild/       *Wildcards            --> four');
 
 	// Token
 	ROUTE('GET       /xtoken/                                    *Headers              --> xtoken');

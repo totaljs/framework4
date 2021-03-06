@@ -494,6 +494,14 @@ tests.push(function(next) {
 			});
 		});
 
+		// Previously created route, but longer (wildcard)
+		tests.push(function(next) {
+			RESTBuilder.GET(url + '/params/1/2/3/third/wild/').exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value === 4, subtest_name);
+				next();
+			});
+		});
+
 		// Run
 		tests.wait(function(item, next) {
 			item(next);
