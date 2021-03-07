@@ -14252,6 +14252,7 @@ function websocket_deflate(data) {
  */
 WebSocketClientProto.upgrade = function(container) {
 	var self = this;
+	self.req.on('abort', websocket_onerror);
 	self.req.on('error', websocket_onerror);
 	self.container = container;
 	self.socket.$websocket = this;
@@ -14686,8 +14687,13 @@ WebSocketClientProto.sendDeflate = function() {
  */
 WebSocketClientProto.ping = function() {
 	if (!this.isClosed) {
-		this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, this.masking));
-		this.$ping = false;
+		try {
+			this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, this.masking));
+			this.$ping = false;
+		} catch (e) {
+			// Socket error
+			this.$onerror(e);
+		}
 	}
 	return this;
 };
