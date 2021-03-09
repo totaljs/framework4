@@ -10,6 +10,7 @@
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
+- fixed `language` in `WebSocketClient`
 
 ========================
 0.0.38
