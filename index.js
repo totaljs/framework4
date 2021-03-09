@@ -14050,6 +14050,7 @@ function WebSocketClient(req, socket) {
 	this.id = '';
 	this.socket = socket;
 	this.req = req;
+	this.language = req.$language;
 
 	// this.isClosed = false;
 	this.errors = 0;
