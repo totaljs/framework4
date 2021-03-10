@@ -9641,21 +9641,22 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		}
 
 		var buffer = [];
+		var status = response.status;
+
 		response.stream.on('data', chunk => buffer.push(chunk));
 
 		CLEANUP(response.stream, function() {
 
 			var body = Buffer.concat(buffer).toString('utf8');
 			var response = body.parseJSON(true);
-			var status = response.status;
 
-			if (!err && status > 399)
-				err = new ErrorBuilder().push(status + '');
-
-			if (response instanceof Array)
+			if (response instanceof Array) {
 				callback(response);
-			else
+			} else {
+				if (!err && status > 399)
+					err = new ErrorBuilder().push(status + '');
 				callback(err, response);
+			}
 		});
 
 	});
