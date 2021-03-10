@@ -9647,9 +9647,10 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 
 			var body = Buffer.concat(buffer).toString('utf8');
 			var response = body.parseJSON(true);
+			var status = response.status;
 
-			if (!err && response.status > 399)
-				err = new ErrorBuilder().push(response.status + '');
+			if (!err && status > 399)
+				err = new ErrorBuilder().push(status + '');
 
 			if (response instanceof Array)
 				callback(response);
