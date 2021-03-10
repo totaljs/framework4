@@ -8,6 +8,7 @@
 - fixed `array.quicksort()` method
 - fixed `controller.invalid()`, added missing second argument called `error` (optional)
 - fixed error handling in `TotalAPI`
+- fixed cookies transfering while redirecting in the `REQUEST()` method (can be disable via `opt.nocookies = true`)
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
