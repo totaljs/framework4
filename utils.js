@@ -917,7 +917,7 @@ function request_response(res) {
 						cookie = cookie.substring(0, index);
 						index = cookie.indexOf('=');
 						if (index !== -1) {
-							var key = cookie.substring(0, index);
+							var key = decodeURIComponent(cookie.substring(0, index));
 							options.cookies[key] = decodeURIComponent(cookie.substring(index + 1));
 							if (options.$totalinit.cookies)
 								options.$totalinit.cookies[key] = options.cookies[key];
@@ -927,7 +927,7 @@ function request_response(res) {
 
 				var builder = '';
 				for (var m in options.cookies)
-					builder += (builder ? '; ' : '') + m + '=' + encodeURIComponent(options.cookies[m]);
+					builder += (builder ? '; ' : '') + encodeURIComponent(m) + '=' + encodeURIComponent(options.cookies[m]);
 
 				if (tmp.headers.cookie)
 					tmp.headers.cookie = builder;
