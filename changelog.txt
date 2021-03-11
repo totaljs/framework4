@@ -3,6 +3,7 @@
 ========================
 
 - added a new alias `request.proxy()` to `response.proxy()`
+- updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
 - fixed `abort` event for incoming `request`
 - fixed `controller.json()` method
 - fixed `array.quicksort()` method

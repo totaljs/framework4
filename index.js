@@ -685,6 +685,10 @@ var authbuiltin = function(opt) {
 	// opt.cookie {String} A cookie name
 	// opt.header {String} A header name
 	// opt.options {Object} A cookie options
+	// opt.strict {Boolean}
+
+	if (opt.strict == null)
+		opt.strict = true;
 
 	// Delegates
 	// opt.onddos = function($)
@@ -774,7 +778,7 @@ var authbuiltin = function(opt) {
 			if (id) {
 				var session = opt.sessions[id[0]];
 				if (session && session.data) {
-					if (session.ua === $.ua) {
+					if (!opt.strict || session.ua === $.ua) {
 						$.req.session = session;
 						$.req.sessionid = session.sessionid;
 						$.success(session.data);
