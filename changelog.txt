@@ -4,16 +4,18 @@
 
 - added a new alias `request.proxy()` to `response.proxy()`
 - updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
+- removed `allow_debug` option
 - fixed `abort` event for incoming `request`
 - fixed `controller.json()` method
 - fixed `array.quicksort()` method
 - fixed `controller.invalid()`, added missing second argument called `error` (optional)
 - fixed error handling in `TotalAPI`
 - fixed cookies transfering while redirecting in the `REQUEST()` method (can be disable via `opt.nocookies = true`)
+- fixed `language` in `WebSocketClient`
+- fixed merging files with the `auto` value defined in `versions`
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
-- fixed `language` in `WebSocketClient`
 
 ========================
 0.0.38

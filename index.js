@@ -1692,7 +1692,6 @@ function Framework() {
 		allow_custom_titles: false,
 		allow_cache_snapshot: false,
 		allow_cache_cluster: false,
-		allow_debug: false,
 		allow_head: false,
 		allow_filter_errors: true,
 		allow_clear_temp: true,
@@ -2009,19 +2008,13 @@ F.refresh = function() {
 	// Clears command cache
 	Image.clear();
 
-	CONF.allow_debug && F.consoledebug('clear temporary cache');
-
 	for (var key in F.temporary.internal)
 		if (!F.temporary.internal[key])
 			delete F.temporary.internal[key];
 
-	F.$events.clear && EMIT('clear', 'resources');
 	F.resources = {};
-	CONF.allow_debug && F.consoledebug('clear resources');
-
 	F.$events.clear && EMIT('clear', 'dns');
 	CMD('clear_dnscache');
-	CONF.allow_debug && F.consoledebug('clear DNS cache');
 };
 
 F.prototypes = function(fn) {
@@ -2550,7 +2543,6 @@ global.SCHEDULE = function(date, repeat, fn) {
 	};
 
 	item.exec = function() {
-		CONF.allow_debug && F.consoledebug('schedule', id);
 		item.fn();
 	};
 
@@ -3610,16 +3602,9 @@ global.MERGE = function(url) {
 	if (url[0] === '#')
 		url = sitemapurl(url.substring(1));
 
-	url = F.$version(url);
-
-	if (url === 'auto') {
-		// auto-generating
-		var arg = arguments;
-		setTimeout(function(arg) {
-			MERGE.apply(F, arg);
-		}, 500, arg);
-		return;
-	}
+	var tmp = F.$version(url);
+	if (tmp !== 'auto')
+		url = tmp;
 
 	url = framework_internal.preparepath(url);
 
@@ -3647,7 +3632,7 @@ global.MERGE = function(url) {
 
 	var key = createTemporaryKey(url);
 	var filename = PATH.temp(F.clusterid + 'merged_' + key);
-	F.routes.merge[url] = { filename: filename.replace(/\.(js|css)$/g, ext => '.min' + ext), files: arr };
+	F.routes.merge[url] = { filename: filename.replace(/\.(js|css)$/g, ext => '.min' + ext), files: arr, auto: tmp === 'auto' };
 	Fs.unlink(F.routes.merge[url].filename, NOOP);
 	delete F.temporary.notfound[key];
 };
@@ -4653,7 +4638,6 @@ F.$bundle = function(callback) {
 		url.wait(function(item, next) {
 			var filename = PATH.root(CONF.directory_bundles) + item.replace('.url', '.bundle');
 			var link = Fs.readFileSync(PATH.root(CONF.directory_bundles) + item).toString(ENCODING);
-			F.consoledebug('Download bundle: ' + link);
 			DOWNLOAD(link, filename, function(err) {
 				err && F.error(err, 'Bundle: ' + link);
 				next();
@@ -5027,11 +5011,9 @@ F.$load = function(types, targetdirectory, callback) {
 	operations.async(function() {
 		var count = dependencies.length;
 		var old = DEF.onPrefLoad;
-		F.consoledebug('load dependencies ' + count + 'x');
 		dependencies.async(function() {
 			types && types.indexOf('service') === -1 && F.cache.stop();
 			F.routes_sort();
-			F.consoledebug('load dependencies {0}x (done)'.format(count));
 			if (DEF.onPrefLoad === old)
 				callback && callback();
 			else
@@ -5205,7 +5187,6 @@ function install_component(name, filename, next) {
 function install(type, name, filename, next) {
 
 	var key = type + '_' + name;
-	F.consoledebug('install', key);
 
 	var m = require(filename);
 	var opt = CONF[key];
@@ -6710,7 +6691,6 @@ global.LOAD = F.load = function(types, pwd, ready) {
 		configure_configs();
 		can('versions') && configure_versions();
 		can('sitemap') && configure_sitemap();
-		F.consoledebug('init');
 
 		var noservice = true;
 		for (var i = 0; i < types.length; i++) {
@@ -6749,11 +6729,6 @@ global.LOAD = F.load = function(types, pwd, ready) {
 				F.removeAllListeners('ready');
 
 			}, 500);
-
-			if (CONF.allow_debug) {
-				F.consoledebug('done');
-				F.usagesnapshot();
-			}
 		});
 	}, can('bundles'));
 };
@@ -6778,10 +6753,6 @@ F.initialize = function(http, debug, options, callback) {
 		global.THREAD = options.thread;
 
 	options.config && U.extend_headers2(CONF, options.config);
-
-	if (options.debug || options['allow-debug'] || options.allow_debug)
-		CONF.allow_debug = true;
-
 	F.isHTTPS = Http.STATUS_CODES === undefined;
 
 	if (isNaN(port) && typeof(port) !== 'string')
@@ -6804,7 +6775,6 @@ F.initialize = function(http, debug, options, callback) {
 		configure_sitemap();
 		F.cache.init();
 
-		F.consoledebug('init');
 		EMIT('init');
 
 		if (!port) {
@@ -6871,7 +6841,6 @@ F.initialize = function(http, debug, options, callback) {
 
 			CONF.allow_performance && F.server.on('connection', connection_tunning);
 			F.initwebsocket && F.initwebsocket();
-			F.consoledebug('HTTP listening');
 			setInterval(clear_pending_requests, 5000);
 
 			if (F.server) {
@@ -6886,10 +6855,7 @@ F.initialize = function(http, debug, options, callback) {
 		};
 
 		// clears static files
-		F.consoledebug('clear temporary');
 		F.clear(function() {
-
-			F.consoledebug('clear temporary (done)');
 			F.$load(undefined, directory, function() {
 
 				F.isLoaded = true;
@@ -6903,11 +6869,6 @@ F.initialize = function(http, debug, options, callback) {
 					options.middleware(listen);
 				else
 					listen();
-
-				if (CONF.allow_debug) {
-					F.consoledebug('done');
-					F.usagesnapshot();
-				}
 
 				if (!options.threads && !process.connected)
 					F.console();
@@ -7235,15 +7196,6 @@ F.usagesnapshot = function(filename) {
 	Fs.writeFile(filename || PATH.root('usage' + (F.id ? ('-' + F.id) : '') + '.log'), JSON.stringify(F.usage(true), null, '\t'), NOOP);
 };
 
-F.consoledebug = function() {
-	if (CONF.allow_debug) {
-		var arr = [new Date().format('yyyy-MM-dd HH:mm:ss'), '--------->'];
-		for (var i = 0; i < arguments.length; i++)
-			arr.push(arguments[i]);
-		console.log.apply(console, arr);
-	}
-};
-
 /**
  * Re-connect server
  * @return {Framework}
@@ -7255,6 +7207,10 @@ F.reconnect = function() {
 		F.ip = CONF.default_ip;
 	F.server.close(() => F.server.listen(F.port, F.ip));
 };
+
+function cleargc() {
+	global.gc();
+}
 
 /**
  * Internal service
@@ -7293,7 +7249,6 @@ F.service = function(count) {
 		Image.clear();
 
 		releasegc = true;
-		CONF.allow_debug && F.consoledebug('clear temporary cache');
 
 		for (var key in F.temporary.internal) {
 			if (!F.temporary.internal[key])
@@ -7312,7 +7267,6 @@ F.service = function(count) {
 	if (count % CONF.default_interval_clear_dnscache === 0) {
 		F.$events.clear && EMIT('clear', 'dns');
 		CMD('clear_dnscache');
-		CONF.allow_debug && F.consoledebug('clear DNS cache');
 	}
 
 	var ping = CONF.default_interval_websocket_ping;
@@ -7326,7 +7280,6 @@ F.service = function(count) {
 				has = true;
 			}
 		}
-		has && CONF.allow_debug && F.consoledebug('ping websocket connections');
 	}
 
 	// every 20 minutes (default) service clears resources
@@ -7334,7 +7287,6 @@ F.service = function(count) {
 		F.$events.clear && EMIT('clear', 'resources');
 		F.resources = {};
 		releasegc = true;
-		CONF.allow_debug && F.consoledebug('clear resources');
 	}
 
 	// Session DDOS cleaner
@@ -7353,15 +7305,7 @@ F.service = function(count) {
 
 	F.$events.service && EMIT('service', count);
 
-	if (CONF.allow_debug) {
-		F.consoledebug('service ({0}x)'.format(count));
-		F.usagesnapshot();
-	}
-
-	releasegc && global.gc && setTimeout(function() {
-		global.gc();
-		CONF.allow_debug && F.consoledebug('gc()');
-	}, 1000);
+	releasegc && global.gc && setTimeout(cleargc, 1000);
 
 	if (WORKERID > 9999999999)
 		WORKERID = 0;
@@ -7395,7 +7339,6 @@ F.service = function(count) {
 				schedule.expire = NOW.add(schedule.repeat);
 			else
 				delete F.schedules[key];
-			CONF.allow_debug && F.consoledebug('schedule', key);
 			schedule.fn();
 		}
 	}
@@ -8842,6 +8785,40 @@ F.sitemap_add = function (obj) {
 	configure_sitemap(obj instanceof Array ? obj : [obj]);
 };
 
+function automap(key, filename) {
+	ON('ready', function() {
+		makehash(key, function(hash) {
+			if (hash) {
+
+				var index = key.lastIndexOf('.');
+				filename = key.substring(0, index) + '-' + hash + key.substring(index);
+
+				F.versions[key] = filename;
+
+				if (!F.routes.merge[key] && !F.temporary.other['merge_' + key]) {
+					var index = key.indexOf('/', 1);
+					var theme = index === -1 ? null : key.substring(1, index);
+					if (theme) {
+						if (F.themes[theme])
+							key = F.themes[theme] + 'public' + key.substring(index);
+						else
+							key = PATH.public(key);
+					} else
+						key = PATH.public(key);
+					MAP(filename, key);
+				}
+
+				if (F.routes.merge[key])
+					F.routes.merge[filename] = F.routes.merge[key];
+
+				F.temporary.views = {};
+				F.temporary.other = {};
+				global.$VIEWCACHE = [];
+			}
+		});
+	});
+}
+
 function configure_versions(arr, clean) {
 
 	if (arr === undefined || typeof(arr) === 'string') {
@@ -8895,44 +8872,10 @@ function configure_versions(arr, clean) {
 			key = U.join(CONF.default_root, key);
 
 		if (filename === 'auto') {
-
 			if (ismap)
-				throw new Error('/versions: "auto" value can\'t be used with mapping');
-
+				throw new Error('/versions: "auto" value can\'t be used with the mapping');
 			F.versions[key] = filename;
-
-			(function(key, filename) {
-				ON('ready', function() {
-					F.consoledebug('"versions" is getting checksum of ' + key);
-					makehash(key, function(hash) {
-						F.consoledebug('"versions" is getting checksum of ' + key + ' (done)');
-						if (hash) {
-							var index = key.lastIndexOf('.');
-							filename = key.substring(0, index) + '-' + hash + key.substring(index);
-
-							F.versions[key] = filename;
-
-							if (!F.routes.merge[key] && !F.temporary.other['merge_' + key]) {
-								var index = key.indexOf('/', 1);
-								var theme = index === -1 ? null : key.substring(1, index);
-								if (theme) {
-									if (F.themes[theme])
-										key = F.themes[theme] + 'public' + key.substring(index);
-									else
-										key = PATH.public(key);
-								} else
-									key = PATH.public(key);
-								MAP(filename, key);
-							}
-
-							F.temporary.views = {};
-							F.temporary.other = {};
-							global.$VIEWCACHE = [];
-						}
-					});
-				});
-			})(key, filename);
-
+			automap(key, filename);
 		} else {
 			F.versions[key] = filename;
 			ismap && MAP(filename, PATH.public(key));
@@ -9021,7 +8964,6 @@ function configure_configs(arr, rewrite) {
 		if (!existsSync(filename, true))
 			return;
 		arr = Fs.readFileSync(filename).toString(ENCODING).split('\n');
-		CONF.allow_debug && F.consoledebug('load ' + U.getName(filename));
 	}
 
 	if (!arr) {
@@ -9030,15 +8972,11 @@ function configure_configs(arr, rewrite) {
 		var filenameB = U.combine('/', 'config-' + (DEBUG ? 'debug' : 'release'));
 		arr = [];
 
-		if (existsSync(filenameA) && Fs.lstatSync(filenameA).isFile()) {
+		if (existsSync(filenameA) && Fs.lstatSync(filenameA).isFile())
 			arr = arr.concat(Fs.readFileSync(filenameA).toString(ENCODING).split('\n'));
-			CONF.allow_debug && F.consoledebug('load ' + U.getName(filenameA));
-		}
 
-		if (existsSync(filenameB) && Fs.lstatSync(filenameB).isFile()) {
+		if (existsSync(filenameB) && Fs.lstatSync(filenameB).isFile())
 			arr = arr.concat(Fs.readFileSync(filenameB).toString(ENCODING).split('\n'));
-			CONF.allow_debug && F.consoledebug('load ' + U.getName(filenameB));
-		}
 	}
 
 	var done = function() {
@@ -9150,7 +9088,6 @@ function configure_configs(arr, rewrite) {
 			case 'allow_compile_script':
 			case 'allow_compile_style':
 			case 'allow_ssc_validation':
-			case 'allow_debug':
 			case 'allow_gzip':
 			case 'allow_head':
 			case 'allow_performance':
