@@ -272,7 +272,6 @@ function cleanFiles(callback) {
 			var dir = filename.substring(0, filename.indexOf('/', 1) + 1);
 			if (!blacklist[dir]) {
 				try {
-					F.consoledebug('Remove', filename);
 					Fs.unlinkSync(Path.join(path, filename));
 				} catch (e) {}
 			}
@@ -342,20 +341,10 @@ function copyFiles(files, callback) {
 		if (exists && (ext === 'resource' || (!ext && file.name.substring(1, 7) === 'config') || INTERNAL[file.name]))
 			append = true;
 
-		if (CONSOLE && exists) {
-			CONF.allow_debug && F.consoledebug(append ? 'EXT:' : 'REW:', p);
-		} else
-			F.consoledebug(append ? 'EXT:' : 'COP:', p);
-
 		if (append) {
 			Fs.appendFile(filename, '\n' + Fs.readFileSync(file.filename).toString('utf8'), next);
 		} else
 			copyFile(file.filename, filename, next);
-
-		if (CONSOLE && exists)
-			CONF.allow_debug && F.consoledebug('REW:', p);
-		else
-			F.consoledebug('COP:', p);
 
 	}, callback);
 }
