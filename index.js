@@ -695,6 +695,7 @@ var authbuiltin = function(opt) {
 	// opt.onread = function({ sessionid: String, userid: String, ua: String }, callback(USER_DATA), $)
 	// opt.onfree = function({ sessions: Array, users: Array })
 	// opt.onlogout = function(sessionid, userid)
+	// opt.onauthorize = function($) must return true for canceling of processing
 
 	opt.sessions = {};
 	opt.blocked = {};
@@ -757,6 +758,9 @@ var authbuiltin = function(opt) {
 	};
 
 	DEF.onAuthorize = framework_builders.AuthOptions.wrap(function($) {
+
+		if (opt.onauthorize($))
+			return;
 
 		var sessionid = opt.cookie ? $.cookie(opt.cookie) : null;
 		if (!sessionid && opt.header)
