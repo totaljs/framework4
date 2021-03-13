@@ -10914,6 +10914,7 @@ function controller_api() {
 		return;
 	}
 
+	self.req.urlschema = model.schema;
 	var index = model.schema.indexOf('?');
 	var query = null;
 
@@ -15215,18 +15216,19 @@ function extend_request(PROTO) {
 
 	PROTO.$total_cancel = function() {
 
+		var t = this;
 		F.stats.response.timeout++;
 
-		if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + this.url) > 5)
+		if (F.timeouts.push((NOW = new Date()).toJSON() + ' ' + t.url + (t.urlschema ? (' --> ' + t.urlschema) : '')) > 5)
 			F.timeouts.shift();
 
-		if (this.controller) {
-			this.controller.isTimeout = true;
-			this.controller.isCanceled = true;
+		if (t.controller) {
+			t.controller.isTimeout = true;
+			t.controller.isCanceled = true;
 		}
 
-		this.$total_route = F.lookup_system(503);
-		this.$total_execute(503, true);
+		t.$total_route = F.lookup_system(503);
+		t.$total_execute(503, true);
 	};
 
 	PROTO.$total_validate = function(route, next, code) {

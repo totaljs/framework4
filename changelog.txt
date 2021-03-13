@@ -16,6 +16,7 @@
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
+- improved timeouts in the API endpoints
 
 ========================
 0.0.38
