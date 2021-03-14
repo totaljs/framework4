@@ -785,7 +785,8 @@ var authbuiltin = function(opt) {
 					if (!opt.strict || session.ua === $.ua) {
 						$.req.session = session;
 						$.req.sessionid = session.sessionid;
-						$.success(session.data);
+						if (!opt.onsession || !opt.onsession(session, $))
+							$.success(session.data);
 					} else {
 						$.invalid();
 						sessionid = null;
@@ -832,7 +833,9 @@ var authbuiltin = function(opt) {
 
 				$.req.session = opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
 				$.req.sessionid = meta.sessionid;
-				$.success(data);
+
+				if (!opt.onsession || !opt.onsession($.req.session, $, true))
+					$.success(data);
 
 				if (pending.length)
 					setImmediate(callpending, pending, data);
