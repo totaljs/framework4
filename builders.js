@@ -249,8 +249,9 @@ SchemaOptionsProto.extend = function(data, callback) {
 				fn(self, data, next);
 			}, callback);
 		} else {
+			self.next = NOOP;
 			for (var i = 0; i < ext.length; i++)
-				ext[i](self, data);
+				ext[i](self, data, NOOP);
 		}
 
 		return true;
