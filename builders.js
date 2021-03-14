@@ -237,14 +237,25 @@ SchemaOptionsProto.cancel = function() {
 	return self;
 };
 
-SchemaOptionsProto.extend = function(data) {
+SchemaOptionsProto.extend = function(data, callback) {
+
 	var self = this;
 	var ext = self.schema.extensions[self.name];
 	if (ext) {
-		for (var i = 0; i < ext.length; i++)
-			ext[i](self, data);
+
+		if (callback) {
+			ext.wait(function(fn, next) {
+				self.next = next;
+				fn(self, data, next);
+			}, callback);
+		} else {
+			for (var i = 0; i < ext.length; i++)
+				ext[i](self, data);
+		}
+
 		return true;
-	}
+	} else if (callback)
+		callback();
 };
 
 SchemaOptionsProto.redirect = function(url) {

@@ -4,6 +4,7 @@
 
 - added a new alias `request.proxy()` to `response.proxy()`
 - updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
+- updated `$.extend([data], [callback])` metho in SchemaOptions by adding `callback` argument that enables async processing
 - removed `allow_debug` option
 - fixed `abort` event for incoming `request`
 - fixed `controller.json()` method
