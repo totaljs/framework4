@@ -727,10 +727,10 @@ var authbuiltin = function(opt) {
 		}
 	};
 
-	opt.refresh = function(userid) {
+	opt.refresh = function(userid, exceptsessionid) {
 		for (var key in opt.sessions) {
 			var session = opt.sessions[key];
-			if (session.userid === userid)
+			if (session.userid === userid && session.sessionid !== exceptsessionid)
 				delete opt.sessions[key];
 		}
 	};
