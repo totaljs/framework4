@@ -759,7 +759,7 @@ var authbuiltin = function(opt) {
 
 	DEF.onAuthorize = framework_builders.AuthOptions.wrap(function($) {
 
-		if (opt.onauthorize($))
+		if (opt.onauthorize && opt.onauthorize($))
 			return;
 
 		var sessionid = opt.cookie ? $.cookie(opt.cookie) : null;
