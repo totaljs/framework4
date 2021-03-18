@@ -9,6 +9,7 @@ const Fs = require('fs');
 const Crypto = require('crypto');
 const Zlib = require('zlib');
 const Tls = require('tls');
+const Net = require('net');
 const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const SKIPBODYENCRYPTOR = { ':': 1, '"': 1, '[': 1, ']': 1, '\'': 1, '_': 1, '{': 1, '}': 1, '&': 1, '=': 1, '+': 1, '-': 1, '\\': 1, '/': 1, ',': 1 };
@@ -6307,6 +6308,75 @@ global.QUERIFY = function(url, obj) {
 	}
 
 	return '?' + arg.join('&');
+};
+
+exports.connect = function(opt, callback) {
+
+	// opt.secure {Boolean}
+	// opt.host
+	// opt.port
+
+	var opt = CLONE(opt);
+	var tls = opt.tls;
+	var meta = {};
+
+	meta.opt = opt;
+	meta.tls = tls;
+
+	delete opt.tls;
+
+	var close = function() {
+
+		if (meta.socket1) {
+			meta.socket1.removeAllListeners();
+			meta.socket1.end();
+			meta.socket1.destroy();
+			meta.socket1 = null;
+		}
+
+		if (meta.socket2) {
+			meta.socket2.removeAllListeners();
+			meta.socket2.end();
+			meta.socket2.destroy();
+			meta.socket2 = null;
+		}
+
+	};
+
+	var error = function(err) {
+		callback && callback(err);
+		callback = null;
+		close();
+	};
+
+	meta.close = close;
+	meta.write = function(data) {
+		meta.socket.write(data + '\r\n');
+	};
+
+	var done = function() {
+
+		if (opt.tls) {
+			if (!meta.socket2) {
+				meta.socket2 = Tls.connect(tls, done);
+				meta.socket2.on('error', error);
+				meta.socket2.on('clientError', error);
+				return;
+			}
+		}
+
+		meta.socket = meta.socket2 || meta.socket1;
+		callback && callback(null, meta);
+		callback = null;
+	};
+
+	if (opt.secure)
+		meta.socket1 = Tls.connect(opt, done);
+	else
+		meta.socket1 = Net.createConnection(opt.port, opt.host, done);
+
+	meta.socket1.on('error', error);
+	meta.socket1.on('clientError', error);
 };
 
 !global.F && require('./index');
