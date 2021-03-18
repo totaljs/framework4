@@ -17740,6 +17740,7 @@ function runsnapshot() {
 	stats.overload = 0;
 
 	main.pid = process.pid;
+	main.date = NOW;
 	main.port = F.port;
 	main.ip = F.ip;
 	main.stats = [stats];
