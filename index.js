@@ -39,7 +39,7 @@ const REG_WWW = /^www\./i;
 const REG_TEXTAPPLICATION = /text|application/;
 const REG_ENCODINGCLEANER = /[;\s]charset=utf-8/g;
 const REG_SKIPERROR = /epipe|invalid\sdistance/i;
-const REG_UTF8 = /[^\x20-\x7E]+/;
+//const REG_UTF8 = /[^\x20-\x7E]+/;
 const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
 const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const EMPTYARRAY = [];
@@ -16158,7 +16158,7 @@ function extend_response(PROTO) {
 
 		if (res.options.download) {
 			var encoded = encodeURIComponent(res.options.download);
-			headers['Content-Disposition'] = 'attachment; ' + (REG_UTF8.test(res.options.download) ? 'filename*=utf-8\'\'' + encoded : ('filename="' + encoded + '"'));
+			headers['Content-Disposition'] = 'attachment; filename*=utf-8\'\'' + encoded;
 		} else if (headers['Content-Disposition'])
 			delete headers['Content-Disposition'];
 
@@ -16256,9 +16256,10 @@ function extend_response(PROTO) {
 
 		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 
-		if (options.download)
-			headers['Content-Disposition'] = 'attachment; filename=' + encodeURIComponent(options.download);
-		else if (headers['Content-Disposition'])
+		if (options.download) {
+			var encoded = encodeURIComponent(options.download);
+			headers['Content-Disposition'] = 'attachment; filename*=utf-8\'\'' + encoded;
+		} else if (headers['Content-Disposition'])
 			delete headers['Content-Disposition'];
 
 		headers[HEADER_TYPE] = options.type;
@@ -16329,9 +16330,10 @@ function extend_response(PROTO) {
 			headers['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 		}
 
-		if (options.download)
-			headers['Content-Disposition'] = 'attachment; filename=' + encodeURIComponent(options.download);
-		else if (headers['Content-Disposition'])
+		if (options.download) {
+			var encoded = encodeURIComponent(options.download);
+			headers['Content-Disposition'] = 'attachment; filename*=utf-8\'\'' + encoded;
+		} else if (headers['Content-Disposition'])
 			delete headers['Content-Disposition'];
 
 		headers[HEADER_TYPE] = options.type;
