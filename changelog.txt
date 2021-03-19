@@ -14,7 +14,7 @@
 - fixed cookies transfering while redirecting in the `REQUEST()` method (can be disable via `opt.nocookies = true`)
 - fixed `language` in `WebSocketClient`
 - fixed merging files with the `auto` value defined in `versions`
-- fixed `content-disposition` header
+- fixed encoding in `content-disposition` header
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
