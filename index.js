@@ -1222,6 +1222,52 @@ function performschema(type, schema, model, opt, callback, controller, noprepare
 	return !!o;
 }
 
+global.WORKFLOW = function(declaration, tasks) {
+
+	var $ = {};
+	$.tasks = tasks || {};
+
+	$.next = $.trigger = function(next, val) {
+
+		if (!$)
+			return;
+
+		$.prev = $.current;
+		var fn = $.tasks[next];
+		if (fn) {
+			$.current = next;
+			fn($, val);
+		} else
+			$.destroy();
+	};
+
+	$.next2 = function(name) {
+		return function(val) {
+			$ && $.next(name, val);
+		};
+	};
+
+	$.invalid = function(e) {
+		$.error && $.error(e, $);
+		$.destroy();
+	};
+
+	$.push = function(name, cb) {
+		$.tasks[name] = cb;
+	};
+
+	$.clone = function() {
+		return global.WORKFLOW(null, $.tasks);
+	};
+
+	$.destroy = function() {
+		$ = null;
+	};
+
+	declaration && declaration($);
+	return $;
+};
+
 global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 
 	if (typeof(model) === 'function') {
