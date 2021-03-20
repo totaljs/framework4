@@ -6351,7 +6351,15 @@ exports.connect = function(opt, callback) {
 
 	meta.close = close;
 	meta.write = function(data) {
-		meta.socket.write(data + '\r\n');
+		meta.socket.write(data);
+	};
+
+	meta.ondata = function(fn) {
+		meta.socket.on('data', fn);
+	};
+
+	meta.onend = function(fn) {
+		meta.socket.on('end', fn);
 	};
 
 	var done = function() {
