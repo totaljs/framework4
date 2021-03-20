@@ -122,6 +122,8 @@ global.IMPORT = function(url, callback) {
 var BLOCKEDB = {};
 
 global.LDAP = function(opt, callback) {
+	if (!opt.ldap.port)
+		opt.ldap.port = 389;
 	require('./ldap').load(opt, callback);
 };
 
