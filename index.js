@@ -121,6 +121,10 @@ global.IMPORT = function(url, callback) {
 
 var BLOCKEDB = {};
 
+global.LDAP = function(opt, callback) {
+	require('./ldap').load(opt, callback);
+};
+
 global.UNAUTHORIZED = function($) {
 	var user = $.user;
 	if (user) {

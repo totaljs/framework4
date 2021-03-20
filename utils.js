@@ -6349,7 +6349,7 @@ exports.connect = function(opt, callback) {
 		close();
 	};
 
-	meta.close = close;
+	meta.destroy = meta.close = close;
 	meta.write = function(data) {
 		meta.socket.write(data);
 	};
@@ -6359,7 +6359,7 @@ exports.connect = function(opt, callback) {
 	};
 
 	meta.onend = function(fn) {
-		meta.socket.on('end', fn);
+		meta.socket.on('destroy', fn);
 	};
 
 	var done = function() {
