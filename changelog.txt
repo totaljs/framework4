@@ -3,6 +3,8 @@
 ========================
 
 - added a new alias `request.proxy()` to `response.proxy()`
+- added `LDAP(opt, callback)` method for obtaining of users, groups or user profile (experimental)
+- added `U.normalize(path)` that normalizes path by adding `/` to begin and end of the phrase
 - updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
 - updated `$.extend([data], [callback])` metho in SchemaOptions by adding `callback` argument that enables async processing
 - removed `allow_debug` option
@@ -19,7 +21,6 @@
 - improved HTTP caching in merged files
 - improved unit-testing
 - improved timeouts in the API endpoints
-- added `LDAP(opt, callback)` method for obtaining of users, groups or user profile (experimental)
 
 ========================
 0.0.38

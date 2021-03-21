@@ -1688,6 +1688,14 @@ exports.setContentType = function(ext, type) {
 	return true;
 };
 
+exports.normalize = function(path) {
+	if (path[0] !== '/')
+		path = '/' + path;
+	if (path[path.length - 1] !== '/')
+		path += '/';
+	return path;
+};
+
 exports.path = function(path, delimiter) {
 	if (!path)
 		path = '';
