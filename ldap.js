@@ -603,6 +603,9 @@ exports.load = function(opt, callback) {
 	// opt.type {String} can be: person, group, login
 	// opt.dn {String}
 
+	if (opt.callback)
+		callback = opt.callback;
+
 	var profile = false;
 
 	if (!opt.dn) {
