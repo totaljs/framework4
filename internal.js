@@ -2483,7 +2483,6 @@ exports.parseMULTIPART = function(req, type, route) {
 
 	var beg = type.indexOf('boundary=');
 	if (beg === -1) {
-		F.reqstats(false, false);
 		F.stats.request.error400++;
 		req.res.writeHead(400);
 		req.res.end();
