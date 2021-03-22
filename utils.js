@@ -1696,6 +1696,30 @@ exports.normalize = function(path) {
 	return path;
 };
 
+exports.link = function() {
+	var builder = '';
+	for (var i = 0; i < arguments.length; i++) {
+
+		var url = arguments[i];
+		var between = '';
+
+		if (builder) {
+			var c = builder[builder.length - 1];
+			if (c === '/') {
+				if (url[0] === '/')
+					url = url.substring(1);
+			} else {
+				if (url[0] !== '/')
+					between = '/';
+			}
+		} else
+			between = '';
+
+		builder += between + url;
+	}
+	return builder;
+};
+
 exports.path = function(path, delimiter) {
 	if (!path)
 		path = '';
@@ -1708,14 +1732,14 @@ exports.join = function() {
 
 	for (var i = 0; i < arguments.length; i++) {
 		var current = arguments[i];
-		if (!current)
-			continue;
-		if (current[0] === '/')
-			current = current.substring(1);
-		var l = current.length - 1;
-		if (current[l] === '/')
-			current = current.substring(0, l);
-		path.push(current);
+		if (current) {
+			if (current[0] === '/')
+				current = current.substring(1);
+			var l = current.length - 1;
+			if (current[l] === '/')
+				current = current.substring(0, l);
+			path.push(current);
+		}
 	}
 
 	path = path.join('/');
