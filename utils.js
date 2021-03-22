@@ -435,10 +435,13 @@ function parseProxy(p) {
 	return F.temporary.other[key] = obj;
 }
 
-global.REQUEST = function(opt) {
+global.REQUEST = function(opt, callback) {
 
 	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
+
+	if (callback)
+		opt.callback = callback;
 
 	if (global.F)
 		global.F.stats.performance.external++;
