@@ -5,6 +5,7 @@
 - added a new alias `request.proxy()` to `response.proxy()`
 - added `LDAP(opt, callback)` method for obtaining of users, groups or user profile (experimental)
 - added `U.normalize(path)` that normalizes path by adding `/` to begin and end of the phrase
+- updated `filestorage.save()` by adding support for importing files from URL address
 - updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
 - updated `$.extend([data], [callback])` metho in SchemaOptions by adding `callback` argument that enables async processing
 - removed `allow_debug` option

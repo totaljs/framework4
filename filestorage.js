@@ -22,8 +22,8 @@ function FileDB(name, directory) {
 			t.cache = {};
 	});
 
-	t.retrysave = function(id, name, filename, callback) {
-		t.save(id, name, filename, callback);
+	t.retrysave = function(id, name, filename, callback, custom, expire, headers) {
+		t.save(id, name, filename, callback, custom, expire, headers);
 	};
 
 	t.retryread = function(id, callback, nostream) {
@@ -77,12 +77,12 @@ FP.readfilename = function(id) {
 	return Path.join(directory, id + '.file');
 };
 
-FP.save = FP.insert = function(id, name, filename, callback, custom, expire) {
+FP.save = FP.insert = function(id, name, filename, callback, custom, expire, headers) {
 
 	var self = this;
 
 	if (self.pause) {
-		setTimeout(self.retrysave, 500, id, name, filename, callback, custom, expire);
+		setTimeout(self.retrysave, 500, id, name, filename, callback, custom, expire, headers);
 		return self;
 	}
 
@@ -94,14 +94,54 @@ FP.save = FP.insert = function(id, name, filename, callback, custom, expire) {
 		name = name.substring(index + 1);
 
 	if (self.cache[directory]) {
-		self.saveforce(id, name, filename, filenameto, callback, custom, expire);
+		if (typeof(filename) === 'string' && filename[7] === '/') {
+			// URL address
+			var opt = {};
+			opt.url = filename;
+			opt.custom = true;
+			opt.headers = headers;
+			opt.callback = function(err, response) {
+
+				if (err) {
+					callback(err);
+					return;
+				}
+
+				if (response.status < 400)
+					self.saveforce(id, name, response.stream, filenameto, callback, custom, expire);
+				else
+					callback(U.httpstatus(response.status));
+			};
+			REQUEST(opt);
+		} else
+			self.saveforce(id, name, filename, filenameto, callback, custom, expire);
 	} else {
 		Fs.mkdir(directory, MKDIR, function(err) {
 			if (err)
 				callback(err);
 			else {
 				self.cache[directory] = 1;
-				self.saveforce(id, name, filename, filenameto, callback, custom, expire);
+				if (typeof(filename) === 'string' && filename[7] === '/') {
+					// URL address
+					var opt = {};
+					opt.url = filename;
+					opt.custom = true;
+					opt.headers = headers;
+					opt.callback = function(err, response) {
+
+						if (err) {
+							callback(err);
+							return;
+						}
+
+						if (response.status < 400)
+							self.saveforce(id, name, response.stream, filenameto, callback, custom, expire);
+						else
+							callback(U.httpstatus(response.status));
+					};
+					REQUEST(opt);
+				} else
+					self.saveforce(id, name, filename, filenameto, callback, custom, expire);
 			}
 		});
 	}
