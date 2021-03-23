@@ -6401,6 +6401,7 @@ exports.connect = function(opt, callback) {
 
 		if (opt.tls) {
 			if (!meta.socket2) {
+				tls.socket = meta.socket1;
 				meta.socket2 = Tls.connect(tls, done);
 				meta.socket2.on('error', error);
 				meta.socket2.on('clientError', error);
