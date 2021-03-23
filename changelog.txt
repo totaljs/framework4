@@ -6,6 +6,7 @@
 - added `LDAP(opt, callback)` method for obtaining of users, groups or user profile (experimental)
 - added `U.normalize(path)` that normalizes path by adding `/` to begin and end of the phrase
 - added `U.link(path1, path2, pathN)` for creating of links
+- added `PATH.join()` alias to `Path.join()`
 - updated `filestorage.save()` by adding support for importing files from URL address
 - updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
 - updated `$.extend([data], [callback])` metho in SchemaOptions by adding `callback` argument that enables async processing

@@ -10031,6 +10031,10 @@ const FrameworkPathProto = FrameworkPath.prototype;
 FrameworkPathProto.ls = U.ls;
 FrameworkPathProto.ls2 = U.ls2;
 
+FrameworkPathProto.join = function() {
+	return Path.join.apply(Path, arguments);
+};
+
 FrameworkPathProto.verify = function(name) {
 	var prop = '$directory_' + name;
 	if (F.temporary.path[prop])
