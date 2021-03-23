@@ -135,7 +135,7 @@ global.UNAUTHORIZED = function($) {
 		if (user.roles && user.roles.length) {
 			for (var i = 0; i < user.roles.length; i++) {
 				for (var j = 1; j < arguments.length; j++) {
-					if (arguments[i] === user.roles[i])
+					if (arguments[j] === user.roles[i])
 						return false;
 				}
 			}
