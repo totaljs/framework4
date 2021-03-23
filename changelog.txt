@@ -19,6 +19,7 @@
 - fixed `language` in `WebSocketClient`
 - fixed merging files with the `auto` value defined in `versions`
 - fixed encoding in `content-disposition` header
+- fixed `UNAUTHORIZED()`
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
