@@ -733,6 +733,14 @@ var authbuiltin = function(opt) {
 		}
 	};
 
+	opt.update = function(userid, fn) {
+		for (var key in opt.sessions) {
+			var session = opt.sessions[key];
+			if (session.userid === userid)
+				fn(session.data, session);
+		}
+	};
+
 	opt.refresh = function(userid, exceptsessionid) {
 		for (var key in opt.sessions) {
 			var session = opt.sessions[key];
