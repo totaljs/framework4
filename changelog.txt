@@ -21,6 +21,7 @@
 - fixed merging files with the `auto` value defined in `versions`
 - fixed encoding in `content-disposition` header
 - fixed `UNAUTHORIZED()`
+- fixed `after` argument in the `PROXY()` and `res.proxy()` methods
 - improved error handling in WebSocket
 - improved HTTP caching in merged files
 - improved unit-testing
