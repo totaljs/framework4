@@ -7586,7 +7586,7 @@ function makeproxyerror(err) {
 }
 
 function makeproxycallback(response) {
-	this.$proxy.after && this.proxy.after(response);
+	this.$proxy.after && this.$proxy.after(response);
 	this.$res.writeHead(response.statusCode, response.headers);
 	response.pipe(this.$res, PROXYOPTIONS);
 }
