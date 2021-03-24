@@ -631,7 +631,7 @@ exports.load = function(opt, callback) {
 				reader.parse();
 				callback(null, profile ? reader.response[0] : reader.response);
 			} catch (e) {
-				callback(e, EMPTYARRAY);
+				callback(e, profile ? null : EMPTYARRAY);
 			}
 			meta.close();
 		};
@@ -661,7 +661,7 @@ exports.load = function(opt, callback) {
 			try {
 				reader.parse();
 			} catch (e) {
-				callback(e, EMPTYARRAY);
+				callback(e, profile ? null : EMPTYARRAY);
 			}
 		});
 
