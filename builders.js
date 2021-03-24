@@ -3935,9 +3935,21 @@ function execrestbuilder(instance, callback) {
 	instance.exec(callback);
 }
 
-RESTP.callback = function(callback) {
-	setImmediate(execrestbuilder, this, callback);
-	return this;
+RESTP.callback = function(fn) {
+
+	var self = this;
+
+	if (typeof(fn) === 'function') {
+		setImmediate(execrestbuilder, self, fn);
+		return self;
+	}
+
+	self.$ = fn;
+	setImmediate(execrestbuilder, self);
+	return new Promise(function(resolve, reject) {
+		self.$resolve = resolve;
+		self.$reject = reject;
+	});
 };
 
 RESTP.csrf = function(value) {
@@ -4051,7 +4063,14 @@ RESTP.exec = function(callback) {
 		var data = F.cache.read2(key);
 		if (data) {
 			data = self.$transform ? self.maketransform(self.$schema ? self.$schema.make(data.value) : data.value, data) : self.$schema ? self.$schema.make(data.value) : data.value;
-			callback(null, data, data);
+
+			if (self.$resolve) {
+				self.$resolve(data);
+				self.$reject = null;
+				self.$resolve = null;
+			} else
+				callback(null, data, data);
+
 			return self;
 		}
 	}
@@ -4069,8 +4088,16 @@ function exec_callback(err, response) {
 	var self = response.builder;
 
 	if (self.options.custom) {
-		// response.builder = self;
-		self.$callback.call(self, err, response);
+		if (self.$resolve) {
+			if (err)
+				self.$.invalid(err);
+			else
+				self.$resolve(response);
+			self.$ = null;
+			self.$reject = null;
+			self.$resolve = null;
+		} else
+			self.$callback.call(self, err, response);
 		return;
 	}
 
@@ -4166,7 +4193,13 @@ function exec_callback(err, response) {
 	if (self.$schema) {
 
 		if (err) {
-			callback(err, EMPTYOBJECT, output);
+			if (self.$resolve) {
+				self.$.invalid(err);
+				self.$ = null;
+				self.$reject = null;
+				self.$resolve = null;
+			} else
+				callback(err, EMPTYOBJECT, output);
 			return;
 		}
 
@@ -4186,8 +4219,23 @@ function exec_callback(err, response) {
 		}
 
 		self.$schema.make(val, function(err, model) {
+
 			if (!err && key && output.status === 200)
 				F.cache.add(key, output, self.$cache_expire);
+
+			if (self.$resolve) {
+
+				if (err)
+					self.$.invalid(err);
+				else
+					self.$resolve(model);
+
+				self.$ = null;
+				self.$reject = null;
+				self.$resolve = null;
+				return;
+			}
+
 			callback(err, err ? EMPTYOBJECT : model, output);
 			output.cache = true;
 		});
@@ -4210,6 +4258,19 @@ function exec_callback(err, response) {
 
 		if (self.$convert && val && val !== EMPTYOBJECT)
 			val = CONVERT(val, self.$convert);
+
+		if (self.$resolve) {
+
+			if (err)
+				self.$.invalid(err);
+			else
+				self.$resolve(val);
+
+			self.$ = null;
+			self.$reject = null;
+			self.$resolve = null;
+			return;
+		}
 
 		callback(err, val, output);
 		output.cache = true;
