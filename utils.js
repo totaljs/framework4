@@ -6387,7 +6387,7 @@ exports.connect = function(opt, callback) {
 	};
 
 	if (opt.timeout)
-		timeout = setTimeout(() => error(new Error('Timeout')));
+		timeout = setTimeout(() => error(new Error('Timeout')), opt.timeout);
 
 	meta.destroy = meta.close = close;
 	meta.write = function(data) {
