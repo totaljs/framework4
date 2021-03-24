@@ -6350,10 +6350,12 @@ exports.connect = function(opt, callback) {
 	// opt.secure {Boolean}
 	// opt.host
 	// opt.port
+	// opt.timeout
 
 	var opt = CLONE(opt);
 	var tls = opt.tls;
 	var meta = {};
+	var timeout;
 
 	meta.opt = opt;
 	meta.tls = tls;
@@ -6384,6 +6386,9 @@ exports.connect = function(opt, callback) {
 		close();
 	};
 
+	if (opt.timeout)
+		timeout = setTimeout(() => error(new Error('Timeout')));
+
 	meta.destroy = meta.close = close;
 	meta.write = function(data) {
 		meta.socket.write(data);
@@ -6399,6 +6404,9 @@ exports.connect = function(opt, callback) {
 
 	var done = function() {
 
+		if (!callback)
+			return;
+
 		if (opt.tls) {
 			if (!meta.socket2) {
 				tls.socket = meta.socket1;
@@ -6410,6 +6418,8 @@ exports.connect = function(opt, callback) {
 		}
 
 		meta.socket = meta.socket2 || meta.socket1;
+		timeout && clearTimeout(timeout);
+		timeout = null;
 		callback && callback(null, meta);
 		callback = null;
 	};
