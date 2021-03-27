@@ -218,6 +218,7 @@ global.FLOWSTREAM = function(name, errorhandler) {
 var DEF = global.DEF = {};
 
 DEF.currencies = {};
+DEF.blacklist = {};
 
 DEF.parsers = {};
 DEF.parsers.json = function(body) {
@@ -7428,7 +7429,7 @@ F.listener = function(req, res) {
 	else if (!req.host) // HTTP 1.0 without host
 		return res.throw400();
 
-	if (DEF.blacklist && DEF.blacklist[req.ip]) {
+	if (DEF.blacklist[req.ip]) {
 		F.stats.request.blocked++;
 		req.destroy();
 		return;
@@ -8038,7 +8039,7 @@ F.$upgrade = function(req, socket, head) {
 	req.uri = framework_internal.parseURI(req);
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
-	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req)) || (DEF.blacklist && DEF.blacklist[req.ip])) {
+	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req)) || DEF.blacklist[req.ip]) {
 		req.destroy();
 		return;
 	}
