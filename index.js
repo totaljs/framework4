@@ -7428,6 +7428,12 @@ F.listener = function(req, res) {
 	else if (!req.host) // HTTP 1.0 without host
 		return res.throw400();
 
+	if (DEF.blacklist && DEF.blacklist[req.ip]) {
+		F.stats.request.blocked++;
+		req.destroy();
+		return;
+	}
+
 	F.stats.request.request++;
 
 	if (CONF.allow_reqlimit) {
@@ -8032,7 +8038,7 @@ F.$upgrade = function(req, socket, head) {
 	req.uri = framework_internal.parseURI(req);
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
-	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req))) {
+	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req)) || (DEF.blacklist && DEF.blacklist[req.ip])) {
 		req.destroy();
 		return;
 	}
