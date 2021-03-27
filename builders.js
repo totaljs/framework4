@@ -162,6 +162,10 @@ SchemaOptions.prototype = {
 		return this.controller && this.controller ? this.controller.req.sessionid : null;
 	},
 
+	get url() {
+		return (this.controller ? this.controller.req.url : '') || '';
+	},
+
 	get language() {
 		return (this.controller ? this.controller.language : '') || '';
 	},
@@ -1414,6 +1418,10 @@ SchemaOptionsVerify.prototype = {
 
 	get sessionid() {
 		return this.controller && this.controller ? this.controller.req.sessionid : null;
+	},
+
+	get url() {
+		return (this.controller ? this.controller.req.url : '') || '';
 	},
 
 	get language() {
@@ -4632,6 +4640,10 @@ OperationOptions.prototype = {
 
 	get sessionid() {
 		return this.controller && this.controller ? this.controller.req.sessionid : null;
+	},
+
+	get url() {
+		return (this.controller ? this.controller.req.url : '') || '';
 	},
 
 	get language() {
