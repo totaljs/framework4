@@ -12180,10 +12180,11 @@ ControllerProto.$import = function() {
 			merge[0] = merge[0].trim();
 			var index = merge[0].lastIndexOf('.');
 			var mergename = merge[0];
-			var crc = 0;
 
 			ext = U.getExtension(merge[0]);
 			merge[0] = ext === 'css' ? self.public_css(merge[0]) : self.public_js(merge[0]);
+
+			var crc = merge[0].crc32(true);
 
 			for (var j = 1; j < merge.length; j++) {
 				merge[j] = merge[j].trim();
@@ -12196,7 +12197,6 @@ ControllerProto.$import = function() {
 
 			var tmp = ext === 'css' ? self.public_css(outputname, true) : self.public_js(outputname, true);
 			$importmergecache[hash] = F.temporary.other[k] = tmp;
-
 			merge.unshift(outputname);
 			MERGE.apply(global, merge);
 			builder += tmp;
