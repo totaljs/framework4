@@ -10,7 +10,7 @@
 - added `DEF.blacklist` object that performs IP blacklist
 - updated `filestorage.save()` by adding support for importing files from URL address
 - updated built-in session `AUTH()` mechanism by adding `options.strict {Boolean}` option
-- updated `$.extend([data], [callback])` metho in SchemaOptions by adding `callback` argument that enables async processing
+- updated `$.extend([data], [callback])` method in SchemaOptions by adding `callback` argument that enables async processing
 - removed `allow_debug` option
 - fixed `abort` event for incoming `request`
 - fixed `controller.json()` method
