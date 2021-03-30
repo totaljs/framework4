@@ -6069,7 +6069,7 @@ MultipartParser.prototype.parse_head = function() {
 	if (index === -1)
 		return;
 
-	var header = self.buffer.slice(0, index).toString('ascii').trim();
+	var header = self.buffer.slice(0, index).toString('utf8').trim();
 	if (header.substring(0, HEADERCHECK.length).toLowerCase() !== HEADERCHECK) {
 		self.kill('7:');
 		return;
