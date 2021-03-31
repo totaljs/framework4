@@ -3,6 +3,7 @@
 ========================
 
 - fixed UTF8 chars in multi-part parser
+- fixed `NOSQL().autofill()`
 
 ========================
 0.0.39

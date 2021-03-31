@@ -840,7 +840,11 @@ DB.gridfields = function(fields, allowed) {
 DB.gridfilter = function(name, obj, type, key) {
 
 	var builder = this;
-	var value = obj[name];
+	var value = obj[name] || '';
+
+	if (!value)
+		return builder;
+
 	var arr, val;
 
 	if (!key)
@@ -1036,11 +1040,20 @@ DB.autofill = function($, allowedfields, skipfilter, defsort, maxlimit) {
 
 		var sort = query.sort.split(',');
 		var sortvalue = '';
+
 		for (var i = 0; i < sort.length; i++) {
 			var index = sort[i].lastIndexOf('_');
 			var name = index > 1 ? sort[i].substring(0, index) : sort[i];
-			if ((skipped && skipped[name]) || (allowed && !allowed.meta[name]) || !schema.schema[name])
+
+			if (skipped && skipped[name])
 				continue;
+
+			if (allowed) {
+				if (!allowed.meta[name] && !schema.schema[name])
+					continue;
+			} else if (!schema.schema[name])
+				continue;
+
 			sortvalue += (sortvalue ? ',' : '') + sort[i];
 		}
 
@@ -1053,7 +1066,7 @@ DB.autofill = function($, allowedfields, skipfilter, defsort, maxlimit) {
 	} else if (defsort)
 		self.sort(defsort);
 
-	maxlimit && self.paginate(query.page, query.limit, maxlimit || 50);
+	self.paginate(query.page, query.limit, maxlimit || 50);
 	return self;
 };
 
