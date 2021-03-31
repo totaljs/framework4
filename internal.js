@@ -2124,7 +2124,6 @@ function viewengine_load(name, filename, controller, component) {
 		filename += '.html';
 
 	var key = 'view#' + filename + (controller.language || '');
-
 	var generator = F.temporary.views[key];
 	if (generator)
 		return generator;

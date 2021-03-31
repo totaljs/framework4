@@ -13228,6 +13228,10 @@ ControllerProto.proxy = function(opt) {
 	REQUEST(opt);
 };
 
+function view_render_wait(self, name, model, headers, partial) {
+	self.view(name, model, headers, partial);
+}
+
 /**
  * Renders view to response
  * @param {String} name View name without `.html` extension.
@@ -13288,38 +13292,68 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 
 		filename = name;
 
-		if (self.themeName && skip < 3) {
-			filename = '.' + PATH.themes(self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
-			isTheme = true;
-		}
+		if (global.THREAD) {
 
-		if (skip === 4) {
-			filename = filename.substring(1);
-			name = name.substring(1);
-			skip = 2;
-		}
+			// not supported path
+			if (skip === 3 || skip === 4)
+				throw new Error('Not supported path: ' + name);
 
-		if (!isTheme && !isLayout && !skip && self._currentView)
-			filename = self._currentView + name;
+			if (!skip && self.themeName) {
+				filename = '.' + PATH.root('/threads/' + THREAD + '/themes/' + self.themeName + '/views/' + filename);
+			} else if (self.themeName && skip < 3) {
+				filename = '.' + PATH.root('/threads/' + THREAD + '/themes/' + self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
+				isTheme = true;
+			} else if (skip === 2)
+				filename = '.' + PATH.root('/views/' + name.substring(1));
+			else
+				filename = '.' + PATH.root('/threads/' + THREAD + '/views/' + name);
 
-		if (!isTheme && (skip === 2 || skip === 3))
-			filename = name.substring(1);
+			if (!isTheme && !isLayout && !skip && self._currentView)
+				filename = self._currentView + name;
 
-		if (skip === 3)
-			filename = '.' + PATH.package(filename);
+			/*
+			if (!isTheme && (skip === 2 || skip === 3))
+				filename = name.substring(1);*/
 
-		if (skip === 6) {
-			c = U.parseTheme(filename);
-			name = name.substring(name.indexOf('/') + 1);
-			filename = '.' + PATH.themes(c + '/views/' + name).replace(REG_SANITIZE_BACKSLASH, '/');
+			if (skip === 6) {
+				c = U.parseTheme(filename);
+				name = name.substring(name.indexOf('/') + 1);
+				filename = '.' + PATH.root('/threads/' + THREAD + '/themes/' + c + '/views/' + name).replace(REG_SANITIZE_BACKSLASH, '/');
+			}
+
+		} else {
+
+			if (self.themeName && skip < 3) {
+				filename = '.' + PATH.themes(self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
+				isTheme = true;
+			}
+
+			if (skip === 4) {
+				filename = filename.substring(1);
+				name = name.substring(1);
+				skip = 2;
+			}
+
+			if (!isTheme && !isLayout && !skip && self._currentView)
+				filename = self._currentView + name;
+
+			if (!isTheme && (skip === 2 || skip === 3))
+				filename = name.substring(1);
+
+			if (skip === 3)
+				filename = '.' + PATH.package(filename);
+
+			if (skip === 6) {
+				c = U.parseTheme(filename);
+				name = name.substring(name.indexOf('/') + 1);
+				filename = '.' + PATH.themes(c + '/views/' + name).replace(REG_SANITIZE_BACKSLASH, '/');
+			}
 		}
 
 		if (skip === 7) {
 
 			if (F.temporary.other[key] === 0) {
-				setTimeout(function() {
-					self.view(name, model, headers, partial);
-				}, 100, self);
+				setTimeout(view_render_wait, 100, self, name, model, headers, partial);
 				return;
 			}
 
@@ -13516,7 +13550,6 @@ ControllerProto.$viewrender = function(filename, generator, model, headers, part
 					F.stats.response.view++;
 					return self;
 				}
-
 
 				if (partial)
 					self.outputPartial = value;

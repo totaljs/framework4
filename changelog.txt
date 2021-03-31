@@ -2,6 +2,7 @@
 0.0.40
 ========================
 
+- threads supports views
 - fixed UTF8 chars in multi-part parser
 - fixed `NOSQL().autofill()`
 
