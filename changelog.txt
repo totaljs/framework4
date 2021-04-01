@@ -5,6 +5,7 @@
 - threads supports views
 - fixed UTF8 chars in multi-part parser
 - fixed `NOSQL().autofill()`
+- fixed converting date via `Date.setTimeZone()`
 
 ========================
 0.0.39

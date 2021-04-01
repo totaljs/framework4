@@ -2173,8 +2173,25 @@ exports.ls2 = function(path, callback, filter) {
 };
 
 DP.setTimeZone = function(timezone) {
-	var dt = this.toLocaleString('en-US', { timeZone: timezone, hour12: false, dateStyle: 'short', timeStyle: 'short' });
-	return new Date(Date.parse(dt));
+
+	var dt = new Date(this.toLocaleString('en-US', { timeZone: timezone }));
+
+	var offset = dt + '';
+	var index = offset.indexOf('GMT');
+	var op = offset.substring(index + 3, index + 4);
+	var count = offset.substring(index + 4, index + 9);
+	var h = +count.substring(0, 2);
+	var m = +count.substring(2);
+
+	if (op === '+') {
+		h && dt.setHours(dt.getHours() + h);
+		m && dt.setMinutes(dt.getMinutes() + m);
+	} else {
+		h && dt.setHours(dt.getHours() - h);
+		m && dt.setMinutes(dt.getMinutes() - m);
+	}
+
+	return dt;
 };
 
 /**
