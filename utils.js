@@ -2747,6 +2747,11 @@ SP.parseXML = function(replace) {
 		var el = xml.substring(beg, end + 1);
 		var c = el[1];
 
+		if (el.substring(0, 4) === '<!--') {
+			beg = end + 3;
+			continue;
+		}
+
 		if (c === '?' || c === '/') {
 
 			var o = current.pop();

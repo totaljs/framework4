@@ -6,6 +6,7 @@
 - fixed UTF8 chars in multi-part parser
 - fixed `NOSQL().autofill()`
 - fixed converting date via `Date.setTimeZone()`
+- fixed XML comments in `String.parseXML()`
 
 ========================
 0.0.39
