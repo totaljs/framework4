@@ -13292,7 +13292,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 
 		filename = name;
 
-		if (global.THREAD) {
+		if (global.THREAD && skip !== 5) {
 
 			// not supported path
 			if (skip === 3 || skip === 4)
