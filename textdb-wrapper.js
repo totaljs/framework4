@@ -237,7 +237,7 @@ DP.count = function() {
 	return builder;
 };
 
-DP.scalar = function(type, key) {
+DP.scalar = function(type, key, key2) {
 	var builder = new DatabaseBuilder();
 	builder.command = 'find';
 
@@ -248,13 +248,19 @@ DP.scalar = function(type, key) {
 
 	switch (type) {
 		case 'group':
-			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(key);
+			builder.options.scalar = key2 ? 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+(doc.{1}||0)}'.format(key, key2) : 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(key);
 			builder.options.scalararg = {};
 			break;
 		default:
 			// min, max, sum, count
-			builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if (!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(key);
-			builder.options.scalararg = { count: 0, sum: 0 };
+
+			if (key2) {
+				builder.options.scalar = 'var k=doc.' + key + '+\'\';if (arg[k]){tmp.bk=doc.' + key2 + '||0;' + (type === 'max' ? 'if(tmp.bk>arg[k])arg[k]=tmp.bk' : type === 'min' ? 'if(tmp.bk<arg[k])arg[k]=tmp.bk' : 'arg[k]+=tmp.bk') + '}else{arg[k]=doc.' + key2 + '||0}';
+			} else {
+				builder.options.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if(!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(key);
+				builder.options.scalararg = { count: 0, sum: 0 };
+			}
+
 			break;
 	}
 

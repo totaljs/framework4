@@ -3,6 +3,7 @@
 ========================
 
 - threads supports views
+- improved `Database.scalar()` by adding new argument
 - fixed UTF8 chars in multi-part parser
 - fixed `NOSQL().autofill()`
 - fixed converting date via `Date.setTimeZone()`
