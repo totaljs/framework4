@@ -5858,6 +5858,24 @@ RP.find = function() {
 	return builder;
 };
 
+function listing(builder, items, response) {
+	var skip = builder.options.skip || 0;
+	var take = builder.options.take || 0;
+	return { page: skip && take ? ((skip / take) + 1) : 1, pages: response.count && take ? Math.ceil(response.count / take) : response.count ? 1 : 0, limit: take, count: response.count, items: items || [] };
+}
+
+RP.list = function() {
+	var self = this;
+	var builder = require('./textdb-wrapper').makebuilder();
+	builder.command = 'find';
+	builder.parent = {};
+	builder.$callback = function(err, response, meta) {
+		builder.parent.$callback && builder.parent.$callback(err, listing(builder, response, meta), meta);
+	};
+	setImmediate(self.$add, builder);
+	return builder;
+};
+
 RP.read = function() {
 	var self = this;
 	var builder = require('./textdb-wrapper').makebuilder();
