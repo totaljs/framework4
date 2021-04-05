@@ -8,6 +8,7 @@
 - fixed `NOSQL().autofill()`
 - fixed converting date via `Date.setTimeZone()`
 - fixed XML comments in `String.parseXML()`
+- fixed `Name` type in `Schemas`
 
 ========================
 0.0.39

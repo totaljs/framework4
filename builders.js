@@ -1574,9 +1574,6 @@ function toName(val) {
 		if ((c < 65 || (c > 90 && c < 97) || (c > 122 && c < 128)) && c !== 32)
 			continue;
 
-		if (c === p)
-			continue;
-
 		if (a && p !== 32) {
 
 			if (c === 32) {
