@@ -4842,7 +4842,7 @@ AP.findAll = function(cb, value) {
 	return selected;
 };
 
-AP.findValue = function(cb, value, path, def) {
+AP.findItem = function(cb, value, path, def) {
 	var index = this.findIndex(cb, value);
 	if (index !== -1) {
 		var item = this[index][path];
