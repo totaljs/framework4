@@ -629,14 +629,30 @@ DB.skip = function(count) {
 	return this;
 };
 
-DB.in = function(name, value) {
+DB.in = function(name, value, id) {
 	var self = this;
+
+	if (id) {
+		var arr = [];
+		for (var i = 0; i < value.length; i++)
+			arr.push(value[i][id]);
+		value = arr;
+	}
+
 	self.options.filter.push('func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
 	return self;
 };
 
-DB.notin = function(name, value) {
+DB.notin = function(name, value, id) {
 	var self = this;
+
+	if (id) {
+		var arr = [];
+		for (var i = 0; i < value.length; i++)
+			arr.push(value[i][id]);
+		value = arr;
+	}
+
 	self.options.filter.push('!func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
 	return self;
 };
