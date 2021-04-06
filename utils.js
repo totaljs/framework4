@@ -4842,13 +4842,16 @@ AP.findAll = function(cb, value) {
 	return selected;
 };
 
-/**
- * Find item in Array
- * @param {Function(item, index) or String/Object} cb
- * @param {Object} value Optional.
- * @return {Array}
- */
-AP.findItem = function(cb, value) {
+AP.findValue = function(cb, value, path, def) {
+	var index = this.findIndex(cb, value);
+	if (index !== -1) {
+		var item = this[index][path];
+		return item == null ? def : item;
+	}
+	return def;
+};
+
+AP.findValue = function(cb, value) {
 	var self = this;
 	var index = self.findIndex(cb, value);
 	if (index === -1)
