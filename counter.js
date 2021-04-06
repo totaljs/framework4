@@ -87,16 +87,19 @@ CP.count = function(id, callback) {
 	return builder;
 };
 
-CP.scalar = function(type, field, callback) {
+CP.scalar = function(type, field, key, callback) {
 
-	if (typeof(field) === 'function' || !field) {
+	if (typeof(key) === 'function') {
+		callback = key;
+		key = null;
+	} else if (typeof(field) === 'function' || !field) {
 		callback = field;
 		field = type;
 		type = '*';
 	}
 
 	var self = this;
-	var builder = self.db.scalar(type, field);
+	var builder = self.db.scalar(type, field, key);
 	callback && builder.callback(callback);
 	return builder;
 };
