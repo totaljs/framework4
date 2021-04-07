@@ -5780,8 +5780,6 @@ global.AUDIT = function(name, $, message, type) {
 
 	var data = {};
 
-	data.app = CONF.name;
-
 	if ($.user) {
 		data.userid = $.user.id;
 		data.username = $.user.name || $.user.nick || $.user.alias;
