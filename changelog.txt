@@ -7,6 +7,7 @@
 - added async/await mechanism to TextDB
 - added async/await mechanism to RESTBuilder
 - threads supports views
+- improved error handling in `TotalAPI()`
 - improved `Database.scalar()` by adding new argument
 - improved `QueryBuilder.in()` and `QueryBuilder.notin()`
 - fixed UTF8 chars in multi-part parser
