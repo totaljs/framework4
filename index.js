@@ -10758,7 +10758,7 @@ Controller.prototype = {
 		if (this.$params)
 			return this.$params;
 		var route = this.route;
-		var names = route.paramnames;
+		var names = route ? route.paramnames : null;
 		if (names) {
 			var obj = {};
 			for (var i = 0; i < names.length; i++) {
@@ -13835,7 +13835,7 @@ WebSocket.prototype = {
 		if (this.$params)
 			return this.$params;
 		var split = framework_internal.routeSplit(this.url, true);
-		var names = this.route.paramnames;
+		var names = this.route ? this.route.paramnames : null;
 		if (names) {
 			var obj = {};
 			for (var i = 0; i < names.length; i++)
