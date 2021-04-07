@@ -9660,9 +9660,12 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 
 		// Determines raw file
 		if (!(/json|text|html/).test(type)) {
-			if (typeof(callback) === 'function')
-				callback(null, response.stream, response);
-			else
+			if (typeof(callback) === 'function') {
+				if (response.status === 200)
+					callback(null, response.stream, response);
+				else
+					callback(U.httpstatus(response.status), null, response);
+			} else
 				callback.res.stream(type, response.stream, filename);
 			return;
 		}
