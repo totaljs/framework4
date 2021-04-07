@@ -71,6 +71,7 @@ const PROXYOPTIONS = { end: true };
 const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
+const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1, pin: 1 };
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -5763,14 +5764,23 @@ DEF.onMeta = function() {
 	return builder;
 };
 
-global.AUDIT = function(name, $, type, message) {
+function auditjsonserialization(key, value) {
+	if (!BLACKLIST_AUDIT[key] && value != null && value !== '')
+		return value;
+}
 
-	if (message == null) {
-		message = type;
-		type = null;
+global.AUDIT = function(name, $, message, type) {
+
+	if (typeof(name) === 'object') {
+		type = message;
+		message = $;
+		$ = name;
+		name = null;
 	}
 
 	var data = {};
+
+	data.app = CONF.name;
 
 	if ($.user) {
 		data.userid = $.user.id;
@@ -5782,18 +5792,28 @@ global.AUDIT = function(name, $, type, message) {
 			data.sessionid = $.req.sessionid;
 		data.ua = $.req.ua;
 		data.ip = $.ip;
+		data.url = $.url;
 	}
 
-	if (type)
-		data.type = type;
+	if ($.id)
+		data.reference = $.id;
 
-	if ($.name)
-		data.caller = ($.schema ? ($.schema.name + '/') : '') + $.name;
+	if (type)
+		data.type = type || 'info';
+
+	if (name)
+		data.schema = name;
+	else if ($.ID)
+		data.schema = $.ID;
+
+	if ($.model)
+		data.data = JSON.stringify({ params: $.params, query: $.query, model: $.model }, auditjsonserialization);
 
 	if (F.id)
 		data.instance = F.id;
 
-	data.created = NOW = new Date();
+	if (global.THREAD)
+		data.thread = global.THREAD;
 
 	if (message)
 		data.message = message;
@@ -5984,7 +6004,8 @@ DEF.onAudit = function(name, data) {
 	PATH.verify('logs');
 	U.queue('LOGGER', 5, function(next) {
 		F.stats.performance.open++;
-		Fs.appendFile(U.combine(CONF.directory_logs, name + '.log'), JSON.stringify(data) + '\n', next);
+		data.dtcreated = NOW = new Date();
+		Fs.appendFile(U.combine(CONF.directory_logs, (name || 'audit') + '.log'), JSON.stringify(data) + '\n', next);
 	});
 };
 
@@ -10771,6 +10792,11 @@ const ControllerProto = Controller.prototype;
 
 ControllerProto.csrf = function() {
 	return DEF.onCSRFcreate(this.req);
+};
+
+ControllerProto.audit = function(message, type) {
+	AUDIT(this, message, type);
+	return this;
 };
 
 ControllerProto.successful = function(callback) {

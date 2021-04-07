@@ -268,6 +268,11 @@ SchemaOptionsProto.redirect = function(url) {
 	return this;
 };
 
+SchemaOptionsProto.audit = function(message, type) {
+	AUDIT(this, message, type);
+	return this;
+};
+
 TaskBuilderProto.clean = function() {
 	return this.value;
 };
@@ -4718,6 +4723,11 @@ OperationOptionsProto.cancel = function() {
 	return self;
 };
 
+OperationOptionsProto.audit = function(message, type) {
+	AUDIT(this, message, type);
+	return this;
+};
+
 OperationOptionsProto.noop = function(nocustomresponse) {
 	var self = this;
 	!nocustomresponse && self.controller && self.controller.custom();
@@ -4886,6 +4896,11 @@ AuthOptionsProto.done = function(response) {
 
 AuthOptionsProto.success = function(user) {
 	this.next(true, user);
+};
+
+AuthOptionsProto.audit = function(message, type) {
+	AUDIT(this, message, type);
+	return this;
 };
 
 AuthOptionsProto.next = AuthOptionsProto.callback = function(is, user) {
@@ -5162,6 +5177,11 @@ exports.check_task = function(name) {
 
 exports.check_operation = function(name) {
 	return operations[name];
+};
+
+TaskBuilderProto.audit = function(message, type) {
+	AUDIT(this, message, type);
+	return this;
 };
 
 TaskBuilderProto.invalid = function(err, msg) {
