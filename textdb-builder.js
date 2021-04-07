@@ -347,7 +347,7 @@ QueryBuilder.prototype.done = function() {
 
 	var self = this;
 
-	if (!self.$callback && !self.$callback2)
+	if (!self.$callback && !self.$callback2 && !self.$resolve)
 		return;
 
 	var meta = {};
@@ -389,6 +389,7 @@ QueryBuilder.prototype.done = function() {
 		} else {
 			self.$callback && self.$callback(null, meta);
 			self.$callback2 && self.$callback2(null, meta);
+			self.$resolve && self.$resolve(meta);
 		}
 	} else {
 		if (self.joins) {
@@ -396,6 +397,7 @@ QueryBuilder.prototype.done = function() {
 		} else {
 			self.$callback && self.$callback(null, self.response, meta);
 			self.$callback2 && self.$callback2(null, self.response, meta);
+			self.$resolve && self.$resolve(self.response);
 		}
 	}
 };

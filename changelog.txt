@@ -4,6 +4,8 @@
 
 - added `U.reader().list()` method
 - added `Array.findValue()`
+- added async/await mechanism to TextDB
+- added async/await mechanism to RESTBuilder
 - threads supports views
 - improved `Database.scalar()` by adding new argument
 - improved `QueryBuilder.in()` and `QueryBuilder.notin()`

@@ -5817,7 +5817,12 @@ function Reader() {
 		var b = require('./textdb-builder').make();
 		builder.options.filter = builder.options.filter && builder.options.filter.length ? builder.options.filter.join('&&') : 'true';
 		b.assign(builder.options);
-		b.$callback = builder.$callback;
+
+		if (builder.$)
+			b.$resolve = builder.$resolve;
+		else
+			b.$callback = builder.$callback;
+
 		if (t.reader)
 			t.reader.add(b);
 		else {
@@ -5873,7 +5878,13 @@ RP.list = function() {
 	builder.command = 'find';
 	builder.parent = {};
 	builder.$callback = function(err, response, meta) {
-		builder.parent.$callback && builder.parent.$callback(err, listing(builder, response, meta), meta);
+		if (builder.parent.$) {
+			if (err)
+				builder.parent.$.invalid(err);
+			else
+				builder.parent.$resolve(response);
+		} else if (builder.parent.$callback)
+			builder.parent.$callback(err, listing(builder, response, meta), meta);
 	};
 	setImmediate(self.$add, builder);
 	return builder;

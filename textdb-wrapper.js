@@ -154,7 +154,7 @@ function Database(type, name, onetime, schema) {
 			return;
 		}
 
-		t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : builder.$callback;
+		t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : (builder.$ ? builder.asynchandler() : builder.$callback);
 	};
 }
 
@@ -205,7 +205,14 @@ DP.list = function() {
 	builder.command = 'find';
 	builder.$custom = function() {
 		return function(err, response, meta) {
-			builder.$callback && builder.$callback(err, listing(builder, response, meta), meta);
+			var data = listing(builder, response, meta);
+			if (builder.$) {
+				if (err)
+					builder.$.invalid(err);
+				else
+					builder.$resolve(data);
+			} else if (builder.$callback)
+				builder.$callback(err, data, meta);
 		};
 	};
 	this.next(builder);
@@ -330,8 +337,17 @@ DP.insert = function(data, check, noeval) {
 		builder.$custom = function() {
 			return function(err, response, meta) {
 				if (response) {
-					builder.$callback && builder.$callback(err, 0, meta);
+					if (builder.$) {
+						if (err)
+							builder.$.invalid(err);
+						else
+							builder.$resolve(0);
+					} else if (builder.$callback)
+						builder.$callback(err, 0, meta);
 				} else {
+					bi.$ = builder.$;
+					bi.$resolve = builder.$resolve;
+					bi.$reject = builder.$reject;
 					bi.$callback = builder.$callback;
 					self.next(bi);
 				}
@@ -415,12 +431,21 @@ DP.update = DP.modify = DP.mod = function(data, upsert, noeval) {
 		builder.$custom = function() {
 			return function(err, response, meta) {
 				if (response) {
-					builder.$callback && builder.$callback(err, response, meta);
+					if (builder.$) {
+						if (err)
+							builder.$.invalid(err);
+						else
+							builder.$resolve(response);
+					} else if (builder.$callback)
+						builder.$callback(err, response, meta);
 				} else {
 					builder.$upsert && builder.$upsert(arg, builder);
 					var bi = new DatabaseBuilder();
 					bi.command = 'insert';
 					bi.options.payload = arg;
+					bi.$ = builder.$;
+					bi.$resolve = builder.$resolve;
+					bi.$reject = builder.$reject;
 					bi.$callback = builder.$callback;
 					self.next(bi);
 				}
@@ -510,16 +535,45 @@ DB.done = function($, callback, param) {
 };
 
 DB.callback = function(callback, err) {
-	if (this.parent) {
-		this.parent.$callback = callback;
-		if (err)
-			this.parent.$error = err;
+
+	var self = this;
+
+	if (typeof(callback) === 'function') {
+
+		if (self.parent) {
+			self.parent.$callback = callback;
+			if (err)
+				self.parent.$error = err;
+		} else {
+			self.$callback = callback;
+			if (err)
+				self.$error = err;
+		}
+
+		return self;
+
 	} else {
-		this.$callback = callback;
-		if (err)
-			this.$error = err;
+
+		if (self.parent) {
+			self.parent.$ = callback;
+			if (err)
+				self.parent.$error = err;
+		} else {
+			self.$ = callback;
+			if (err)
+				self.$error = err;
+		}
+
+		return new Promise(function(resolve, reject) {
+			if (self.parent) {
+				self.parent.$resolve = resolve;
+				self.parent.$reject = reject;
+			} else {
+				self.$resolve = resolve;
+				self.$reject = reject;
+			}
+		});
 	}
-	return this;
 };
 
 DB.callbackerror = function() {
@@ -527,7 +581,13 @@ DB.callbackerror = function() {
 	return function(err, response) {
 		if (response == null || response === 0 || (response instanceof Array && !response.length))
 			err = self.$error;
-		self.$callback && self.$callback(err, response);
+		if (self.$) {
+			if (err)
+				self.$.invalid(err);
+			else
+				self.$resolve(response);
+		} else if (self.$callback)
+			self.$callback(err, response);
 	};
 };
 
@@ -1113,6 +1173,16 @@ DB.on = function(a, b) {
 	this.options.filter.push('!!(doc.' + a + '==null?false:arg.params[' + index + '].has(doc.' + a + '))');
 	this.options.on = [a, b, index];
 	return this;
+};
+
+DB.asynchandler = function() {
+	var self = this;
+	return function(err, response) {
+		if (err)
+			self.$.invalid(err);
+		else
+			self.$resolve(response);
+	};
 };
 
 function promise(fn) {
