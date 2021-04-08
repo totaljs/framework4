@@ -617,8 +617,7 @@ DB.where = function(name, operator, value) {
 			break;
 	}
 
-	var val = 'arg.params[' + self.param(value) + ']';
-	self.options.filter.push('doc.' + name + ' instanceof Array?(doc.' + name + '.indexOf(' + val + ')' + (operator === '==' ? '!=' : '==') + '-1):(doc.' + name + operator + val + ')');
+	self.options.filter.push('doc.' + name + operator + 'arg.params[' + self.param(value) + ']');
 	return self;
 };
 
