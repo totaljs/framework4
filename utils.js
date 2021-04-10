@@ -4083,7 +4083,7 @@ exports.encrypt_uid = function(val, key) {
 	for (var i = 0; i < key.length; i++)
 		sum += key.charCodeAt(i);
 
-	return (num ? 'n' : 'x') + (CONF.secret_uid + val + sum + key).crc32(true).toString(36) + 'x' + val;
+	return (num ? 'n' : 'x') + (CONF.secret_uid + val + sum + key).crc32(true).toString(32) + 'x' + val;
 };
 
 exports.decrypt_uid = function(val, key) {
