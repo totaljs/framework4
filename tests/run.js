@@ -50,7 +50,7 @@ tests.push(function(next) {
 		console.time(subtest_log);
 
 		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err, res) {
-			Assert.ok(err === null && res === EMPTYOBJECT, group + ' - Expecting empty Object');
+			Assert.ok(err instanceof ErrorBuilder, group + ' - Expecting ErrorBuilder');
 			console.timeEnd(subtest_log);
 			next();
 		});
