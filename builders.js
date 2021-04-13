@@ -539,7 +539,7 @@ function runmiddleware(opt, schema, callback, index, processor) {
 SchemaBuilderEntityProto.define = function(name, type, required, custom) {
 
 	if (name instanceof Array) {
-		for (var i = 0, length = name.length; i < length; i++)
+		for (var i = 0; i < name.length; i++)
 			this.define(name[i], type, required, custom);
 		return this;
 	}
