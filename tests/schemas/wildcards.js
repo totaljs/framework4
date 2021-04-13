@@ -16,4 +16,8 @@ NEWSCHEMA('Wildcards', function(schema) {
 		$.success(4);
 	});
 
+	schema.addWorkflow('five', function($) {
+		$.success(5);
+	});
+
 });

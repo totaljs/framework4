@@ -479,6 +479,14 @@ tests.push(function(next) {
 			});
 		});
 
+		tests.push(function(next) {
+			RESTBuilder.POST(url + '/wildcards/second/arg1/arg2/wild').exec(function(err, res) {
+				console.log('-->', err, res);
+				Assert.ok(err === null && res.success && res.value === 5, subtest_name);
+				next();
+			});
+		});
+
 		// Overwrite wildcard
 		tests.push(function(next) {
 			RESTBuilder.POST(url + '/wildcards/overwrite').exec(function(err, res) {
