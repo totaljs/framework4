@@ -9504,7 +9504,7 @@ F.lookup = function(req, membertype, skipflags) {
 	if (tmp.D) {
 		for (var i = 0; i < tmp.D.length; i++) {
 			var r = tmp.D[i];
-			if (r.url.length === length) {
+			if (r.url.length === length || r.isWILDCARD) {
 				if (r.compare(req)) {
 					if (!routes)
 						routes = [];
@@ -9575,7 +9575,7 @@ F.lookup_websocket = function(req, membertype, skipflags) {
 	if (tmp.D) {
 		for (var i = 0; i < tmp.D.length; i++) {
 			var r = tmp.D[i];
-			if (r.url.length === length) {
+			if (r.url.length === length || r.isWILDCARD) {
 				if (r.compare(req)) {
 					if (!routes)
 						routes = [];

@@ -3,6 +3,7 @@
 ========================
 
 - fixed `String.encrypt_uid()`
+- fixed wildcard routing combinated with dynamic arguments
 
 ========================
 0.0.40
