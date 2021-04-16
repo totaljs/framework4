@@ -90,7 +90,7 @@ function runwatching() {
 	const directory = process.cwd();
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
-	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.resource$|\.build$/i;
+	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.ts$|\.resource$|\.build$/i;
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
@@ -101,7 +101,7 @@ function runwatching() {
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
 	const ARGV = CLONE(process.argv);
-	const PIDNAME = FILENAME.replace(/\.js$/, '.pid');
+	const PIDNAME = FILENAME.replace(/\.(js|ts)$/, '.pid');
 
 	if (isRELOAD && typeof(options.livereload) === 'string')
 		options.livereload = options.livereload.replace(/^(https|http):\/\//g, '');
