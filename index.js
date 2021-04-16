@@ -72,7 +72,7 @@ const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
 const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1, pin: 1 };
-const isTYPESCRIPT = (/\.ts$/).test(process.argv[0]);
+const isTYPESCRIPT = (/\.ts$/).test(process.argv[1]);
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
