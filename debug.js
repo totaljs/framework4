@@ -96,7 +96,7 @@ function runwatching() {
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
 	const REG_COMPONENTS = /components\/.*?\.html|\.package\/.*?$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
-	const REG_EXTENSION = /\.(js|resource|package|bundle|build)$/i;
+	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
 	const REG_RELOAD = /\.(js|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
