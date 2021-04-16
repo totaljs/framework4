@@ -72,6 +72,7 @@ const regexpCHARS = /\W|_/g;
 const regexpCHINA = /[\u3400-\u9FBF]/;
 const regexpLINES = /\n|\r|\r\n/;
 const regexpBASE64 = /^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
+const regexpBASE64_2 = /^|,([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/;
 const ENCODING = 'utf8';
 const NEWLINE = '\r\n';
 const isWindows = require('os').platform().substring(0, 3).toLowerCase() === 'win';
@@ -1828,7 +1829,7 @@ function validate_builder_default(name, value, entity) {
 		case 'phone':
 			return value.isPhone();
 		case 'base64':
-			return value.isBase64();
+			return value.isBase64(true);
 	}
 
 	if (type === 'number')
@@ -3652,9 +3653,18 @@ SP.isPhone = function() {
 	return this.length < 6 ? false : DEF.validators.phone.test(this);
 };
 
-SP.isBase64 = function() {
+SP.isBase64 = function(isdata) {
+
 	var str = this;
-	return str.length % 4 === 0 && regexpBASE64.test(str);
+	var count = str.length;
+
+	if (isdata) {
+		var index = str.indexOf(';base64,');
+		if (index !== -1)
+			count -= (index + 8);
+	}
+
+	return count % 4 === 0 && (isdata ? regexpBASE64_2.test(str) : regexpBASE64.test(str));
 };
 
 SP.isUID = function() {

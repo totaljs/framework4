@@ -2,6 +2,8 @@
 0.0.41
 ========================
 
+- added TypeScript support
+- extended `base64` by adding support for `content-type;base64,data` format
 - fixed `String.encrypt_uid()`
 - fixed wildcard routing combinated with dynamic arguments
 

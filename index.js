@@ -72,6 +72,7 @@ const PROXYKEEPALIVE = new Http.Agent({ keepAlive: true, timeout: 60000 });
 const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const JSFILES = { js: 1, mjs: 1 };
 const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1, pin: 1 };
+const isTYPESCRIPT = (/\.ts$/).test(process.argv[0]);
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -4747,7 +4748,7 @@ F.$load = function(types, targetdirectory, callback) {
 			return;
 
 		if (!extension)
-			extension = SCRIPTEXT;
+			extension = '.js';
 
 		Fs.readdirSync(directory).forEach(function(o) {
 			var isDirectory = Fs.statSync(Path.join(directory, o)).isDirectory();
@@ -4774,8 +4775,14 @@ F.$load = function(types, targetdirectory, callback) {
 			if (ext)
 				ext = '.' + ext;
 
-			if (ext !== extension || o[0] === '.' || o.endsWith('-bk' + extension) || o.endsWith('_bk' + extension))
-				return;
+			if (ext !== extension || o[0] === '.' || o.endsWith('-bk' + extension) || o.endsWith('_bk' + extension)) {
+				if (extension === '.js' && isTYPESCRIPT) {
+					extension = '.ts';
+					if (ext !== extension || o[0] === '.' || o.endsWith('-bk' + extension) || o.endsWith('_bk' + extension))
+						return;
+				} else
+					return;
+			}
 
 			var name = (level ? U.$normalize(directory).replace(dir, '') + '/' : '') + o.substring(0, o.length - ext.length);
 			output.push({ name: name[0] === '/' ? name.substring(1) : name, filename: Path.join(dir, name) + extension });
@@ -4819,7 +4826,7 @@ F.$load = function(types, targetdirectory, callback) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/modules/' : CONF.directory_modules);
 			arr = [];
-			listing(dir, 0, arr, SCRIPTEXT);
+			listing(dir, 0, arr, '.js');
 			arr.forEach(item => dependencies.push(next => install('module', item.name, item.filename, next)));
 			resume();
 		});
@@ -5063,7 +5070,7 @@ F.$load = function(types, targetdirectory, callback) {
 			configure_configs(dir + '/config');
 			configure_configs(dir + '/config-' + (DEBUG ? 'debug' : 'release'));
 
-			if (CONF.typescript)
+			if (isTYPESCRIPT)
 				SCRIPTEXT = '.ts';
 
 			dir = U.combine(targetdirectory, '/threads/' + thread);
@@ -6782,7 +6789,7 @@ global.LOAD = F.load = function(types, pwd, ready) {
 		configure_env();
 		configure_configs();
 
-		if (CONF.typescript)
+		if (isTYPESCRIPT)
 			SCRIPTEXT = '.ts';
 
 		can('versions') && configure_versions();
@@ -6868,7 +6875,7 @@ F.initialize = function(http, debug, options, callback) {
 		configure_env();
 		configure_configs();
 
-		if (CONF.typescript)
+		if (isTYPESCRIPT)
 			SCRIPTEXT = '.ts';
 
 		configure_versions();

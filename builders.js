@@ -1737,7 +1737,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 								tmp = '';
 							break;
 						case 'base64':
-							if (tmp && !type.required && !tmp.isBase64())
+							if (tmp && !type.required && !tmp.isBase64(true))
 								tmp = '';
 							break;
 					}
@@ -1931,7 +1931,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 								continue;
 							break;
 						case 'base64':
-							if (tmp && !type.required && !tmp.isBase64())
+							if (tmp && !type.required && !tmp.isBase64(true))
 								continue;
 							break;
 					}
@@ -5000,7 +5000,7 @@ function convertorcompile(schema, data, key) {
 				obj.fn = (val, obj) => toName($convertstring(val, obj));
 				break;
 			case 'base64':
-				obj.fn = val => typeof(val) === 'string' ? val.isBase64() ? val : '' : '';
+				obj.fn = val => typeof(val) === 'string' ? val.isBase64(true) ? val : '' : '';
 				break;
 			case 'email':
 				obj.fn = function(val, obj) {
