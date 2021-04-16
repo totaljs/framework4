@@ -76,6 +76,7 @@ const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
 var WSCLIENTSID = 0;
+var SCRIPTEXT = '.js';
 
 var PATHMODULES = require.resolve('./index');
 PATHMODULES = PATHMODULES.substring(0, PATHMODULES.length - 8);
@@ -4746,7 +4747,7 @@ F.$load = function(types, targetdirectory, callback) {
 			return;
 
 		if (!extension)
-			extension = '.js';
+			extension = SCRIPTEXT;
 
 		Fs.readdirSync(directory).forEach(function(o) {
 			var isDirectory = Fs.statSync(Path.join(directory, o)).isDirectory();
@@ -4818,7 +4819,7 @@ F.$load = function(types, targetdirectory, callback) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/modules/' : CONF.directory_modules);
 			arr = [];
-			listing(dir, 0, arr, '.js');
+			listing(dir, 0, arr, SCRIPTEXT);
 			arr.forEach(item => dependencies.push(next => install('module', item.name, item.filename, next)));
 			resume();
 		});
@@ -5002,7 +5003,7 @@ F.$load = function(types, targetdirectory, callback) {
 
 						if (items) {
 							items.forEach(function(item) {
-								if (item.substring(item.length - 3) === '.js')
+								if (item.substring(item.length - 3) === SCRIPTEXT)
 									dependencies.push(next => install('definition', U.getName(item).replace(/\.js$/i, ''), item, next));
 							});
 						}
@@ -5012,7 +5013,7 @@ F.$load = function(types, targetdirectory, callback) {
 
 							if (items) {
 								items.forEach(function(item) {
-									if (item.substring(item.length - 3) === '.js')
+									if (item.substring(item.length - 3) === SCRIPTEXT)
 										dependencies.push(next => install('operation', U.getName(item).replace(/\.js$/i, ''), item, next));
 								});
 							}
@@ -5022,7 +5023,7 @@ F.$load = function(types, targetdirectory, callback) {
 
 								if (items) {
 									items.forEach(function(item) {
-										if (item.substring(item.length - 3) === '.js')
+										if (item.substring(item.length - 3) === SCRIPTEXT)
 											dependencies.push(next => install('schema', U.getName(item).replace(/\.js$/i, ''), item, next));
 									});
 								}
@@ -5032,7 +5033,7 @@ F.$load = function(types, targetdirectory, callback) {
 
 									if (items) {
 										items.forEach(function(item) {
-											if (item.substring(item.length - 3) === '.js')
+											if (item.substring(item.length - 3) === SCRIPTEXT)
 												dependencies.push(next => install('task', U.getName(item).replace(/\.js$/i, ''), item, next));
 										});
 									}
@@ -5061,6 +5062,10 @@ F.$load = function(types, targetdirectory, callback) {
 			configure_env(dir + '/.env-' + (DEBUG ? 'debug' : 'release'));
 			configure_configs(dir + '/config');
 			configure_configs(dir + '/config-' + (DEBUG ? 'debug' : 'release'));
+
+			if (CONF.typescript)
+				SCRIPTEXT = '.ts';
+
 			dir = U.combine(targetdirectory, '/threads/' + thread);
 			listing(dir, 0, arr);
 			arr.forEach(item => dependencies.push(next => install('thread', item.name, item.filename, next)));
@@ -5078,7 +5083,6 @@ F.$load = function(types, targetdirectory, callback) {
 	}
 
 	operations.async(function() {
-		var count = dependencies.length;
 		var old = DEF.onPrefLoad;
 		dependencies.async(function() {
 			types && types.indexOf('service') === -1 && F.cache.stop();
@@ -6774,8 +6778,13 @@ global.LOAD = F.load = function(types, pwd, ready) {
 	};
 
 	F.$bundle(function() {
+
 		configure_env();
 		configure_configs();
+
+		if (CONF.typescript)
+			SCRIPTEXT = '.ts';
+
 		can('versions') && configure_versions();
 		can('sitemap') && configure_sitemap();
 
@@ -6858,6 +6867,10 @@ F.initialize = function(http, debug, options, callback) {
 
 		configure_env();
 		configure_configs();
+
+		if (CONF.typescript)
+			SCRIPTEXT = '.ts';
+
 		configure_versions();
 		configure_sitemap();
 		F.cache.init();
@@ -7011,7 +7024,7 @@ options.thread = '{2}';
 options.unixsocket = '{0}';
 require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, (options.cluster === 'auto' ? '\'auto\'' : options.cluster) || 0);
 
-			var filename = PATH.root(runscript + '_' + item + '.js');
+			var filename = PATH.root(runscript + '_' + item + SCRIPTEXT);
 			var logdir = PATH.root('/threads/' + item + '/logs/');
 			PATH.mkdir(logdir);
 
@@ -8205,7 +8218,7 @@ global.INCLUDE = global.SOURCE = function(name) {
 	var obj = F.sources[name];
 	if (obj || obj === null)
 		return obj;
-	var filename = U.combine(CONF.directory_source, name + '.js');
+	var filename = U.combine(CONF.directory_source, name + SCRIPTEXT);
 	existsSync(filename) && install('source', name, filename);
 	if (!F.sources[name])
 		F.sources[name] = null;
@@ -9732,7 +9745,7 @@ global.WORKER = function(name, timeout, args, special) {
 
 	args.push('--worker');
 
-	var fork = Child.fork(filename[filename.length - 3] === '.' ? filename : filename + '.js', args, special ? HEADERS.workers2 : HEADERS.workers);
+	var fork = Child.fork(filename[filename.length - 3] === '.' ? filename : filename + SCRIPTEXT, args, special ? HEADERS.workers2 : HEADERS.workers);
 	fork.ID = id;
 	F.workers[id] = fork;
 
@@ -9856,7 +9869,7 @@ global.UPDATE = function(versions, callback, pauseserver, noarchive) {
 
 	versions.wait(function(version, next) {
 
-		var filename = PATH.updates(version + '.js');
+		var filename = PATH.updates(version + SCRIPTEXT);
 		var response;
 
 		try {
