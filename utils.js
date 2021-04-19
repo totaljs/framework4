@@ -1905,13 +1905,11 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 				type = typeof(result);
 				if (type === 'string') {
 					if (result[0] === '@')
-						error.push(pluspath + name, '@', current + name, index, schema.resourcePrefix + result.substring(1));
+						error.push(pluspath + name, TYPE.invalid, current + name, index, schema.resourcePrefix + result.substring(1));
 					else
 						error.push(pluspath + name, result, current + name, index, prefix);
-				} else if (type === 'boolean') {
-					!result && error.push(pluspath + name, '@', current + name, index, prefix);
-				} else if (result.isValid === false)
-					error.push(pluspath + name, result.error, current + name, index, prefix);
+				} else if (type === 'boolean')
+					!result && error.push(pluspath + name, TYPE.invalid, current + name, index, prefix);
 			}
 			continue;
 		}
@@ -1934,13 +1932,11 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 				type = typeof(result);
 				if (type === 'string') {
 					if (result[0] === '@')
-						error.push(pluspath + name, '@', current + name, index, schema.resourcePrefix + result.substring(1));
+						error.push(pluspath + name, TYPE.invalid, current + name, index, schema.resourcePrefix + result.substring(1));
 					else
 						error.push(pluspath + name, result, current + name, index, prefix);
-				} else if (type === 'boolean') {
-					!result && error.push(pluspath + name, '@', current + name, index, prefix);
-				} else if (result.isValid === false)
-					error.push(pluspath + name, result.error, current + name, index, prefix);
+				} else if (type === 'boolean')
+					!result && error.push(pluspath + name, TYPE.invalid, current + name, index, prefix);
 			}
 			continue;
 		}
@@ -1959,13 +1955,11 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 
 		if (type === 'string') {
 			if (result[0] === '@')
-				error.push(pluspath + name, '@', current + name, index, schema.resourcePrefix + result.substring(1));
+				error.push(pluspath + name, TYPE.invalid, current + name, index, schema.resourcePrefix + result.substring(1));
 			else
 				error.push(pluspath + name, result, current + name, index, prefix);
-		} else if (type === 'boolean') {
-			!result && error.push(pluspath + name, '@', current + name, index, prefix);
-		} else if (result.isValid === false)
-			error.push(pluspath + name, result.error, current + name, index, prefix);
+		} else if (type === 'boolean')
+			!result && error.push(pluspath + name, TYPE.invalid, current + name, index, prefix);
 	}
 
 	return error;

@@ -536,19 +536,19 @@ function runmiddleware(opt, schema, callback, index, processor) {
 	fn(opt, processor);
 }
 
-SchemaBuilderEntityProto.define = function(name, type, required, custom) {
+SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
 
 	if (name instanceof Array) {
 		for (var i = 0; i < name.length; i++)
-			this.define(name[i], type, required, custom);
+			this.define(name[i], type, required, invalid);
 		return this;
 	}
 
 	var rt = typeof(required);
 
 	if (required !== undefined && rt === 'string') {
-		custom = required;
-		required = false;
+		invalid = required;
+		required = true;
 	}
 
 	if (type == null) {
@@ -564,7 +564,7 @@ SchemaBuilderEntityProto.define = function(name, type, required, custom) {
 	if (type instanceof SchemaBuilderEntity)
 		type = type.name;
 
-	var a = this.schema[name] = this.$parse(name, type, required, custom);
+	var a = this.schema[name] = this.$parse(name, type, required);
 	switch (this.schema[name].type) {
 		case 7:
 			if (this.dependencies)
@@ -575,6 +575,7 @@ SchemaBuilderEntityProto.define = function(name, type, required, custom) {
 	}
 
 	this.fields = Object.keys(this.schema);
+	a.invalid = invalid || '@';
 
 	if (a.type === 7)
 		required = true;
@@ -2956,6 +2957,7 @@ ErrorBuilder.prototype._prepare = function() {
 		return this;
 
 	var arr = this.items;
+
 	for (var i = 0; i < arr.length; i++) {
 
 		var o = arr[i];
