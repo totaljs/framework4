@@ -3,6 +3,8 @@
 ========================
 
 - added TypeScript support
+- added support for static files in threads
+- fixed logging in threads by Tomas Novak
 - extended `base64` by adding support for `content-type;base64,data` format
 - updated `schema.define(key, type, required, [default_error_message])`
 - fixed `String.encrypt_uid()`

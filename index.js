@@ -10163,7 +10163,7 @@ FrameworkPathProto.public = function(filename) {
 FrameworkPathProto.public_cache = function(filename) {
 	var key = 'public_' + filename;
 	var item = F.temporary.other[key];
-	return item ? item : F.temporary.other[key] = U.combine(CONF.directory_public, filename);
+	return item ? item : F.temporary.other[key] = global.THREAD ? PATH.join(F.directory, 'threads', global.THREAD, 'public', filename) : U.combine(CONF.directory_public, filename);
 };
 
 FrameworkPathProto.private = function(filename) {
