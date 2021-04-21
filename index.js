@@ -7037,8 +7037,8 @@ require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', ite
 
 			var logname = Path.join(logdir, 'debug.log');
 
-			// Tires to remove log
-			if (isolated)
+			// Tries to remove log
+			if (isolated && (!DEBUG || process.argv.indexOf('--restart') === -1))
 				Fs.unlink(logname, NOOP);
 
 			Fs.writeFile(filename, scr, function() {
