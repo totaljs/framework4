@@ -7493,6 +7493,7 @@ F.listener = function(req, res) {
 		else
 			F.temporary.ddos[ip] = 1;
 	}
+
 	var headers = req.headers;
 	req.$protocol = ((req.connection && req.connection.encrypted) || ((headers['x-forwarded-proto'] || ['x-forwarded-protocol']) === 'https')) ? 'https' : 'http';
 	req.uri = framework_internal.parseURI(req);
@@ -7578,6 +7579,8 @@ function makeproxy(proxy, req, res) {
 		delete uri.headers.connection;
 
 	uri.headers['x-forwarded-for'] = req.ip;
+	uri.headers['x-forwarded-url'] = req.url;
+	uri.headers['x-forwarded-host'] = req.headers.host;
 	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
 	delete uri.headers.host;
 
@@ -11265,11 +11268,7 @@ ControllerProto.header = function(name, value) {
  * @param {String} path
  * @return {Controller}
  */
-ControllerProto.host = function(path) {
-	return this.req.hostname(path);
-};
-
-ControllerProto.hostname = function(path) {
+ControllerProto.host = ControllerProto.hostname = function(path) {
 	return this.req.hostname(path);
 };
 
