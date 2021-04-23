@@ -12,14 +12,63 @@ type FrameworkUtils = {
 }
 
 type Req = Request & {
-
+	params: any;
+	body: any;
+	extension: string;
+	files: HttpFile[];
+	flags: string[];
+	host: string;
+	ip: string;
+	isAuthorized: boolean;
+	isProxy: boolean;
+	isStaticFile: boolean;
+	language: string;
+	mobile: boolean;
+	path: string[];
+	query: any;
+	robot: boolean;
+	secured: boolean;
+	session: any;
+	split: string[];
+	subdomain: string[];
+	ua: string;
+	uri: any;
+	user: any | null;
+	xhr: boolean;
+	authorization: () => any;
+	authorize: (callback: (err: any, user: any, isAuthorized: boolean) => void) => Req;
+	clear: () => Req;
+	cookie: (name: string) => string;
+	csrf: () => string;
+	encrpyt: (enable: boolean) => void;
+	hostname: (path: string) => string;
+	localize: () => string;
+	nocache: () => Req;
+	useragent: (structured?: boolean) => string | any;
 }
 
 type Res = Response & {
-
+	json: (body: object) => void;
+	controller: FrameworkController;
+	nocompress: boolean;
+	req: Req;
+	success: boolean;
+	binary: (buffer: Buffer, contentType: string, type?: string, download?: string,	 headers?: object) => Res;
+	content: (code: string, body: string, type: string, compress?: boolean, headers?: object) => Res;
+	continue: (callback?: () => void) => Res;
+	cookie: (name: string, value: string, expiration: string | Date, options: any) => Res;
+	file: (filename: string, download?: string, headers?: object, callback?: Function) => Res;
+	filefs: (name: string, id: string, download?: string, headers?: object, callback?: Function, checkmeta?: (meta: object) => boolean) => Res; // TODO: spravit meta
+	image_nocache: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Res;
+	image: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Res;
+	// senka
 }
 
 type ErrorBuilder = {
+
+}
+
+type HttpFile = {
 
 }
 
@@ -72,21 +121,21 @@ type Dollar = {
 	body: any;
 	controller: FrameworkController;
 	files: File[];
-	filter: object;
-	headers: object;
+	filter: any;
+	headers: any;
 	id: string;
 	ip: string;
 	language: string;
-	model: object;
-	params: object;
-	query: object;
+	model: any;
+	params: any;
+	query: any;
 	req: Req;
 	res: Res;
-	session: object;
+	session: any;
 	sessionid: string;
 	test: boolean;
 	ua: string;
-	user: object | null;
+	user: any | null;
 	audit: (message: string, type: string) => void;
 	cancel: () => void;
 	cookie: (name: string, value: string, expire: string, options: object) => string | void;
@@ -98,9 +147,9 @@ type Dollar = {
 
 // Controller
 type FrameworkController = {
-	body: object;
-	breadcrumb: object[];
-	connections: object;
+	body: any;
+	breadcrumb: any[];
+	connections: any;
 	exception: Error;
 	files: File[];
 	flags: string[];
@@ -112,19 +161,19 @@ type FrameworkController = {
 	mobile: boolean;
 	name: string;
 	online: number;
-	options: object;
-	params: object;
+	options: any;
+	params: any;
 	path: FrameworkPath;
-	query: object;
+	query: any;
 	referrer: string;
-	repository: object;
+	repository: any;
 	req: Req;
 	res: Res;
 	robot: boolean;
-	route: object;
+	route: any;
 	schema: string;
 	secured: boolean;
-	session: object;
+	session: any;
 	sessionid: string;
 	sitemapid: string;
 	split: string[];
@@ -133,14 +182,14 @@ type FrameworkController = {
 	subdomain: string[];
 	themename: string;
 	ua: string;
-	uri: object;
+	uri: any;
 	url: string;
-	user: object | null;
+	user: any | null;
 	workflow: string;
 	xhr: boolean;
 	autoclear: (enable?: boolean) => FrameworkController;
 	autodestroy: (callback?: () => void) => FrameworkController;
-	baa: (name?: string) => object;
+	baa: (name?: string) => any;
 	binary: (buffer: Buffer, contentType: string, type?: string, download?: string, headers?: object) => FrameworkController;
 	callback: (view_name: string) => Function;
 	cancel: () => FrameworkController;
@@ -236,9 +285,9 @@ type SchemaOptions = Dollar & {
 
 type SchemaCallback = {
 	fields: string[];
-	meta: object;
+	meta: any;
 	name: string;
-	schema: object;
+	schema: any;
 	trim: boolean;
 	allow: (field: string, field2?: string, field3?: string, field4?: string, field5?: string) => void;
 	before: (name: string, fn: (value, model, index?, request?: Req) => void ) => void;
@@ -248,7 +297,7 @@ type SchemaCallback = {
 	encrpyt: (value?: any) => void;
 	inherit: (group: string, name: string) => void;
 	middleware: (fn: ($: SchemaOptions, next: () => void) => void) => void;
-	props: (name: string) => object | object[];
+	props: (name: string) => any | any[];
 	required: (name: string, required: (model: object) => boolean | boolean) => void;
 	setPrefix: (prefix: string) => void;
 	setResource: (name: string) => void;
@@ -275,7 +324,7 @@ type SchemaCallback = {
 }
 
 // Route
-type RouteAction = () => void;
+type RouteAction = (req: Req | any, res: Res | any) => void;
 type Route = {}
 
 // Operation
@@ -303,8 +352,8 @@ type FrameworkWebSocketClient = {
 	origin: string;
 	protocol: string;
 	url: string;
-	headers: object;
-	cookies: object;
+	headers: any;
+	cookies: any;
 	connect: (url: string, protocol?: string, origin?: string) => FrameworkWebSocketClient;
 	close: (message?: string, code?: number) => FrameworkWebSocketClient;
 	send: (message: string | object | Buffer) => FrameworkWebSocketClient;
@@ -379,16 +428,16 @@ type RequestOptions = {
 	xhr?: boolean;
 	timeout?: number;
 	encoding?: string;
-	headers?: object;
+	headers?: any;
 	method?: string;
 	proxy?: string;
-	query?: object;
+	query?: any;
 	unixsocket?: { socket: string, path: string };
 	dnscache?: boolean;
 	noredirect?: boolean;
 	keepalive?: boolean;
-	body?: object | string;
-	cookies?: object;
+	body?: any | string;
+	cookies?: any;
 	cook?: boolean;
 	limit?: number;
 	custom?: boolean;
@@ -398,17 +447,12 @@ type RequestOptions = {
 	nocookies?: boolean;
 	ondata?: (chunks: Buffer, percentage: number) => void;
 	onprogress?: (percentage: number) => void;
-	files?: object;
+	files?: any;
 	type?: string;
 }
 
 // ScheduleInstance
 type ScheduleInstance = {
-
-}
-
-// ChildProcess
-type ChildProcess = {
 
 }
 
@@ -463,8 +507,8 @@ type RESTBuilderStaticMethods = {
 	PATCH(url: string, data?: object): RESTBuilder;
 	API(url: string, operation: string, data?: object): RESTBuilder;
 	HEAD(url: string): RESTBuilder;
-	make: (fn: (builder: RESTBuilder) => void) => void;
-	upgrade: (fn: (builder: RESTBuilder) => void) => void;
+	make(fn: (builder: RESTBuilder) => void): void;
+	upgrade(fn: (builder: RESTBuilder) => void): void;
 };
 
 declare const RESTBuilder: RESTBuilderStaticMethods;
@@ -481,25 +525,25 @@ type DEF = {
 	onPrefSave: (PREF: object) => void;
 }
 
-declare const Builders: object;
-declare const CONF: object;
+declare const Builders: any;
+declare const CONF: any;
 declare const Controller: FrameworkController;
 declare const DEBUG: boolean;
 declare const DEF: DEF;
 declare const EMPTYARRAY: [];
-declare const EMPTYCONTROLLER: FrameworkController | object;
+declare const EMPTYCONTROLLER: FrameworkController | any;
 declare const EMPTYOBJECT: {};
 declare const ErrorBuilder: ErrorBuilder;
 declare const F: Framework;
-declare const FUNC: object;
+declare const FUNC: any;
 declare const isWORKER: boolean;
 declare const Mail: FrameworkMail;
-declare const MAIN: object;
+declare const MAIN: any;
 declare const NOW: Date;
 declare const Pagination;
-declare const PREF: object;
+declare const PREF: any;
 declare const RELEASE: boolean;
-declare const REPO: object;
+declare const REPO: any;
 declare const Thelpers;
 declare const THREAD: string;
 declare const U: FrameworkUtils;
@@ -509,10 +553,10 @@ declare function ACTION(url: string, body: object, fn: ErrorResponse): void;
 declare function AUDIT($: Dollar, message?: string, type?: string): void;
 declare function AUTH(fn: ($: Dollar) => void): void;
 declare function BLOCKED($: Dollar, limit?: number, expiration?: string): boolean;
-declare function CACHE(key: string, value?: number, expire?: string, persistent?: boolean): object;
+declare function CACHE(key: string, value?: number, expire?: string, persistent?: boolean): any;
 declare function CLEANUP(stream: ReadableStream, callback?: () => void): void;
 declare function clearTimeout2(name: string): void;
-declare function CLONECLEANUP(source: object, skip?: object): object;
+declare function CLONECLEANUP(source: object, skip?: object): any;
 declare function CMD(name: string, a?: object, b?: object, c?: object): void;
 declare function CONVERT(obj: object, name: string): object;
 declare function CORS(url: string, flags?: string[], credentials?: boolean): Framework;
@@ -528,7 +572,7 @@ declare function EMIT2(name: string, arg1?: object, arg2?: object, arg3?: object
 declare function ENCRYPTREQ(req: Req, val: object | string, key?: string, strict?: boolean): string;
 declare function ERROR(name: string): Function;
 declare function EXEC(schema: string, model: object, callback: ErrorResponse, controller?: Dollar | FrameworkController): FrameworkController;
-declare function FAKE(schema: string, required_only: boolean): object;
+declare function FAKE(schema: string, required_only: boolean): any;
 declare function FILE404(action: (req: Req, res: Res) => void): void;
 declare function FILESTORAGE(name: string): FileStorage;
 declare function FINISHED(stream: ReadableStream | Res | Req, callback: (err: any) => void): void;
@@ -546,15 +590,15 @@ declare function LOCALIZE(fn: (req: Req, res: Res) => void): void;
 declare function LOGGER(filename: string, param1?: any, param2?: any, param3?: any, param4?: any, param5?: any): void;
 declare function LOGMAIL(address: string | string[], subject: string, body: string, callback?: (err: any) => void): Framework;
 declare function MAIL(address: string | string[], subject: string, view_name: string, model?: object, callback?: (err: any) => void, language?: string): MailMessage;
-declare function MAKE(name?: string, fn?: (obj: object) => void): object;
+declare function MAKE(name?: string, fn?: (obj: object) => void): any;
 declare function MAP(url: string, filename: string, extension?: string[]): Framework;
 declare function MAPSCHEMA(schema: string, prop_pk?: string): void;
 declare function MERGE(url: string, filename1: string, filename2: string, filename3?: string, filename4?: string, filename5?: string): void;
 declare function MIDDLEWARE(name: string, fn: ($: Dollar | null) => void, assign?: string | string[], fisrt?: boolean): void;
-declare function MODEL(name: string): object;
-declare function MODIFY(fn: (type: string, filename: string, value: string, controller: FrameworkController | undefined) => any): object;
-declare function MODULE(name: string): object;
-declare function NEWCOMMAND(name: string, callback: Function | null): object;
+declare function MODEL(name: string): any;
+declare function MODIFY(fn: (type: string, filename: string, value: string, controller: FrameworkController | undefined) => any): any;
+declare function MODULE(name: string): any;
+declare function NEWCOMMAND(name: string, callback: Function | null): any;
 declare function NEWOPERATION(name: string, fn: ($: Operation) => void, repeat?: number, stop?: boolean, bind_error?: boolean, queryschema?: string);
 declare function NEWSCHEMA(schema: string, callback: (schema: SchemaCallback) => void): void;
 declare function NEWTASK(name: string, fn: (push: (task: string, callback: ($?: Task, value?: any) => void) => void) => void);
@@ -571,16 +615,16 @@ declare function PROXY(endpoint: string, hostname: string, copypath?: boolean, b
 declare function QUERIFY(url: string, data: object): void;
 declare function REDIRECT(path: string, host: string, copypath?: boolean, permanent?: boolean): void;
 declare function REQUEST(options: RequestOptions, callback?: () => void): void;
-declare function REQUIRE(path: string): object;
-declare function RESOURCE(name: string, key: string): object;
-declare function ROUTE(url: string, action?: RouteAction | string, flags?: string[], length?: number[]): Route;
+declare function REQUIRE(path: string): any;
+declare function RESOURCE(name: string, key: string): any;
+declare function ROUTE(url: string, action?: RouteAction, flags?: string[], length?: number[]): Route;
 declare function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
 declare function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
-declare function SESSION(name?: string, ondata?: Function): object
+declare function SESSION(name?: string, ondata?: Function): any
 declare function setTimeout2(name: string, fn: (arg: any) => void, timeout: number, limit?: number, arg?: object): void;
 declare function SITEMAP(id: string, first?: boolean, language?: string): object[];
 declare function TABLE(name: string): TextDB;
-declare function TASK(name: string, callback: ErrorResponse, instance?: Dollar | FrameworkController, value?: object); 
+declare function TASK(name: string, callback: ErrorResponse, instance?: Dollar | FrameworkController, value?: object): void; 
 declare function TotalAPI(token: string, name: string, data: object, callback: any, filename?: string)
 declare function TOUCH(url: string): void;
 declare function TRANSLATE(language: string, text: string): string;
@@ -592,7 +636,7 @@ declare function VIEW(name: string, model?: object, layout?: string, repository?
 declare function VIEWCOMPILE(html: string, model?: object, layout?: string, repository?: object, language?: string, key?: string): string;
 declare function WAIT(validator: Function, callback: ErrorResponse, timeout?: number, interval?: number): boolean;
 declare function WEBSOCKETCLIENT(callback: (client: FrameworkWebSocketClient) => void): void;
-declare function WORKER(name: string, timeout?: number, args?: string[]): ChildProcess;
-declare function WORKER2(name: string, timeout?: number, callback?: (err: any, buffer: Buffer) => void): ChildProcess;
+declare function WORKER(name: string, timeout?: number, args?: string[]): any;
+declare function WORKER2(name: string, timeout?: number, callback?: (err: any, buffer: Buffer) => void): any;
 declare function WORKFLOW(declaration: ($: Dollar) => void): Dollar;
 declare function HTTP(type: string): void;
