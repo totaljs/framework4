@@ -2130,9 +2130,10 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
-
 	if (controller && controller.req && controller.req.keys)
 		$.keys = controller.req.keys;
+	else if (type === 'patch') // Due to $PATCH() method
+		$.keys = Object.keys(model);
 	else
 		$.keys = null;
 
