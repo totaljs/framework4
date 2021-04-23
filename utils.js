@@ -572,6 +572,12 @@ global.REQUEST = function(opt, callback) {
 
 	uri.method = opt.method;
 	uri.headers = opt.headers;
+
+	if (options.insecure) {
+		uri.rejectUnauthorized = false;
+		uri.requestCert = true;
+	}
+
 	options.uri = uri;
 	options.opt = opt;
 

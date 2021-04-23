@@ -3557,6 +3557,11 @@ function RESTBuilder(url) {
 	this.$errorbuilderhandler = true;
 }
 
+RESTBuilder.insecure = function() {
+	this.options.insecure = true;
+	return this;
+};
+
 RESTBuilder.make = function(fn) {
 	var instance = new RESTBuilder();
 	fn && fn(instance);
