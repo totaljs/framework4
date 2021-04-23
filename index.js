@@ -6733,16 +6733,16 @@ F.restart = function() {
 	process.send && process.send('total:restart');
 };
 
-global.LOAD = F.load = function(types, pwd, ready) {
+global.LOAD = F.load = function(types, cwd, ready) {
 
 	if (typeof(types) === 'function') {
 		ready = types;
 		types = null;
 	}
 
-	if (typeof(pwd) === 'function') {
-		ready = pwd;
-		pwd = null;
+	if (typeof(cwd) === 'function') {
+		ready = cwd;
+		cwd = null;
 	}
 
 	if (typeof(types) === 'string')
@@ -6751,19 +6751,21 @@ global.LOAD = F.load = function(types, pwd, ready) {
 	if (!types)
 		types = ['nobundles', 'nopackages', 'nocomponents', 'nothemes'];
 
-	if (pwd && pwd[0] === '.' && pwd.length < 4)
+	if (cwd && cwd[0] === '.' && cwd.length < 4)
 		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
-	else if (pwd)
-		F.directory = directory = U.$normalize(pwd);
+	else if (cwd)
+		F.directory = directory = U.$normalize(cwd);
 	else if (process.env.istotaljsworker)
 		F.directory = process.cwd();
 	else if ((/\/scripts\/.*?.js/).test(process.argv[1]))
 		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
 
+	var isdebug = types instanceof Array ? types.indexOf('debug') !== -1 : false;
+
 	F.isWorker = true;
 	global.isWORKER = true;
-	global.DEBUG = false;
-	global.RELEASE = true;
+	global.DEBUG = isdebug;
+	global.RELEASE = !isdebug;
 
 	var isno = true;
 
