@@ -433,6 +433,12 @@ function parseProxy(p) {
 		obj._auth = 'Basic ' + Buffer.from(obj.auth).toString('base64');
 
 	obj.port = +obj.port;
+
+	if (p.indexOf('https:') !== -1) {
+		obj.rejectUnauthorized = false;
+		obj.requestCert = true;
+	}
+
 	return F.temporary.other[key] = obj;
 }
 
@@ -572,6 +578,12 @@ global.REQUEST = function(opt, callback) {
 
 	uri.method = opt.method;
 	uri.headers = opt.headers;
+
+	if (options.insecure) {
+		uri.rejectUnauthorized = false;
+		uri.requestCert = true;
+	}
+
 	options.uri = uri;
 	options.opt = opt;
 

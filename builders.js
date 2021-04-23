@@ -2130,9 +2130,10 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
-
 	if (controller && controller.req && controller.req.keys)
 		$.keys = controller.req.keys;
+	else if (type === 'patch') // Due to $PATCH() method
+		$.keys = Object.keys(model);
 	else
 		$.keys = null;
 
@@ -3556,6 +3557,11 @@ function RESTBuilder(url) {
 	// Auto Total.js Error Handling
 	this.$errorbuilderhandler = true;
 }
+
+RESTBuilder.insecure = function() {
+	this.options.insecure = true;
+	return this;
+};
 
 RESTBuilder.make = function(fn) {
 	var instance = new RESTBuilder();
