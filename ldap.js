@@ -595,18 +595,77 @@ function data(dn, filter, type) {
 	return writer.output();
 }
 
+function data2(dn, name) {
+
+	var writer = new Writer();
+
+	// === 1: beg
+	writer.begsequence();
+
+	// MessageID
+	writer.writeint(1);
+
+	// === 2: beg
+	writer.begsequence(99);
+
+	// keys lowercase
+	writer.writestring(dn);
+
+	writer.writeenum(2);        // scope
+	writer.writeenum(0);        // deref aliases
+	writer.writeint(0);         // size limit
+	writer.writeint(10);        // time limit
+	writer.writeboolean(false); // types only
+
+	writer.begsequence(PROTOCOL.FILTER_AND);
+
+	// === 3: beg
+	writer.begsequence(PROTOCOL.FILTER_EQUALITY);
+	writer.writestring('objectClass');
+	writer.writebuffer(Buffer.from('person', 'ascii'), TYPES.OctetString);
+	writer.endsequence();
+	// === 3: end
+
+	// === 3: beg
+	writer.begsequence(PROTOCOL.FILTER_EQUALITY);
+	writer.writestring('sAMAccountName');
+	writer.writebuffer(Buffer.from(name, 'ascii'), TYPES.OctetString);
+	writer.endsequence();
+	// === 3: end
+
+	writer.endsequence();
+
+	// === 4: beg
+	writer.begsequence(48);
+
+	writer.writestring('*');
+
+	// === 4: end
+	writer.endsequence();
+
+	// === 2: end
+	writer.endsequence();
+
+	// === 1: end
+	writer.endsequence();
+
+	return writer.output();
+}
+
+
 exports.load = function(opt, callback) {
 
 	// opt.ldap {Object} with { host: String, port: Number }
 	// opt.user {String}
 	// opt.password {String}
-	// opt.type {String} can be: person, group, login
+	// opt.type {String} can be: person, group, login, profile
+	// opt.login {String} required for the "profile" type
 	// opt.dn {String}
 
 	if (opt.callback)
 		callback = opt.callback;
 
-	var profile = false;
+	var profile = opt.type === 'profile';
 
 	if (!opt.dn) {
 		opt.dn = opt.user;
@@ -641,8 +700,7 @@ exports.load = function(opt, callback) {
 				var reader = new Reader(buffer);
 				try {
 					reader.parse();
-					meta.socket.write(data(opt.dn, 'objectClass', opt.type));
-					//meta.socket.write(data(opt.dn, 'userPrincipalName', opt.type));
+					meta.socket.write(opt.type === 'profile' ? data2(opt.dn, opt.login) : data(opt.dn, 'objectClass', opt.type));
 				} catch (e) {
 					callback(e, EMPTYARRAY);
 					meta.close();
