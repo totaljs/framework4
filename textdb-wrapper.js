@@ -71,7 +71,7 @@ function makedirectory(directory, main, id) {
 	return Path.join(directory, main, val);
 }
 
-function Database(type, name, onetime, schema) {
+function Database(type, name, onetime, schema, fork) {
 
 	var t = this;
 	t.type = type;
@@ -84,11 +84,13 @@ function Database(type, name, onetime, schema) {
 
 	t.fork = {};
 	t.onetime = onetime;
+
 	t.exec = function(builder) {
 
 		var name = t.name;
 		if (builder.options) {
 
+			builder.options.schema = t.schema;
 			builder.options.onetime = t.onetime;
 			builder.options.filter = builder.options.filter.length ? builder.options.filter.join('&&') : 'true';
 
@@ -106,27 +108,34 @@ function Database(type, name, onetime, schema) {
 				builder.options.relation = undefined;
 			}
 		}
+
 		var key = t.key;
 
 		if (!t.fork[key]) {
-			if (type === 'inmemory') {
-				t.fork[key] = require('./inmemory').load(name);
+
+			if (fork) {
+				t.fork[key] = F.textdbworker;
 			} else {
-				var db;
-				if (type === 'textdb') {
-					db = require('./textdb-new');
-					t.fork[key] = db.TextDB(name, !t.onetime);
+
+				if (type === 'inmemory') {
+					t.fork[key] = require('./inmemory').load(name);
 				} else {
-					db = require('./textdb');
-					t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
+					var db;
+					if (type === 'textdb') {
+						db = require('./textdb-new');
+						t.fork[key] = db.TextDB(name, !t.onetime);
+					} else {
+						db = require('./textdb');
+						t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
+					}
 				}
-			}
 
-			INSTANCES[key] = t.fork[key];
+				INSTANCES[key] = t.fork[key];
 
-			if (LOADSTATS) {
-				LOADSTATS();
-				LOADSTATS = null;
+				if (LOADSTATS) {
+					LOADSTATS();
+					LOADSTATS = null;
+				}
 			}
 		}
 
@@ -154,7 +163,14 @@ function Database(type, name, onetime, schema) {
 			return;
 		}
 
-		t.fork[key][builder.command]().assign(builder.options).$callback = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : (builder.$ ? builder.asynchandler() : builder.$callback);
+		var cb = builder.$custom ? builder.$custom() : builder.$error ? builder.callbackerror() : (builder.$ ? builder.asynchandler() : builder.$callback);
+
+		if (F.textdbworker) {
+			builder.options.type = type;
+			builder.options.database = name;
+			F.textdbworker['cmd_' + builder.command](builder.options, cb);
+		} else
+			t.fork[key][builder.command]().assign(builder.options).$callback = cb;
 	};
 }
 
@@ -1199,8 +1215,8 @@ function promise(fn) {
 
 DB.promise = promise;
 
-exports.make = function(type, name, fork, onetime, schema) {
-	return new Database(type, name, fork, onetime, schema);
+exports.make = function(type, name, onetime, schema, fork) {
+	return new Database(type, name, onetime, schema, fork);
 };
 
 exports.makebuilder = function() {

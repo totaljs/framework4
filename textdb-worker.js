@@ -1,5 +1,7 @@
 require('./utils');
 
+const Worker = require('worker_threads');
+
 var STATS = { TYPE: 'stats', reading: 0, writing: 0, usage: 0 };
 var counter = 0;
 var reading = 0;
@@ -15,7 +17,8 @@ CONF.textdb_inmemory = inmemory;
 
 process.totaldbworker = 1;
 process.title = 'totaldbworker';
-process.on('message', processcommand);
+
+Worker.parentPort.on('message', processcommand);
 
 function processcommand(msg) {
 
@@ -28,25 +31,25 @@ function processcommand(msg) {
 	if (!instance) {
 
 		F.directory = process.argv[2];
+		var path = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.type === 'textdb' ? ('textdb-' + msg.builder.database) : (msg.builder.database + '.' + msg.builder.type));
+		var db = require('./textdb-new');
 
-		var filename;
-		var db;
-
-		if (msg.builder.type === 'textdb') {
-			filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database);
-			db = require('./textdb-new');
-			instance = db.TextDB(filename, !msg.builder.onetime);
+		if (msg.builder.type === 'inmemory') {
+			instance = require('./inmemory').load(name);
 		} else {
-			filename = msg.builder.onetime ? msg.builder.database : PATH.databases(msg.builder.database);
-			db = require('./textdb');
-			instance = msg.builder.type === 'nosql' ? db.JsonDB(filename, !msg.builder.onetime) : db.TableDB(filename, msg.builder.schema, !msg.builder.onetime);
+			var db;
+			if (msg.builder.type === 'textdb') {
+				db = require('./textdb-new');
+				instance = db.TextDB(path, !msg.builder.onetime);
+			} else {
+				db = require('./textdb');
+				instance = msg.builder.type === 'nosql' ? db.JsonDB(path, !msg.builder.onetime) : db.TableDB(path, msg.builder.schema, !msg.builder.onetime);
+			}
 		}
 
 		if (!msg.builder.onetime) {
 			instances[key] = instance;
 			instance.recount();
-			msg.TYPE && setTimeout(processcommand, 100, msg);
-			return;
 		}
 	}
 
@@ -59,7 +62,7 @@ function processcommand(msg) {
 			instance.find().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
 				builder.date = true;
-				process.send(builder);
+				Worker.parentPort.postMessage(builder);
 			});
 			break;
 
@@ -71,7 +74,7 @@ function processcommand(msg) {
 			tmp.documents = instance.total;
 			tmp.size = (instance.filesize || 0);
 			tmp.TYPE = 'response';
-			process.send(tmp);
+			Worker.parentPort.postMessage(tmp);
 			break;
 
 		case 'find2':
@@ -79,7 +82,7 @@ function processcommand(msg) {
 			instance.find2().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
 				builder.date = true;
-				process.send(builder);
+				Worker.parentPort.postMessage(builder);
 			});
 			break;
 
@@ -87,7 +90,7 @@ function processcommand(msg) {
 			reading++;
 			instance.backups().assign(msg.builder).callback(function(err, builder) {
 				builder.TYPE = 'response';
-				process.send(builder);
+				Worker.parentPort.postMessage(builder);
 			});
 			break;
 
@@ -95,10 +98,11 @@ function processcommand(msg) {
 
 			callback = function(err, builder) {
 				builder.TYPE = 'response';
-				process.send(builder);
+				Worker.parentPort.postMessage(builder);
 			};
 
 			if (msg.builder && msg.builder.bulk instanceof Array) {
+
 				var b;
 
 				for (var i = 0; i < msg.builder.bulk.length; i++)
@@ -120,7 +124,7 @@ function processcommand(msg) {
 
 			callback = function(err, builder) {
 				builder.TYPE = 'response';
-				process.send(builder);
+				Worker.parentPort.postMessage(builder);
 			};
 
 			if (msg.builder && msg.builder.bulk instanceof Array) {
@@ -144,7 +148,7 @@ function processcommand(msg) {
 
 			callback = function(err, builder) {
 				builder.TYPE = 'response';
-				process.send(builder);
+				Worker.parentPort.postMessage(builder);
 			};
 
 			if (msg.builder && msg.builder.bulk instanceof Array) {
@@ -170,15 +174,15 @@ function processcommand(msg) {
 			break;
 
 		case 'alter':
-			instance.alter(msg.builder.schema, err => process.send({ TYPE: 'response2', cid: msg.cid, err: err }));
+			instance.alter(msg.builder.schema, err => Worker.parentPort.postMessage({ TYPE: 'response2', cid: msg.cid, err: err }));
 			break;
 
 		case 'clean':
-			instance.clean(() => process.send({ TYPE: 'response', cid: msg.cid, success: true }));
+			instance.clean(() => Worker.parentPort.postMessage({ TYPE: 'response', cid: msg.cid, success: true }));
 			break;
 
 		case 'clear':
-			instance.clear(() => process.send({ TYPE: 'response', cid: msg.cid, success: true }));
+			instance.clear(() => Worker.parentPort.postMessage({ TYPE: 'response', cid: msg.cid, success: true }));
 			break;
 
 		case 'recount':
@@ -191,13 +195,13 @@ function processcommand(msg) {
 			break;
 
 		case 'usage':
-			process.send({ TYPE: 'response', cid: msg.cid, documents: instance.total || 0, size: instance.filesize || 0 });
+			Worker.parentPort.postMessage({ TYPE: 'response', cid: msg.cid, documents: instance.total || 0, size: instance.filesize || 0 });
 			break;
 
 		case 'lock':
 			instance.lock(function(next) {
 				instance.unlock = next;
-				process.send({ TYPE: 'response', cid: msg.cid, success: true });
+				Worker.parentPort.postMessage({ TYPE: 'response', cid: msg.cid, success: true });
 			});
 			break;
 
@@ -253,11 +257,11 @@ function measure() {
 
 	STATS.reading = readingstats;
 	STATS.writing = writingstats;
-	process.send(STATS);
+	Worker.parentPort.postMessage(STATS);
 }
 
 setTimeout(function() {
-	process.send({ TYPE: 'ready' });
+	Worker.parentPort.postMessage({ TYPE: 'ready' });
 	measure();
 }, 100);
 

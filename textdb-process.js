@@ -1,4 +1,6 @@
-const Fork = require('child_process').fork;
+// const Fork = require('child_process').fork;
+const Worker = require('worker_threads');
+
 var CALLBACKS = {};
 var COUNTER = 1;
 var INSTANCE;
@@ -24,7 +26,9 @@ function makedate(obj) {
 
 exports.init = function(directory, callback) {
 
-	INSTANCE = Fork(__dirname + '/textdb-worker.js', [F.directory, CONF.textdb_inmemory || '0'], { detached: true, serialization: 'json' });
+	// INSTANCE = Fork(__dirname + '/textdb-worker.js', [F.directory, CONF.textdb_inmemory || '0'], { detached: true, serialization: 'json' });
+	INSTANCE = new Worker.Worker(__dirname + '/textdb-worker.js', { argv: [F.directory, CONF.textdb_inmemory || '0'] });
+
 	CALLBACKS = {};
 	INSTANCE.on('message', function(msg) {
 
@@ -81,9 +85,9 @@ exports.init = function(directory, callback) {
 
 	INSTANCE.send2 = function(msg) {
 		if (INSTANCE) {
-			if (INSTANCE.ready)
-				INSTANCE.send(msg);
-			else
+			if (INSTANCE.ready) {
+				INSTANCE.postMessage(msg);
+			} else
 				setTimeout(INSTANCE.send2, 100, msg);
 		}
 	};
@@ -94,7 +98,7 @@ exports.init = function(directory, callback) {
 
 exports.kill = function(INSTANCE) {
 	if (INSTANCE.$key) {
-		INSTANCE.kill();
+		INSTANCE.terminate();
 		INSTANCE.$key = null;
 		INSTANCE = null;
 	}
@@ -143,6 +147,7 @@ function prepare(INSTANCE) {
 	};
 
 	INSTANCE.cmd_insert = function(builder, callback) {
+
 		builder.cid = COUNTER++;
 
 		if (callback)

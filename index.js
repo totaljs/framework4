@@ -10,6 +10,7 @@ const Child = require('child_process');
 const Util = require('util');
 const Http = require('http');
 const Https = require('https');
+const Worker = require('worker_threads');
 
 const ENCODING = 'utf8';
 const HEADER_CACHE = 'Cache-Control';
@@ -2376,7 +2377,10 @@ function nosqlwrapper(name) {
 	if (!onetime)
 		PATH.verify('databases');
 
-	var instance = require('./textdb-wrapper').make('nosql', path, onetime);
+	if (!F.textdbworker && Worker.isMainThread && CONF.textdb_worker && F.port)
+		F.textdbworker = require('./textdb-process').init(PATH.databases());
+
+	var instance = require('./textdb-wrapper').make('nosql', F.textdbworker ? name : path, onetime, null, F.textdbworker);
 	if (!onetime)
 		F.databases[key] = instance;
 
@@ -2396,7 +2400,10 @@ function textdbwrapper(name) {
 	if (!onetime)
 		PATH.verify('databases');
 
-	var instance = require('./textdb-wrapper').make('textdb', path, onetime);
+	if (!F.textdbworker && Worker.isMainThread && CONF.textdb_worker && F.port)
+		F.textdbworker = require('./textdb-process').init(PATH.databases());
+
+	var instance = require('./textdb-wrapper').make('textdb', F.textdbworker ? name : path, onetime, null, F.textdbworker);
 	if (!onetime)
 		F.databases[key] = instance;
 
@@ -2422,7 +2429,11 @@ function inmemorywrapper(name) {
 		return db;
 
 	PATH.verify('databases');
-	var instance = require('./textdb-wrapper').make('inmemory', PATH.databases(name + '.inmemory'), null);
+
+	if (!F.textdbworker && Worker.isMainThread && CONF.textdb_worker && F.port)
+		F.textdbworker = require('./textdb-process').init(PATH.databases());
+
+	var instance = require('./textdb-wrapper').make('inmemory', F.textdbworker ? name : PATH.databases(name + '.inmemory'), false, null, F.textdbworker);
 	F.databases[key] = instance;
 	return instance;
 }
@@ -2451,7 +2462,10 @@ function tablewrapper(name) {
 	if (!onetime)
 		PATH.verify('databases');
 
-	var instance = require('./textdb-wrapper').make('table', path, onetime, CONF['table_' + name]);
+	if (!F.textdbworker && Worker.isMainThread && CONF.textdb_worker && F.port)
+		F.textdbworker = require('./textdb-process').init(PATH.databases());
+
+	var instance = require('./textdb-wrapper').make('table', F.textdbworker ? name : path, onetime, CONF['table_' + name], F.textdbworker);
 	if (!onetime)
 		F.databases[key] = instance;
 
@@ -9776,7 +9790,6 @@ global.WORKER = function(name, timeout, args, special) {
 
 	return fork;
 };
-
 
 global.WORKER2 = function(name, args, callback, timeout) {
 
