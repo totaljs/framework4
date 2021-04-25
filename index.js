@@ -4962,7 +4962,8 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('controllers')) {
+	// Controllers are skipped for threads
+	if (can('controllers') && !global.THREAD) {
 		operations.push(function(resume) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/controllers/' : CONF.directory_controllers);
