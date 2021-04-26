@@ -1,75 +1,98 @@
-// Framework
 type Framework = {
 	is4: boolean
 }
 
-type ls = (path: string, callback: (files: [], directories: []) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
-type ls2 = (path: string, callback: (files: [], directories: []) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
+type ls = (path: string, callback: (files: any[], directories: any[]) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
+type ls2 = (path: string, callback: (files: any[], directories: any[]) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
 
 type FrameworkUtils = {
+	atob: (value: string) => string;
+	btoa: (value: string) => string;
+	chunker: (name: string, max?: number) => Chunker;
+	clone: (source: object, skip?: object) => any;
+	combine: (param1?: string, param2?: string, param3?: string) => string;
+	connect: (opt: { host: string, port: number, secure?: boolean, tls?: { host: string, port: number, ciphers?: string }}, callback: () => void) => void; // TODO meta
+	copy: (source: object, target?: object) => any;
+	decode: (value: string) => string;
+	// decrpyt_crypto: (type: string, key: string, buffer: buffer) => buffer; // todo: buffer
+	decrypt_uid: (value: string, key?: string) => number | string;
+	distance: (lat1: number, lon1: number, lat2: number, lon2: number) => number;
+	encode: (value: string) => string;
+	// encrypt_crypto: (type: string, key: string, buffer: buffer) => buffer; // todo: buffer
+	encrypt_uid: (value: number | string, key?: string) => string;
+	etag: (value: string, version?: string) => string;
+	EventEmitter2: (obj: object) => void;
+	extend: (target: object, source: object, rewrite?: boolean) => any;
+	get: (obj: object, path: string) => any;
+	getContentType: (extension: string) => string;
+	getExtension: (extension: string) => string;
+	getName: (path: string) => string;
+	GUID: (max?: number) => string;
+	httpstatus: (code: number, addCode?: boolean) => string;
+	join: (path: string) => string;
+	keywords: (content: string, forSearch?: boolean, alternative?: boolean, max_count?: number, max_length?: number, min_length?: number) => string[];
+	link: (path1: string, path2: string, path3?: string, path4?: string, path5?: string) => string;
 	ls: ls;
 	ls2: ls2;
+	minify_css: (value: string) => string;
+	minify_html: (value: string) => string;
+	minify_js: (value: string) => string;
+	noop: () => () => void;
+	// poggers
 }
 
-type Req = Request & {
-	params: any;
-	body: any;
-	extension: string;
-	files: HttpFile[];
-	flags: string[];
-	host: string;
-	ip: string;
-	isAuthorized: boolean;
-	isProxy: boolean;
-	isStaticFile: boolean;
-	language: string;
-	mobile: boolean;
-	path: string[];
-	query: any;
-	robot: boolean;
-	secured: boolean;
-	session: any;
-	split: string[];
-	subdomain: string[];
-	ua: string;
-	uri: any;
-	user: any | null;
-	xhr: boolean;
-	authorization: () => any;
-	authorize: (callback: (err: any, user: any, isAuthorized: boolean) => void) => Req;
-	clear: () => Req;
-	cookie: (name: string) => string;
-	csrf: () => string;
-	encrpyt: (enable: boolean) => void;
-	hostname: (path: string) => string;
-	localize: () => string;
-	nocache: () => Req;
-	useragent: (structured?: boolean) => string | any;
+type Chunker = {
+
 }
 
-type Res = Response & {
-	json: (body: object) => void;
-	controller: FrameworkController;
-	nocompress: boolean;
-	req: Req;
-	success: boolean;
-	binary: (buffer: Buffer, contentType: string, type?: string, download?: string,	 headers?: object) => Res;
-	content: (code: string, body: string, type: string, compress?: boolean, headers?: object) => Res;
-	continue: (callback?: () => void) => Res;
-	cookie: (name: string, value: string, expiration: string | Date, options: any) => Res;
-	file: (filename: string, download?: string, headers?: object, callback?: Function) => Res;
-	filefs: (name: string, id: string, download?: string, headers?: object, callback?: Function, checkmeta?: (meta: object) => boolean) => Res; // TODO: spravit meta
-	image_nocache: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Res;
-	image: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Res;
-	// senka
-}
-
-type ErrorBuilder = {
-
+declare class ErrorBuilder {
+	constructor(onResource?: (key: any) => void);
+	errors: any[];
+	is: boolean;
+	length: number;
+	status: number;
+	unexpected: boolean;
+	addTransform: (name: string, fn: (isresponse: boolean) => object | string, def?: boolean) => any;
+	setDefaultTransform: (name: string) => void;
+	clear: () => ErrorBuilder;
+	exception: (message: string) => ErrorBuilder;
+	json: (beautify?: boolean) => ErrorBuilder;
+	output: (serialize?: boolean) => any | string;
+	plain: () => ErrorBuilder;
+	push: (name: string, description: string, status: number) => ErrorBuilder;
+	read: (name: string) => string;
+	remove: (name: string) => ErrorBuilder;
+	replace: (search: string, text: string) => ErrorBuilder;
+	resource: (name: string, prefix?: string) => ErrorBuilder;
+	setContentType: (name: string) => ErrorBuilder;
+	setPrefix: (prefix: string) => ErrorBuilder;
+	setResource: (name: string) => ErrorBuilder;
+	setTransform: (name: string) => ErrorBuilder;
+	transform: (name: string) => any;
 }
 
 type HttpFile = {
-
+	extension: string;
+	filename: string;
+	height: number;
+	length: number;
+	name: string;
+	path: string;
+	size: number;
+	type: string;
+	width: number;
+	copy: (filename: string, callback?: () => void) => HttpFile;
+	fs: (name: string, id: string, custom?: object, expire?: string, callback?: (err: any, id: any, meta: object) => void) => void; // todo: spravit meta
+	image: () => FrameworkImage;
+	isAudio: () => boolean;
+	isVideo: () => boolean;
+	isImage: () => boolean;
+	md5: (callback: (err: any, hash: any) => void) => HttpFile;
+	move: (filename: string, callback?: (err: any) => void) => HttpFile;
+	// pipe: (stream: WriteableStream, callback?: (err: any) => void) => HttpFile; todo: buffer
+	read: (callback: (err: any, data: any) => void) => HttpFile;
+	readSync: () => HttpFile;
+	stream: (options?: object) => HttpFile;
 }
 
 type FrameworkPath = {
@@ -113,8 +136,208 @@ type FrameworkImage	= {
 
 }
 
+// Prototypes
+declare interface Request {
+	params: any;
+	body: any;
+	extension: string;
+	files: HttpFile[];
+	flags: string[];
+	host: string;
+	ip: string;
+	isAuthorized: boolean;
+	isProxy: boolean;
+	isStaticFile: boolean;
+	language: string;
+	mobile: boolean;
+	path: string[];
+	query: any;
+	robot: boolean;
+	secured: boolean;
+	session: any;
+	split: string[];
+	subdomain: string[];
+	ua: string;
+	uri: any;
+	user: any | null;
+	xhr: boolean;
+	authorization: () => any;
+	authorize: (callback: (err: any, user: any, isAuthorized: boolean) => void) => Request;
+	clear: () => Request;
+	cookie: (name: string) => string;
+	csrf: () => string;
+	encrpyt: (enable: boolean) => void;
+	hostname: (path: string) => string;
+	localize: () => string;
+	nocache: () => Request;
+	useragent: (structured?: boolean) => string | any;
+}
+
+declare interface Response {
+	controller: FrameworkController;
+	nocompress: boolean;
+	req: Request;
+	success: boolean;
+	binary: (buffer: Buffer, contentType: string, type?: string, download?: string,	 headers?: object) => Response;
+	content: (code: string, body: string, type: string, compress?: boolean, headers?: object) => Response;
+	continue: (callback?: () => void) => Response;
+	cookie: (name: string, value: string, expiration: string | Date, options: any) => Response;
+	file: (filename: string, download?: string, headers?: object, callback?: Function) => Response;
+	filefs: (name: string, id: string, download?: string, headers?: object, callback?: Function, checkmeta?: (meta: object) => boolean) => Response; // TODO: spravit meta
+	image_nocache: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Response;
+	image: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Response;
+	imagefs: (name: string, id: string | number, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Response;
+	json: (body: object) => Response;
+	no_cache: () => Response;
+	proxy: (target: string, copypath?: boolean, after?: (res: any) => void, timeout?: number) => Response;
+	redirect: (url: string, permanenet?: string) => Response;
+	send: (code: number, body: string | object, type?: string) => Response;
+	stream: (type: string, stream: ReadableStream, download?: string, headers?: object, callback?: () => void) => Response;
+	throw400: (problem?: string) => Response;
+	throw401: (problem?: string) => Response;
+	throw403: (problem?: string) => Response;
+	throw404: (problem?: string) => Response;
+	throw409: (problem?: string) => Response;
+	throw500: (err: Error) => Response;
+	throw501: (problem?: string) => Response;
+}
+
+declare interface String {
+	arg: (obj: object, encode?: boolean | string, def?: string) => string;
+	bae64ContentType: () => string;
+	bae64ToBuffer: () => string;
+	bae64ToFile: (filename: string, callback?: (err: any) => void) => string;
+	capitalize: (first?: boolean) => string;
+	count: (word: string) => string;
+	crc32: (unsigned?: boolean) => string;
+	decode: () => string;
+	decrypt_uid: (secret?: string) => string;
+	decrpyt: (key: string, secret?: string) => string;
+	encode: () => string;
+	encrypt_uid: (secret?: string) => string;
+	encrpyt: (key: string, unique: boolean, secret?: string) => string;
+	format: (param1?: string, param2?: string, param3?: string, param4?: string, param5?: string) => string;
+	fromUnicode: () => string;
+	hash: (type?: string, salt?: string) => string;
+	isBase64: () => boolean;
+	isBoolean: () => boolean;
+	isEmail: () => boolean;
+	isJSON: () => boolean;
+	isPhone: () => boolean;
+	isUID: () => boolean;
+	isURL: () => boolean;
+	isZIP: () => boolean;
+	keywords: (forSearch?: boolean, alternative?: boolean | string, max_count?: number, max_lenght?: number, min_length?: number) => string[];
+	makeid: () => string;
+	max: (maxLenght: number, chars?: string) => string;
+	md5: (salt?: string) => string;
+	padLeft: (max: number, char?: string) => string;
+	padRight: (max: number, char?: string) => string;
+	params: (obj: object) => string;
+	parseBool: () => boolean;
+	parseComponent: (tags: object) => any;
+	parseCSV: (delimeter?: string) => any[];
+	parseDate: () => Date;
+	parseDateExpiration: () => Date;
+	parseENV: () => any;
+	parseFloat: (def?: object) => number;
+	parseFloat2: (def?: object) => number;
+	parseInt: (def?: object) => number;
+	parseInt2: (def?: object) => number;
+	parseJSON: () => object;
+	parseQuery: () => object;
+	parseTerminal: (fields: string[], fnLine: (values: any, index: any, count: any, realIndex: any) => void, skipLines?: number, takeLines?: number) => object;
+	parseUA: (structured?: boolean) => string | object;
+	parseXML: (replace?: boolean) => object;
+	pluralize: (zero: string, one: string, few: string, other: string) => string;
+	removeTags: () => string;
+	ROOT: (noremap?: boolean) => string;
+	sha1: (salt?: string) => string;
+	sha256: (salt?: string) => string;
+	sha512: (salt?: string) => string;
+	slug: (max?: number) => string;
+	startWith: (value: string, ignoreCase?: boolean) => boolean;
+	toASCII: () => string;
+	toSearch: () => string;
+	toUnicode: () => string;
+	trim: () => string;
+}
+
+declare interface Number {
+	add: (value: number, decimals?: number) => number;
+	async: (onNumber: (number: number, mext: () => void) => void, onComplete: () => void) => number;
+	between: (condition: object, otherwise: object) => number;
+	currency: (currency: string) => string;
+	discount: (percentage: number, decimals?: number) => number;
+	filesize: (decimals?: number, type?: string) => string;
+	floor: (decimals?: number) => number;
+	format: (decimals?: number, separator?: string, decimalSeparator?: string) => string;
+	hex: (length: number) => string;
+	padLeft: (max: number, char?: string) => string;
+	padRight: (max: number, char?: string) => string;
+	parseDate: (plus?: number) => number;
+	pluralize: (zero: string, one: string, few: string, other: string) => string;
+	VAT: (percentage: number, decimals?: number, includeVAT?: boolean) => number;
+	round: (decimals?: number) => number;
+}
+
+declare interface Date {
+	add: (expression: string | number) => Date;
+	extend: (type: string, count: number) => Date;
+	format: (format?: string, resource?: string) => string;
+	setTimeZone: (timezone: string) => Date;
+	toUTC: (ticks?: boolean) => Date | number;
+}
+
+declare interface Array<T> {
+	async: (threadCount?: number, onComplete?: () => void) => T;
+	findAll: (fn: (item: any, next: () => void) => void) => T;
+	findItem: (fn: (item: any, next: () => void) => void) => any;
+	findValue: (prop: string, value: object, path: string, def?: object) => any;
+	first: (def?: object) => any;
+	last: (def?: object) => any;
+	limit: (max: number, fn: (items: any, next: () => void) => void, callback?: () => void) => T;
+	quicksort: (path: string, asc: boolean | string) => T;
+	random: () => T;
+	remove: (fn: (item: any, index: any) => void) => T;
+	skip: (count: number) => T;
+	take: (count: number) => T;
+	toObject: (name?: string) => any;
+	trim: () => T;
+	wait: (onItem: (item: any, next: () => void) => void, callback?: () => void, threadCount?: number) => T;
+}
+
 // Utils
 type ErrorResponse = (error: any | null, response: any | null) => void;
+
+type RequestOptions = {
+	url: string;
+	encrypt?: string;
+	xhr?: boolean;
+	timeout?: number;
+	encoding?: string;
+	headers?: any;
+	method?: string;
+	proxy?: string;
+	query?: any;
+	unixsocket?: { socket: string, path: string };
+	dnscache?: boolean;
+	noredirect?: boolean;
+	keepalive?: boolean;
+	body?: any | string;
+	cookies?: any;
+	cook?: boolean;
+	limit?: number;
+	custom?: boolean;
+	key?: Buffer;
+	cert?: Buffer;
+	dhparam?: string;
+	nocookies?: boolean;
+	ondata?: (chunks: Buffer, percentage: number) => void;
+	onprogress?: (percentage: number) => void;
+	files?: any;
+	type?: string;
+}
 
 // Dollar -> $
 type Dollar = {
@@ -129,8 +352,8 @@ type Dollar = {
 	model: any;
 	params: any;
 	query: any;
-	req: Req;
-	res: Res;
+	req: Request;
+	res: Response;
 	session: any;
 	sessionid: string;
 	test: boolean;
@@ -167,8 +390,8 @@ type FrameworkController = {
 	query: any;
 	referrer: string;
 	repository: any;
-	req: Req;
-	res: Res;
+	req: Request;
+	res: Response;
 	robot: boolean;
 	route: any;
 	schema: string;
@@ -290,7 +513,7 @@ type SchemaCallback = {
 	schema: any;
 	trim: boolean;
 	allow: (field: string, field2?: string, field3?: string, field4?: string, field5?: string) => void;
-	before: (name: string, fn: (value, model, index?, request?: Req) => void ) => void;
+	before: (name: string, fn: (value, model, index?, request?: Request) => void ) => void;
 	cl: (name: string) => void;
 	compress: () => void;
 	csrf: () => void;
@@ -324,8 +547,7 @@ type SchemaCallback = {
 }
 
 // Route
-type RouteAction = (req: Req | any, res: Res | any) => void;
-type Route = {}
+type RouteAction = (req: Request, res: Response | any) => void;
 
 // Operation
 type Operation = Dollar & {
@@ -362,19 +584,94 @@ type FrameworkWebSocketClient = {
 
 // Mail
 type FrameworkMail = {
-
+	debug: boolean;
+	rejectUnathorized: boolean;
+	create: (subject: string, body: string) => MailMessage;
+	send: (smtp: string, options: object, messages: MailMessage[], callback: (err: any, count: any) => void) => FrameworkMail;
+	send2: (messages: MailMessage[], callback: (err: any, count: any) => void) => FrameworkMail;
+	try: (smtp: string, options: object, callback: (err: any) => void) => FrameworkMail;
+	use: (hostname: string, options?: object, callback?: (err: any) => void) => void;
+	on: (event: string, fn: Function) => void;
 }
 
 type MailMessage = {
-
+	body: string;
+	headers: any;
+	subject: string;
+	type: string;
+	attachment: (filename: string, name?: string) => MailMessage;
+	attachments: (name: string, id: number, attachment?: string) => MailMessage;
+	bcc: (address: string, clear?: boolean) => MailMessage;
+	callback: (fn: (err: any) => void) => MailMessage; 
+	cc: (address: string, name?: string, clear?: boolean) => MailMessage; 
+	confidential: () => MailMessage;
+	from: (address: string, name: string) => MailMessage;
+	high: () => MailMessage;
+	low: () => MailMessage;
+	manually: () => MailMessage;
+	reply: (address: string, clear?: boolean) => MailMessage;
+	send: (smtp: string, options: object, callback: () => void) => MailMessage;
+	send2: (callback: () => void) => MailMessage;
+	to: (address: string, name?: string, clear?: boolean) => MailMessage;
+	unsubscribe: (url: string) => MailMessage;
 }
 
 // Test
-type Test = {
+type Test = {}
 
+// TextDB
+type TextDB = {
+	alter: (schema: string, callback: (err: any) => void) => void;
+	clean: (callback?: () => void) => void;
+	clear: (callback?: () => void) => void;
+	count: () => QueryBuilder;
+	drop: () => QueryBuilder;
+	find: () => QueryBuilder;
+	find2: () => QueryBuilder;
+	doc: (doc: any, unique?: boolean) => QueryBuilder;
+	list: () => QueryBuilder;
+	memory: (count: number, size: number) => void;
+	modify: (data: object, upsert?: boolean | object) => QueryBuilder;
+	one: () => QueryBuilder;
+	one2: () => QueryBuilder;
+	remove: () => QueryBuilder;
+	scalar: (type?: string, field?: string, key?: string) => QueryBuilder;
+	stats: (groupfield: string, datafield: string, scalarfield: string, type?: string) => QueryBuilder;
 }
 
-// Counter
+type QueryBuilder = {
+	autofill: ($: Dollar, allowedfields?: string | null, skipfields?: string | null, def_sort?: string | null, def_maxlimit?: number) => QueryBuilder;
+	between: (name: string, valueA: number, valueB: number) => QueryBuilder;
+	callback: (fn: (err: any, response: any, meta?: { count: number, counter: number, scanned: number, duration: number }) => void) => QueryBuilder;
+	contains: (field: string) => QueryBuilder;
+	day: (name: string, operator: string, value: number) => QueryBuilder;
+	done: ($: Dollar, fn: () => void, param?: object) => (err: any, response: any, param: any) => void;
+	empty: (field: string) => QueryBuilder;
+	fields: (fields: string) => QueryBuilder;
+	first: () => QueryBuilder;
+	gridfields: (fields: string, allowed?: string[]) => QueryBuilder;
+	gridfilter: (name: string, obj: object, type: object, column_name?: string) => QueryBuilder;
+	gridsort: (name_type: string) => QueryBuilder;
+	id: (value: string) => QueryBuilder;
+	in: (name: string, value: string[]) => QueryBuilder;
+	insert: (fn: (doc: object) => void) => QueryBuilder;
+	join: (field: string, database: string, type?: string) => QueryBuilder;
+	log: (msg: object) => QueryBuilder;
+	month: (name: string, operator: string, value: number) => QueryBuilder;
+	notin: (name: string, value: string) => QueryBuilder;
+	or: () => QueryBuilder;
+	page: (page: number, limit: number) => QueryBuilder;
+	paginate: (page: string | number, limit: string | number) => QueryBuilder;
+	rule: (code: string, arg: object) => QueryBuilder;
+	scalar: (type: string, field?: string) => QueryBuilder;
+	search: (name: string, value: string, where?: string) => QueryBuilder;
+	skip: (limit: number) => QueryBuilder;
+	sort: (key: string) => QueryBuilder;
+	take: (limit: number) => QueryBuilder;
+	where: (name: string, operator: string, value: string) => QueryBuilder;
+	year: (name: string, operator: string, value: number) => QueryBuilder;
+}
+
 type Counter = {
 	clear: (callback: Function) => Counter;
 	count: (id: string, callback: (err: any, count: any, meta: any) => void) => QueryBuilder;
@@ -389,16 +686,11 @@ type Counter = {
 	yearly: (id: string, callback?: ErrorResponse) => QueryBuilder;
 }
 
-type QueryBuilder = {
-
-}
-
-// FileStorage
 type FileStorage = {
 	name: string;
 	size: number;
 	total: number;
-	browse: () => TextDBQueryBuilder;
+	browse: () => QueryBuilder;
 	browse2: (callback: (err: any, files: any) => void) => void;
 	clean: (callback?: (err: any) => void) => void;
 	clear: (callback?: (err: any) => void) => void;
@@ -414,47 +706,95 @@ type FileStorage = {
 }
 
 // Flow
-type Flow = {}
-
-// TextDB
-type TextDB = {}
-
-type TextDBQueryBuilder = {}
-
-// Request options
-type RequestOptions = {
-	url: string;
-	encrypt?: string;
-	xhr?: boolean;
-	timeout?: number;
-	encoding?: string;
-	headers?: any;
-	method?: string;
-	proxy?: string;
-	query?: any;
-	unixsocket?: { socket: string, path: string };
-	dnscache?: boolean;
-	noredirect?: boolean;
-	keepalive?: boolean;
-	body?: any | string;
-	cookies?: any;
-	cook?: boolean;
-	limit?: number;
-	custom?: boolean;
-	key?: Buffer;
-	cert?: Buffer;
-	dhparam?: string;
-	nocookies?: boolean;
-	ondata?: (chunks: Buffer, percentage: number) => void;
-	onprogress?: (percentage: number) => void;
-	files?: any;
-	type?: string;
+type FlowStream = {
+	meta: any;
+	stats: any;
+	ondashboard: (a?: any, b?: any, c?: any, d?: any) => void;
+	ondebug: (a?: any, b?: any, c?: any, d?: any) => void;
+	onerror: (a?: any, b?: any, c?: any, d?: any) => void;
+	onstatus: (a?: any, b?: any, c?: any, d?: any) => void;
+	add: (name: string, body: string) => any;
+	clear: () => any;
+	components: () => any[];
+	destroy: () => void;
+	find: (id: string) => any;
+	instances: () => any[];
+	make: (callback: () => void) => void;
+	on: (name: string, callback: (a: any, b: any, c:any) => void) => void;
+	reconfigure: (id: string, config: object) => void;
+	register: (name: string, callback: () => void, options?: object) => FlowInstance;
+	send: (path: string, body: object) => boolean;
+	trigger: (target: string, data: object, controller?: FrameworkController) => void;
+	trigger2: (target: string, data: object, controller?: FrameworkController) => void;
+	unregister: (name: string) => FlowInstance;
+	use: (schema: string | object, callback?: (err: any) => void) => void;
 }
 
-// ScheduleInstance
-type ScheduleInstance = {
-
+type FlowInstance = {
+	cache: any;
+	comonent: string;
+	config: string;
+	id: string;
+	main: FlowStream;
+	module: any;
+	ready: boolean;
+	stats: any;
+	close: () => void;
+	configure: () => void;
+	make: () => void;
+	message: (message: any) => FlowMessage;
+	open: (next: () => void) => void;
+	dashboard: (a?: any, b?: any, c?: any, d?: any) => void;
+	debug: (a?: any, b?: any, c?: any, d?: any) => void;
+	send: (output: string, data: any, controller?: FrameworkController) => number;
+	status: (a?: any, b?: any, c?: any, d?: any) => void;
+	throw: (a?: any, b?: any, c?: any, d?: any) => void;
 }
+
+type FlowMessage = {
+	body: any;
+	cache: any;
+	controller: FrameworkController;
+	count: number;
+	data: any;
+	duration: number;
+	duration2: number;
+	files: HttpFile[];
+	from: FlowInstance;
+	fromcomponent: string;
+	fromid: string;
+	fromindex: number | string;
+	headers: any;
+	id: string;
+	ip: string;
+	language: string;
+	main: FlowStream;
+	options: any;
+	params: any;
+	query: any;
+	repo: any;
+	req: Request;
+	res: Response;
+	schema: FlowInstance;
+	session: any;
+	sessionid: string;
+	to: FlowInstance;
+	tocomponent: string;
+	toid: string;
+	toindex: number | string;
+	used: number;
+	user: any;
+	dashboard: (a?: any, b?: any, c?: any, d?: any) => FlowMessage;
+	debug: (a?: any, b?: any, c?: any, d?: any) => FlowMessage;
+	destroy: () => void;
+	on: (name: string, callback: Function) => FlowMessage;
+	replace: (data: object) => FlowMessage;
+	send: (output?: string, data?: object, clone_data?: boolean) => FlowMessage;
+	status: (a?: any, b?: any, c?: any, d?: any) => FlowMessage;
+	throw: (a?: any, b?: any, c?: any, d?: any) => FlowMessage;
+}
+
+type ScheduleInstance = {}
 
 // RESTBuilder
 type RESTBuilder = {
@@ -533,7 +873,6 @@ declare const DEF: DEF;
 declare const EMPTYARRAY: [];
 declare const EMPTYCONTROLLER: FrameworkController | any;
 declare const EMPTYOBJECT: {};
-declare const ErrorBuilder: ErrorBuilder;
 declare const F: Framework;
 declare const FUNC: any;
 declare const isWORKER: boolean;
@@ -561,7 +900,7 @@ declare function CMD(name: string, a?: object, b?: object, c?: object): void;
 declare function CONVERT(obj: object, name: string): object;
 declare function CORS(url: string, flags?: string[], credentials?: boolean): Framework;
 declare function COUNTER(name: string): Counter;
-declare function DECRYPTREQ(req: Req, val: object | string, key?: string): object | string;
+declare function DECRYPTREQ(req: Request, val: object | string, key?: string): object | string;
 declare function DESTROY(stream: ReadableStream): void;
 declare function DIFFARR(name: string, arr_db: object[], arr_form: object[]): object;
 declare function DOWNLOAD(url: string, filename: string, callback?: ErrorResponse, timeout?: number): void;
@@ -569,14 +908,14 @@ declare function EACHSCHEMA(group: string, fn: (group: string, name: string, sch
 declare function EACHSCHEMA(fn: (group: string, name: string, schema: string) => void): any;
 declare function EMIT(name: string, arg1?: object, arg2?: object, arg3?: object, arg4?: object, arg5?: object): void;
 declare function EMIT2(name: string, arg1?: object, arg2?: object, arg3?: object, arg4?: object, arg5?: object): void;
-declare function ENCRYPTREQ(req: Req, val: object | string, key?: string, strict?: boolean): string;
+declare function ENCRYPTREQ(req: Request, val: object | string, key?: string, strict?: boolean): string;
 declare function ERROR(name: string): Function;
 declare function EXEC(schema: string, model: object, callback: ErrorResponse, controller?: Dollar | FrameworkController): FrameworkController;
 declare function FAKE(schema: string, required_only: boolean): any;
-declare function FILE404(action: (req: Req, res: Res) => void): void;
+declare function FILE404(action: (req: Request, res: Response) => void): void;
 declare function FILESTORAGE(name: string): FileStorage;
-declare function FINISHED(stream: ReadableStream | Res | Req, callback: (err: any) => void): void;
-declare function FLOWSTREAM(name?: string): Flow;
+declare function FINISHED(stream: ReadableStream | Response | Request, callback: (err: any) => void): void;
+declare function FLOWSTREAM(name?: string): FlowStream;
 declare function GETSCHEMA(schema: string, callback: (err: any, schema: any) => void, timeout?: number): any;
 declare function GETSCHEMA(schema: string): any;
 declare function GROUP(flags: string | string[], action: () => void): Framework;
@@ -586,7 +925,7 @@ declare function HTMLMAIL(address: string | string[], subject: string, html: str
 declare function IMPORT(url: string, callback?: (err: any, module: any, response: any) => void): void;
 declare function LDAP(options: { ldap: { host: string, port?: number }, user: string, password: string, dn?: string, type: string }, callback: ErrorResponse): void;
 declare function LOAD(types: string | string[], path?: string, callback?: () => void): void;
-declare function LOCALIZE(fn: (req: Req, res: Res) => void): void;
+declare function LOCALIZE(fn: (req: Request, res: Response) => void): void;
 declare function LOGGER(filename: string, param1?: any, param2?: any, param3?: any, param4?: any, param5?: any): void;
 declare function LOGMAIL(address: string | string[], subject: string, body: string, callback?: (err: any) => void): Framework;
 declare function MAIL(address: string | string[], subject: string, view_name: string, model?: object, callback?: (err: any) => void, language?: string): MailMessage;
@@ -611,13 +950,13 @@ declare function ONCE(name: string, callback: () => void): Framework;
 declare function OPERATION(name: string, value: object, callback: ErrorResponse, options?: {}, controller?: FrameworkController);
 declare function PAUSE(pause: boolean): void;
 declare function PAUSERUN(label: string): void;
-declare function PROXY(endpoint: string, hostname: string, copypath?: boolean, before?: (uri: any, req: Req, res: Res) => void, after?: (res: any) => void, timeout?: number): void;
+declare function PROXY(endpoint: string, hostname: string, copypath?: boolean, before?: (uri: any, req: Request, res: Response) => void, after?: (res: any) => void, timeout?: number): void;
 declare function QUERIFY(url: string, data: object): void;
 declare function REDIRECT(path: string, host: string, copypath?: boolean, permanent?: boolean): void;
 declare function REQUEST(options: RequestOptions, callback?: () => void): void;
 declare function REQUIRE(path: string): any;
 declare function RESOURCE(name: string, key: string): any;
-declare function ROUTE(url: string, action?: RouteAction, flags?: string[], length?: number[]): Route;
+declare function ROUTE(url: string, action?: RouteAction, flags?: string[], length?: number[]): any;
 declare function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
 declare function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
 declare function SESSION(name?: string, ondata?: Function): any
