@@ -2130,6 +2130,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
+
 	if (controller && controller.req && controller.req.keys)
 		$.keys = controller.req.keys;
 	else if (type === 'patch') // Due to $PATCH() method
@@ -2302,6 +2303,13 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 			$.ID = self.name + '.' + (name ? name : a.type);
 			$.name = a.type + (name ? ('.' + name) : '');
 			$.options = item.options;
+
+			if (controller && controller.req && controller.req.keys)
+				$.keys = controller.req.keys;
+			else if (a.type === 'patch') // Due to $PATCH() method
+				$.keys = Object.keys(model);
+			else
+				$.keys = null;
 
 			var novalidate = true;
 
@@ -2610,16 +2618,15 @@ exports.newschema = function(name) {
  * @param {String} name
  */
 exports.remove = function(name) {
-	Object.keys(schemasall).forEach(function(key) {
+	for (var key in schemasall) {
 		if (key === name)
 			delete schemasall[key];
-	});
+	}
 };
 
 global.EACHOPERATION = function(fn) {
-	var keys = Object.keys(operations);
-	for (var i = 0, length = keys.length; i < length; i++)
-		fn(keys[i]);
+	for (var key in operations)
+		fn(key);
 };
 
 /**
@@ -3430,10 +3437,8 @@ UrlBuilder.prototype.add = function(name, value) {
 		return this;
 	}
 
-	var arr = Object.keys(name);
-
-	for (var i = 0, length = arr.length; i < length; i++)
-		this.builder[arr[i]] = name[arr[i]];
+	for (var key in name)
+		this.builder[key] = name[key];
 
 	return this;
 };
@@ -3996,9 +4001,8 @@ RESTP.set = function(name, value) {
 	if (typeof(name) !== 'object') {
 		this.options.body[name] = value;
 	} else {
-		var arr = Object.keys(name);
-		for (var i = 0, length = arr.length; i < length; i++)
-			this.options.body[arr[i]] = name[arr[i]];
+		for (var key in name)
+			this.options.body[key] = name[key];
 	}
 	return this;
 };
@@ -5169,10 +5173,10 @@ exports.uninstall = function(owner) {
 	if (!owner)
 		return;
 
-	Object.keys(operations).forEach(function(key) {
+	for (var key in operations) {
 		if (operations[key].$owner === owner)
 			delete operations[key];
-	});
+	}
 
 	exports.eachschema(function(group, name, schema) {
 		schema.owner === owner && schema.destroy();
