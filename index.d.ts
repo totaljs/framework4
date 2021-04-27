@@ -11,14 +11,14 @@ type FrameworkUtils = {
 	chunker: (name: string, max?: number) => Chunker;
 	clone: (source: object, skip?: object) => any;
 	combine: (param1?: string, param2?: string, param3?: string) => string;
-	connect: (opt: { host: string, port: number, secure?: boolean, tls?: { host: string, port: number, ciphers?: string }}, callback: () => void) => void; // TODO meta
+	connect: (opt: { host: string, port: number, secure?: boolean, tls?: { host: string, port: number, ciphers?: string }}, callback: (err: any, meta: any) => void) => void;
 	copy: (source: object, target?: object) => any;
 	decode: (value: string) => string;
-	// decrpyt_crypto: (type: string, key: string, buffer: buffer) => buffer; // todo: buffer
+	decrpyt_crypto: (type: string, key: string, buffer: Buffer) => Buffer;
 	decrypt_uid: (value: string, key?: string) => number | string;
 	distance: (lat1: number, lon1: number, lat2: number, lon2: number) => number;
 	encode: (value: string) => string;
-	// encrypt_crypto: (type: string, key: string, buffer: buffer) => buffer; // todo: buffer
+	encrypt_crypto: (type: string, key: string, buffer: Buffer) => Buffer;
 	encrypt_uid: (value: number | string, key?: string) => string;
 	etag: (value: string, version?: string) => string;
 	EventEmitter2: (obj: object) => void;
@@ -38,12 +38,26 @@ type FrameworkUtils = {
 	minify_html: (value: string) => string;
 	minify_js: (value: string) => string;
 	noop: () => () => void;
-	// poggers
+	normalize: (path: string) => string;
+	parseBool: (value: any, def?: boolean) => boolean;
+	parseFloat: (value: any, def?: boolean) => number;
+	parseInt: (value: any, def?: boolean) => number;
+	parseXML: (value: string, replace?: boolean) => any;
+	path: (url: string, delimeter?: string) => string;
+	queue: (name: string, maximum: number, fn: (next: () => void) => void) => boolean;
+	random_number: (max: number) => number;
+	random_string: (max: number) => string;
+	random: (max?: number, min?: number) => number;
+	// reader: (items?: any[]) => DataReader; // todo - wtf
+	reduce: (source: any | any[], prop: any | string[], reverse?: boolean) => any;
+	resolve: (url: string, callback?: (err: any, uri: any) => void) => string;
+	set: (obj: any, path: string, value: any) => void;
+	// streamer: (beg: string | Buffer, end: string | Buffer, fn: (value: any, index: any) => void, skip?: number, stream?: Stream) => Function; // todo - stream
+	// streamer2: (beg: string | Buffer, end: string | Buffer, fn: (value: any, index: any) => void, skip?: number, stream?: Stream) => Function; // todo - stream
+	trim: (obj: any | any[], clean?: boolean) => any;
 }
 
-type Chunker = {
-
-}
+type Chunker = any;
 
 declare class ErrorBuilder {
 	constructor(onResource?: (key: any) => void);
@@ -89,7 +103,7 @@ type HttpFile = {
 	isImage: () => boolean;
 	md5: (callback: (err: any, hash: any) => void) => HttpFile;
 	move: (filename: string, callback?: (err: any) => void) => HttpFile;
-	// pipe: (stream: WriteableStream, callback?: (err: any) => void) => HttpFile; todo: buffer
+	//pipe: (stream: WriteStream, callback?: (err: any) => void) => HttpFile; todo
 	read: (callback: (err: any, data: any) => void) => HttpFile;
 	readSync: () => HttpFile;
 	stream: (options?: object) => HttpFile;
@@ -133,7 +147,40 @@ type FrameworkPath = {
 }
 
 type FrameworkImage	= {
-
+	align: (type: string) => FrameworkImage;
+	background: (color: string) => FrameworkImage;
+	bitdepth: (value: number) => FrameworkImage;
+	blur: (radius: number) => FrameworkImage;
+	colors: (value: number) => FrameworkImage;
+	command: (name: string, value: string, priority?: number, escape?: boolean) => FrameworkImage;
+	crop: (width: string, height: string, x: number, y: number) => FrameworkImage;
+	define: (value: string) => FrameworkImage;
+	filter: (name: string) => FrameworkImage;
+	flip: () => FrameworkImage;
+	flop: () => FrameworkImage;
+	geometry: (width: string, height: string, options?: object) => FrameworkImage;
+	grayscale: () => FrameworkImage;
+	identify: (callback: (err: any, info: any) => void) => FrameworkImage;
+	limit: (type: string, value: number) => FrameworkImage;
+	make: (fn: (image: FrameworkImage) => void) => FrameworkImage;
+	measure: (callback: (err: any, size: any) => void) => FrameworkImage;
+	// middleware: (extension: string, callback: () => PassThrough) => FrameworkImage; // todo: ???
+	miniature: (width: string, height: string, bgColor?: string, flter?: string) => FrameworkImage;
+	minify: () => FrameworkImage;
+	normalize: () => FrameworkImage;
+	output: (type: string) => FrameworkImage;
+	//pipe: (stream: WriteStream, type?: string, options?: object) => FrameworkImage; // todo: stream
+	quality: (percentage: number) => FrameworkImage;
+	resize: (width: string, height: string, options?: object) => FrameworkImage;
+	resizeAlign: (width: string, height: string, align: string, color?: string) => FrameworkImage;
+	resizeCenter: (width: string, height: string, color?: string) => FrameworkImage;
+	rotate: (degrees: number) => FrameworkImage;
+	save: (filename: string, callback?: (err: any, isSaved: any) => void) => FrameworkImage;
+	scale: (width: string, height: string, options?: object) => FrameworkImage;
+	sepia: () => FrameworkImage;
+	stream: (type?: string) => ReadableStream;
+	thumbnail: (width: string, height: string, options?: object) => FrameworkImage;
+	watermark: (filename: string, x?: number, y?: number, width?: number, height?: number) => FrameworkImage;
 }
 
 // Prototypes
@@ -183,7 +230,7 @@ declare interface Response {
 	continue: (callback?: () => void) => Response;
 	cookie: (name: string, value: string, expiration: string | Date, options: any) => Response;
 	file: (filename: string, download?: string, headers?: object, callback?: Function) => Response;
-	filefs: (name: string, id: string, download?: string, headers?: object, callback?: Function, checkmeta?: (meta: object) => boolean) => Response; // TODO: spravit meta
+	filefs: (name: string, id: string, download?: string, headers?: object, callback?: Function, checkmeta?: (meta: object) => boolean) => Response; // 	: spravit meta
 	image_nocache: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Response;
 	image: (input: string | ReadableStream, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Response;
 	imagefs: (name: string, id: string | number, make: (image: FrameworkImage, res) => void, headers: any, callback: Function) => Response;
@@ -547,7 +594,7 @@ type SchemaCallback = {
 }
 
 // Route
-type RouteAction = (req: Request, res: Response | any) => void;
+type RouteAction = (req: Request, res: Response) => void; // todo: this. ... sadge
 
 // Operation
 type Operation = Dollar & {
@@ -617,7 +664,7 @@ type MailMessage = {
 }
 
 // Test
-type Test = {}
+type Test = any;
 
 // TextDB
 type TextDB = {
@@ -794,7 +841,7 @@ type FlowMessage = {
 	throw: (a?: any, b?: any, c?: any, d?: any) => FlowMessage;
 }
 
-type ScheduleInstance = {}
+type ScheduleInstance = any;
 
 // RESTBuilder
 type RESTBuilder = {
