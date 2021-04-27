@@ -481,7 +481,6 @@ tests.push(function(next) {
 
 		tests.push(function(next) {
 			RESTBuilder.POST(url + '/wildcards/second/arg1/arg2/wild').exec(function(err, res) {
-				console.log('-->', err, res);
 				Assert.ok(err === null && res.success && res.value === 5, subtest_name);
 				next();
 			});
@@ -602,6 +601,22 @@ tests.push(function(next) {
 				Assert.ok(err === null && res.success, subtest_name + ' - cannot be error');
 				Assert.ok(res.value.includes('valid'), subtest_name + ' - cannot be error');
 				Assert.ok(!res.value.includes('invalid'), subtest_name + ' - cannot be returned');
+
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Patch Keys - Multioperation
+		tests.push(function(next) {
+			test_name = 'Patch keys (multioperation)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_keys_multi', data).exec(function(err, res) {
+				Assert.ok(!err && res && res.value && res.value.includes(data.valid) && !res.value.includes(data.invalid), subtest_name + ' - PATCH - Multiple operation keys');
 
 				console.timeEnd(test_log);
 				next();

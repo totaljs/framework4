@@ -10,4 +10,12 @@ NEWSCHEMA('APIRoutes', function(schema) {
 		$.success($.keys);
 	});
 
+	schema.addWorkflow('one', function($) {
+		$.success();
+	});
+
+	schema.addWorkflow('two', function($) {
+		$.success();
+	});
+
 });
