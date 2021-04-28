@@ -1,5 +1,6 @@
 type Framework = {
-	is4: boolean
+	is4: boolean;
+	version: string;
 }
 
 type ls = (path: string, callback: (files: any[], directories: any[]) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
@@ -48,16 +49,37 @@ type FrameworkUtils = {
 	random_number: (max: number) => number;
 	random_string: (max: number) => string;
 	random: (max?: number, min?: number) => number;
-	// reader: (items?: any[]) => DataReader; // todo - wtf
+	reader: (items?: any[]) => DataReader;
 	reduce: (source: any | any[], prop: any | string[], reverse?: boolean) => any;
 	resolve: (url: string, callback?: (err: any, uri: any) => void) => string;
 	set: (obj: any, path: string, value: any) => void;
-	// streamer: (beg: string | Buffer, end: string | Buffer, fn: (value: any, index: any) => void, skip?: number, stream?: Stream) => Function; // todo - stream
-	// streamer2: (beg: string | Buffer, end: string | Buffer, fn: (value: any, index: any) => void, skip?: number, stream?: Stream) => Function; // todo - stream
+	streamer: (beg: string | Buffer, end: string | Buffer, fn: (value: any, index: any) => void, skip?: number, stream?: any) => Function;
+	streamer2: (beg: string | Buffer, end: string | Buffer, fn: (value: any, index: any) => void, skip?: number, stream?: any) => Function;
 	trim: (obj: any | any[], clean?: boolean) => any;
 }
 
-type Chunker = any;
+type Chunker = {
+	autoremove: boolean;
+	compress: boolean;
+	count: number;
+	pages: number;
+	percentage: number;
+	clear: () => Chunker;
+	destroy	: () => Chunker;
+	each: (onDocuments: (docs: any, next: () => void) => void, callback?: () => void) => Chunker;
+	end: () => Chunker;
+	read: (page: number, callback: (err: any, docs: any) => void) => Chunker;
+	write: (doc: object) => Chunker;
+};
+
+type DataReader = {
+	count: () => QueryBuilder;
+	find: () => QueryBuilder;
+	list: () => QueryBuilder;
+	read: () => QueryBuilder;
+	scalar: (type: string, field: string, key?: string) => QueryBuilder;
+	stats: (groupfield: string, datafield: string, scalarfield: string, type?: string) => QueryBuilder;
+}
 
 declare class ErrorBuilder {
 	constructor(onResource?: (key: any) => void);
@@ -103,7 +125,7 @@ type HttpFile = {
 	isImage: () => boolean;
 	md5: (callback: (err: any, hash: any) => void) => HttpFile;
 	move: (filename: string, callback?: (err: any) => void) => HttpFile;
-	//pipe: (stream: WriteStream, callback?: (err: any) => void) => HttpFile; todo
+	pipe: (stream: any, callback?: (err: any) => void) => HttpFile;
 	read: (callback: (err: any, data: any) => void) => HttpFile;
 	readSync: () => HttpFile;
 	stream: (options?: object) => HttpFile;
@@ -164,12 +186,12 @@ type FrameworkImage	= {
 	limit: (type: string, value: number) => FrameworkImage;
 	make: (fn: (image: FrameworkImage) => void) => FrameworkImage;
 	measure: (callback: (err: any, size: any) => void) => FrameworkImage;
-	// middleware: (extension: string, callback: () => PassThrough) => FrameworkImage; // todo: ???
+	middleware: (extension: string, callback: () => any) => FrameworkImage;
 	miniature: (width: string, height: string, bgColor?: string, flter?: string) => FrameworkImage;
 	minify: () => FrameworkImage;
 	normalize: () => FrameworkImage;
 	output: (type: string) => FrameworkImage;
-	//pipe: (stream: WriteStream, type?: string, options?: object) => FrameworkImage; // todo: stream
+	pipe: (stream: any, type?: string, options?: object) => FrameworkImage;
 	quality: (percentage: number) => FrameworkImage;
 	resize: (width: string, height: string, options?: object) => FrameworkImage;
 	resizeAlign: (width: string, height: string, align: string, color?: string) => FrameworkImage;
@@ -594,7 +616,7 @@ type SchemaCallback = {
 }
 
 // Route
-type RouteAction = (req: Request, res: Response) => void; // todo: this. ... sadge
+type RouteAction = (req: Request, res: Response) => void;
 
 // Operation
 type Operation = Dollar & {
@@ -664,7 +686,13 @@ type MailMessage = {
 }
 
 // Test
-type Test = any;
+type Test = {
+	body: any;
+	user: any | null;
+	query: any;
+	pass: (fn: ($: { error: any, value: any }) => boolean) => void;
+	fail: (fn: ($: { error: any, value: any }) => boolean) => void;
+};
 
 // TextDB
 type TextDB = {
@@ -767,7 +795,7 @@ type FlowStream = {
 	find: (id: string) => any;
 	instances: () => any[];
 	make: (callback: () => void) => void;
-	on: (name: string, callback: (a: any, b: any, c:any) => void) => void;
+	on: (name: string, callback: (a: any, b: any, c: any) => void) => void;
 	reconfigure: (id: string, config: object) => void;
 	register: (name: string, callback: () => void, options?: object) => FlowInstance;
 	send: (path: string, body: object) => boolean;
@@ -937,7 +965,7 @@ declare const Utils: FrameworkUtils;
 
 declare function ACTION(url: string, body: object, fn: ErrorResponse): void;
 declare function AUDIT($: Dollar, message?: string, type?: string): void;
-declare function AUTH(fn: ($: Dollar) => void): void;
+declare function AUTH(fn: ($: { ip: string, ua: string, query: object, body: any, params: object, language: string, url: string, files: HttpFile[], headers: object, cookie: (name: string) => void, invalid: (error: string) => void, success: (user_instance: string) => void}) => void): void;
 declare function BLOCKED($: Dollar, limit?: number, expiration?: string): boolean;
 declare function CACHE(key: string, value?: number, expire?: string, persistent?: boolean): any;
 declare function CLEANUP(stream: ReadableStream, callback?: () => void): void;
@@ -989,7 +1017,7 @@ declare function NEWOPERATION(name: string, fn: ($: Operation) => void, repeat?:
 declare function NEWSCHEMA(schema: string, callback: (schema: SchemaCallback) => void): void;
 declare function NEWTASK(name: string, fn: (push: (task: string, callback: ($?: Task, value?: any) => void) => void) => void);
 declare function NOOP(): () => void;
-declare function NOSQL(name: string): () => TextDB;
+declare function NOSQL(name: string): TextDB;
 declare function NPMINSTALL(name: string, callback: (err: any) => void): void;
 declare function OFF(name: string, callback?: () => void): Framework;
 declare function ON(name: string, callback: () => void): Framework;
@@ -1006,7 +1034,7 @@ declare function RESOURCE(name: string, key: string): any;
 declare function ROUTE(url: string, action?: RouteAction, flags?: string[], length?: number[]): any;
 declare function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
 declare function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
-declare function SESSION(name?: string, ondata?: Function): any
+declare function SESSION(name?: string, ondata?: Function): any;
 declare function setTimeout2(name: string, fn: (arg: any) => void, timeout: number, limit?: number, arg?: object): void;
 declare function SITEMAP(id: string, first?: boolean, language?: string): object[];
 declare function TABLE(name: string): TextDB;
