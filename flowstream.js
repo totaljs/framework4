@@ -354,7 +354,7 @@ function Flow(name, errorhandler) {
 
 var FP = Flow.prototype;
 
-FP.register = function(name, declaration, config, extend) {
+FP.register = function(name, declaration, config, callback, extend) {
 
 	var self = this;
 	var type = typeof(declaration);
@@ -394,23 +394,40 @@ FP.register = function(name, declaration, config, extend) {
 	} else
 		self.$inputs = null;
 
-	self.meta.components[name] = curr;
-	self.$events.register && self.emit('register', name, curr);
+	var errors = new ErrorBuilder();
+	var done = function() {
+		self.meta.components[name] = curr;
+		self.$events.register && self.emit('register', name, curr);
+		curr.install && !prev && curr.install.call(curr, curr);
+		curr.destroy = function() {
+			self.unregister(name);
+		};
 
-	curr.install && !prev && curr.install.call(curr, curr);
-	curr.destroy = function() {
-		self.unregister(name);
+		for (var key in self.meta.flow) {
+			if (key !== 'paused') {
+				var f = self.meta.flow[key];
+				if (f.component === curr.id)
+					self.initcomponent(key, curr);
+			}
+		}
+
+		self.clean();
+		callback && callback(errors.length ? errors : null);
 	};
 
-	for (var key in self.meta.flow) {
-		if (key !== 'paused') {
-			var f = self.meta.flow[key];
-			if (f.component === curr.id)
-				self.initcomponent(key, curr);
-		}
-	}
+	if (curr.npm) {
+		curr.npm.wait(function(name, next) {
+			NPMINSTALL(name, function(err) {
+				if (err) {
+					self.error(err);
+					errors.push(err);
+				}
+				next();
+			});
+		}, done);
+	} else
+		done();
 
-	self.clean();
 	return curr;
 };
 
@@ -843,14 +860,12 @@ FP.trigger = function(path, data, controller, events) {
 
 FP.trigger2 = function(path, data, controller) {
 	var self = this;
-	var keys = Object.keys(self.meta.flow);
 	var events = {};
 	var obj;
 
 	path = path.split(D);
 
-	for (var i = 0; i < keys.length; i++) {
-		var key = keys[i];
+	for (var key in self.meta.flow) {
 		var flow = self.meta.flow[key];
 		if (flow.component === path[0])
 			obj = self.trigger(key + D + (path.length === 1 ? 0 : path[1]), data, controller, events);
@@ -884,11 +899,13 @@ FP.send = function(path, body) {
 	return !!instance;
 };
 
-FP.add = function(name, body) {
+FP.add = function(name, body, callback) {
 	var self = this;
 	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', template: '<template>' });
+	var node = (meta.be || meta.be2 || '');
+
 	meta.id = name;
-	meta.checksum = (meta.be || meta.be2 || '').md5();
+	meta.checksum = node.md5();
 	var component = self.meta.components[name];
 
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
@@ -897,14 +914,16 @@ FP.add = function(name, body) {
 	} else {
 
 		try {
-			var fn = new Function('exports', 'require', meta.be);
+			var fn = new Function('exports', 'require', node);
 			delete meta.be;
-			component = self.register(meta.id, fn, null, true);
+			delete meta.be2;
+			component = self.register(meta.id, fn, null, callback, true);
 			component.ui = meta;
 		} catch (e) {
 			var err = new ErrorBuilder();
 			err.push('component', 'Flow component: ' + name + ' - ' + e);
 			self.error(err);
+			callback && callback(err);
 			return null;
 		}
 	}
