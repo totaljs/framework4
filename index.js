@@ -214,9 +214,21 @@ function flowwrapper(name, errorhandler) {
 }
 
 global.FLOWSTREAM = function(name, errorhandler) {
-	global.framework_flow = require('./flow');
+	global.framework_flow = require('./flowstream');
 	global.FLOW = flowwrapper;
 	return flowwrapper(name, errorhandler);
+};
+
+function uiwrapper(name, errorhandler) {
+	if (!name)
+		name = 'default';
+	return F.ui[name] ? F.ui[name] : F.ui[name] = framework_ui.make(name, errorhandler);
+}
+
+global.UISTREAM = function(name, errorhandler) {
+	global.framework_ui = require('./uistream');
+	global.UISTREAM = flowwrapper;
+	return uiwrapper(name, errorhandler);
 };
 
 var DEF = global.DEF = {};
@@ -1850,6 +1862,7 @@ function Framework() {
 	self.workers = {};
 	self.sessions = {};
 	self.flows = {};
+	self.ui = {};
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
