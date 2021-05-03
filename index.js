@@ -97,6 +97,14 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+global.PUBLISH = function(name, value) {
+	DEF.onPublish && DEF.onPublish(name, value);
+};
+
+global.SUBSCRIBE = function(name, callback) {
+	DEF.onSubscribe(name, callback);
+};
+
 global.NPMINSTALL = function(name, callback) {
 	PATH.mkdir(PATH.root('node_modules'));
 	require('child_process').exec('npm install ' + name, function(err) {
@@ -4759,6 +4767,35 @@ F.$bundle = function(callback) {
 	callback();
 };
 
+function tmscontroller() {
+	var $ = this;
+
+	F.tmssocket = $;
+	$.autodestroy(() => F.tmssocket = null);
+
+	$.on('open', function(client) {
+
+		if (F.tms.token && F.tms.token !== client.headers['x-token']) {
+			client.destroy();
+			return;
+		}
+
+		client.tmsready = true;
+		client.send({ TYPE: 'meta', subscribe: F.tms.subscribe, publish: F.tms.publish });
+	});
+
+	$.on('message', function(client, msg) {
+
+		// msg.type {String}
+		// msg.data {Object}
+
+		if (client.tmsready && msg.type) {
+			var schema = F.tms.subscribe[msg.type];
+			SUBSCRIBE(msg.type, JSONSCHEMA(msg.data, schema));
+		}
+	});
+}
+
 F.$load = function(types, targetdirectory, callback) {
 
 	var arr = [];
@@ -5117,6 +5154,18 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('tms')) {
+		operations.push(function(resume) {
+			Fs.readFile(PATH.root('tms.json'), function(err, data) {
+				if (data) {
+					F.tms = data.toString('utf8').parseJSON();
+					ROUTE('SOCKET ' + F.tms.endpoint, tmscontroller);
+				}
+				resume();
+			});
+		});
+	}
+
 	operations.async(function() {
 		var old = DEF.onPrefLoad;
 		dependencies.async(function() {
@@ -5382,13 +5431,24 @@ F.register = function(path) {
 
 var BUILDERRORS = {};
 
-
 function appenderror(err, name, uri) {
 	var obj = { error: err, name: name, url: uri, date: NOW };
 	if (F.errors.push(obj) > 5)
 		F.errors.shift();
 	EMIT('error', obj);
 }
+
+DEF.onPublish = function(name, model) {
+
+};
+
+DEF.onSubscribe = function(name, callback) {
+
+};
+
+DEF.onUnsubscribe = function(name, callback) {
+
+};
 
 /**
  * Error handler
