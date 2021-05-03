@@ -1,218 +1,384 @@
 require('./index');
 
-function compile(builder, schema) {
+function check_string(meta, error, value) {
 
-	var properties = schema.properties;
+	var type = typeof(val);
+	if (type !== 'string')
+		value = value ? (value + '') : null;
 
-	for (var key in properties) {
+	if (meta.$$REQUIRED && !value) {
+		error.push(meta.$$ID, 'required');
+		return;
+	}
 
-		var type = properties[key];
+	if (value == null)
+		return;
 
-		// type.contentEncoding
-		// type.contentMediaType
-		// type.contentSchema
+	var len = value.length;
 
-		// response {Object}
-		// obj {Object}
-		// notempty
+	if (meta.maxLength && len > meta.maxLength) {
+		error.push(meta.$$ID, 'maxlength');
+		return;
+	}
 
-		builder.push('skip=false;key="' + key + '";');
-		builder.push('val=obj[key];');
+	if (meta.minLength && len < meta.minLength) {
+		error.push(meta.$$ID, 'minlength');
+		return;
+	}
 
-		var isrequired = schema.required ? schema.required.indexOf(key) !== -1 : false;
-		switch (type.type) {
-			case 'integer':
+	if (meta.enum instanceof Array) {
+		if (meta.enum.indexOf(value) === -1) {
+			error.push(meta.$$ID, 'enum');
+			return;
+		}
+	}
+
+	return value;
+}
+
+function check_number(meta, error, value) {
+
+	var type = typeof(value);
+
+	if (type === 'string')
+		value = value.parseFloat();
+	else if (type !== 'number')
+		value = null;
+
+	if (meta.$$REQUIRED) {
+		if (value == null) {
+			error.push(meta.$$ID, 'required');
+			return;
+		}
+	}
+
+	if (value == null)
+		return;
+
+	if (meta.multipleOf) {
+		if (value % meta.multipleOf !== 0) {
+			error.push(meta.$$ID, 'multipleof');
+			return;
+		}
+	}
+
+	if (meta.maximum) {
+		if (value > meta.maximum) {
+			error.push(meta.$$ID, 'maximum');
+			return;
+		}
+	}
+
+	if (meta.exclusiveMaximum) {
+		if (value >= meta.exclusiveMaximum) {
+			error.push(meta.$$ID, 'exclusivemaximum');
+			return;
+		}
+	}
+
+	if (meta.minimum) {
+		if (value < meta.minimum) {
+			error.push(meta.$$ID, 'minimum');
+			return;
+		}
+	}
+
+	if (meta.exclusiveMinimum) {
+		if (value <= meta.exclusiveMinimum) {
+			error.push(meta.$$ID, 'exclusiveminimum');
+			return;
+		}
+	}
+
+	return value;
+}
+
+function check_boolean(meta, error, value) {
+
+	var type = typeof(value);
+	if (type !== 'boolean')
+		value = value ? (value + '').parseBoolean() : null;
+
+	if (meta.$$REQUIRED) {
+		if (value == null) {
+			error.push(meta.$$ID, 'required');
+			return;
+		}
+	}
+
+	if (value != null)
+		return value;
+}
+
+function check_date(meta, error, value) {
+
+	if (!(value instanceof Date))
+		value = value ? (value + '').parseDate() : null;
+
+	if (value && value instanceof Date && !(value.getTime()>0))
+		value = null;
+
+	if (meta.$$REQUIRED) {
+		if (value == null) {
+			error.push(meta.$$ID, 'required');
+			return;
+		}
+	}
+
+	if (value != null)
+		return value;
+}
+
+function check_array(meta, error, value) {
+
+	if (!(value instanceof Array)) {
+		if (meta.$$REQUIRED)
+			error.push(meta.$$ID, 'required');
+		return;
+	}
+
+	if (!value.length) {
+		if (meta.$$REQUIRED) {
+			error.push(meta.$$ID, 'required');
+			return;
+		}
+		return value;
+	}
+
+	var response;
+	var tmp;
+
+	if (meta.items instanceof Array) {
+
+		for (var i = 0; i < value.length; i++) {
+			var val = value[i];
+			var type = meta.items[i];
+
+			if (type) {
+				switch (type) {
+					case 'number':
+					case 'integer':
+						tmp = check_number(type, error, val);
+						if (tmp != null) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID, 'type');
+							return;
+						}
+					case 'boolean':
+					case 'bool':
+						tmp = check_boolean(type, error, val);
+						if (tmp != null) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID, 'type');
+							return;
+						}
+					case 'date':
+						tmp = check_date(type, error, val);
+						if (tmp != null) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID, 'type');
+							return;
+						}
+					case 'string':
+						tmp = check_string(type, error, val);
+						if (tmp != null) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID, 'type');
+							return;
+						}
+					case 'object':
+						tmp = check_object(type, error, val);
+						if (tmp != null) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID, 'type');
+							return;
+						}
+					case 'array':
+						tmp = check_array(type, error, value);
+						if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1)) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID, 'type');
+							return;
+						}
+				}
+			} else if (!type && !meta.additionalItems) {
+				error.push(meta.$$ID, 'additionalitems');
+				return;
+			}
+		}
+	} else if (meta.items) {
+
+		response = [];
+
+		for (var i = 0; i < value.length; i++) {
+			var val = value[i];
+			switch (meta.items.type) {
+				case 'number':
+				case 'integer':
+					tmp = check_number(meta.items, error, val);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+				case 'boolean':
+				case 'bool':
+					tmp = check_boolean(meta.items, error, val);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+				case 'date':
+					tmp = check_date(meta.items, error, val);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+				case 'string':
+					tmp = check_string(meta.items, error, val);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+				case 'object':
+					tmp = check_object(meta.items, error, val);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+				case 'array':
+					tmp = check_array(meta.items, error, value);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+			}
+		}
+	} else
+		response = meta.uniqueItems ? [...new Set(value)] : value;
+
+	if (meta.minItems && response.length < meta.minItems) {
+		error.push(meta.$$ID, 'minitems');
+		return;
+	}
+
+	if (meta.maxItems && response.length < meta.maxItems) {
+		error.push(meta.$$ID, 'maxitems');
+		return;
+	}
+
+	return response;
+}
+
+function check_object(meta, error, value, response) {
+
+	if (!value || typeof(value) !== 'object') {
+		if (meta.$$REQUIRED)
+			error.push(meta.$$ID, 'required');
+		return;
+	}
+
+	if (!response)
+		response = {};
+
+	var count = 0;
+	var tmp;
+
+	for (var key in meta.properties) {
+		var prop = meta.properties[key];
+
+		if (!prop.ID) {
+			prop.$$ID = key;
+			prop.$$REQUIRED = meta.required ? meta.required.indexOf(key) !== -1 : false;
+		}
+
+		if (meta.maxProperties && count > meta.maxProperties) {
+			error.push(meta.$$ID, 'maxproperties');
+			return;
+		}
+
+		var val = value[key];
+
+		switch (prop.type) {
 			case 'number':
-
-				builder.push('type=typeof(val);if(type==="string"){val=val.parseFloat()}else if(type!=="number"){val=undefined}');
-
-				if (isrequired)
-					builder.push('if(val==null){error.push(key,"required");skip=true;}');
-
-				if (type.multipleOf)
-					builder.push('if(!skip&&val%' + type.multipleOf + '!==0){error.push(key,"multipleof");skip=true;}');
-
-				if (type.maximum)
-					builder.push('if(!skip&&val>' + type.maximum + '){error.push(key,"maximum");skip=true;}');
-
-				if (type.exclusiveMaximum)
-					builder.push('if(!skip&&val>=' + type.exclusiveMaximum + '){error.push(key,"exclusivemaximum");skip=true;}');
-
-				if (type.minimum)
-					builder.push('if(!skip&&val<' + type.minimum + '){error.push(key,"minimum");skip=true;}');
-
-				if (type.exclusiveMinimum)
-					builder.push('if(!skip&&val<=' + type.exclusiveMinimum + '){error.push(key,"exclusiveminimum");skip=true;}');
-
-				builder.push('if(!skip)response[key]=val;');
+			case 'integer':
+				tmp = check_number(prop, error, val);
+				if (tmp != null) {
+					response[key] = tmp;
+					count++;
+				}
 				break;
-
 			case 'boolean':
 			case 'bool':
-
-				builder.push('type=typeof(val);if(type!=="boolean"){val=val?(val+"").parseBoolean():false}');
-
-				if (isrequired)
-					builder.push('if(!val){error.push(key,"required");skip=true;}');
-
-				builder.push('if(!notempty||val){response[key]=val}');
+				tmp = check_boolean(prop, error, val);
+				if (tmp != null) {
+					response[key] = tmp;
+					count++;
+				}
 				break;
-
 			case 'date':
-
-				builder.push('if(!(val instanceof Date)){val=val?(val+"").parseDate():undefined}');
-				builder.push('if(val && val instanceof Date && !(val.getTime()>0)){val=undefined}');
-
-				if (isrequired)
-					builder.push('if(!val){error.push(key,"required");skip=true;}');
-
-				builder.push('if(!notempty||val){response[key]=val}');
+				tmp = check_date(prop, error, val);
+				if (tmp != null) {
+					response[key] = tmp;
+					count++;
+				}
 				break;
-
-			case 'object':
-
-				// type.maxProperties
-				// type.minProperties
-				// type.required
-				// type.dependentRequired
-
-				builder.push('if(val&&typeof(val)==="object"){');
-				var id = GUID(5);
-				var tmpres = 'response' + id;
-				var tmpobj = 'obj' + id;
-				var tmpkey = 'key' + id;
-				builder.push('var ' + tmpres + '=response,' + tmpobj + '=obj,' + tmpkey + '=key;obj=obj[key]||EMPTYOBJECT;response={};');
-				compile(builder, type);
-				builder.push(tmpres + '[' + tmpkey + ']=response;');
-				builder.push('obj=' + tmpobj + ';');
-				builder.push('}' + (isrequired ? 'else{error.push(key,"required")}' : ''));
-				break;
-
 			case 'string':
-
-				builder.push('type=typeof(val);if(type!=="string"){val=val?val+"":""}');
-
-				if (isrequired)
-					builder.push('if(!val){error.push(key,"required");skip=true;}');
-
-				if (type.maxLength)
-					builder.push('if(!skip&&val.length>' + type.maxLength + '){error.push(key,"maxlength");skip=true;}');
-
-				if (type.minLength)
-					builder.push('if(!skip&&val.length<' + type.minLength + '){error.push(key,"minlength");skip=true;}');
-
-				// @TODO: implement "type.pattern"
-				builder.push('if(!notempty||val){response[key]=val}');
+				tmp = check_string(prop, error, val);
+				if (tmp != null) {
+					response[key] = tmp;
+					count++;
+				}
+				break;
+			case 'object':
+				tmp = check_object(prop, error, val);
+				if (tmp != null) {
+					response[key] = tmp;
+					count++;
+				}
+				break;
+			case 'array':
+				tmp = check_array(prop, error, val);
+				if (tmp != null) {
+					response[key] = tmp;
+					count++;
+				}
+				break;
+			default:
+				if (prop.$ref) {
+					var ref = F.jsonschemas[prop.$ref];
+					if (ref) {
+						tmp = check_object(ref, error, val);
+						if (tmp != null) {
+							response[key] = tmp;
+							count++;
+						} else if (prop.$$REQUIRED)
+							error.push(prop.ID, 'required');
+					} else
+						error.push(prop.ID, 'reference');
+				}
 				break;
 		}
 	}
+
+	if (meta.minProperties && count < meta.minProperties) {
+		error.push(meta.$$ID, 'minproperties');
+		return;
+	}
+
+	if (count)
+		return response;
 }
 
-var schema = {
-"required": [ "familyName", "givenName" ],
-"properties": {
-    "fn": {
-      "description": "Formatted Name",
-      "type": "string"
-    },
-    "familyName": {
-      "type": "string"
-    },
-    "givenName": {
-      "type": "string"
-    },
-    "additionalName": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "honorificPrefix": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "honorificSuffix": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "nickname": {
-      "type": "string"
-    },
-    "url": {
-      "type": "string"
-    },
-    "email": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "tel": {
-      "type": "object",
-      "properties": {
-        "type": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "tz": {
-      "type": "string"
-    },
-    "photo": {
-      "type": "string"
-    },
-    "logo": {
-      "type": "string"
-    },
-    "sound": {
-      "type": "string"
-    },
-    "bday": {
-      "type": "string"
-    },
-    "title": {
-      "type": "string"
-    },
-    "role": {
-      "type": "string"
-    },
-    "org": {
-      "type": "object",
-      "required": ["organizationUnit"],
-      "properties": {
-        "organizationName": {
-          "type": "string"
-        },
-        "organizationUnit": {
-          "type": "string"
-        }
-      }
-    }
-  }
-};
+function register(schema) {
+	if (schema.$id)
+		F.jsonschemas[schema.$id] = schema;
+}
 
-var builder = ['var skip,key,val'];
-compile(builder, schema);
-// console.log(builder);
-
-var fn = new Function('error', 'response', 'obj', 'notempty', builder.join('\n'));
-var data = { familyName: 'Peter', givenName: 'Širka', org: { organizationName: 'Total Avengers s.r.o.', organizationUnit: 'IT department' }};
-var err = new ErrorBuilder();
-var response = {};
-fn(err, response, data, true);
-
-if (err.is)
-	console.log(err);
-console.log(response);
+exports.register = register;
+exports.transform = check_object;

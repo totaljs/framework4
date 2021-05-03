@@ -434,6 +434,7 @@ var _prefix;
 !global.framework_internal && (global.framework_internal = require('./internal'));
 !global.framework_builders && (global.framework_builders = require('./builders'));
 !global.framework_utils && (global.framework_utils = require('./utils'));
+!global.framework_jsonschema && (global.framework_jsonschema = require('./jsonschema'));
 !global.framework_mail && (global.framework_mail = require('./mail'));
 !global.framework_image && (global.framework_image = require('./image'));
 !global.framework_session && (global.framework_session = require('./session'));
@@ -488,6 +489,26 @@ global.LOADRESOURCE = function(name, value) {
 	Fs.writeFile(filename, builder.join('\n'), function() {
 		delete F.resources[name];
 	});
+};
+
+global.JSONSCHEMA = function(id, value, callback, error, response) {
+
+	if (typeof(id) === 'string')
+		id = F.jsonschemas[id];
+
+	if (!error)
+		error = new ErrorBuilder();
+
+	if (id) {
+		if (!response)
+			response = {};
+		framework_jsonschema.transform(id, error, value, response);
+		callback(error.items.length ? error : null, response);
+	} else {
+		error.push(404);
+		callback(error);
+	}
+
 };
 
 global.LOADCONFIG = function(value) {
@@ -1667,7 +1688,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4041;
+	self.is4 = self.version = 4042;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
@@ -1700,6 +1721,7 @@ function Framework() {
 		directory_temp: '/tmp/',
 		directory_models: '/models/',
 		directory_schemas: '/schemas/',
+		directory_jsonschemas: '/jsonschemas/',
 		directory_operations: '/operations/',
 		directory_resources: '/resources/',
 		directory_public: '/public/',
@@ -1871,6 +1893,7 @@ function Framework() {
 	self.sessions = {};
 	self.flows = {};
 	self.ui = {};
+	self.jsonschemas = {};
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
@@ -4886,6 +4909,16 @@ F.$load = function(types, targetdirectory, callback) {
 		return isNo ? true : types.indexOf(type) !== -1;
 	};
 
+	if (can('jsonschemas')) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/jsonschemas/' : CONF.directory_jsonschemas);
+			arr = [];
+			listing(dir, 0, arr, '.json');
+			arr.forEach(item => dependencies.push(next => install('jsonschema', item.name, item.filename, next)));
+			resume();
+		});
+	}
+
 	if (can('modules')) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/modules/' : CONF.directory_modules);
@@ -5342,6 +5375,15 @@ function install_component(name, filename, next) {
 }
 
 function install(type, name, filename, next) {
+
+	if (type === 'jsonschema') {
+		var tmp = Fs.readFileSync(filename).toString('utf8').parseJSON(true);
+		if (tmp.$id)
+			F.jsonschemas[tmp.$id] = tmp;
+		F.jsonschemas[name] = tmp;
+		next();
+		return;
+	}
 
 	var key = type + '_' + name;
 
@@ -10315,6 +10357,10 @@ FrameworkPathProto.modules = function(filename) {
 
 FrameworkPathProto.schemas = function(filename) {
 	return U.combine(CONF.directory_schemas, filename);
+};
+
+FrameworkPathProto.jsonschemas = function(filename) {
+	return U.combine(CONF.directory_jsonschemas, filename);
 };
 
 FrameworkPathProto.operations = function(filename) {

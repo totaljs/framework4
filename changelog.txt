@@ -1,4 +1,13 @@
 ========================
+0.0.42
+========================
+
+- added support for JSON schemas
+- added Total Messaging Service
+- added `jsonschemas` directory
+- added `schema.jsonschema(name)` method
+
+========================
 0.0.41
 ========================
 

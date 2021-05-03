@@ -536,6 +536,21 @@ function runmiddleware(opt, schema, callback, index, processor) {
 	fn(opt, processor);
 }
 
+SchemaBuilderEntityProto.jsonschema = function(name) {
+	var self = this;
+	if (typeof(name) === 'object') {
+		self.$jsonschema = name;
+		if (self.$jsonschema && self.$jsonschema.$id)
+			F.jsonschemas[self.$jsonschema.$id] = self.$jsonschema;
+	} else {
+		if (F.jsonschemas[name])
+			self.$jsonschema = F.jsonschemas[name];
+		else
+			throw new Error('JSON schema "' + name + '" not found');
+	}
+	return self;
+};
+
 SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
 
 	if (name instanceof Array) {
@@ -1482,6 +1497,34 @@ SchemaOptionsVerify.prototype = {
 SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $) {
 
 	var self = this;
+	var builder;
+
+	if (self.$jsonschema) {
+
+		var builder = new ErrorBuilder();
+		var output = new SchemaValue();
+
+		framework_jsonschema.transform(self.$jsonschema, builder, model, output);
+
+		if (!novalidate && builder.length) {
+			self.resourceName && builder.setResource(self.resourceName);
+			self.resourcePrefix && builder.setPrefix(self.resourcePrefix);
+		}
+
+		if (novalidate) {
+			callback && callback(null, output, arg);
+			return output;
+		}
+
+		if (builder.length) {
+			self.onError && self.onError(builder, model, 'make');
+			callback && callback(builder, null, arg);
+		} else
+			callback && callback(null, output, arg);
+
+		return output;
+	}
+
 	var verifications = [];
 	var output = self.prepare(model, null, $, verifications);
 
@@ -1490,7 +1533,7 @@ SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $) {
 		return output;
 	}
 
-	var builder = self.validate(output, null, null, $);
+	builder = self.validate(output, null, null, $);
 	if (builder.is) {
 		self.onError && self.onError(builder, model, 'make');
 		callback && callback(builder, null, arg);
