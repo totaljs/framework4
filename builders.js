@@ -5234,6 +5234,8 @@ exports.check_operation = function(name) {
 	return operations[name];
 };
 
+exports.SchemaValue = SchemaValue;
+
 TaskBuilderProto.audit = function(message, type) {
 	AUDIT(this, message, type);
 	return this;

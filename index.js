@@ -98,11 +98,54 @@ global.REQUIRE = function(path) {
 };
 
 global.PUBLISH = function(name, value) {
-	DEF.onPublish && DEF.onPublish(name, value);
+	// @TODO: maybe allow clients only which subscribe the specific channel
+	if (F.tmssocket && F.tms.meta.publish[name]) {
+		// @TODO: maybe transform data according to the schema
+		F.tmssocket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
+	}
 };
 
-global.SUBSCRIBE = function(name, callback) {
-	DEF.onSubscribe(name, callback);
+var tmssubscribers = {};
+
+global.SUBSCRIBE = function(name, callback, client) {
+	if (client) {
+		var arr = tmssubscribers[name];
+		if (arr) {
+			for (var i = 0; i < arr.length; i++)
+				arr[i](callback, client);
+		}
+	} else {
+		if (tmssubscribers[name])
+			tmssubscribers[name].push(callback);
+		else
+			tmssubscribers[name] = [callback];
+		F.tms.subscribers[name] = 1;
+		tmsrefresh();
+	}
+};
+
+global.UNSUBSCRIBE = function(name, callback) {
+	if (tmssubscribers[name]) {
+		if (callback) {
+			var index = tmssubscribers[name].indexOf(callback);
+			if (index !== -1)
+				tmssubscribers[name].splice(index, 1);
+			if (!tmssubscribers[name].length)
+				delete tmssubscribers[name];
+			if (tmssubscribers[name])
+				F.tms.subscribers[name] = 1;
+			else
+				delete F.tmsmeta.subscribers[name];
+			tmsrefresh();
+			return index !== -1;
+		} else {
+			delete tmssubscribers[name];
+			delete F.tms.subscribers[name];
+			tmsrefresh();
+			return true;
+		}
+	}
+	return false;
 };
 
 global.NPMINSTALL = function(name, callback) {
@@ -132,6 +175,7 @@ global.IMPORT = function(url, callback) {
 };
 
 var BLOCKEDB = {};
+var TMSBLOCKED = {};
 
 global.LDAP = function(opt, callback) {
 	if (!opt.ldap.port)
@@ -491,7 +535,7 @@ global.LOADRESOURCE = function(name, value) {
 	});
 };
 
-global.JSONSCHEMA = function(id, value, callback, error, response) {
+global.JSONSCHEMA = function(id, value, callback, error) {
 
 	if (typeof(id) === 'string')
 		id = F.jsonschemas[id];
@@ -500,9 +544,7 @@ global.JSONSCHEMA = function(id, value, callback, error, response) {
 		error = new ErrorBuilder();
 
 	if (id) {
-		if (!response)
-			response = {};
-		framework_jsonschema.transform(id, error, value, response);
+		var response = framework_jsonschema.transform(id, error, value);
 		callback(error.items.length ? error : null, response);
 	} else {
 		error.push(404);
@@ -1894,6 +1936,7 @@ function Framework() {
 	self.flows = {};
 	self.ui = {};
 	self.jsonschemas = {};
+	self.tms = { subscribers: {} };
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
@@ -4790,7 +4833,12 @@ F.$bundle = function(callback) {
 	callback();
 };
 
+function tmsrefresh() {
+	F.tmssocket && F.tmssocket.send({ type: 'subscribers', subscribers: Object.keys(F.tms.subscribers) });
+}
+
 function tmscontroller() {
+
 	var $ = this;
 
 	F.tmssocket = $;
@@ -4798,13 +4846,25 @@ function tmscontroller() {
 
 	$.on('open', function(client) {
 
-		if (F.tms.token && F.tms.token !== client.headers['x-token']) {
-			client.destroy();
+		if (TMSBLOCKED[client.ip] > 5) {
+			client.close(4001);
 			return;
 		}
 
+		if (F.tms.token && F.tms.token !== client.headers['x-token']) {
+
+			if (TMSBLOCKED[client.ip])
+				TMSBLOCKED[client.ip]++;
+			else
+				TMSBLOCKED[client.ip] = 1;
+
+			client.close(4001);
+			return;
+		}
+
+		delete TMSBLOCKED[client.ip];
 		client.tmsready = true;
-		client.send({ TYPE: 'meta', subscribe: F.tms.subscribe, publish: F.tms.publish });
+		client.send({ type: 'meta', name: F.tms.name, title: CONF.name, subscribe: F.tms.subscribe, publish: F.tms.publish, subscribers: Object.keys(F.tms.subscribers) });
 	});
 
 	$.on('message', function(client, msg) {
@@ -4812,12 +4872,60 @@ function tmscontroller() {
 		// msg.type {String}
 		// msg.data {Object}
 
-		if (client.tmsready && msg.type) {
-			var schema = F.tms.subscribe[msg.type];
-			SUBSCRIBE(msg.type, JSONSCHEMA(msg.data, schema));
+		if (client.tmsready && msg.id) {
+			var schema = F.tms.meta.subscribe[msg.id];
+			if (schema) {
+				JSONSCHEMA(schema, msg.data, function(err, response) {
+					if (!err)
+						SUBSCRIBE(msg.id, response, client);
+				});
+			}
 		}
 	});
 }
+
+F.refresh_tms = function(callback) {
+	Fs.readFile(PATH.root('tms.json'), function(err, data) {
+		if (data) {
+
+			if (F.tms.route)
+				F.tms.route.remove();
+
+			F.tms.meta = data.toString('utf8').parseJSON();
+			F.tms.publish = [];
+			F.tms.subscribe = [];
+
+			if (F.tms.meta.publish) {
+				for (var key in F.tms.meta.publish) {
+					var id = F.tms.meta.publish[key];
+					var jsonschema = F.jsonschemas[key];
+					if (!jsonschema)
+						jsonschema = F.jsonschemas[id];
+					if (jsonschema)
+						F.tms.publish.push({ id: key, schema: jsonschema });
+					else
+						F.error('JSON schema "' + key + '" not found.');
+				}
+			}
+
+			if (F.tms.meta.subscribe) {
+				for (var key in F.tms.meta.subscribe) {
+					var id = F.tms.meta.subscribe[key];
+					var jsonschema = F.jsonschemas[key];
+					if (!jsonschema)
+						jsonschema = F.jsonschemas[id];
+					if (jsonschema)
+						F.tms.subscribe.push({ id: key, schema: jsonschema });
+					else
+						F.error('JSON schema "' + key + '" not found.');
+				}
+			}
+
+			F.tms.route = ROUTE('SOCKET ' + F.tms.meta.endpoint, tmscontroller);
+		}
+		callback && callback();
+	});
+};
 
 F.$load = function(types, targetdirectory, callback) {
 
@@ -5189,13 +5297,8 @@ F.$load = function(types, targetdirectory, callback) {
 
 	if (can('tms')) {
 		operations.push(function(resume) {
-			Fs.readFile(PATH.root('tms.json'), function(err, data) {
-				if (data) {
-					F.tms = data.toString('utf8').parseJSON();
-					ROUTE('SOCKET ' + F.tms.endpoint, tmscontroller);
-				}
-				resume();
-			});
+			dependencies.push(next => F.refresh_tms(next));
+			resume();
 		});
 	}
 
@@ -5479,18 +5582,6 @@ function appenderror(err, name, uri) {
 		F.errors.shift();
 	EMIT('error', obj);
 }
-
-DEF.onPublish = function(name, model) {
-
-};
-
-DEF.onSubscribe = function(name, callback) {
-
-};
-
-DEF.onUnsubscribe = function(name, callback) {
-
-};
 
 /**
  * Error handler
@@ -7486,7 +7577,6 @@ F.service = function(count) {
 
 		// Clears command cache
 		Image.clear();
-
 		releasegc = true;
 
 		for (var key in F.temporary.internal) {
@@ -7503,6 +7593,9 @@ F.service = function(count) {
 		}
 	}
 
+	if (count % 1440 === 0)
+		TMSBLOCKED = {};
+
 	if (count % CONF.default_interval_clear_dnscache === 0) {
 		F.$events.clear && EMIT('clear', 'dns');
 		CMD('clear_dnscache');
@@ -7510,13 +7603,11 @@ F.service = function(count) {
 
 	var ping = CONF.default_interval_websocket_ping;
 	if (ping > 0 && count % ping === 0) {
-		var has = false;
 		for (var item in F.connections) {
 			var conn = F.connections[item];
 			if (conn) {
 				conn.check();
 				conn.ping();
-				has = true;
 			}
 		}
 	}

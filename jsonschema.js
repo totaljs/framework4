@@ -158,6 +158,8 @@ function check_array(meta, error, value) {
 				switch (type) {
 					case 'number':
 					case 'integer':
+					case 'float':
+					case 'decimal':
 						tmp = check_number(type, error, val);
 						if (tmp != null) {
 							response.push(tmp);
@@ -284,7 +286,7 @@ function check_object(meta, error, value, response) {
 	}
 
 	if (!response)
-		response = {};
+		response = new framework_builders.SchemaValue();
 
 	var count = 0;
 	var tmp;
@@ -375,10 +377,32 @@ function check_object(meta, error, value, response) {
 		return response;
 }
 
+function check(meta, error, value) {
+
+	switch (meta.type) {
+		case 'string':
+			return check_string(meta, error, value);
+		case 'number':
+		case 'integer':
+		case 'float':
+		case 'decimal':
+			return check_number(meta, error, value);
+		case 'boolean':
+		case 'bool':
+			return check_boolean(meta, error, value);
+		case 'date':
+			return check_date(meta, error, value);
+		case 'object':
+			return check_object(meta, error, value);
+		case 'array':
+			return check_array(meta, error, value);
+	}
+}
+
 function register(schema) {
 	if (schema.$id)
 		F.jsonschemas[schema.$id] = schema;
 }
 
 exports.register = register;
-exports.transform = check_object;
+exports.transform = check;
