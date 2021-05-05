@@ -97,11 +97,60 @@ global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
 
+global.NEWJSONSCHEMA = function(name, value) {
+	if (typeof(name) === 'object') {
+		F.jsonschemas[name.$id] = name;
+	} else {
+		if (value == null)
+			delete F.jsonschemas[name];
+		else
+			F.jsonschemas[name] = value;
+	}
+};
+
+global.NEWPUBLISH = function(name, value) {
+
+	if (!value) {
+		delete F.tms.publish_cache[name];
+		return;
+	}
+
+	if (typeof(value) === 'object') {
+		F.jsonschemas[value.$id] = value;
+		value = value.$id;
+	}
+
+	if (F.jsonschemas[value])
+		F.tms.publish_cache[name] = value;
+	else
+		throw new Error('JSON schema "' + value + '" not found.');
+
+};
+
+global.NEWSUBSCRIBE = function(name, value) {
+
+	if (!value) {
+		delete F.tms.subscribe_cache[name];
+		return;
+	}
+
+	if (typeof(value) === 'object') {
+		F.jsonschemas[value.$id] = value;
+		value = value.$id;
+	}
+
+	if (F.jsonschemas[value])
+		F.tms.subscribe_cache[name] = value;
+	else
+		throw new Error('JSON schema "' + value + '" not found.');
+
+};
+
 global.PUBLISH = function(name, value) {
 	// @TODO: maybe allow clients only which subscribe the specific channel
-	if (F.tmssocket && F.tms.meta.publish[name]) {
+	if (F.tms.socket && F.tms.publish_cache[name]) {
 		// @TODO: maybe transform data according to the schema
-		F.tmssocket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
+		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
 	}
 };
 
@@ -135,7 +184,7 @@ global.UNSUBSCRIBE = function(name, callback) {
 			if (tmssubscribers[name])
 				F.tms.subscribers[name] = 1;
 			else
-				delete F.tmsmeta.subscribers[name];
+				delete F.tms.subscribers[name];
 			tmsrefresh();
 			return index !== -1;
 		} else {
@@ -1936,7 +1985,7 @@ function Framework() {
 	self.flows = {};
 	self.ui = {};
 	self.jsonschemas = {};
-	self.tms = { subscribers: {} };
+	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {} };
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
@@ -4834,15 +4883,32 @@ F.$bundle = function(callback) {
 };
 
 function tmsrefresh() {
-	F.tmssocket && F.tmssocket.send({ type: 'subscribers', subscribers: Object.keys(F.tms.subscribers) });
+
+	if (F.tms.socket) {
+
+		var subscribed = [];
+		var published = [];
+
+		for (var key in F.tms.publish_cache) {
+			var schema = F.jsonschemas[F.tms.publish_cache[key]];
+			published.push({ id: key, schema: schema });
+		}
+
+		for (var key in F.tms.subscribe_cache) {
+			var schema = F.jsonschemas[F.tms.subscribe_cache[key]];
+			subscribed.push({ id: key, schema: schema });
+		}
+
+		F.tms.socket.send({ type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers) });
+	}
 }
 
 function tmscontroller() {
 
 	var $ = this;
 
-	F.tmssocket = $;
-	$.autodestroy(() => F.tmssocket = null);
+	F.tms.socket = $;
+	$.autodestroy(() => F.tms.socket = null);
 
 	$.on('open', function(client) {
 
@@ -4851,7 +4917,7 @@ function tmscontroller() {
 			return;
 		}
 
-		if (F.tms.token && F.tms.token !== client.headers['x-token']) {
+		if (CONF.tms_token && CONF.tms_token !== client.headers['x-token']) {
 
 			if (TMSBLOCKED[client.ip])
 				TMSBLOCKED[client.ip]++;
@@ -4864,7 +4930,7 @@ function tmscontroller() {
 
 		delete TMSBLOCKED[client.ip];
 		client.tmsready = true;
-		client.send({ type: 'meta', name: F.tms.name, title: CONF.name, subscribe: F.tms.subscribe, publish: F.tms.publish, subscribers: Object.keys(F.tms.subscribers) });
+		tmsrefresh();
 	});
 
 	$.on('message', function(client, msg) {
@@ -4873,7 +4939,7 @@ function tmscontroller() {
 		// msg.data {Object}
 
 		if (client.tmsready && msg.id) {
-			var schema = F.tms.meta.subscribe[msg.id];
+			var schema = F.tms.subscribe_cache[msg.id];
 			if (schema) {
 				JSONSCHEMA(schema, msg.data, function(err, response) {
 					if (!err)
@@ -4883,49 +4949,6 @@ function tmscontroller() {
 		}
 	});
 }
-
-F.refresh_tms = function(callback) {
-	Fs.readFile(PATH.root('tms.json'), function(err, data) {
-		if (data) {
-
-			if (F.tms.route)
-				F.tms.route.remove();
-
-			F.tms.meta = data.toString('utf8').parseJSON();
-			F.tms.publish = [];
-			F.tms.subscribe = [];
-
-			if (F.tms.meta.publish) {
-				for (var key in F.tms.meta.publish) {
-					var id = F.tms.meta.publish[key];
-					var jsonschema = F.jsonschemas[key];
-					if (!jsonschema)
-						jsonschema = F.jsonschemas[id];
-					if (jsonschema)
-						F.tms.publish.push({ id: key, schema: jsonschema });
-					else
-						F.error('JSON schema "' + key + '" not found.');
-				}
-			}
-
-			if (F.tms.meta.subscribe) {
-				for (var key in F.tms.meta.subscribe) {
-					var id = F.tms.meta.subscribe[key];
-					var jsonschema = F.jsonschemas[key];
-					if (!jsonschema)
-						jsonschema = F.jsonschemas[id];
-					if (jsonschema)
-						F.tms.subscribe.push({ id: key, schema: jsonschema });
-					else
-						F.error('JSON schema "' + key + '" not found.');
-				}
-			}
-
-			F.tms.route = ROUTE('SOCKET ' + F.tms.meta.endpoint, tmscontroller);
-		}
-		callback && callback();
-	});
-};
 
 F.$load = function(types, targetdirectory, callback) {
 
@@ -5292,13 +5315,6 @@ F.$load = function(types, targetdirectory, callback) {
 				loadpreferences(resume);
 			else
 				resume();
-		});
-	}
-
-	if (can('tms')) {
-		operations.push(function(resume) {
-			dependencies.push(next => F.refresh_tms(next));
-			resume();
 		});
 	}
 
@@ -8415,6 +8431,11 @@ F.$websocketcontinue_process = function(route, req, path) {
 
 		var connection = new WebSocket(path, route.controller, id);
 		connection.encodedecode = CONF.default_websocket_encodedecode === true;
+
+		if (!route.connections)
+			route.connections = [];
+
+		route.connections.push(connection);
 		connection.route = route;
 		connection.options = route.options;
 		F.connections[id] = connection;
@@ -9526,6 +9547,19 @@ function configure_configs(arr, rewrite) {
 	if (!CONF.secret_uid)
 		CONF.secret_uid = (CONF.name).crc32(true) + '';
 
+	if (F.tms.url !== CONF.tms_url) {
+
+		if (F.tms.route) {
+			F.tms.route.remove();
+			F.tms.route = null;
+		}
+
+		if (CONF.tms_url)
+			F.tms.route = ROUTE('SOCKET ' + CONF.tms_url, tmscontroller);
+
+		F.tms.url = CONF.tms_endpoint;
+	}
+
 	tmp = CONF.mail_smtp_options;
 	if (typeof(tmp) === 'string' && tmp) {
 		tmp = new Function('return ' + tmp)();
@@ -10249,6 +10283,14 @@ FrameworkRouteProto.remove = function(nosort) {
 			tmp = F.routes.websockets[index];
 			delete F.routes.all[tmp.path];
 			F.routes.websockets.splice(index, 1);
+
+			// Destroys all connections
+			if (tmp.connections) {
+				for (var i = 0; i < tmp.connections.length; i++)
+					tmp.connections[i].close();
+			}
+
+			tmp = null;
 
 			if (!nosort)
 				F.routes_sort();

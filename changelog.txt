@@ -6,6 +6,14 @@
 - added Total Messaging Service
 - added `jsonschemas` directory
 - added `schema.jsonschema(name)` method
+- added `NEWJSONSCHEMA()`
+- added `NEWPUBLISH()`
+- added `NEWSUBSCRIBE()`
+- added `PUBLISH()`
+- added `SUBSCRIBE()`
+- added `UNSUBSCRIBE()`
+
+- fixed `Mail.attachmentfs()`
 
 ========================
 0.0.41
