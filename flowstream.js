@@ -859,6 +859,7 @@ FP.trigger = function(path, data, controller, events) {
 };
 
 FP.trigger2 = function(path, data, controller) {
+
 	var self = this;
 	var events = {};
 	var obj;
