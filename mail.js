@@ -276,7 +276,7 @@ Message.prototype.attachmentfs = function(storagename, id, name, contentid) {
 	}
 
 	var obj = {};
-	obj.storagename = storagename;
+	obj.storage = storagename;
 	obj.name = name;
 	obj.filename = id;
 	obj.type = type;
