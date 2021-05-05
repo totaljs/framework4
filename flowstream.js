@@ -967,6 +967,7 @@ FP.components = function(prepare_export) {
 			obj.icon = com.icon;
 			obj.config = com.config;
 			obj.html = com.ui.html;
+			obj.readme = com.ui.readme;
 			obj.template = com.ui.template;
 			obj.settings = com.ui.settings;
 			obj.inputs = com.inputs;
