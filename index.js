@@ -5501,7 +5501,8 @@ function install(type, name, filename, next) {
 			if (tmp.$id)
 				F.jsonschemas[tmp.$id] = tmp;
 			F.jsonschemas[name] = tmp;
-		}
+		} else
+			F.error('jsonschema', 'Invalid JSON schema: ' + filename);
 		next();
 		return;
 	}
