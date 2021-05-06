@@ -451,6 +451,8 @@ function runwatching() {
 				if (status === 255)
 					app = null;
 			});
+
+			EMIT('watcher', app);
 		}
 
 		process.on('SIGTERM', end);

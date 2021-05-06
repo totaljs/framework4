@@ -91,6 +91,7 @@ function runapp() {
 	Fs.writeFileSync(pidname, process.pid + '');
 
 	app.on('exit', function() {
+
 		// checks unexpected exit
 		if (unexpectedexit === true)
 			app = null;
@@ -100,6 +101,7 @@ function runapp() {
 		unexpectedexit = false;
 	});
 
+	EMIT('watcher', app);
 }
 
 function init() {

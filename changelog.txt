@@ -13,6 +13,7 @@
 - added `SUBSCRIBE()`
 - added `UNSUBSCRIBE()`
 - fixed `Mail.attachmentfs()`
+- added `watcher` event for the main process in `debug` or `release` mode with the watcher
 
 ========================
 0.0.41
