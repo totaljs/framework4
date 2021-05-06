@@ -902,7 +902,7 @@ FP.send = function(path, body) {
 
 FP.add = function(name, body, callback) {
 	var self = this;
-	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', template: '<template>' });
+	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', template: '<template>', readme: '<readme>' });
 	var node = (meta.be || meta.be2 || '');
 
 	meta.id = name;
