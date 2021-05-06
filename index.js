@@ -5497,9 +5497,11 @@ function install(type, name, filename, next) {
 
 	if (type === 'jsonschema') {
 		var tmp = Fs.readFileSync(filename).toString('utf8').parseJSON(true);
-		if (tmp.$id)
-			F.jsonschemas[tmp.$id] = tmp;
-		F.jsonschemas[name] = tmp;
+		if (tmp) {
+			if (tmp.$id)
+				F.jsonschemas[tmp.$id] = tmp;
+			F.jsonschemas[name] = tmp;
+		}
 		next();
 		return;
 	}
