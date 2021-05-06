@@ -536,11 +536,15 @@ function runmiddleware(opt, schema, callback, index, processor) {
 	fn(opt, processor);
 }
 
+var tojsonschema = function(self) {
+	self.toJSONSchema();
+};
+
 SchemaBuilderEntityProto.jsonschema = function(name) {
 	var self = this;
 
-	if (name === null) {
-		setTimeout(rebuildjsonschema, 1, self);
+	if (name == null) {
+		setTimeout(tojsonschema, 1, self);
 		return self;
 	}
 
@@ -558,7 +562,6 @@ SchemaBuilderEntityProto.jsonschema = function(name) {
 };
 
 SchemaBuilderEntityProto.toJSONSchema = function() {
-	var self = this;
 	var obj = {};
 	var p = (CONF.url || 'https://schemas.totaljs.com/');
 
@@ -658,10 +661,6 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 
 	F.jsonschemas[self.name] = F.jsonschemas[obj.$id] = obj;
 	return obj;
-};
-
-var rebuildjsonschema = function(self) {
-	self.toJSONSchema();
 };
 
 SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
