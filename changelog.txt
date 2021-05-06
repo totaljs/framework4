@@ -6,12 +6,13 @@
 - added Total Messaging Service
 - added `jsonschemas` directory
 - added `schema.jsonschema(name)` method
-- added `NEWJSONSCHEMA()`
-- added `NEWPUBLISH()`
-- added `NEWSUBSCRIBE()`
-- added `PUBLISH()`
-- added `SUBSCRIBE()`
-- added `UNSUBSCRIBE()`
+- added `JSONSCHEMA()` method
+- added `NEWJSONSCHEMA()` method
+- added `NEWPUBLISH()` method
+- added `NEWSUBSCRIBE()` method
+- added `PUBLISH()` method
+- added `SUBSCRIBE()` method
+- added `UNSUBSCRIBE()` method
 - fixed `Mail.attachmentfs()`
 - added `watcher` event for the main process in `debug` or `release` mode with the watcher
 
