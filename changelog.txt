@@ -13,8 +13,8 @@
 - added `PUBLISH()` method
 - added `SUBSCRIBE()` method
 - added `UNSUBSCRIBE()` method
-- fixed `Mail.attachmentfs()`
 - added `watcher` event for the main process in `debug` or `release` mode with the watcher
+- fixed `Mail.attachmentfs()`
 
 ========================
 0.0.41
