@@ -538,6 +538,12 @@ function runmiddleware(opt, schema, callback, index, processor) {
 
 SchemaBuilderEntityProto.jsonschema = function(name) {
 	var self = this;
+
+	if (name === null) {
+		setTimeout(rebuildjsonschema, 1, self);
+		return self;
+	}
+
 	if (typeof(name) === 'object') {
 		self.$jsonschema = name;
 		if (self.$jsonschema && self.$jsonschema.$id)
@@ -708,9 +714,6 @@ SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
 		self.properties.indexOf(name) === -1 && self.properties.push(name);
 	else
 		self.properties = self.properties.remove(name);
-
-	self.$rebuildjsonschema && clearTimeout(self.$rebuildjsonschema);
-	self.$rebuildjsonschema = setTimeout(rebuildjsonschema, 2, self);
 
 	return function(val) {
 		a.def = val;
