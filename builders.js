@@ -551,12 +551,121 @@ SchemaBuilderEntityProto.jsonschema = function(name) {
 	return self;
 };
 
+SchemaBuilderEntityProto.toJSONSchema = function() {
+	var self = this;
+	var obj = {};
+	var p = (CONF.url || 'https://schemas.totaljs.com/');
+
+	if (p[p.length - 1] !== '/')
+		p += '/';
+
+	obj.$id = p + self.name + '.json';
+	obj.$schema = 'https://json-schema.org/draft/2020-12/schema';
+
+	if (self.properties && self.properties.length) {
+		obj.required = [];
+		for (var i = 0; i < self.properties.length; i++) {
+			var item = self.properties[i];
+			obj.required.push(item);
+		}
+	}
+
+	obj.type = 'object';
+	obj.properties = {};
+
+	var tmp;
+
+	//  0 = undefined
+	//  1 = integer
+	//  2 = float
+	//  3 = string
+	//  4 = boolean
+	//  5 = date
+	//  6 = object
+	//  7 = custom object
+	//  8 = enum
+	//  9 = keyvalue
+	// 10 = custom object type
+	// 11 = number2
+	// 12 = object as filter
+
+	for (var key in self.schema) {
+		var field = self.schema[key];
+		switch (field.type) {
+			case 1:
+			case 2:
+			case 11:
+				tmp = {};
+				if (field.isArray) {
+					tmp.type = 'array';
+					tmp.items = { type: 'number' };
+				} else {
+					tmp.type = 'number';
+				}
+				break;
+			case 3:
+				tmp = {};
+				if (field.isArray) {
+					tmp.type = 'array';
+					tmp.items = { type: 'string' };
+					if (field.length)
+						tmp.items.maxLength = field.length;
+				} else {
+					tmp.type = 'string';
+					if (field.length)
+						tmp.maxLength = field.length;
+				}
+				break;
+			case 4:
+				tmp = {};
+				if (field.isArray) {
+					tmp.type = 'array';
+					tmp.items = { type: 'boolean' };
+				} else
+					tmp.type = 'boolean';
+				break;
+			case 5:
+				tmp = {};
+				if (field.isArray) {
+					tmp.type = 'array';
+					tmp.items = { type: 'date' };
+				} else
+					tmp.type = 'date';
+				break;
+			case 7:
+				// another schema
+				var schema = GETSCHEMA(field.raw);
+				tmp = CLONE(schema.toJSONSchema());
+				delete tmp.$id;
+				delete tmp.$schema;
+				break;
+			case 8:
+				tmp = {};
+				tmp.type = 'string';
+				tmp.enum = field.raw;
+				break;
+		}
+
+		if (tmp)
+			obj.properties[key] = tmp;
+	}
+
+	F.jsonschemas[self.name] = F.jsonschemas[obj.$id] = obj;
+	return obj;
+};
+
+var rebuildjsonschema = function(self) {
+	self.toJSONSchema();
+};
+
 SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
+
+	var self = this;
 
 	if (name instanceof Array) {
 		for (var i = 0; i < name.length; i++)
-			this.define(name[i], type, required, invalid);
-		return this;
+			self.define(name[i], type, required, invalid);
+		return self;
 	}
 
 	var rt = typeof(required);
@@ -568,41 +677,44 @@ SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
 
 	if (type == null) {
 		// remove
-		delete this.schema[name];
-		this.properties = this.properties.remove(name);
-		if (this.dependencies)
-			this.dependencies = this.dependencies.remove(name);
-		this.fields = Object.keys(this.schema);
-		return this;
+		delete self.schema[name];
+		self.properties = self.properties.remove(name);
+		if (self.dependencies)
+			self.dependencies = self.dependencies.remove(name);
+		self.fields = Object.keys(self.schema);
+		return self;
 	}
 
 	if (type instanceof SchemaBuilderEntity)
 		type = type.name;
 
-	var a = this.schema[name] = this.$parse(name, type, required);
-	switch (this.schema[name].type) {
+	var a = self.schema[name] = self.$parse(name, type, required);
+	switch (self.schema[name].type) {
 		case 7:
-			if (this.dependencies)
-				this.dependencies.push(name);
+			if (self.dependencies)
+				self.dependencies.push(name);
 			else
-				this.dependencies = [name];
+				self.dependencies = [name];
 			break;
 	}
 
-	this.fields = Object.keys(this.schema);
+	self.fields = Object.keys(self.schema);
 	a.invalid = invalid || '@';
 
 	if (a.type === 7)
 		required = true;
 
 	if (required)
-		this.properties.indexOf(name) === -1 && this.properties.push(name);
+		self.properties.indexOf(name) === -1 && self.properties.push(name);
 	else
-		this.properties = this.properties.remove(name);
+		self.properties = self.properties.remove(name);
+
+	self.$rebuildjsonschema && clearTimeout(self.$rebuildjsonschema);
+	self.$rebuildjsonschema = setTimeout(rebuildjsonschema, 2, self);
 
 	return function(val) {
 		a.def = val;
-		return this;
+		return self;
 	};
 };
 
