@@ -130,6 +130,7 @@ function runwatching() {
 			U.combine(CONF.directory_modules),
 			U.combine(CONF.directory_models),
 			U.combine(CONF.directory_builds),
+			U.combine(CONF.directory_jsonschemas),
 			U.combine(CONF.directory_schemas),
 			U.combine(CONF.directory_tasks),
 			U.combine(CONF.directory_resources),
