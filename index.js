@@ -147,11 +147,8 @@ global.NEWSUBSCRIBE = function(name, value) {
 };
 
 global.PUBLISH = function(name, value) {
-	// @TODO: maybe allow clients only which subscribe the specific channel
-	if (F.tms.socket && F.tms.publish_cache[name]) {
-		// @TODO: maybe transform data according to the schema
+	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name])
 		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
-	}
 };
 
 var tmssubscribers = {};
@@ -1985,7 +1982,7 @@ function Framework() {
 	self.flows = {};
 	self.ui = {};
 	self.jsonschemas = {};
-	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {} };
+	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {}, publishers: {} };
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
@@ -4929,6 +4926,7 @@ function tmscontroller() {
 		}
 
 		delete TMSBLOCKED[client.ip];
+		F.tms.publishers = {};
 		client.tmsready = true;
 		tmsrefresh();
 	});
@@ -4938,13 +4936,19 @@ function tmscontroller() {
 		// msg.type {String}
 		// msg.data {Object}
 
-		if (client.tmsready && msg.id) {
-			var schema = F.tms.subscribe_cache[msg.id];
-			if (schema) {
-				JSONSCHEMA(schema, msg.data, function(err, response) {
-					if (!err)
-						SUBSCRIBE(msg.id, response, client);
-				});
+		if (client.tmsready) {
+			if (msg.id) {
+				var schema = F.tms.subscribe_cache[msg.id];
+				if (schema) {
+					JSONSCHEMA(schema, msg.data, function(err, response) {
+						if (!err)
+							SUBSCRIBE(msg.id, response, client);
+					});
+				}
+			} else if (msg.type === 'subscribers' && msg.subscribers instanceof Array) {
+				F.tms.publishers = {};
+				for (var i = 0; i < msg.subscribers.length; i++)
+					F.tms.publishers[msg.subscribers[i]] = 1;
 			}
 		}
 	});
