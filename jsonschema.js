@@ -7,7 +7,7 @@ function check_string(meta, error, value) {
 		value = value ? (value + '') : null;
 
 	if (meta.$$REQUIRED && !value) {
-		error.push(meta.$$ID, 'required');
+		error.push(meta.$$ID + '.required');
 		return;
 	}
 
@@ -17,18 +17,18 @@ function check_string(meta, error, value) {
 	var len = value.length;
 
 	if (meta.maxLength && len > meta.maxLength) {
-		error.push(meta.$$ID, 'maxlength');
+		error.push(meta.$$ID + '.maxlength');
 		return;
 	}
 
 	if (meta.minLength && len < meta.minLength) {
-		error.push(meta.$$ID, 'minlength');
+		error.push(meta.$$ID + '.minlength');
 		return;
 	}
 
 	if (meta.enum instanceof Array) {
 		if (meta.enum.indexOf(value) === -1) {
-			error.push(meta.$$ID, 'enum');
+			error.push(meta.$$ID + '.enum');
 			return;
 		}
 	}
@@ -36,18 +36,23 @@ function check_string(meta, error, value) {
 	return value;
 }
 
+const REG_NUMBER = /[\d,\.]+/g;
+
 function check_number(meta, error, value) {
 
 	var type = typeof(value);
 
-	if (type === 'string')
-		value = value.parseFloat();
-	else if (type !== 'number')
+	if (type === 'string') {
+		if (REG_NUMBER.test(value))
+			value = value.parseFloat();
+		else
+			value = null;
+	} else if (type !== 'number')
 		value = null;
 
 	if (meta.$$REQUIRED) {
 		if (value == null) {
-			error.push(meta.$$ID, 'required');
+			error.push(meta.$$ID + '.required');
 			return;
 		}
 	}
@@ -57,35 +62,35 @@ function check_number(meta, error, value) {
 
 	if (meta.multipleOf) {
 		if (value % meta.multipleOf !== 0) {
-			error.push(meta.$$ID, 'multipleof');
+			error.push(meta.$$ID + '.multipleof');
 			return;
 		}
 	}
 
 	if (meta.maximum) {
 		if (value > meta.maximum) {
-			error.push(meta.$$ID, 'maximum');
+			error.push(meta.$$ID + '.maximum');
 			return;
 		}
 	}
 
 	if (meta.exclusiveMaximum) {
 		if (value >= meta.exclusiveMaximum) {
-			error.push(meta.$$ID, 'exclusivemaximum');
+			error.push(meta.$$ID + '.exclusivemaximum');
 			return;
 		}
 	}
 
 	if (meta.minimum) {
 		if (value < meta.minimum) {
-			error.push(meta.$$ID, 'minimum');
+			error.push(meta.$$ID + '.minimum');
 			return;
 		}
 	}
 
 	if (meta.exclusiveMinimum) {
 		if (value <= meta.exclusiveMinimum) {
-			error.push(meta.$$ID, 'exclusiveminimum');
+			error.push(meta.$$ID + '.exclusiveminimum');
 			return;
 		}
 	}
@@ -101,7 +106,7 @@ function check_boolean(meta, error, value) {
 
 	if (meta.$$REQUIRED) {
 		if (value == null) {
-			error.push(meta.$$ID, 'required');
+			error.push(meta.$$ID + '.required');
 			return;
 		}
 	}
@@ -120,7 +125,7 @@ function check_date(meta, error, value) {
 
 	if (meta.$$REQUIRED) {
 		if (value == null) {
-			error.push(meta.$$ID, 'required');
+			error.push(meta.$$ID + '.required');
 			return;
 		}
 	}
@@ -129,17 +134,17 @@ function check_date(meta, error, value) {
 		return value;
 }
 
-function check_array(meta, error, value) {
+function check_array(meta, error, value, stop) {
 
 	if (!(value instanceof Array)) {
 		if (meta.$$REQUIRED)
-			error.push(meta.$$ID, 'required');
+			error.push(meta.$$ID + '.required');
 		return;
 	}
 
 	if (!value.length) {
 		if (meta.$$REQUIRED) {
-			error.push(meta.$$ID, 'required');
+			error.push(meta.$$ID +  '.required');
 			return;
 		}
 		return value;
@@ -165,7 +170,7 @@ function check_array(meta, error, value) {
 							response.push(tmp);
 							break;
 						} else {
-							error.push(meta.$$ID, 'type');
+							error.push(meta.$$ID + '.type');
 							return;
 						}
 					case 'boolean':
@@ -175,7 +180,7 @@ function check_array(meta, error, value) {
 							response.push(tmp);
 							break;
 						} else {
-							error.push(meta.$$ID, 'type');
+							error.push(meta.$$ID + '.type');
 							return;
 						}
 					case 'date':
@@ -184,7 +189,7 @@ function check_array(meta, error, value) {
 							response.push(tmp);
 							break;
 						} else {
-							error.push(meta.$$ID, 'type');
+							error.push(meta.$$ID + '.type');
 							return;
 						}
 					case 'string':
@@ -193,16 +198,16 @@ function check_array(meta, error, value) {
 							response.push(tmp);
 							break;
 						} else {
-							error.push(meta.$$ID, 'type');
+							error.push(meta.$$ID + '.type');
 							return;
 						}
 					case 'object':
-						tmp = check_object(type, error, val);
+						tmp = check_object(type, error, val, null, stop);
 						if (tmp != null) {
 							response.push(tmp);
 							break;
 						} else {
-							error.push(meta.$$ID, 'type');
+							error.push(meta.$$ID + '.type');
 							return;
 						}
 					case 'array':
@@ -211,12 +216,12 @@ function check_array(meta, error, value) {
 							response.push(tmp);
 							break;
 						} else {
-							error.push(meta.$$ID, 'type');
+							error.push(meta.$$ID + '.type');
 							return;
 						}
 				}
 			} else if (!type && !meta.additionalItems) {
-				error.push(meta.$$ID, 'additionalitems');
+				error.push(meta.$$ID + '.additionalitems');
 				return;
 			}
 		}
@@ -250,12 +255,12 @@ function check_array(meta, error, value) {
 						response.push(tmp);
 					break;
 				case 'object':
-					tmp = check_object(meta.items, error, val);
+					tmp = check_object(meta.items, error, val, null, stop);
 					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
 				case 'array':
-					tmp = check_array(meta.items, error, value);
+					tmp = check_array(meta.items, error, value, stop);
 					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
@@ -265,25 +270,28 @@ function check_array(meta, error, value) {
 		response = meta.uniqueItems ? [...new Set(value)] : value;
 
 	if (meta.minItems && response.length < meta.minItems) {
-		error.push(meta.$$ID, 'minitems');
+		error.push(meta.$$ID + '.minitems');
 		return;
 	}
 
 	if (meta.maxItems && response.length < meta.maxItems) {
-		error.push(meta.$$ID, 'maxitems');
+		error.push(meta.$$ID + '.maxitems');
 		return;
 	}
 
 	return response;
 }
 
-function check_object(meta, error, value, response) {
+function check_object(meta, error, value, response, stop) {
 
 	if (!value || typeof(value) !== 'object') {
 		if (meta.$$REQUIRED)
-			error.push(meta.$$ID, 'required');
+			error.push(meta.$$ID + '.required');
 		return;
 	}
+
+	if (stop && error.items.length)
+		return;
 
 	if (!response)
 		response = new framework_builders.SchemaValue();
@@ -292,6 +300,7 @@ function check_object(meta, error, value, response) {
 	var tmp;
 
 	for (var key in meta.properties) {
+
 		var prop = meta.properties[key];
 
 		if (!prop.ID) {
@@ -299,8 +308,11 @@ function check_object(meta, error, value, response) {
 			prop.$$REQUIRED = meta.required ? meta.required.indexOf(key) !== -1 : false;
 		}
 
+		if (stop && error.items.length)
+			return;
+
 		if (meta.maxProperties && count > meta.maxProperties) {
-			error.push(meta.$$ID, 'maxproperties');
+			error.push(meta.$$ID + '.maxproperties');
 			return;
 		}
 
@@ -360,16 +372,16 @@ function check_object(meta, error, value, response) {
 							response[key] = tmp;
 							count++;
 						} else if (prop.$$REQUIRED)
-							error.push(prop.ID, 'required');
+							error.push(prop.ID + '.required');
 					} else
-						error.push(prop.ID, 'reference');
+						error.push(prop.ID + '.reference');
 				}
 				break;
 		}
 	}
 
 	if (meta.minProperties && count < meta.minProperties) {
-		error.push(meta.$$ID, 'minproperties');
+		error.push(meta.$$ID + '.minproperties');
 		return;
 	}
 
@@ -377,26 +389,40 @@ function check_object(meta, error, value, response) {
 		return response;
 }
 
-function check(meta, error, value) {
-
+function check(meta, error, value, stop) {
+	var output;
 	switch (meta.type) {
 		case 'string':
-			return check_string(meta, error, value);
+			output = check_string(meta, error, value);
+			break;
 		case 'number':
 		case 'integer':
 		case 'float':
 		case 'decimal':
-			return check_number(meta, error, value);
+			output = check_number(meta, error, value);
+			break;
 		case 'boolean':
 		case 'bool':
-			return check_boolean(meta, error, value);
+			output = check_boolean(meta, error, value);
+			break;
 		case 'date':
-			return check_date(meta, error, value);
+			output = check_date(meta, error, value);
+			break;
 		case 'object':
-			return check_object(meta, error, value);
+			output = check_object(meta, error, value, null, stop);
+			break;
 		case 'array':
-			return check_array(meta, error, value);
+			output = check_array(meta, error, value, stop);
+			break;
+		default:
+			error.push('.type');
+			return;
 	}
+
+	if (stop && error.length)
+		return;
+
+	return output;
 }
 
 function register(schema) {
