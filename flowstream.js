@@ -629,6 +629,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 };
 
 FP.use = function(schema, callback, reinit) {
+
 	var self = this;
 
 	if (typeof(schema) === 'string')
@@ -692,9 +693,6 @@ FP.use = function(schema, callback, reinit) {
 
 		}, function() {
 
-			self.$events.schema && self.emit('schema', self.meta.flow);
-			callback && callback(err.length ? err : null);
-
 			for (var key in self.meta.flow) {
 				if (key !== 'paused') {
 					var instance = self.meta.flow[key];
@@ -706,6 +704,9 @@ FP.use = function(schema, callback, reinit) {
 					}
 				}
 			}
+
+			self.$events.schema && self.emit('schema', self.meta.flow);
+			callback && callback(err.length ? err : null);
 
 		});
 
