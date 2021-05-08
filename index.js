@@ -147,8 +147,10 @@ global.NEWSUBSCRIBE = function(name, value) {
 };
 
 global.PUBLISH = function(name, value) {
-	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name])
+	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name]) {
+		F.stats.performance.publish++;
 		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
+	}
 };
 
 var tmssubscribers = {};
@@ -2025,6 +2027,8 @@ function Framework() {
 		error: 0,
 
 		performance: {
+			publish: 0,
+			subscribe: 0,
 			download: 0,
 			upload: 0,
 			request: 0,
@@ -4938,6 +4942,7 @@ function tmscontroller() {
 
 		if (client.tmsready) {
 			if (msg.id) {
+				F.stats.performance.subscribe++;
 				var schema = F.tms.subscribe_cache[msg.id];
 				if (schema) {
 					JSONSCHEMA(schema, msg.data, function(err, response) {
@@ -10683,6 +10688,8 @@ FrameworkCacheProto.recycle = function() {
 	CONF.allow_cache_snapshot && this.save();
 	F.service(this.count);
 
+	F.temporary.service.publish = F.stats.performance.publish;
+	F.temporary.service.subscribe = F.stats.performance.subscribe;
 	F.temporary.service.request = F.stats.performance.request;
 	F.temporary.service.file = F.stats.performance.file;
 	F.temporary.service.message = F.stats.performance.message;
@@ -10696,6 +10703,8 @@ FrameworkCacheProto.recycle = function() {
 
 	F.stats.request.size += F.stats.performance.download;
 	F.stats.response.size += F.stats.performance.upload;
+	F.stats.performance.publish = 0;
+	F.stats.performance.subscribe = 0;
 	F.stats.performance.upload = 0;
 	F.stats.performance.download = 0;
 	F.stats.performance.external = 0;
@@ -18187,6 +18196,8 @@ function runsnapshot() {
 		stats.om = F.temporary.service.open || 0;         // open files min
 		stats.dm = (F.temporary.service.download || 0).floor(3);       // downloaded MB min
 		stats.um = (F.temporary.service.upload || 0).floor(3);         // uploaded MB min
+		stats.pm = F.temporary.service.publish || 0;      // publish messages min
+		stats.sm = F.temporary.service.subscribe || 0;    // subscribe messages min
 		stats.dbrm = F.temporary.service.dbrm || 0;       // db read
 		stats.dbwm = F.temporary.service.dbwm || 0;       // db write
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min
