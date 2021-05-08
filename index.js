@@ -11615,13 +11615,13 @@ ControllerProto.meta = function() {
 	var self = this;
 
 	if (arguments[0])
-		self.repository[REPOSITORY_META_TITLE] = arguments[0];
+		self.repository[REPOSITORY_META_TITLE] = arguments[0].encode();
 
 	if (arguments[1])
-		self.repository[REPOSITORY_META_DESCRIPTION] = arguments[1];
+		self.repository[REPOSITORY_META_DESCRIPTION] = arguments[1].encode();
 
 	if (arguments[2] && arguments[2].length)
-		self.repository[REPOSITORY_META_KEYWORDS] = arguments[2] instanceof Array ? arguments[2].join(', ') : arguments[2];
+		self.repository[REPOSITORY_META_KEYWORDS] = (arguments[2] instanceof Array ? arguments[2].join(', ') : arguments[2]).encode();
 
 	if (arguments[3])
 		self.repository[REPOSITORY_META_IMAGE] = arguments[3];
@@ -11664,32 +11664,32 @@ ControllerProto.author = function(value) {
 
 ControllerProto.$title = function(value) {
 	if (value)
-		this.repository[REPOSITORY_META_TITLE] = value;
+		this.repository[REPOSITORY_META_TITLE] = value.encode();
 	return '';
 };
 
 ControllerProto.$title2 = function(value) {
 	var current = this.repository[REPOSITORY_META_TITLE];
 	if (value)
-		this.repository[REPOSITORY_META_TITLE] = (current ? current : '') + value;
+		this.repository[REPOSITORY_META_TITLE] = (current ? current : '') + value.encode();
 	return '';
 };
 
 ControllerProto.$description = function(value) {
 	if (value)
-		this.repository[REPOSITORY_META_DESCRIPTION] = value;
+		this.repository[REPOSITORY_META_DESCRIPTION] = value.encode();
 	return '';
 };
 
 ControllerProto.$keywords = function(value) {
 	if (value && value.length)
-		this.repository[REPOSITORY_META_KEYWORDS] = value instanceof Array ? value.join(', ') : value;
+		this.repository[REPOSITORY_META_KEYWORDS] = (value instanceof Array ? value.join(', ') : value).encode();
 	return '';
 };
 
 ControllerProto.$author = function(value) {
 	if (value)
-		this.repository[REPOSITORY_META_AUTHOR] = value;
+		this.repository[REPOSITORY_META_AUTHOR] = value.encode();
 	return '';
 };
 
