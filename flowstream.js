@@ -487,13 +487,19 @@ FP.unregister = function(name, callback) {
 	if (curr) {
 		self.$events.unregister && self.emit('unregister', name, curr);
 		Object.keys(self.meta.flow).wait(function(key, next) {
+
 			var instance = self.meta.flow[key];
-			if (instance.component === name) {
-				instance.ready = false;
-				curr.close && curr.close.call(instance, instance);
+			if (instance) {
+				if (instance.component === name) {
+					instance.ready = false;
+					curr.close && curr.close.call(instance, instance);
+					delete self.meta.flow[key];
+				}
+			} else
 				delete self.meta.flow[key];
-			}
+
 			next();
+
 		}, function() {
 			curr.connected = false;
 			curr.disabled = true;
@@ -947,6 +953,33 @@ FP.instances = function() {
 	}
 
 	return arr;
+};
+
+FP.export = function() {
+
+	var self = this;
+	var output = {};
+
+	for (var key in self.meta.flow) {
+
+		var instance = self.meta.flow[key];
+		if (key === 'paused') {
+			output[key] = CLONE(instance);
+			continue;
+		}
+
+		var tmp = {};
+		tmp.x = instance.x;
+		tmp.y = instance.y;
+		tmp.stats = CLONE(instance.stats);
+		tmp.connections = CLONE(instance.connections);
+		tmp.id = instance.id;
+		tmp.config = instance.config;
+		tmp.component = instance.component;
+		output[tmp.id] = tmp;
+	}
+
+	return output;
 };
 
 FP.components = function(prepare_export) {
