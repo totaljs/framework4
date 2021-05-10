@@ -3026,6 +3026,13 @@ global.GROUP = function() {
 	_flags = undefined;
 };
 
+var routes_sort_worker = function() {
+	routes_sort_id = null;
+	F.routes_sort();
+};
+
+var routes_sort_id;
+
 global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	var name;
@@ -3790,7 +3797,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		F.routes.web.push(r);
 		// Appends cors route
 		isCORS && CORS(urlcache, corsflags);
-		!CURRENT_CONTROLLER && F.routes_sort(1);
 	}
 
 	F.routes.all[mypath] = instance;
@@ -3799,6 +3805,9 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		F._request_check_mobile = true;
 
 	EMIT('route', 'web', instance);
+
+	routes_sort_id && clearTimeout(routes_sort_id);
+	routes_sort_id = setTimeout(routes_sort_worker, 50);
 	return instance;
 };
 
@@ -4480,7 +4489,8 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	};
 
 	EMIT('route', 'websocket', r);
-	!CURRENT_CONTROLLER && F.routes_sort(2);
+	routes_sort_id && clearTimeout(routes_sort_id);
+	routes_sort_id = setTimeout(routes_sort_worker, 50);
 	return instance;
 };
 

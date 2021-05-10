@@ -16,6 +16,7 @@
 - added `watcher` event for the main process in `debug` or `release` mode with the watcher
 - added HTML escaping for meta tags
 - fixed `Mail.attachmentfs()`
+- fixed dynamic routing
 
 ========================
 0.0.41
