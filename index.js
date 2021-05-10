@@ -10301,6 +10301,7 @@ FrameworkRouteProto.remove = function(nosort) {
 	} else if (self.type === 'websocket') {
 
 		index = F.routes.websockets.indexOf(self.route);
+
 		if (index !== -1) {
 			tmp = F.routes.websockets[index];
 			delete F.routes.all[tmp.path];
