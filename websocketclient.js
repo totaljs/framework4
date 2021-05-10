@@ -602,6 +602,12 @@ WebSocketClientProto.$onclose = function() {
 	this.free();
 };
 
+WebSocketClientProto.destroy = function() {
+	var self = this;
+	self.free();
+	self.$reconnecting && clearTimeout(self.$reconnecting);
+};
+
 /**
  * Sends a message
  * @param {String/Object} message
