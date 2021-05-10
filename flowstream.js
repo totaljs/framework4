@@ -690,6 +690,8 @@ FP.use = function(schema, callback, reinit) {
 				self.initcomponent(key, component).ts = ts;
 			} else {
 				fi.connections = instance.connections;
+				fi.x = instance.x;
+				fi.y = instance.y;
 				U.extend(fi.config, instance.config);
 				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
