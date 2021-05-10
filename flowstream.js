@@ -146,10 +146,15 @@ MP.clone = function() {
 MP.end = MP.destroy = function() {
 	var self = this;
 	self.processed = 0;
+
 	if (self.main)
 		self.main.stats.pending--;
-	if (self.instance)
+
+	if (self.instance) {
+		self.instance.stats.destroyed++;
 		self.instance.stats.pending--;
+	}
+
 	return self;
 };
 
@@ -180,6 +185,7 @@ MP.send = function(outputindex, data, clonedata) {
 	var count = 0;
 
 	if (outputindex == null) {
+
 		if (self.instance.connections) {
 			for (var key in self.instance.connections)
 				count += self.send(key);
@@ -294,8 +300,8 @@ MP.destroy = function() {
 		self.processed = 1;
 		self.main.stats.pending--;
 		self.schema.stats.pending--;
-		self.schema.stats.output++;
 		self.schema.stats.duration = Date.now() - self.duration2;
+		self.schema.stats.destroyed++;
 	}
 
 	self.$events.end && self.emit('end', self);
@@ -563,7 +569,6 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 	if (schema && schema.ready && schema.component && schema.connections) {
 		var instance = self.meta.components[schema.component];
 		if (instance && instance.connected && !instance.disabled && self.$can(false, schema.id, outputindex)) {
-
 			var conn = schema.connections[outputindex];
 			if (conn && conn.length) {
 
@@ -604,8 +609,9 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.config = message.options = target.config;
 					message.processed = 0;
 
-					schema.stats.input++;
-					schema.stats.pending++;
+					target.stats.pending++;
+					target.stats.input++;
+					schema.stats.output++;
 
 					message.main.stats.pending++;
 					message.main.stats.messages++;
@@ -737,7 +743,7 @@ FP.initcomponent = function(key, component) {
 		instance.close && instance.close.call(instance);
 	}
 
-	instance.stats = { pending: 0, input: 0, output: 0, duration: 0 };
+	instance.stats = { pending: 0, input: 0, output: 0, duration: 0, destroyed: 0 };
 	instance.cache = {};
 	instance.id = key;
 	instance.module = component;
@@ -786,7 +792,7 @@ function sendmessage(instance, message, event) {
 		message.main.$events.message && message.main.emit('message', message);
 	}
 
-	instance.message && instance.message.call(message.instance, message);
+	instance.message.call(message.instance, message);
 	var key = 'message_' + message.toindex;
 	instance[key] && instance[key].call(message.instance, message);
 }
@@ -831,7 +837,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.fromindex = null;
 			message.fromcomponent = null;
 
-			message.to = message.schema = instance;
+			message.to = message.schema = schema;
 			message.toid = path[0];
 			message.toindex = inputindex;
 			message.index = inputindex;
