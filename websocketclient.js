@@ -580,31 +580,34 @@ WebSocketClientProto.$onerror = function(err) {
 
 WebSocketClientProto.$onclose = function() {
 
-	if (this._isClosed)
+	var self = this;
+
+	if (self._isClosed)
 		return;
 
-	this.isClosed = true;
-	this._isClosed = true;
+	self.isClosed = true;
+	self._isClosed = true;
 	F.stats.performance.online--;
 
-	if (this.inflate) {
-		this.inflate.removeAllListeners();
-		this.inflate = null;
-		this.inflatechunks = null;
+	if (self.inflate) {
+		self.inflate.removeAllListeners();
+		self.inflate = null;
+		self.inflatechunks = null;
 	}
 
-	if (this.deflate) {
-		this.deflate.removeAllListeners();
-		this.deflate = null;
-		this.deflatechunks = null;
+	if (self.deflate) {
+		self.deflate.removeAllListeners();
+		self.deflate = null;
+		self.deflatechunks = null;
 	}
 
-	this.free();
+	self.free();
 };
 
 WebSocketClientProto.destroy = function() {
 	var self = this;
 	self.free();
+	self.options.reconnect = 0;
 	self.$reconnecting && clearTimeout(self.$reconnecting);
 };
 
