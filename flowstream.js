@@ -578,8 +578,6 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					if (!com || (com.$inputs && !com.$inputs[m.index]))
 						continue;
 
-					count++;
-
 					var message = data instanceof Message ? data.clone() : new Message();
 					message.$events = events || {};
 					message.duration = message.duration2 = Date.now();
@@ -615,7 +613,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					message.count = message.main.stats.messages;
 
-					if (message.fromid) {
+					if (message.fromid && !count) {
 						var tid = message.fromid + D + message.fromindex;
 						if (message.main.stats.traffic[tid])
 							message.main.stats.traffic[tid]++;
@@ -625,6 +623,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						}
 					}
 
+					count++;
 					setImmediate(sendmessage, target, message, true);
 				}
 			}
@@ -875,10 +874,11 @@ FP.trigger2 = function(path, data, controller) {
 
 	path = path.split(D);
 
+	var counter = 0;
 	for (var key in self.meta.flow) {
 		var flow = self.meta.flow[key];
 		if (flow.component === path[0])
-			obj = self.trigger(key + D + (path.length === 1 ? 0 : path[1]), data, controller, events);
+			obj = self.trigger(key + D + (path.length === 1 ? 0 : path[1]), data, controller, events, counter++);
 	}
 
 	return obj;
