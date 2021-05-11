@@ -1,6 +1,7 @@
 type Framework = {
 	is4: boolean;
 	version: string;
+	usage: (detailed: boolean) => any;
 }
 
 type ls = (path: string, callback: (files: any[], directories: any[]) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
@@ -594,7 +595,7 @@ type SchemaCallback = {
 	setPrefix: (prefix: string) => void;
 	setResource: (name: string) => void;
 	verify: (key: string, fn: ($: SchemaOptions) => void, cache: string) => void;
-	define: (field: string, type: string, validation?: boolean | SchemaValidation) => void;
+	define: (field: string, type: string, validation?: boolean | SchemaValidation, error_message?: string) => void;
 	addOperation: (name: string, operation: string, filter?: string) => void;
 	addTask: (name: string, task: string, filter?: string) => void;
 	addWorkflow: (name: string, callback: SchemaMethodCallback, filter?: string) => void;
@@ -613,6 +614,7 @@ type SchemaCallback = {
 	setSaveExtension: (name: string, callback: SchemaExtensionCallback) => void;
 	setUpdate: (callback: SchemaMethodCallback, filter?: string) => void;
 	setUpdateExtension: (name: string, callback: SchemaExtensionCallback) => void;
+	jsonschema(name: string): () => void;
 }
 
 // Route
@@ -649,6 +651,7 @@ type FrameworkWebSocketClient = {
 	close: (message?: string, code?: number) => FrameworkWebSocketClient;
 	send: (message: string | object | Buffer) => FrameworkWebSocketClient;
 	on: (event: string, fn: Function) => Framework;
+	destroy: () => FrameworkWebSocketClient;
 }
 
 // Mail
@@ -1054,3 +1057,10 @@ declare function WORKER(name: string, timeout?: number, args?: string[]): any;
 declare function WORKER2(name: string, timeout?: number, callback?: (err: any, buffer: Buffer) => void): any;
 declare function WORKFLOW(declaration: ($: Dollar) => void): Dollar;
 declare function HTTP(type: string): void;
+declare function JSONSCHEMA(id: any, value: any, callback: Function, error?: any): void;
+declare function NEWJSONSCHEMA(name: string, value?: string): void;
+declare function NEWPUBLISH(name: string, value?: string): void;
+declare function NEWSUBSCRIBE(name: string, value?: string): void;
+declare function PUBLISH(name: string, value: string): void;
+declare function SUBSCRIBE(name: string, callback: Function, client?: any): void;
+declare function UNSUBSCRIBE(name: string, callback?: Function): void;
