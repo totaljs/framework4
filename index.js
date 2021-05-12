@@ -9937,7 +9937,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		callback = data;
 		data = type;
 		type = token;
-		token = CONF.totalapi || '-';
+		token = (CONF.totalapi || CONF.secret_totalapi) || '-';
 	}
 
 	if (!callback)

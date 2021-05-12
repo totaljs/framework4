@@ -325,7 +325,7 @@ Message.prototype.send2 = function(callback) {
 
 	var self = this;
 
-	if (CONF.mail_api) {
+	if (CONF.allow_totalapi && CONF.mail_api) {
 		var data = {};
 		data.to = self.to;
 		data.from = self.from.email;
@@ -337,7 +337,7 @@ Message.prototype.send2 = function(callback) {
 		data.priority = self.$priotity;
 		data.unsubscribe = self.$unsubscribe;
 		data.confidential = self.$confidential;
-		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? CONF.totalapi : CONF.mail_api, data, callback || NOOP);
+		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? (CONF.totalapi || CONF.secret_totalapi) : CONF.mail_api, data, callback || NOOP);
 		return;
 	}
 
