@@ -4038,13 +4038,14 @@ exports.encrypt_data = function(value, key, encode) {
 	for (var i = 0; i < buffer.length; i++)
 		buffer[i] = buffer[i] ^ mask[i % 4];
 
-	return Buffer.concat([mask, buffer]).toString(encode || 'base64');
+	var buf = Buffer.concat([mask, buffer]);
+	return encode === 'buffer' ? buf : buf.toString(encode || 'base64');
 };
 
 exports.decrypt_data = function(value, key, encode) {
 
 	try {
-		value = Buffer.from(value, encode || 'base64');
+		value = value instanceof Buffer ? value : Buffer.from(value, encode || 'base64');
 	} catch (e) {
 		return null;
 	}
