@@ -4009,7 +4009,7 @@ SP.decrypt = function(key, secret) {
 	return counter !== (val.length + key.length) ? null : val;
 };
 
-exports.encrypt_data = function(value, key) {
+exports.encrypt_data = function(value, key, encode) {
 
 	var builder = [];
 	var index = 0;
@@ -4038,13 +4038,13 @@ exports.encrypt_data = function(value, key) {
 	for (var i = 0; i < buffer.length; i++)
 		buffer[i] = buffer[i] ^ mask[i % 4];
 
-	return Buffer.concat([mask, buffer]).toString('base64');
+	return Buffer.concat([mask, buffer]).toString(encode || 'base64');
 };
 
-exports.decrypt_data = function(value, key) {
+exports.decrypt_data = function(value, key, encode) {
 
 	try {
-		value = Buffer.from(value, 'base64');
+		value = Buffer.from(value, encode || 'base64');
 	} catch (e) {
 		return null;
 	}
