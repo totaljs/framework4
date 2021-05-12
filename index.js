@@ -705,6 +705,8 @@ global.LOADCONFIG = function(value) {
 
 	for (var m in config)
 		CONF[m] = config[m];
+
+	CMD('refresh_tms');
 };
 
 var TMPENV = framework_utils.copy(process.env);
@@ -9569,18 +9571,7 @@ function configure_configs(arr, rewrite) {
 	if (!CONF.secret_uid)
 		CONF.secret_uid = (CONF.name).crc32(true) + '';
 
-	if (F.tms.url !== CONF.tms_url) {
-
-		if (F.tms.route) {
-			F.tms.route.remove();
-			F.tms.route = null;
-		}
-
-		if (CONF.tms_url)
-			F.tms.route = ROUTE('SOCKET ' + CONF.tms_url, tmscontroller);
-
-		F.tms.url = CONF.tms_endpoint;
-	}
+	CMD('refresh_tms');
 
 	tmp = CONF.mail_smtp_options;
 	if (typeof(tmp) === 'string' && tmp) {
@@ -14304,7 +14295,6 @@ WebSocketProto.ping = function() {
 
 /**
  * Closes a connection
- * @param {String Array} id Client id, optional, default `null`.
  * @param {String} message A message for the browser.
  * @param {Number} code Optional default 1000.
  * @return {Websocket}
@@ -18265,6 +18255,32 @@ function measure_usage() {
 	lastusagedate = Date.now();
 	setTimeout(measure_usage_response, 50);
 }
+
+NEWCOMMAND('refresh_tms', function() {
+
+	var endpoint = CONF.tms_url || CONF.tms_endpoint;
+
+	if (F.tms.url !== endpoint) {
+
+		if (F.tms.route) {
+			F.tms.route.remove();
+			F.tms.route = null;
+		}
+
+		if (endpoint)
+			F.tms.route = ROUTE('SOCKET ' + endpoint, tmscontroller);
+
+		F.tms.url = endpoint;
+	}
+
+	if (endpoint) {
+		if (F.tms.token !== CONF.tms_token) {
+			F.tms.token = CONF.tms_token;
+			F.tms.socket && F.tms.socket.close(1000, 'Changed TMS token');
+		}
+	}
+
+});
 
 NEWCOMMAND('clear_smtpcache', function() {
 	if (CONF.mail_smtp || CONF.mail_smtp_options)
