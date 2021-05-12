@@ -1799,6 +1799,7 @@ function Framework() {
 		secret_uid: self.syshash.substring(10),
 		secret_encryption: null,
 		secret_csrf: null,
+		secret_tms: null,
 
 		'security.txt': 'Contact: mailto:support@totaljs.com\nContact: https://www.totaljs.com/contact/',
 		etag_version: '',
@@ -1865,6 +1866,7 @@ function Framework() {
 		default_errorbuilder_errors: false,
 		default_errorbuilder_status: 400,
 		default_errorbuilder_forxhr: true,
+		default_tms_url: '/$tms/',
 
 		// Default originators
 		default_cors: null,
@@ -1883,6 +1885,7 @@ function Framework() {
 		default_image_quality: 93,
 		default_image_consumption: 0, // disabled because e.g. GM v1.3.32 throws some error about the memory
 
+		allow_tms: false,
 		allow_static_encryption: false,
 		allow_static_files: true,
 		allow_gzip: true,
@@ -4930,7 +4933,7 @@ function tmscontroller() {
 			return;
 		}
 
-		if (CONF.tms_token && CONF.tms_token !== client.headers['x-token']) {
+		if (CONF.secret_tms && CONF.secret_tms !== client.headers['x-token']) {
 
 			if (TMSBLOCKED[client.ip])
 				TMSBLOCKED[client.ip]++;
@@ -18258,26 +18261,22 @@ function measure_usage() {
 
 NEWCOMMAND('refresh_tms', function() {
 
-	var endpoint = CONF.tms_url || CONF.tms_endpoint;
+	var endpoint = CONF.default_tms_url;
+	var is = F.tms.url !== endpoint;
 
-	if (F.tms.url !== endpoint) {
-
-		if (F.tms.route) {
-			F.tms.route.remove();
-			F.tms.route = null;
-		}
-
-		if (endpoint)
-			F.tms.route = ROUTE('SOCKET ' + endpoint, tmscontroller);
-
-		F.tms.url = endpoint;
+	if (is && F.tms.route) {
+		F.tms.route.remove();
+		F.tms.route = null;
 	}
 
-	if (endpoint) {
-		if (F.tms.token !== CONF.tms_token) {
-			F.tms.token = CONF.tms_token;
-			F.tms.socket && F.tms.socket.close(1000, 'Changed TMS token');
-		}
+	if ((is && endpoint && CONF.allow_tms) || (endpoint && CONF.allow_tms && !F.tms.route))
+		F.tms.route = ROUTE('SOCKET ' + endpoint, tmscontroller);
+
+	F.tms.url = endpoint;
+
+	if (endpoint && F.tms.token !== CONF.secret_tms) {
+		F.tms.token = CONF.secret_tms;
+		F.tms.socket && F.tms.socket.close(1000, 'Changed TMS secret');
 	}
 
 });
