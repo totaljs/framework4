@@ -1886,6 +1886,7 @@ function Framework() {
 		default_image_consumption: 0, // disabled because e.g. GM v1.3.32 throws some error about the memory
 
 		allow_tms: false,
+		allow_totalapi: true,
 		allow_static_encryption: false,
 		allow_static_files: true,
 		allow_gzip: true,
@@ -9925,6 +9926,11 @@ global.ACCEPT = F.accept = function(ext, type) {
 };
 
 global.TotalAPI = function(token, type, data, callback, filename) {
+
+	if (!CONF.allow_totalapi) {
+		callback(new ErrorBuilder().push('inactive'));
+		return;
+	}
 
 	if (typeof(type) === 'object' || typeof(data) === 'function' || (typeof(data) === 'object' && data.req)) {
 		filename = callback;
