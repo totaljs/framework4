@@ -1887,6 +1887,7 @@ function Framework() {
 
 		allow_tms: false,
 		allow_totalapi: true,
+		allow_totalapilogger: false,
 		allow_static_encryption: false,
 		allow_static_files: true,
 		allow_gzip: true,
@@ -6092,7 +6093,12 @@ global.AUDIT = function(name, $, message, type) {
 	if (message)
 		data.message = message;
 
-	DEF.onAudit(name, data);
+	if (CONF.allow_totalapilogger && (CONF.totalapi || CONF.secret_totalapi)) {
+		data.sessionid = data.thread = undefined;
+		data.app = CONF.url || CONF.name;
+		TotalAPI('logger', data, ERROR('totalapi'));
+	} else
+		DEF.onAudit(name, data);
 };
 
 global.LOGGER = function() {

@@ -17,6 +17,10 @@
 - added HTML escaping for meta tags
 - added `WebSocketClient.destroy()` method
 - added new command `refresh_cmd`
+- added `allow_totalapilogger {Boolean}` option to the configuration
+- added `allow_totalapi {Boolean}` option to the configuration
+- added `allow_tms {Boolean}` option to the configuration
+- added `secret_tms {String}` option to the configuration
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
 
