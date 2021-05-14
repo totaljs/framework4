@@ -1232,11 +1232,7 @@ exports.extend = function(target, source, rewrite) {
 	if (rewrite === undefined)
 		rewrite = true;
 
-	var keys = Object.keys(source);
-	var i = keys.length;
-
-	while (i--) {
-		var key = keys[i];
+	for (var key in source) {
 		if (rewrite || target[key] === undefined)
 			target[key] = exports.clone(source[key]);
 	}
@@ -1351,12 +1347,9 @@ exports.copy = function(source, target) {
 	if (!target || !source || typeof(target) !== 'object' || typeof(source) !== 'object')
 		return target;
 
-	var keys = Object.keys(source);
-	var i = keys.length;
-
-	while (i--) {
-		var key = keys[i];
-		target[key] !== undefined && (target[key] = exports.clone(source[key]));
+	for (var key in source) {
+		if (target[key] !== undefined)
+			target[key] = exports.clone(source[key]);
 	}
 
 	return target;
