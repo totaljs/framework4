@@ -637,7 +637,7 @@ FP.reconfigure = function(id, config, rewrite) {
 		if (rewrite)
 			instance.config = config;
 		else
-			U.extend(config, instance.config);
+			U.extend(instance.config, config);
 
 		instance.configure && instance.configure(instance.config);
 	}
