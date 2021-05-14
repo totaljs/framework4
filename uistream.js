@@ -166,11 +166,16 @@ UI.unregister = function(name, callback) {
 	return self;
 };
 
-UI.reconfigure = function(id, config) {
+UI.reconfigure = function(id, config, rewrite) {
 	var self = this;
 	var instance = self.meta.flow[id];
 	if (instance) {
-		instance.config = U.extend(instance.config, config);
+
+		if (rewrite)
+			instance.config = config;
+		else
+			U.extend(config, instance.config);
+
 		instance.configure && instance.configure(instance.config);
 	}
 	return !!instance;
@@ -458,6 +463,35 @@ UI.add = function(name, body, callback) {
 	}
 
 	return component;
+};
+
+UI.export = function() {
+
+	var self = this;
+	var output = {};
+
+	for (var key in self.meta.flow) {
+
+		var instance = self.meta.flow[key];
+		if (key === 'paused') {
+			output[key] = CLONE(instance);
+			continue;
+		}
+
+		var tmp = {};
+		tmp.x = instance.x;
+		tmp.y = instance.y;
+		tmp.offset = instance.offset;
+		tmp.size = instance.size;
+		tmp.stats = CLONE(instance.stats);
+		tmp.connections = CLONE(instance.connections);
+		tmp.id = instance.id;
+		tmp.config = CLONE(instance.config);
+		tmp.component = instance.component;
+		output[tmp.id] = tmp;
+	}
+
+	return output;
 };
 
 UI.instances = function() {

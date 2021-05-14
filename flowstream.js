@@ -522,16 +522,6 @@ FP.unregister = function(name, callback) {
 	return self;
 };
 
-FP.reconfigure = function(id, config) {
-	var self = this;
-	var instance = self.meta.flow[id];
-	if (instance) {
-		instance.config = U.extend(instance.config, config);
-		instance.configure && instance.configure(instance.config);
-	}
-	return !!instance;
-};
-
 FP.clean = function() {
 	var self = this;
 	setTimeout2(self.name, () => self.cleanforce(), 1000);
@@ -637,6 +627,21 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 	}
 
 	return count;
+};
+
+FP.reconfigure = function(id, config, rewrite) {
+	var self = this;
+	var instance = self.meta.flow[id];
+	if (instance) {
+
+		if (rewrite)
+			instance.config = config;
+		else
+			U.extend(config, instance.config);
+
+		instance.configure && instance.configure(instance.config);
+	}
+	return !!instance;
 };
 
 FP.use = function(schema, callback, reinit) {
@@ -982,7 +987,7 @@ FP.export = function() {
 		tmp.stats = CLONE(instance.stats);
 		tmp.connections = CLONE(instance.connections);
 		tmp.id = instance.id;
-		tmp.config = instance.config;
+		tmp.config = CLONE(instance.config);
 		tmp.component = instance.component;
 		output[tmp.id] = tmp;
 	}
