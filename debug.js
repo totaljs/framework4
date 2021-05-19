@@ -95,6 +95,7 @@ function runwatching() {
 	const REG_PUBLIC = /\/public\//i;
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
 	const REG_COMPONENTS = /components\/.*?\.html|\.package\/.*?$/i;
+	const REG_JSONSCHEMAS = /jsonschemas\/.*?\.json$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
 	const REG_RELOAD = /\.(js|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
@@ -225,7 +226,7 @@ function runwatching() {
 				return isDirectory ? SRC !== path : !blacklist[p];
 			if (isRELOAD)
 				return isDirectory ? true : REG_RELOAD.test(path);
-			return isDirectory && REG_THEMES.test(path) ? true : isDirectory ? true : !REG_PUBLIC.test(path) && (REG_EXTENSION.test(path) || REG_COMPONENTS.test(path) || REG_CONFIGS.test(path) || REG_THEMES_INDEX.test(path));
+			return isDirectory && REG_THEMES.test(path) ? true : isDirectory ? true : !REG_PUBLIC.test(path) && (REG_EXTENSION.test(path) || REG_COMPONENTS.test(path) || REG_JSONSCHEMAS.test(path) || REG_CONFIGS.test(path) || REG_THEMES_INDEX.test(path));
 		}
 
 		function onComplete(f) {
