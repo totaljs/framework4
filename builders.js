@@ -562,6 +562,8 @@ SchemaBuilderEntityProto.jsonschema = function(name) {
 };
 
 SchemaBuilderEntityProto.toJSONSchema = function() {
+
+	var self = this;
 	var obj = {};
 	var p = (CONF.url || 'https://schemas.totaljs.com/');
 
