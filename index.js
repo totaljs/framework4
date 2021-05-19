@@ -9933,12 +9933,13 @@ global.ACCEPT = F.accept = function(ext, type) {
 
 global.TotalAPI = function(token, type, data, callback, filename) {
 
-	if (!CONF.allow_totalapi) {
-		callback(new ErrorBuilder().push('inactive'));
-		return;
-	}
-
 	if (typeof(type) === 'object' || typeof(data) === 'function' || (typeof(data) === 'object' && data.req)) {
+
+		if (!CONF.allow_totalapi) {
+			callback(new ErrorBuilder().push('totalapi_inactive'));
+			return;
+		}
+
 		filename = callback;
 		callback = data;
 		data = type;
