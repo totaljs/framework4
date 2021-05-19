@@ -5942,7 +5942,7 @@ DEF.onSchema = function(req, route, callback) {
 		}
 	}
 
-	if (schema.$csrf && !DEF.onCSRFcheck(req)) {
+	if (schema && schema.$csrf && !DEF.onCSRFcheck(req)) {
 		callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
 		return;
 	}
