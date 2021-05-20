@@ -147,8 +147,14 @@ global.NEWSUBSCRIBE = function(name, value) {
 
 	if (F.jsonschemas[value])
 		F.tms.subscribe_cache[name] = value;
-	else
-		throw new Error('JSON schema "' + value + '" not found.');
+	else {
+		// Tries to create from the Total.js Schema
+		var schema = GETSCHEMA(value);
+		if (schema)
+			schema.toJSONSchema();
+		else
+			throw new Error('JSON schema "' + value + '" not found.');
+	}
 
 };
 
