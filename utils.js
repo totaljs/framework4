@@ -4749,21 +4749,25 @@ exports.sortcomparer = function(sort) {
 
 			if (col.type) {
 				switch (col.type) {
+
 					case 1:
 						tmp = col.desc ? COMPARER_DESC(va, vb) : COMPARER(va, vb);
 						if (tmp)
 							return tmp;
 						break;
+
 					case 2:
 						tmp = va > vb ? (col.desc ? -1 : 1) : va < vb ? (col.desc ? 1 : -1) : 0;
 						if (tmp)
 							return tmp;
 						break;
+
 					case 3:
 						tmp = va === true && vb === false ? (col.desc ? -1 : 1) : va === false && vb === true ? (col.desc ? 1 : -1) : 0;
 						if (tmp)
 							return tmp;
 						break;
+
 					case 4:
 
 						if (!va && !vb)
