@@ -527,7 +527,6 @@ UI.components = function(prepare_export) {
 			obj.offset = com.offset;
 			obj.size = com.size;
 			obj.css = com.ui.css;
-			console.log(com);
 			obj.js = com.ui.js;
 			obj.icon = com.icon;
 			obj.config = com.config;
