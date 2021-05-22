@@ -256,6 +256,8 @@ UI.use = function(schema, callback, reinit) {
 				self.initcomponent(key, component).ts = ts;
 			} else {
 				fi.connections = instance.connections;
+				fi.offset = instance.offset;
+				fi.size = instance.size;
 				U.extend(fi.config, instance.config);
 				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
