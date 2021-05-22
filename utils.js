@@ -484,6 +484,7 @@ global.REQUEST = function(opt, callback) {
 
 	options.response = opt.response ? opt.response : {};
 	options.response.body = '';
+	options.iserror = false;
 
 	if (opt.resolve || opt.dnscache)
 		options.resolve = true;
@@ -760,11 +761,19 @@ function request_call(uri, options) {
 			request_writefile(req, options, file, next);
 		}, function() {
 
+			if (options.iserror)
+				return;
+
 			if (options.body) {
 				for (var key in options.body) {
 					var value = options.body[key];
 					if (value != null) {
-						req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + key + '"' + NEWLINE + NEWLINE + value);
+						try {
+							req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + key + '"' + NEWLINE + NEWLINE + value);
+						} catch (e) {
+							request_process_error.apply(req, e);
+							break;
+						}
 						if (options.first)
 							options.first = false;
 					}
@@ -779,6 +788,7 @@ function request_call(uri, options) {
 
 function request_process_error(err) {
 	var options = this.$options;
+	options.iserror = true;
 	if (options.callback && !options.done) {
 		if (options.timeoutid) {
 			clearTimeout(options.timeoutid);
@@ -794,6 +804,7 @@ function request_process_error(err) {
 
 function request_process_timeout(req) {
 	var options = req.$options;
+	options.iserror = true;
 	if (options.callback) {
 		if (options.timeoutid) {
 			clearTimeout(options.timeoutid);
@@ -824,6 +835,11 @@ function request_assign_res(response) {
 
 function request_writefile(req, options, file, next) {
 
+	if (options.iserror) {
+		next();
+		return;
+	}
+
 	var isbuffer = file.buffer instanceof Buffer;
 	var filename = (isbuffer ? file.name : exports.getName(file.filename));
 
@@ -833,7 +849,11 @@ function request_writefile(req, options, file, next) {
 		options.first = false;
 
 	if (isbuffer) {
-		req.write(file.buffer);
+		try {
+			req.write(file.buffer);
+		} catch (e) {
+			request_process_error.apply(req, e);
+		}
 		next();
 	} else {
 		var stream = Fs.createReadStream(file.filename);
