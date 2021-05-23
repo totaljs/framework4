@@ -69,21 +69,6 @@ UI.register = function(name, declaration, config, callback, extend) {
 		curr.make = declaration;
 
 	curr.config = CLONE(curr.config || curr.options);
-
-	if (extend) {
-		curr.$inputs = {};
-		if (curr.inputs) {
-			for (var i = 0; i < curr.inputs.length; i++) {
-				var m = curr.inputs[i];
-				if (curr.$inputs[m.id])
-					curr.$inputs[m.id]++;
-				else
-					curr.$inputs[m.id] = 1;
-			}
-		}
-	} else
-		self.$inputs = null;
-
 	var errors = new ErrorBuilder();
 
 	var done = function() {
@@ -93,6 +78,16 @@ UI.register = function(name, declaration, config, callback, extend) {
 		curr.destroy = function() {
 			self.unregister(name);
 		};
+
+		// update all instances
+		for (var key in self.meta.flow) {
+			if (key !== 'paused') {
+				var f = self.meta.flow[key];
+				if (f.component === curr.id)
+					self.initcomponent(key, curr);
+			}
+		}
+
 		callback && callback(errors.length ? errors : null);
 	};
 
@@ -439,16 +434,14 @@ UI.add = function(name, body, callback) {
 
 	var self = this;
 	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', template: '<template>' });
-	var node =  (meta.be || meta.be2 || '');
+	var node = (meta.be || meta.be2 || '');
 	meta.id = name;
 	meta.checksum = node.md5();
 	var component = self.meta.components[name];
-
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
 		component.ts = Date.now();
 	} else {
-
 		try {
 			var fn = new Function('exports', 'require', node);
 			delete meta.be;
