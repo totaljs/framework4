@@ -23,6 +23,7 @@
 - added `secret_tms {String}` option to the configuration
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
+- fixed security issue when parsing query arguments
 
 ========================
 0.0.41
