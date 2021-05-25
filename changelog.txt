@@ -23,6 +23,7 @@
 - added `secret_tms {String}` option to the configuration
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
+- fixed security issue when parsing query arguments (reported by <https://github.com/fl4x>)
 
 ========================
 0.0.41

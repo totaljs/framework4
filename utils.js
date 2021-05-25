@@ -2850,6 +2850,8 @@ function parseQueryArgumentsDecode(val) {
 	}
 }
 
+const QUERY_ALLOWED = { '45': 1, '95': 1, 46: 1, '91': 1, '93': 1 };
+
 SP.parseEncoded = function() {
 
 	var str = this + '&';
@@ -2906,6 +2908,18 @@ SP.parseEncoded = function() {
 					is = true;
 				}
 				continue;
+			}
+
+			if (!is) {
+				var can = false;
+				if (n > 47 && n < 58)
+					can = true;
+				else if ((n > 64 && n < 91) || (n > 96 && n < 123))
+					can = true;
+				else if (QUERY_ALLOWED[n])
+					can = true;
+				if (!can)
+					break;
 			}
 
 			if (n === 43) {
