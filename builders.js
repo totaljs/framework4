@@ -380,8 +380,10 @@ function SchemaBuilderEntity(name) {
 	// this.primary;
 	this.trim = true;
 	this.schema = {};
+	this.schemajson = {};
 	this.meta = {};
 	this.properties = [];
+	this.propertiesjson = [];
 	this.inherits = [];
 	this.verifications = null;
 	// this.resourcePrefix;
@@ -575,10 +577,15 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 
 	if (self.properties && self.properties.length) {
 		obj.required = [];
-		for (var i = 0; i < self.properties.length; i++) {
-			var item = self.properties[i];
-			obj.required.push(item);
-		}
+		for (var key of self.properties)
+			obj.required.push(key);
+	}
+
+	if (self.propertiesjson && self.propertiesjson.length) {
+		if (!obj.required)
+			obj.required = [];
+		for (var key of self.propertiesjson)
+			obj.required.push(key);
 	}
 
 	obj.type = 'object';
@@ -600,69 +607,118 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 	// 11 = number2
 	// 12 = object as filter
 
-	for (var key in self.schema) {
-		var field = self.schema[key];
-		switch (field.type) {
-			case 1:
-			case 2:
-			case 11:
-				tmp = {};
-				if (field.isArray) {
-					tmp.type = 'array';
-					tmp.items = { type: 'number' };
-				} else {
-					tmp.type = 'number';
-				}
-				break;
-			case 3:
-				tmp = {};
-				if (field.isArray) {
-					tmp.type = 'array';
-					tmp.items = { type: 'string' };
-					if (field.length)
-						tmp.items.maxLength = field.length;
-				} else {
-					tmp.type = 'string';
-					if (field.length)
-						tmp.maxLength = field.length;
-				}
-				break;
-			case 4:
-				tmp = {};
-				if (field.isArray) {
-					tmp.type = 'array';
-					tmp.items = { type: 'boolean' };
-				} else
-					tmp.type = 'boolean';
-				break;
-			case 5:
-				tmp = {};
-				if (field.isArray) {
-					tmp.type = 'array';
-					tmp.items = { type: 'date' };
-				} else
-					tmp.type = 'date';
-				break;
-			case 7:
-				// another schema
-				var schema = GETSCHEMA(field.raw);
-				tmp = CLONE(schema.toJSONSchema());
-				delete tmp.$id;
-				delete tmp.$schema;
-				break;
-			case 8:
-				tmp = {};
-				tmp.type = 'string';
-				tmp.enum = field.raw;
-				break;
-		}
+	for (var i = 0; i < 2; i++) {
 
-		if (tmp)
-			obj.properties[key] = tmp;
+		var schema = i ? self.schemajson : self.schema;
+
+		for (var key in schema) {
+			var field = schema[key];
+			switch (field.type) {
+				case 1:
+				case 2:
+				case 11:
+					tmp = {};
+					if (field.isArray) {
+						tmp.type = 'array';
+						tmp.items = { type: 'number' };
+					} else {
+						tmp.type = 'number';
+					}
+					break;
+				case 3:
+					tmp = {};
+					if (field.isArray) {
+						tmp.type = 'array';
+						tmp.items = { type: 'string' };
+						if (field.length)
+							tmp.items.maxLength = field.length;
+					} else {
+						tmp.type = 'string';
+						if (field.length)
+							tmp.maxLength = field.length;
+					}
+					break;
+				case 4:
+					tmp = {};
+					if (field.isArray) {
+						tmp.type = 'array';
+						tmp.items = { type: 'boolean' };
+					} else
+						tmp.type = 'boolean';
+					break;
+				case 5:
+					tmp = {};
+					if (field.isArray) {
+						tmp.type = 'array';
+						tmp.items = { type: 'date' };
+					} else
+						tmp.type = 'date';
+					break;
+				case 7:
+					// another schema
+					var tmpschema = GETSCHEMA(field.raw);
+					tmp = CLONE(tmpschema.toJSONSchema());
+					delete tmp.$id;
+					delete tmp.$schema;
+					break;
+				case 8:
+					tmp = {};
+					tmp.type = 'string';
+					tmp.enum = field.raw;
+					break;
+			}
+
+			if (tmp)
+				obj.properties[key] = tmp;
+		}
 	}
 
 	F.jsonschemas[self.name] = F.jsonschemas[obj.$id] = obj;
 	return obj;
+};
+
+SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, invalid) {
+
+	var self = this;
+
+	if (name instanceof Array) {
+		for (var i = 0; i < name.length; i++)
+			self.jsonschema_define(name[i], type, required, invalid);
+		return self;
+	}
+
+	var rt = typeof(required);
+
+	if (required !== undefined && rt === 'string') {
+		invalid = required;
+		required = true;
+	}
+
+	if (type == null) {
+		// remove
+		delete self.schemajson[name];
+		self.propertiesjson = self.propertiesjson.remove(name);
+		return self;
+	}
+
+	if (type instanceof SchemaBuilderEntity)
+		type = type.name;
+
+	var a = self.schemajson[name] = self.$parse(name, type, required);
+	a.invalid = invalid || '@';
+
+	if (a.type === 7)
+		required = true;
+
+	if (required)
+		self.propertiesjson.indexOf(name) === -1 && self.propertiesjson.push(name);
+	else
+		self.propertiesjson = self.propertiesjson.remove(name);
+
+	return function(val) {
+		a.def = val;
+		return self;
+	};
 };
 
 SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
