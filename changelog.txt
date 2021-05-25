@@ -22,6 +22,10 @@
 - added `allow_tms {Boolean}` option to the configuration
 - added `secret_tms {String}` option to the configuration
 - added `schema.jsonschema_define()` method
+- added `flowstream.load(components, design, [callback])` method
+- added `flowstream.unload(components, design, [callback])` method
+- added `uistream.load(components, design, [callback])` method
+- added `uistream.unload(components, design, [callback])` method
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
 - fixed security issue when parsing query arguments (reported by <https://github.com/fl4x>)

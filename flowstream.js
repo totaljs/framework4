@@ -402,6 +402,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 
 	var errors = new ErrorBuilder();
 	var done = function() {
+
 		self.meta.components[name] = curr;
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
@@ -642,6 +643,58 @@ FP.reconfigure = function(id, config, rewrite) {
 		instance.configure && instance.configure(instance.config);
 	}
 	return !!instance;
+};
+
+FP.unload = function(callback) {
+	var self = this;
+	var keys = Object.keys(self.meta.flow);
+	keys.wait(function(key, next) {
+		var current = self.meta.flow[key];
+		current && current.close && current.close.call(current, current);
+		delete self.meta.flow[key];
+		next();
+	}, function() {
+		// uninstall components
+		self.unregister(null, callback);
+	});
+	return self;
+};
+
+FP.load = function(components, design, callback) {
+
+	// unload
+	var self = this;
+	self.unload(function() {
+
+		var keys = Object.keys(components);
+		var error = new ErrorBuilder();
+
+		keys.wait(function(key, next) {
+			var body = components[key];
+			if (typeof(body) === 'string' && body.indexOf('<script ') !== -1) {
+				self.add(key, body, function(err) {
+					err && error.push(err);
+					next();
+				});
+			} else {
+				self.register(key, body, function(err) {
+					err && error.push(err);
+					next();
+				});
+			}
+
+		}, function() {
+
+			// Loads design
+			self.use(design, function(err) {
+				err && error.push(err);
+				callback(err);
+			});
+
+		});
+	});
+
+	return self;
 };
 
 FP.use = function(schema, callback, reinit) {

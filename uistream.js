@@ -196,6 +196,59 @@ UI.ondebug = function(a, b, c, d) {
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
+UI.unload = function(callback) {
+	var self = this;
+	var keys = Object.keys(self.meta.flow);
+	keys.wait(function(key, next) {
+		var current = self.meta.flow[key];
+		current && current.close && current.close.call(current, current);
+		delete self.meta.flow[key];
+		next();
+	}, function() {
+		// uninstall components
+		self.unregister(null, callback);
+	});
+	return self;
+};
+
+UI.load = function(components, design, callback) {
+
+	// unload
+	var self = this;
+	self.unload(function() {
+
+		var keys = Object.keys(components);
+		var error = new ErrorBuilder();
+
+		keys.wait(function(key, next) {
+			var body = components[key];
+			if (typeof(body) === 'string' && body.indexOf('<script ') !== -1) {
+				self.add(key, body, function(err) {
+					err && error.push(err);
+					next();
+				});
+			} else {
+				self.register(key, body, function(err) {
+					err && error.push(err);
+					next();
+				});
+			}
+
+		}, function() {
+
+			// Loads design
+			self.use(design, function(err) {
+				err && error.push(err);
+				callback(err);
+			});
+
+		});
+	});
+
+	return self;
+};
+
+
 UI.use = function(schema, callback, reinit) {
 	var self = this;
 
