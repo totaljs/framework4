@@ -115,13 +115,13 @@ UI.destroy = function() {
 	clearInterval(self.$interval);
 	self.$interval = null;
 
-	self.unregister(null, function() {
+	self.unload(function() {
 		self.emit('destroy');
 		self.meta = null;
 		self.$events = null;
+		delete F.ui[self.name];
 	});
 
-	delete F.flows[self.name];
 };
 
 UI.unregister = function(name, callback) {
