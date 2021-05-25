@@ -21,6 +21,7 @@
 - added `allow_totalapi {Boolean}` option to the configuration
 - added `allow_tms {Boolean}` option to the configuration
 - added `secret_tms {String}` option to the configuration
+- added `schema.jsonschema_define()` method
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
 - fixed security issue when parsing query arguments (reported by <https://github.com/fl4x>)
