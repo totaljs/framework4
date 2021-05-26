@@ -526,26 +526,31 @@ UI.add = function(name, body, callback) {
 	var self = this;
 	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', template: '<template>' });
 	var node = (meta.be || meta.be2 || '');
+
 	meta.id = name;
 	meta.checksum = node.md5();
+
 	var component = self.meta.components[name];
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
 		component.ts = Date.now();
+		callback && callback();
 	} else {
+
+		var fn;
+
 		try {
-			var fn = new Function('exports', 'require', node);
-			delete meta.be;
-			delete meta.be2;
-			component = self.register(meta.id, fn, null, callback, true);
-			component.ui = meta;
+			fn = new Function('exports', 'require', node);
 		} catch (e) {
-			var err = new ErrorBuilder();
-			err.push('component', 'UI component: ' + name + ' - ' + e);
-			self.error(err);
-			callback && callback(err);
+			self.error(e, 'add', name);
+			callback && callback(e);
 			return null;
 		}
+
+		delete meta.be;
+		delete meta.be2;
+		component = self.register(meta.id, fn, null, callback, true);
+		component.ui = meta;
 	}
 
 	return component;

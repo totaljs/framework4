@@ -1023,20 +1023,23 @@ FP.add = function(name, body, callback) {
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
 		component.ts = Date.now();
+		callback && callback();
 	} else {
+
+		var fn;
+
 		try {
-			var fn = new Function('exports', 'require', node);
-			delete meta.be;
-			delete meta.be2;
-			component = self.register(meta.id, fn, null, callback, true);
-			component.ui = meta;
+			fn = new Function('exports', 'require', node);
 		} catch (e) {
-			var err = new ErrorBuilder();
-			err.push('component', 'Flow component: ' + name + ' - ' + e);
-			self.error(err);
-			callback && callback(err);
+			self.error(e, 'add', name);
+			callback && callback(e);
 			return null;
 		}
+
+		delete meta.be;
+		delete meta.be2;
+		component = self.register(meta.id, fn, null, callback, true);
+		component.ui = meta;
 	}
 
 	return component;
