@@ -72,6 +72,7 @@ UI.register = function(name, declaration, config, callback, extend) {
 	var errors = new ErrorBuilder();
 
 	var done = function() {
+
 		self.meta.components[name] = curr;
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
@@ -91,7 +92,7 @@ UI.register = function(name, declaration, config, callback, extend) {
 		callback && callback(errors.length ? errors : null);
 	};
 
-	if (curr.npm) {
+	if (curr.npm && curr.npm.length) {
 		curr.npm.wait(function(name, next) {
 			NPMINSTALL(name, function(err) {
 
@@ -104,7 +105,7 @@ UI.register = function(name, declaration, config, callback, extend) {
 			});
 		}, done);
 	} else
-		done();
+		setImmediate(done);
 
 	return curr;
 };

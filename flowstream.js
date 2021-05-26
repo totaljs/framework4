@@ -378,7 +378,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 		prev.disconnect && prev.disconnect();
 	}
 
-	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {} };
+	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {}, ui: {} };
 	if (extend)
 		declaration(curr, require);
 	else
@@ -403,6 +403,8 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var errors = new ErrorBuilder();
 	var done = function() {
 
+		console.log('-->', curr.ui);
+
 		self.meta.components[name] = curr;
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
@@ -422,7 +424,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 		callback && callback(errors.length ? errors : null);
 	};
 
-	if (curr.npm) {
+	if (curr.npm && curr.npm.length) {
 		curr.npm.wait(function(name, next) {
 			NPMINSTALL(name, function(err) {
 				if (err) {
@@ -433,7 +435,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 			});
 		}, done);
 	} else
-		done();
+		setImmediate(done);
 
 	return curr;
 };
@@ -986,7 +988,6 @@ FP.add = function(name, body, callback) {
 		component.ui = meta;
 		component.ts = Date.now();
 	} else {
-
 		try {
 			var fn = new Function('exports', 'require', node);
 			delete meta.be;
