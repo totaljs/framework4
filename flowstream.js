@@ -403,8 +403,6 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var errors = new ErrorBuilder();
 	var done = function() {
 
-		console.log('-->', curr.ui);
-
 		self.meta.components[name] = curr;
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
