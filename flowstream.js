@@ -722,6 +722,8 @@ FP.use = function(schema, callback, reinit) {
 
 	if (typeof(schema) === 'string')
 		schema = schema.parseJSON(true);
+	else
+		schema = CLONE(schema);
 
 	if (typeof(callback) === 'boolean') {
 		var tmp = reinit;
