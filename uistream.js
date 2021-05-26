@@ -582,6 +582,8 @@ UI.export = function() {
 		tmp.config = CLONE(instance.config);
 		tmp.component = instance.component;
 		tmp.connected = true;
+		tmp.note = instance.note;
+		tmp.reference = instance.reference;
 		output[tmp.id] = tmp;
 	}
 
