@@ -3,12 +3,14 @@ if (!global.framework_utils)
 
 const D = '__';
 
-function Message() {}
+function Message() {
+	this.ismessage = true;
+}
 
 function UIStream(name, errorhandler) {
 
 	var t = this;
-	t.error = errorhandler || NOOP;
+	t.error = errorhandler || console.error;
 	t.name = name;
 	t.meta = {};
 	t.meta.components = {};
@@ -49,8 +51,15 @@ UI.register = function(name, declaration, config, callback, extend) {
 	var self = this;
 	var type = typeof(declaration);
 
-	if (type === 'string')
-		declaration = new Function('instance', declaration);
+	if (type === 'string') {
+		try {
+			declaration = new Function('instance', declaration);
+		} catch (e) {
+			callback && callback(e);
+			self.error(e, 'register', name);
+			return;
+		}
+	}
 
 	var cache;
 	var prev = self.meta.components[name];
@@ -62,10 +71,16 @@ UI.register = function(name, declaration, config, callback, extend) {
 		prev.disconnect && prev.disconnect();
 	}
 
-	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {} };
-	if (extend)
-		declaration(curr, require);
-	else
+	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {}, iscomponent: true };
+	if (extend) {
+		try {
+			declaration(curr, require);
+		} catch (e) {
+			self.error(e, 'register', name);
+			callback && callback(e);
+			return;
+		}
+	} else
 		curr.make = declaration;
 
 	curr.config = CLONE(curr.config || curr.options);
@@ -97,7 +112,7 @@ UI.register = function(name, declaration, config, callback, extend) {
 			NPMINSTALL(name, function(err) {
 
 				if (err) {
-					self.error(err);
+					self.error(err, 'npm');
 					errors.push(err);
 				}
 
@@ -143,7 +158,11 @@ UI.unregister = function(name, callback) {
 			var instance = self.meta.flow[key];
 			if (instance.component === name) {
 				instance.ready = false;
-				curr.close && curr.close.call(instance, instance);
+				try {
+					curr.close && curr.close.call(instance, instance);
+				} catch (e) {
+					self.error(e, 'unregister', instance.component);
+				}
 				delete self.meta.flow[key];
 			}
 			next();
@@ -302,7 +321,9 @@ UI.use = function(schema, callback, reinit) {
 
 			if (!fi || reinit) {
 				self.meta.flow[key] = instance;
-				self.initcomponent(key, component).ts = ts;
+				var tmp = self.initcomponent(key, component);
+				if (tmp)
+					tmp.ts = ts;
 			} else {
 				fi.connections = instance.connections;
 				fi.offset = instance.offset;
@@ -350,9 +371,14 @@ UI.initcomponent = function(key, component) {
 	if (instance.ready) {
 		// Closes old instance
 		instance.ready = false;
-		instance.close && instance.close.call(instance);
+		try {
+			instance.close && instance.close.call(instance);
+		} catch (e) {
+			instance.onerror(e, 'instance_close', instance);
+		}
 	}
 
+	instance.isinstance = true;
 	instance.stats = { messages: 0 };
 	instance.cache = {};
 	instance.id = key;
@@ -376,7 +402,13 @@ UI.initcomponent = function(key, component) {
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
 	instance.main = self;
-	component.make && component.make.call(instance, instance, instance.config);
+
+	try {
+		component.make && component.make.call(instance, instance, instance.config);
+	} catch (e) {
+		self.error(e, 'instance_make', instance);
+		return;
+	}
 
 	if (instance.open) {
 		instance.open.call(instance, (function(instance) {
@@ -401,7 +433,12 @@ function sendmessage(instance, message, event) {
 		message.main.$events.message && message.main.emit('message', message);
 	}
 
-	instance.message && instance.message.call(message.instance, message);
+	try {
+		instance.message && instance.message.call(message.instance, message);
+	} catch (e) {
+		instance.main.error(e, 'instance_message', message);
+	}
+
 }
 
 UI.$can = function(id) {
