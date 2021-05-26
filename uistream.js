@@ -625,6 +625,8 @@ UI.components = function(prepare_export) {
 			obj.template = com.ui.template;
 			obj.settings = com.ui.settings;
 			obj.group = com.group;
+			obj.version = com.version;
+			obj.author = com.author;
 			arr.push(obj);
 		} else
 			arr.push(com);

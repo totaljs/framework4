@@ -176,7 +176,7 @@ MP.debug = function(a, b, c, d) {
 };
 
 MP.throw = function(a, b, c, d) {
-	this.instance.error(a, b, c, d);
+	this.instance.throw(a, b, c, d);
 	return this;
 };
 
@@ -1114,6 +1114,8 @@ FP.components = function(prepare_export) {
 			obj.inputs = com.inputs;
 			obj.outputs = com.outputs;
 			obj.group = com.group;
+			obj.version = com.version;
+			obj.author = com.author;
 
 			arr.push(obj);
 
