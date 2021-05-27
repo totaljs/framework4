@@ -616,6 +616,7 @@ UI.components = function(prepare_export) {
 		if (prepare_export) {
 			var obj = {};
 			obj.id = com.id;
+			obj.type = com.type;
 			obj.name = com.name;
 			obj.offset = com.offset;
 			obj.size = com.size;
