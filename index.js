@@ -4230,6 +4230,11 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	if (CUSTOM)
 		url = '/';
 
+	if (typeof(flags) === 'number') {
+		length = flags;
+		flags = null;
+	}
+
 	var mypath = url;
 
 	url = url.replace(/SOCKET\s/gi, '').trim();
