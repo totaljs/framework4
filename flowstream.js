@@ -419,6 +419,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var done = function() {
 
 		self.meta.components[name] = curr;
+		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
 		curr.destroy = function() {
@@ -507,6 +508,7 @@ FP.unregister = function(name, callback) {
 
 	var curr = self.meta.components[name];
 	if (curr) {
+		self.onunregister && self.onunregister(curr);
 		self.$events.unregister && self.emit('unregister', name, curr);
 		Object.keys(self.meta.flow).wait(function(key, next) {
 
@@ -515,6 +517,7 @@ FP.unregister = function(name, callback) {
 				if (instance.component === name) {
 					instance.ready = false;
 					try {
+						self.ondisconnect && self.ondisconnect(instance);
 						curr.close && curr.close.call(instance, instance);
 					} catch (e) {
 						self.error(e, 'unregister', instance.component);
@@ -547,6 +550,20 @@ FP.clean = function() {
 	setTimeout2(self.name, () => self.cleanforce(), 1000);
 	return self;
 };
+
+/*
+FP.ondisconnect = function(instance) {
+};
+
+FP.onconnect = function(instance) {
+};
+
+FP.onregister = function(component) {
+};
+
+FP.onunregister = function(component) {
+};
+*/
 
 FP.ondashboard = function(a, b, c, d) {
 	// this == instance
@@ -669,6 +686,7 @@ FP.unload = function(callback) {
 	var keys = Object.keys(self.meta.flow);
 	keys.wait(function(key, next) {
 		var current = self.meta.flow[key];
+		current && self.ondisconnect && self.ondisconnect(current);
 		current && current.close && current.close.call(current, current);
 		delete self.meta.flow[key];
 		next();
@@ -761,6 +779,7 @@ FP.use = function(schema, callback, reinit) {
 			// Component not found
 			if (!component) {
 				err.push(key, '"' + instance.component + '" component not found.');
+				current && self.ondisconnect && self.ondisconnect(current);
 				current && current.close && current.close.call(current, current);
 				delete self.meta.flow[key];
 				next();
@@ -793,6 +812,7 @@ FP.use = function(schema, callback, reinit) {
 					var component = self.meta.components[instance.component];
 					if (instance.ts !== ts) {
 						component.ready = false;
+						self.ondisconnect && self.ondisconnect(instance);
 						instance.close && instance.close.call(instance);
 						delete self.meta.flow[key];
 					}
@@ -819,11 +839,13 @@ FP.initcomponent = function(key, component) {
 	var instance = self.meta.flow[key];
 
 	if (instance.ready) {
+
 		// Closes old instance
 		instance.ready = false;
 
 		try {
-			instance.close && instance.close.call(instance);
+			self.ondisconnect && self.ondisconnect(instance);
+			instance.close && instance.close.call(instance, instance);
 		} catch (e) {
 			instance.onerror(e, 'instance_close', instance);
 		}
@@ -854,6 +876,8 @@ FP.initcomponent = function(key, component) {
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.main = self;
+
+	self.onconnect && self.onconnect(instance);
 
 	try {
 		component.make && component.make.call(instance, instance, instance.config);

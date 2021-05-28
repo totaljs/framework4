@@ -89,6 +89,7 @@ UI.register = function(name, declaration, config, callback, extend) {
 	var done = function() {
 
 		self.meta.components[name] = curr;
+		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
 		curr.destroy = function() {
@@ -153,15 +154,17 @@ UI.unregister = function(name, callback) {
 
 	var curr = self.meta.components[name];
 	if (curr) {
+		self.onunregister && self.onunregister(curr);
 		self.$events.unregister && self.emit('unregister', name, curr);
 		Object.keys(self.meta.flow).wait(function(key, next) {
 			var instance = self.meta.flow[key];
 			if (instance.component === name) {
 				instance.ready = false;
 				try {
+					self.ondisconnect && self.ondisconnect(instance);
 					curr.close && curr.close.call(instance, instance);
 				} catch (e) {
-					self.error(e, 'unregister', instance.component);
+					self.error(e, 'instance_close', instance.component);
 				}
 				delete self.meta.flow[key];
 			}
@@ -216,11 +219,26 @@ UI.ondebug = function(a, b, c, d) {
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
+/*
+UI.ondisconnect = function(instance) {
+};
+
+UI.onconnect = function(instance) {
+};
+
+UI.onregister = function(component) {
+};
+
+UI.onunregister = function(component) {
+};
+*/
+
 UI.unload = function(callback) {
 	var self = this;
 	var keys = Object.keys(self.meta.flow);
 	keys.wait(function(key, next) {
 		var current = self.meta.flow[key];
+		current && self.ondisconnect && self.ondisconnect(current);
 		current && current.close && current.close.call(current, current);
 		delete self.meta.flow[key];
 		next();
@@ -313,6 +331,7 @@ UI.use = function(schema, callback, reinit) {
 			// Component not found
 			if (!component) {
 				err.push(key, '"' + instance.component + '" component not found.');
+				self.ondisconnect && self.ondisconnect(current);
 				current && current.close && current.close.call(current, current);
 				delete self.meta.flow[key];
 				next();
@@ -348,6 +367,7 @@ UI.use = function(schema, callback, reinit) {
 					var component = self.meta.components[instance.component];
 					if (instance.ts !== ts) {
 						component.ready = false;
+						self.ondisconnect && self.ondisconnect(instance);
 						instance.close && instance.close.call(instance);
 						delete self.meta.flow[key];
 					}
@@ -358,7 +378,7 @@ UI.use = function(schema, callback, reinit) {
 
 	} else {
 		err.push('schema', 'Flow schema is invalid.');
-		self.error(err);
+		self.error(err, 'use');
 		callback && callback(err);
 	}
 
@@ -374,6 +394,7 @@ UI.initcomponent = function(key, component) {
 		// Closes old instance
 		instance.ready = false;
 		try {
+			self.ondisconnect && self.ondisconnect(instance);
 			instance.close && instance.close.call(instance);
 		} catch (e) {
 			instance.onerror(e, 'instance_close', instance);
@@ -404,6 +425,8 @@ UI.initcomponent = function(key, component) {
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
 	instance.main = self;
+
+	self.onconnect && self.onconnect(instance);
 
 	try {
 		component.make && component.make.call(instance, instance, instance.config);
