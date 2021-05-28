@@ -14364,6 +14364,7 @@ WebSocketProto.destroy = function() {
 
 	self.close();
 	self.$events.destroy && self.emit('destroy');
+	delete F.connections[self.id];
 
 	setTimeout(function() {
 
@@ -14380,7 +14381,6 @@ WebSocketProto.destroy = function() {
 		self.keys = null;
 		self.route = null;
 		self.buffer = null;
-		delete F.connections[self.id];
 		self.removeAllListeners();
 
 	}, 1000);
