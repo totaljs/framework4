@@ -120,15 +120,16 @@ global.NEWPUBLISH = function(name, value) {
 		value = value.$id;
 	}
 
-	if (!F.tms.publish_cache[name])
-		F.tms.publish_cache[name] = value;
-
 	// Tries to create from the Total.js Schema
 	var schema = GETSCHEMA(value);
 	if (schema)
 		schema.toJSONSchema();
 	else
 		throw new Error('JSON schema "' + value + '" not found.');
+
+	if (!F.tms.publish_cache[name])
+		F.tms.publish_cache[name] = value;
+
 };
 
 global.NEWSUBSCRIBE = function(name, value) {
@@ -143,15 +144,16 @@ global.NEWSUBSCRIBE = function(name, value) {
 		value = value.$id;
 	}
 
-	if (!F.tms.subscribe_cache[name])
-		F.tms.subscribe_cache[name] = value;
-
 	// Tries to create from the Total.js Schema
 	var schema = GETSCHEMA(value);
 	if (schema)
 		schema.toJSONSchema();
 	else
 		throw new Error('JSON schema "' + value + '" not found.');
+
+	if (!F.tms.subscribe_cache[name])
+		F.tms.subscribe_cache[name] = value;
+
 };
 
 global.PUBLISH = function(name, value) {
