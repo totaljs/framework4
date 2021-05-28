@@ -24,8 +24,16 @@
 - added `schema.jsonschema_define()` method
 - added `flowstream.load(components, design, [callback])` method
 - added `flowstream.unload(components, design, [callback])` method
+- added new delegate `flowstream.onconnect = function(instance) {}`
+- added new delegate `flowstream.ondisconnect = function(instance) {}`
+- added new delegate `flowstream.onregister = function(component) {}`
+- added new delegate `flowstream.onunregister = function(component) {}`
 - added `uistream.load(components, design, [callback])` method
 - added `uistream.unload(components, design, [callback])` method
+- added new delegate `uistream.onconnect = function(instance) {}`
+- added new delegate `uistream.ondisconnect = function(instance) {}`
+- added new delegate `uistream.onregister = function(component) {}`
+- added new delegate `uistream.onunregister = function(component) {}`
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
 - fixed security issue when parsing query arguments (reported by <https://github.com/fl4x>)
