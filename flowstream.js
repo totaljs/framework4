@@ -802,10 +802,12 @@ FP.use = function(schema, callback, reinit) {
 				fi.connections = instance.connections;
 				fi.x = instance.x;
 				fi.y = instance.y;
-				U.extend(fi.config, instance.config);
 				fi.ts = ts;
-				fi.configure && fi.configure(fi.config);
-				self.onreconfigure && self.onreconfigure(fi);
+				if (JSON.stringify(fi.config) !== JSON.stringify(instance.config)) {
+					U.extend(fi.config, instance.config);
+					fi.configure && fi.configure(fi.config);
+					self.onreconfigure && self.onreconfigure(fi);
+				}
 			}
 
 			next();
