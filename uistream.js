@@ -539,11 +539,13 @@ UI.find = function(id) {
 
 UI.send = function(path, body) {
 	var self = this;
-	path = path.split(D);
-	var instance = self.meta.flow[path[0]];
-	if (instance)
-		instance.send(path[1], body);
-	return !!instance;
+	if (self.meta && self.meta.flow) {
+		path = path.split(D);
+		var instance = self.meta.flow[path[0]];
+		if (instance)
+			instance.send(path[1], body);
+		return !!instance;
+	}
 };
 
 UI.add = function(name, body, callback) {

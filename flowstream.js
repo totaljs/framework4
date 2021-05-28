@@ -1030,11 +1030,13 @@ FP.find = function(id) {
 
 FP.send = function(path, body) {
 	var self = this;
-	path = path.split(D);
-	var instance = self.meta.flow[path[0]];
-	if (instance)
-		instance.send(path[1], body);
-	return !!instance;
+	if (self.meta && self.meta.flow) {
+		path = path.split(D);
+		var instance = self.meta.flow[path[0]];
+		if (instance)
+			instance.send(path[1], body);
+		return !!instance;
+	}
 };
 
 FP.add = function(name, body, callback) {
