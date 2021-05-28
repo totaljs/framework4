@@ -14393,15 +14393,26 @@ WebSocketProto.destroy = function() {
  * @param {Function} callback
  * @return {WebSocket]
  */
+
+function wsdestroy_open() {
+	var self = this;
+	if (self.$autocloseid) {
+		clearTimeout(self.$autocloseid);
+		self.$autocloseid = null;
+	}
+}
+
+function wsdestroy_close(self, callback) {
+	callback && callback.call(self);
+	self.destroy();
+}
+
 WebSocketProto.autodestroy = function(callback) {
 	var self = this;
-	var key = 'websocket:' + self.id;
-	self.on('open', () => clearTimeout2(key));
+	self.on('open', wsdestroy_open);
 	self.on('close', function() {
-		!self.online && setTimeout2(key, function() {
-			callback && callback.call(self);
-			self.destroy();
-		}, 5000);
+		if (!self.online)
+			self.$autocloseid = setTimeout(wsdestroy_close, 5000, self, callback);
 	});
 	return self;
 };
