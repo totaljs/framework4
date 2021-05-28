@@ -563,6 +563,10 @@ FP.onregister = function(component) {
 
 FP.onunregister = function(component) {
 };
+
+FP.onreconfigure = function(instance) {
+
+};
 */
 
 FP.ondashboard = function(a, b, c, d) {
@@ -677,6 +681,7 @@ FP.reconfigure = function(id, config, rewrite) {
 			U.extend(instance.config, config);
 
 		instance.configure && instance.configure(instance.config);
+		self.onreconfigure && self.onreconfigure(instance);
 	}
 	return !!instance;
 };
@@ -800,6 +805,7 @@ FP.use = function(schema, callback, reinit) {
 				U.extend(fi.config, instance.config);
 				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
+				self.onreconfigure && self.onreconfigure(fi);
 			}
 
 			next();

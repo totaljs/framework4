@@ -195,6 +195,7 @@ UI.reconfigure = function(id, config, rewrite) {
 			U.extend(instance.config, config);
 
 		instance.configure && instance.configure(instance.config);
+		self.onreconfigure && self.onreconfigure(instance);
 	}
 	return !!instance;
 };
@@ -224,6 +225,9 @@ UI.ondisconnect = function(instance) {
 };
 
 UI.onconnect = function(instance) {
+};
+
+UI.onreconfigure = function(instance) {
 };
 
 UI.onregister = function(component) {
@@ -352,6 +356,7 @@ UI.use = function(schema, callback, reinit) {
 				U.extend(fi.config, instance.config);
 				fi.ts = ts;
 				fi.configure && fi.configure(fi.config);
+				self.onreconfigure && self.onreconfigure(fi);
 			}
 
 			next();
