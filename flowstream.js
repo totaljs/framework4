@@ -615,6 +615,8 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 			var conn = schema.connections[outputindex];
 			if (conn && conn.length) {
 
+				var ts = Date.now();
+
 				for (var i = 0; i < conn.length; i++) {
 
 					var m = conn[i];
@@ -629,11 +631,21 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					var ismessage = data instanceof Message;
 					var message = ismessage ? data.clone() : new Message();
 
-					if (!ismessage) {
+					if (ismessage) {
+
+						if (data.processed === 0) {
+							data.processed = 1;
+							data.main.stats.pending--;
+							data.instance.stats.pending--;
+							data.instance.stats.output++;
+							data.instance.stats.duration = ts - self.duration2;
+						}
+
+					} else {
 						message.$events = events || {};
 						message.repo = {};
 						message.data = data;
-						message.duration = message.duration2 = Date.now();
+						message.duration = message.duration2 = ts;
 						message.used = 1;
 					}
 
@@ -652,14 +664,12 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.index = m.index;
 					message.tocomponent = target.component;
 					message.cache = target.cache;
-
 					message.config = message.options = target.config;
 					message.processed = 0;
 
 					target.stats.pending++;
 					target.stats.input++;
 					schema.stats.output++;
-
 					message.main.stats.pending++;
 					message.main.stats.messages++;
 					message.main.mm++;
@@ -968,18 +978,30 @@ FP.trigger = function(path, data, controller, events) {
 		var instance = self.meta.components[schema.component];
 		if (instance && instance.connected && !instance.disabled && self.$can(true, path[0], path[1])) {
 
-			var message = new Message();
+			var ts = Date.now();
+			var ismessage = data instanceof Message;
+			var message = ismessage ? data.clone() : new Message();
 
-			message.$events = events || {};
-			message.duration = message.duration2 = Date.now();
+			if (ismessage) {
+				if (data.processed === 0) {
+					data.processed = 1;
+					data.main.stats.pending--;
+					data.instance.stats.pending--;
+					data.instance.stats.output++;
+					data.instance.stats.duration = ts - self.duration2;
+				}
+			} else {
+				message.$events = events || {};
+				message.repo = {};
+				message.data = data;
+				message.duration = message.duration2 = ts;
+				message.used = 1;
+			}
+
 			message.controller = controller;
 			message.instance = schema;
 
-			message.used = 1;
-			message.repo = {};
 			message.main = self;
-			message.data = data;
-
 			message.from = null;
 			message.fromid = null;
 			message.fromindex = null;
