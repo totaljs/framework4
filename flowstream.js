@@ -134,6 +134,7 @@ MP.removeAllListeners = function(name) {
 MP.clone = function() {
 	var self = this;
 	var obj = new Message();
+	obj.previd = self.id;
 	obj.$events = self.$events;
 	obj.duration = self.duration;
 	obj.repo = self.repo;
@@ -309,7 +310,8 @@ function Flow(name, errorhandler) {
 
 	var t = this;
 	t.error = errorhandler || console.error;
-	t.name = name;
+	t.id = t.name = name;
+	t.uid = Date.now().toString(36) + 'X';
 	t.meta = {};
 	t.meta.components = {};
 	t.meta.flow = {};
@@ -600,6 +602,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						continue;
 
 					var message = data instanceof Message ? data.clone() : new Message();
+
 					message.$events = events || {};
 					message.duration = message.duration2 = Date.now();
 					message.controller = controller;
@@ -633,6 +636,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.main.stats.messages++;
 					message.main.mm++;
 
+					message.id = message.main.uid + message.main.stats.messages;
 					message.count = message.main.stats.messages;
 
 					if (message.fromid && !count) {
@@ -969,6 +973,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.main.stats.messages++;
 			message.main.mm++;
 
+			message.id = message.main.uid + message.main.stats.messages;
 			message.count = message.main.stats.messages;
 
 			if (message.fromid) {

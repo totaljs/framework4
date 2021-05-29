@@ -39,6 +39,7 @@
 - fixed `Mail.attachmentfs()`
 - fixed dynamic routing
 - fixed security issue when parsing query arguments (reported by <https://github.com/fl4x>)
+- extended `schema.addTask()` by adding a new argument `callback`
 
 ========================
 0.0.41
