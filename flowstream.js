@@ -145,21 +145,6 @@ MP.clone = function() {
 	return obj;
 };
 
-MP.end = MP.destroy = function() {
-	var self = this;
-	self.processed = 0;
-
-	if (self.main)
-		self.main.stats.pending--;
-
-	if (self.instance) {
-		self.instance.stats.destroyed++;
-		self.instance.stats.pending--;
-	}
-
-	return self;
-};
-
 MP.status = function(a, b, c, d) {
 	this.instance.status(a, b, c, d);
 	return this;
@@ -294,7 +279,7 @@ MP.replace = function(data) {
 	return this;
 };
 
-MP.destroy = function() {
+MP.end = MP.destroy = function() {
 
 	var self = this;
 
