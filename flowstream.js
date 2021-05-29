@@ -74,12 +74,13 @@ MP.emit = function(name, a, b, c, d, e, f, g) {
 
 	var evt = self.$events[name];
 	if (evt) {
+
 		var clean = false;
 
 		for (var e of evt) {
-			if (e.$once)
+			if (e.once)
 				clean = true;
-			e.call(self, a, b, c, d, e, f, g);
+			e.fn.call(self, a, b, c, d, e, f, g);
 		}
 
 		if (clean) {
@@ -87,12 +88,11 @@ MP.emit = function(name, a, b, c, d, e, f, g) {
 			while (true) {
 				if (!evt[index])
 					break;
-				if (evt[index].$once)
+				if (evt[index].once)
 					evt.splice(index, 1);
 				else
 					index++;
 			}
-			evt = evt.remove(n => n.$once);
 			self.$events[name] = evt.length ? evt : undefined;
 		}
 	}
@@ -100,20 +100,61 @@ MP.emit = function(name, a, b, c, d, e, f, g) {
 	return self;
 };
 
-MP.on = function(name, fn) {
+MP.emit2 = function(name, a, b, c, d, e, f, g) {
+
+	var self = this;
+
+	if (!self.$events)
+		return self;
+
+	var evt = self.$events[name];
+	if (evt) {
+
+		var clean = false;
+
+		for (var e of evt) {
+			if (e.cloned < self.cloned) {
+				if (e.once)
+					clean = true;
+				e.fn.call(self, a, b, c, d, e, f, g);
+			}
+		}
+
+		if (clean) {
+			var index = 0;
+			while (true) {
+				var e = evt[index];
+				if (!e)
+					break;
+				if (e.cloned < self.cloned) {
+					if (e.once)
+						evt.splice(index, 1);
+					else
+						index++;
+				} else
+					index++;
+			}
+			self.$events[name] = evt.length ? evt : undefined;
+		}
+	}
+
+	return self;
+};
+
+MP.on = function(name, fn, once) {
 	var self = this;
 	if (!self.$events)
 		self.$events = {};
+	var obj = { cloned: self.cloned, fn: fn, once: once };
 	if (self.$events[name])
-		self.$events[name].push(fn);
+		self.$events[name].push(obj);
 	else
-		self.$events[name] = [fn];
+		self.$events[name] = [obj];
 	return self;
 };
 
 MP.once = function(name, fn) {
-	fn.$once = true;
-	return this.on(name, fn);
+	return this.on(name, fn, true);
 };
 
 MP.removeListener = function(name, fn) {
@@ -121,7 +162,7 @@ MP.removeListener = function(name, fn) {
 	if (self.$events) {
 		var evt = self.$events[name];
 		if (evt) {
-			evt = evt.remove(n => n === fn);
+			evt = evt.remove(n => n.fn === fn);
 			self.$events[name] = evt.length ? evt : undefined;
 		}
 	}
@@ -142,6 +183,7 @@ MP.removeAllListeners = function(name) {
 };
 
 MP.clone = function() {
+
 	var self = this;
 	var obj = new Message();
 	obj.previd = self.id;
@@ -154,7 +196,27 @@ MP.clone = function() {
 	obj.used = self.used;
 	obj.processed = 0;
 	obj.cloned = self.cloned + 1;
-	obj.$events.clone && obj.emit('clone', self, obj);
+	obj.$timeoutidtotal = self.$timeoutidtotal;
+
+	if (obj.$events && obj.$events.timeout) {
+		var index = 0;
+		while (true) {
+			var e = obj.$events.timeout[index];
+			if (e) {
+				if ((e.cloned + 1) < obj.cloned)
+					obj.$events.timeout.splice(index, 1);
+				else
+					index++;
+			} else
+				break;
+		}
+	}
+
+	if (self.$timeoutid) {
+		clearTimeout(self.$timeoutid);
+		self.$timeoutid = null;
+	}
+
 	return obj;
 };
 
@@ -178,9 +240,19 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
+function timeouthandler(msg) {
+	msg.$events.timeout && msg.emit('timeout', msg);
+	msg.$events.timeout2 && msg.emit('timeout2', msg);
+	msg.end();
+}
+
 MP.send = function(outputindex, data, clonedata) {
 
 	var self = this;
+
+	if (self.isdestroyed || (self.instance && self.instance.isdestroyed))
+		return 0;
+
 	var outputs;
 	var count = 0;
 
@@ -231,10 +303,9 @@ MP.send = function(outputindex, data, clonedata) {
 			continue;
 
 		var schema = meta.flow[output.id];
-
 		if (schema && (schema.message || schema['message_' + output.index]) && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.connected && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
+			if (next && next.connected && !next.isdestroyed && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
 
 				var inputindex = output.index;
 				var message = self.clone();
@@ -266,6 +337,9 @@ MP.send = function(outputindex, data, clonedata) {
 				message.options = message.config = schema.config;
 				message.duration2 = now;
 
+				if (self.$timeout)
+					message.$timeoutid = setTimeout(timeouthandler, self.$timeout, message);
+
 				schema.stats.input++;
 				schema.stats.pending++;
 
@@ -273,8 +347,10 @@ MP.send = function(outputindex, data, clonedata) {
 				self.main.stats.pending++;
 				self.main.mm++;
 
+				self.$events.next && self.emit2('next', self, message);
+				self.$events.something && self.emit2('something', self, message);
 				self.$events.message && self.emit('message', message);
-				self.main.$events.message && self.main.emit('message', message);
+
 				setImmediate(sendmessage, schema, message, true);
 				count++;
 			}
@@ -292,9 +368,35 @@ MP.replace = function(data) {
 	return this;
 };
 
+MP.totaltimeout = function(callback, time) {
+
+	if (time == null)
+		time = callback;
+	else
+		this.on('timeout2', callback);
+
+	this.$timeoutidtotal && clearTimeout(this.$timeoutidtotal);
+	this.$timeoutidtotal = setTimeout(timeouthandler, time, this);
+	return this;
+};
+
+MP.timeout = function(callback, time) {
+
+	if (time == null)
+		time = callback;
+	else
+		this.on('timeout', callback);
+
+	this.$timeout = time;
+	return this;
+};
+
 MP.end = MP.destroy = function() {
 
 	var self = this;
+
+	if (self.isdestroyed)
+		return;
 
 	if (self.processed === 0) {
 		self.processed = 1;
@@ -304,10 +406,26 @@ MP.end = MP.destroy = function() {
 		self.schema.stats.destroyed++;
 	}
 
-	self.$events.end && self.emit('end', self);
-	self.$events.destroy && self.emit('destroy', self);
-	self.main.$events.end && self.main.emit('end', self);
+	if (self.$timeoutid) {
+		clearTimeout(self.$timeoutid);
+		self.$timeoutid = null;
+	}
 
+	if (self.$timeoutidtotal) {
+		clearTimeout(self.$timeoutidtotal);
+		self.$timeoutidtotal = null;
+	}
+
+	if (self.$events) {
+		self.$events.something && self.emit('something', self);
+		self.$events.end && self.emit('end', self);
+		self.$events.destroy && self.emit('destroy', self);
+	}
+
+	if (self.main.$events)
+		self.main.$events.end && self.main.emit('end', self);
+
+	self.isdestroyed = true;
 	self.repo = null;
 	self.main = null;
 	self.from = null;
@@ -322,6 +440,7 @@ MP.end = MP.destroy = function() {
 function Flow(name, errorhandler) {
 
 	var t = this;
+	t.loading = 0;
 	t.error = errorhandler || console.error;
 	t.id = t.name = name;
 	t.uid = Date.now().toString(36) + 'X';
@@ -418,6 +537,8 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var errors = new ErrorBuilder();
 	var done = function() {
 
+		self.loading--;
+
 		self.meta.components[name] = curr;
 		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
@@ -437,6 +558,8 @@ FP.register = function(name, declaration, config, callback, extend) {
 		self.clean();
 		callback && callback(errors.length ? errors : null);
 	};
+
+	self.loading++;
 
 	if (curr.npm && curr.npm.length) {
 		curr.npm.wait(function(name, next) {
@@ -460,7 +583,9 @@ FP.destroy = function() {
 	clearInterval(self.$interval);
 	self.$interval = null;
 
+	self.loading++;
 	self.unload(function() {
+		self.loading--;
 		self.emit('destroy');
 		self.meta = null;
 		self.$events = null;
@@ -510,6 +635,7 @@ FP.unregister = function(name, callback) {
 	if (curr) {
 		self.onunregister && self.onunregister(curr);
 		self.$events.unregister && self.emit('unregister', name, curr);
+		self.loading++;
 		Object.keys(self.meta.flow).wait(function(key, next) {
 
 			var instance = self.meta.flow[key];
@@ -517,10 +643,11 @@ FP.unregister = function(name, callback) {
 				if (instance.component === name) {
 					instance.ready = false;
 					try {
+						instance.isdestroyed = true;
 						self.ondisconnect && self.ondisconnect(instance);
 						curr.close && curr.close.call(instance, instance);
 					} catch (e) {
-						self.error(e, 'unregister', instance.component);
+						instance.onerror(e, 'instance_close', instance);
 					}
 					delete self.meta.flow[key];
 				}
@@ -530,6 +657,7 @@ FP.unregister = function(name, callback) {
 			next();
 
 		}, function() {
+			self.loading--;
 			curr.connected = false;
 			curr.disabled = true;
 			curr.uninstall && curr.uninstall.call(curr, curr);
@@ -597,7 +725,7 @@ FP.newmessage = function(data) {
 	msg.duration = msg.duration2 = Date.now();
 	msg.used = 1;
 	msg.main = self instanceof Flow ? self : self.main;
-	msg.processed = 0;
+	msg.processed = 1;
 	return msg;
 };
 
@@ -628,25 +756,34 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					if (!com || (com.$inputs && !com.$inputs[m.index]))
 						continue;
 
+					if (target.isdestroyed || (data.instance && data.instance.isdestroyed))
+						continue;
+
 					var ismessage = data instanceof Message;
 					var message = ismessage ? data.clone() : new Message();
 
 					if (ismessage) {
 
+						if (data.isdestroyed)
+							return 0;
+
 						if (data.processed === 0) {
 							data.processed = 1;
 							data.main.stats.pending--;
-							data.instance.stats.pending--;
-							data.instance.stats.output++;
-							data.instance.stats.duration = ts - self.duration2;
+							if (data.instance) {
+								data.instance.stats.pending--;
+								data.instance.stats.output++;
+								data.instance.stats.duration = ts - self.duration2;
+							}
 						}
-
 					} else {
+
 						message.$events = events || {};
 						message.repo = {};
 						message.data = data;
 						message.duration = message.duration2 = ts;
 						message.used = 1;
+
 					}
 
 					message.main = self;
@@ -687,6 +824,15 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						}
 					}
 
+					if (ismessage && data.$timeout)
+						message.$timeoutid = setTimeout(timeouthandler, data.$timeout, message);
+
+					if (ismessage) {
+						data.next && data.emit2('next', data, message);
+						data.something && data.emit2('something', data, message);
+						data.message && data.emit('message', message);
+					}
+
 					count++;
 					setImmediate(sendmessage, target, message, true);
 				}
@@ -700,7 +846,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 FP.reconfigure = function(id, config, rewrite) {
 	var self = this;
 	var instance = self.meta.flow[id];
-	if (instance) {
+	if (instance && !instance.isdestroyed) {
 
 		if (rewrite)
 			instance.config = config;
@@ -718,8 +864,11 @@ FP.unload = function(callback) {
 	var keys = Object.keys(self.meta.flow);
 	keys.wait(function(key, next) {
 		var current = self.meta.flow[key];
-		current && self.ondisconnect && self.ondisconnect(current);
-		current && current.close && current.close.call(current, current);
+		if (current) {
+			current.isdestroyed = true;
+			self.ondisconnect && self.ondisconnect(current);
+			current.close && current.close.call(current, current);
+		}
 		delete self.meta.flow[key];
 		next();
 	}, function() {
@@ -733,6 +882,12 @@ FP.load = function(components, design, callback) {
 
 	// unload
 	var self = this;
+
+	if (self.loading) {
+		setTimeout(() => self.load(components, design, callback), 200);
+		return self;
+	}
+
 	self.unload(function() {
 
 		var keys = Object.keys(components);
@@ -766,9 +921,18 @@ FP.load = function(components, design, callback) {
 	return self;
 };
 
+function use(self, schema, callback, reinit) {
+	self.use(schema, callback, reinit);
+}
+
 FP.use = function(schema, callback, reinit) {
 
 	var self = this;
+
+	if (self.loading) {
+		setTimeout(use, 200, self, schema, callback, reinit);
+		return self;
+	}
 
 	if (typeof(schema) === 'string')
 		schema = schema.parseJSON(true);
@@ -796,6 +960,7 @@ FP.use = function(schema, callback, reinit) {
 		if (self.meta.flow.paused)
 			delete self.meta.flow.paused;
 
+		self.loading++;
 		keys.wait(function(key, next) {
 
 			if (key === 'paused') {
@@ -811,8 +976,13 @@ FP.use = function(schema, callback, reinit) {
 			// Component not found
 			if (!component) {
 				err.push(key, '"' + instance.component + '" component not found.');
-				current && self.ondisconnect && self.ondisconnect(current);
-				current && current.close && current.close.call(current, current);
+
+				if (current) {
+					current.isdestroyed = true;
+					self.ondisconnect && self.ondisconnect(current);
+					current.close && current.close.call(current, current);
+				}
+
 				delete self.meta.flow[key];
 				next();
 				return;
@@ -847,6 +1017,7 @@ FP.use = function(schema, callback, reinit) {
 					var component = self.meta.components[instance.component];
 					if (instance.ts !== ts) {
 						component.ready = false;
+						instance.isdestroyed = true;
 						self.ondisconnect && self.ondisconnect(instance);
 						instance.close && instance.close.call(instance);
 						delete self.meta.flow[key];
@@ -854,6 +1025,7 @@ FP.use = function(schema, callback, reinit) {
 				}
 			}
 
+			self.loading--;
 			self.$events.schema && self.emit('schema', self.meta.flow);
 			callback && callback(err.length ? err : null);
 
@@ -880,6 +1052,7 @@ FP.initcomponent = function(key, component) {
 
 		try {
 			self.ondisconnect && self.ondisconnect(instance);
+			instance.isdestroyed = true;
 			instance.close && instance.close.call(instance, instance);
 		} catch (e) {
 			instance.onerror(e, 'instance_close', instance);
@@ -940,9 +1113,14 @@ FP.initcomponent = function(key, component) {
 
 function sendmessage(instance, message, event) {
 
+	if (instance.isdestroyed || message.isdestroyed) {
+		message.destroy();
+		return;
+	}
+
 	if (event) {
-		message.$events.message && message.emit('message', message);
-		message.main.$events.message && message.main.emit('message', message);
+		message.$events && message.$events.message && message.emit('message', message);
+		message.main.$events && message.main.$events.message && message.main.emit('message', message);
 	}
 
 	try {
@@ -964,12 +1142,21 @@ FP.$can = function(isinput, id, index) {
 		return true;
 };
 
+function trigger(self, path, data, controller, events) {
+	self.trigger(path, data, controller, events);
+}
+
 // path = ID__INPUTINDEX
 FP.trigger = function(path, data, controller, events) {
 
+	var self = this;
+	if (self.loading) {
+		setTimeout(trigger, 200, self, path, data, controller, events);
+		return;
+	}
+
 	path = path.split(D);
 
-	var self = this;
 	var inputindex = path.length === 1 ? 0 : path[1];
 
 	var schema = self.meta.flow[path[0]];
