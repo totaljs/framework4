@@ -5,6 +5,7 @@ const D = '__';
 
 function Message() {
 	this.ismessage = true;
+	this.cloned = 0;
 }
 
 Message.prototype = {
@@ -27,10 +28,6 @@ Message.prototype = {
 
 	get ip() {
 		return this.controller ? this.controller.ip : null;
-	},
-
-	get id() {
-		return this.controller ? this.controller.id : null;
 	},
 
 	get req() {
@@ -78,16 +75,28 @@ MP.emit = function(name, a, b, c, d, e, f, g) {
 	var evt = self.$events[name];
 	if (evt) {
 		var clean = false;
-		for (var i = 0, length = evt.length; i < length; i++) {
-			if (evt[i].$once)
+
+		for (var e of evt) {
+			if (e.$once)
 				clean = true;
-			evt[i].call(self, a, b, c, d, e, f, g);
+			e.call(self, a, b, c, d, e, f, g);
 		}
+
 		if (clean) {
+			var index = 0;
+			while (true) {
+				if (!evt[index])
+					break;
+				if (evt[index].$once)
+					evt.splice(index, 1);
+				else
+					index++;
+			}
 			evt = evt.remove(n => n.$once);
 			self.$events[name] = evt.length ? evt : undefined;
 		}
 	}
+
 	return self;
 };
 
@@ -120,15 +129,16 @@ MP.removeListener = function(name, fn) {
 };
 
 MP.removeAllListeners = function(name) {
-	if (this.$events) {
+	var self = this;
+	if (self.$events) {
 		if (name === true)
-			this.$events = {};
+			self.$events = {};
 		else if (name)
-			this.$events[name] = undefined;
+			self.$events[name] = undefined;
 		else
-			this.$events = {};
+			self.$events = {};
 	}
-	return this;
+	return self;
 };
 
 MP.clone = function() {
@@ -143,6 +153,8 @@ MP.clone = function() {
 	obj.data = self.data;
 	obj.used = self.used;
 	obj.processed = 0;
+	obj.cloned = self.cloned + 1;
+	obj.$events.clone && obj.emit('clone', self, obj);
 	return obj;
 };
 
@@ -293,6 +305,7 @@ MP.end = MP.destroy = function() {
 	}
 
 	self.$events.end && self.emit('end', self);
+	self.$events.destroy && self.emit('destroy', self);
 	self.main.$events.end && self.main.emit('end', self);
 
 	self.repo = null;
@@ -580,6 +593,7 @@ FP.newmessage = function(data) {
 	var self = this;
 	var msg = new Message();
 	msg.data = data;
+	msg.cloned = 0;
 	msg.duration = msg.duration2 = Date.now();
 	msg.used = 1;
 	msg.main = self instanceof Flow ? self : self.main;
