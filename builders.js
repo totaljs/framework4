@@ -1283,19 +1283,30 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
 	return this;
 };
 
-SchemaBuilderEntityProto.addTask = function(name, task, filter) {
+SchemaBuilderEntityProto.addTask = function(name, task, filter, callback) {
 
 	var self = this;
 
+	if (typeof(filter) === 'function') {
+		callback = filter;
+		filter = null;
+	}
+
 	var fn = function($) {
 		$.schema = self.name;
-		TASK(task, $.callback, $).value = $.model;
+		if (callback) {
+			TASK(task, function(err, response) {
+				callback($, err, response);
+			}, $).value = $.model;
+		} else
+			TASK(task, $.callback, $).value = $.model;
 	};
 
 	!self.tasks && (self.tasks = {});
 	self.tasks[name] = fn;
 	self.meta['task_' + name] = 1;
 	self.meta['taskfilter_' + name] = filter;
+	self.meta['taskfn_' + name] = callback;
 	return self;
 };
 
