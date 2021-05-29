@@ -576,6 +576,17 @@ FP.ondebug = function(a, b, c, d) {
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
+FP.newmessage = function(data) {
+	var self = this;
+	var msg = new Message();
+	msg.data = data;
+	msg.duration = msg.duration2 = Date.now();
+	msg.used = 1;
+	msg.main = self instanceof Flow ? self : self.main;
+	msg.processed = 0;
+	return msg;
+};
+
 FP.ontrigger = function(outputindex, data, controller, events) {
 
 	// this == instance
@@ -601,17 +612,20 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					if (!com || (com.$inputs && !com.$inputs[m.index]))
 						continue;
 
-					var message = data instanceof Message ? data.clone() : new Message();
+					var ismessage = data instanceof Message;
+					var message = ismessage ? data.clone() : new Message();
 
-					message.$events = events || {};
-					message.duration = message.duration2 = Date.now();
+					if (!ismessage) {
+						message.$events = events || {};
+						message.repo = {};
+						message.data = data;
+						message.duration = message.duration2 = Date.now();
+						message.used = 1;
+					}
+
+					message.main = self;
 					message.controller = controller;
 					message.instance = target;
-
-					message.used = 1;
-					message.repo = {};
-					message.main = self;
-					message.data = data;
 
 					message.from = schema;
 					message.fromid = schema.id;
@@ -867,12 +881,13 @@ FP.initcomponent = function(key, component) {
 	if (!instance.config)
 		instance.config = {};
 
+	instance.main = self;
 	instance.dashboard = self.ondashboard;
 	instance.status = self.onstatus;
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
-	instance.main = self;
+	instance.newmessage = self.newmessage;
 
 	self.onconnect && self.onconnect(instance);
 
