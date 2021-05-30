@@ -10030,7 +10030,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 			var response = body.parseJSON(true);
 
 			if (response instanceof Array) {
-				callback(new ErrorBuilder().assign(response));
+				callback(ErrorBuilder.assign(response));
 			} else {
 				if (!err && status > 399)
 					err = new ErrorBuilder().push(status + '');
