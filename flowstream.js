@@ -190,6 +190,7 @@ MP.clone = function() {
 	obj.$events = self.$events;
 	obj.duration = self.duration;
 	obj.repo = self.repo;
+	obj.args = self.args;
 	obj.main = self.main;
 	obj.count = self.count;
 	obj.data = self.data;
@@ -721,6 +722,8 @@ FP.ondebug = function(a, b, c, d) {
 FP.newmessage = function(data) {
 	var self = this;
 	var msg = new Message();
+	msg.repo = {};
+	msg.args = {};
 	msg.data = data;
 	msg.cloned = 0;
 	msg.duration = msg.duration2 = Date.now();
@@ -781,6 +784,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 						message.$events = events || {};
 						message.repo = {};
+						message.args = {};
 						message.data = data;
 						message.duration = message.duration2 = ts;
 						message.used = 1;
