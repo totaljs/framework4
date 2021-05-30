@@ -3623,7 +3623,7 @@ SP.decode = function() {
 	});
 };
 
-SP.arg = function(obj, encode, def) {
+SP.arg = SP.args = function(obj, encode, def) {
 	if (typeof(encode) === 'string')
 		def = encode;
 	return this.replace(regexpARG, function(text) {
