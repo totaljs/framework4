@@ -6539,4 +6539,97 @@ exports.connect = function(opt, callback) {
 	meta.socket1.on('clientError', error);
 };
 
+String.prototype.toJSONSchema = function(name, url) {
+
+	var obj = {};
+	var p = (url || CONF.url || 'https://schemas.totaljs.com/');
+
+	if (p[p.length - 1] !== '/')
+		p += '/';
+
+	obj.$id = p + (name || (HASH(this) + '')) + '.json';
+	obj.$schema = 'https://json-schema.org/draft/2020-12/schema';
+	obj.type = 'object';
+	obj.properties = {};
+
+	var prop = this.split(',');
+	var required = [];
+
+	for (var i = 0; i < prop.length; i++) {
+
+		var arr = prop[i].split(':');
+		var tmp;
+
+		if (arr[0][0] === '!' || arr[0][0] === '*') {
+			// required
+			arr[0] = arr[0].substring(1);
+			required.push(arr[0]);
+		}
+
+		var type = arr[1].toLowerCase().trim();
+		var size = 0;
+		var isarr = type[0] === '[';
+		if (isarr)
+			type = type.substring(1, type.length - 1);
+
+		var index = type.indexOf('(');
+		if (index !== -1) {
+			size = +type.substring(index + 1, type.length - 1).trim();
+			type = type.substring(0, index);
+		}
+
+		switch (type) {
+			case 'string':
+			case 'uid':
+				tmp = {};
+				if (isarr) {
+					tmp.type = 'array';
+					tmp.items = { type: 'string' };
+					if (size)
+						tmp.items.maxLength = size;
+				} else {
+					tmp.type = 'string';
+					if (size)
+						tmp.maxLength = size;
+				}
+				break;
+			case 'number':
+			case 'number2':
+			case 'float':
+			case 'decimal':
+				tmp = {};
+				if (isarr) {
+					tmp.type = 'array';
+					tmp.items = { type: 'number' };
+				} else {
+					tmp.type = 'number';
+				}
+				break;
+			case 'boolean':
+				tmp = {};
+				if (isarr) {
+					tmp.type = 'array';
+					tmp.items = { type: 'boolean' };
+				} else
+					tmp.type = 'boolean';
+				break;
+			case 'date':
+				tmp = {};
+				if (isarr) {
+					tmp.type = 'array';
+					tmp.items = { type: 'date' };
+				} else
+					tmp.type = 'date';
+				break;
+		}
+		if (tmp)
+			obj.properties[arr[0].trim()] = tmp;
+	}
+
+	if (required.length)
+		obj.required = required;
+
+	return obj;
+};
+
 !global.F && require('./index');

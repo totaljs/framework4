@@ -348,9 +348,11 @@ MP.send = function(outputindex, data, clonedata) {
 				self.main.stats.pending++;
 				self.main.mm++;
 
-				self.$events.next && self.emit2('next', self, message);
-				self.$events.something && self.emit2('something', self, message);
-				self.$events.message && self.emit('message', message);
+				if (self.$events) {
+					self.$events.next && self.emit2('next', self, message);
+					self.$events.something && self.emit2('something', self, message);
+					self.$events.message && self.emit('message', message);
+				}
 
 				setImmediate(sendmessage, schema, message, true);
 				count++;
@@ -726,6 +728,7 @@ FP.newmessage = function(data) {
 	msg.args = {};
 	msg.data = data;
 	msg.cloned = 0;
+	msg.instance = self;
 	msg.duration = msg.duration2 = Date.now();
 	msg.used = 1;
 	msg.main = self instanceof Flow ? self : self.main;

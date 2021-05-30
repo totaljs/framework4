@@ -42,6 +42,7 @@
 - extended `schema.addTask()` by adding a new argument `callback`
 - added new method `flowstream.newmessage(data)`
 - added new method `flowstream_instance.newmessage(data)`
+- added `String.toJSONSchema(name, url)`
 
 ========================
 0.0.41
