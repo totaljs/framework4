@@ -190,7 +190,7 @@ MP.clone = function() {
 	obj.$events = self.$events;
 	obj.duration = self.duration;
 	obj.repo = self.repo;
-	obj.args = self.args;
+	obj.vars = self.vars;
 	obj.main = self.main;
 	obj.count = self.count;
 	obj.data = self.data;
@@ -451,7 +451,7 @@ function Flow(name, errorhandler) {
 	t.meta.components = {};
 	t.meta.flow = {};
 	t.meta.cache = {};
-	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0 };
+	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0, minutes: 0 };
 	t.mm = 0;
 	t.$events = {};
 
@@ -464,9 +464,17 @@ function Flow(name, errorhandler) {
 				var is = t.mm;
 
 				if (counter % 20 === 0) {
+
+					t.stats.minutes++;
 					t.stats.mm = t.mm;
 					t.mm = 0;
 					counter = 1;
+
+					for (var key in t.meta.flow) {
+						var com = t.meta.flow[key];
+						com.service && com.service(t.stats.minutes);
+					}
+
 				} else
 					counter++;
 
@@ -725,7 +733,7 @@ FP.newmessage = function(data) {
 	var self = this;
 	var msg = new Message();
 	msg.repo = {};
-	msg.args = {};
+	msg.vars = {};
 	msg.data = data;
 	msg.cloned = 0;
 	msg.instance = self;
@@ -787,7 +795,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 						message.$events = events || {};
 						message.repo = {};
-						message.args = {};
+						message.vars = {};
 						message.data = data;
 						message.duration = message.duration2 = ts;
 						message.used = 1;
