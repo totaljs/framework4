@@ -1404,3 +1404,10 @@ FP.components = function(prepare_export) {
 exports.make = function(name, errorhandler) {
 	return new Flow(name, errorhandler);
 };
+
+exports.prototypes = function() {
+	var obj = {};
+	obj.Message = Message.prototype;
+	obj.FlowStream = Flow.prototype;
+	return obj;
+};
