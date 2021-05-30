@@ -120,6 +120,13 @@ global.NEWPUBLISH = function(name, value) {
 		value = value.$id;
 	}
 
+	// Inline schema object
+	if (value.indexOf(',') !== -1) {
+		var schema = value.toJSONSchema(name);
+		value = name + HASH(value);
+		F.jsonschemas[value] = schema;
+	}
+
 	if (!F.jsonschemas[value]) {
 		// Tries to create from the Total.js Schema
 		var schema = GETSCHEMA(value);
@@ -144,6 +151,13 @@ global.NEWSUBSCRIBE = function(name, value) {
 	if (typeof(value) === 'object') {
 		F.jsonschemas[value.$id] = value;
 		value = value.$id;
+	}
+
+	// Inline schema object
+	if (value.indexOf(',') !== -1) {
+		var schema = value.toJSONSchema(name);
+		value = name + HASH(value);
+		F.jsonschemas[value] = schema;
 	}
 
 	if (!F.jsonschemas[value]) {
