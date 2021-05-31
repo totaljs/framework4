@@ -56,6 +56,7 @@ module.exports = function(opt) {
 	// options.threads = '/api/' || or true or false;
 	// options.thread = 'thread_name';
 	// options.logs = 'isolated';
+
 };
 
 module.exports.watcher = function(callback) {
@@ -86,8 +87,9 @@ function runwatching() {
 	!options && (options = {});
 	require('./index');
 
+	var directory = process.cwd();
+	var directory_root = directory;
 	const FILENAME = U.getName(process.argv[1] || 'index.js');
-	const directory = process.cwd();
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
 	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.ts$|\.resource$|\.build$/i;
@@ -120,36 +122,45 @@ function runwatching() {
 			process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
 		}
 
+		var skipbundle = false;
 		F.directory = directory;
+
+		try {
+			if (Fs.readFileSync(PATH.join(directory, 'bundles.debug'))) {
+				skipbundle = true;
+				F.directory = directory = PATH.join(directory, '.src');
+			}
+
+		} catch(e) {}
 
 		const fork = require('child_process').fork;
 		const directories = [
-			U.combine(CONF.directory_components),
-			U.combine(CONF.directory_controllers),
-			U.combine(CONF.directory_definitions),
-			U.combine(CONF.directory_operations),
-			U.combine(CONF.directory_modules),
-			U.combine(CONF.directory_models),
-			U.combine(CONF.directory_builds),
-			U.combine(CONF.directory_jsonschemas),
-			U.combine(CONF.directory_schemas),
-			U.combine(CONF.directory_tasks),
-			U.combine(CONF.directory_resources),
-			U.combine(CONF.directory_source),
-			U.combine(CONF.directory_workers),
-			U.combine(CONF.directory_packages),
-			U.combine(CONF.directory_themes),
-			U.combine(CONF.directory_configs),
-			U.combine(CONF.directory_bundles),
-			U.combine('/startup/'),
-			U.combine('/threads/'),
-			U.combine('/plugins/')
+			Path.join(directory, CONF.directory_components),
+			Path.join(directory, CONF.directory_controllers),
+			Path.join(directory, CONF.directory_definitions),
+			Path.join(directory, CONF.directory_operations),
+			Path.join(directory, CONF.directory_modules),
+			Path.join(directory, CONF.directory_models),
+			Path.join(directory, CONF.directory_builds),
+			Path.join(directory, CONF.directory_jsonschemas),
+			Path.join(directory, CONF.directory_schemas),
+			Path.join(directory, CONF.directory_tasks),
+			Path.join(directory, CONF.directory_resources),
+			Path.join(directory, CONF.directory_source),
+			Path.join(directory, CONF.directory_workers),
+			Path.join(directory, CONF.directory_packages),
+			Path.join(directory, CONF.directory_themes),
+			Path.join(directory, CONF.directory_configs),
+			Path.join(directory, CONF.directory_bundles),
+			Path.join(directory, '/startup/'),
+			Path.join(directory, '/threads/'),
+			Path.join(directory, '/plugins/')
 		];
 
 		if (global.THREAD)
-			directories.push(U.combine('/threads/' + global.THREAD + '/'));
+			directories.push(Path.join(directory, '/threads/' + global.THREAD + '/'));
 
-		const SRC = U.combine(CONF.directory_src);
+		const SRC = Path.join(directory, CONF.directory_src);
 		const prefix = '--------> ';
 
 		options.watch && options.watch.forEach(function(item) {
@@ -157,7 +168,7 @@ function runwatching() {
 				item = item.substring(1);
 			if (item[item.length - 1] === '/')
 				item = item.substring(0, item.length - 1);
-			directories.push(U.combine(item));
+			directories.push(Path.join(directory, item));
 		});
 
 		var files = {};
@@ -209,18 +220,19 @@ function runwatching() {
 			}
 		}
 
-		try {
-			Fs.statSync(PATH.root(CONF.directory_bundles));
-			isBUNDLE = true;
-		} catch(e) {}
+		if (skipbundle) {
+			try {
+				Fs.statSync(PATH.root(CONF.directory_bundles));
+				isBUNDLE = true;
+			} catch(e) {}
+		}
 
 		if (isBUNDLE || isRELOAD) {
-			directories.push(U.combine(CONF.directory_public));
-			directories.push(U.combine(CONF.directory_views));
+			directories.push(Path.join(directory, CONF.directory_public));
+			directories.push(Path.join(directory, CONF.directory_views));
 		}
 
 		function onFilter(path, isDirectory) {
-
 			var p = path.substring(directory.length);
 			if (isBUNDLE)
 				return isDirectory ? SRC !== path : !blacklist[p];
@@ -419,7 +431,7 @@ function runwatching() {
 				arr.push('--restart');
 
 			port && arr.push(port);
-			app = fork(Path.join(directory, FILENAME), arr);
+			app = fork(Path.join(directory_root, FILENAME), arr);
 
 			app.on('message', function(msg) {
 				switch (msg) {

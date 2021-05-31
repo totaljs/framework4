@@ -47,6 +47,7 @@ exports.make = function(callback) {
 	blacklist[CONF.directory_src] = 1;
 	blacklist[CONF.directory_logs] = 1;
 	blacklist['/node_modules/'] = 1;
+	blacklist['/bundles.debug'] = 1;
 	blacklist['/debug.pid'] = 1;
 	blacklist['/debug.js.json'] = 1;
 	blacklist['/release.js.json'] = 1;

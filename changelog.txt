@@ -43,6 +43,7 @@
 - added new method `flowstream.newmessage(data)`
 - added new method `flowstream_instance.newmessage(data)`
 - added `String.toJSONSchema(name, url)`
+- added `bundles.debug` enables watcher for `.src` directory only
 
 ========================
 0.0.41

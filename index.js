@@ -4895,6 +4895,14 @@ global.MODIFY = function(filename, fn) {
 
 F.$bundle = function(callback) {
 
+	try {
+		if (Fs.readFileSync('bundles.debug')) {
+			F.directory = HEADERS.workers.cwd = directory = PATH.root(CONF.directory_src);
+			callback();
+			return;
+		}
+	} catch (e) {}
+
 	var bundledir = PATH.root(CONF.directory_bundles);
 
 	var makebundle = function() {
