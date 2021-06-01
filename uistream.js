@@ -16,7 +16,7 @@ function UIStream(name, errorhandler) {
 	t.meta.components = {};
 	t.meta.flow = {};
 	t.meta.cache = {};
-	t.stats = { messages: 0, mm: 0 };
+	t.stats = { messages: 0, mm: 0, minutes: 0 };
 	t.mm = 0;
 	t.$events = {};
 
@@ -26,6 +26,7 @@ function UIStream(name, errorhandler) {
 		if (t.interval !== 0) {
 			t.$interval = setInterval(function(t) {
 				if (counter % 20 === 0) {
+					t.stats.minutes++;
 					t.stats.mm = t.mm;
 					t.mm = 0;
 					counter = 1;
