@@ -6605,6 +6605,7 @@ String.prototype.toJSONSchema = function(name, url) {
 					tmp.type = 'number';
 				}
 				break;
+			case 'bool':
 			case 'boolean':
 				tmp = {};
 				if (isarr) {
