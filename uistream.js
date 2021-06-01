@@ -404,7 +404,7 @@ UI.initcomponent = function(key, component) {
 			self.ondisconnect && self.ondisconnect(instance);
 			instance.close && instance.close.call(instance);
 		} catch (e) {
-			instance.onerror(e, 'instance_close', instance);
+			self.onerror(e, 'instance_close', instance);
 		}
 	}
 
