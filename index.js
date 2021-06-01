@@ -121,7 +121,7 @@ global.NEWPUBLISH = function(name, value) {
 	}
 
 	// Inline schema object
-	if (value.indexOf(',') !== -1) {
+	if (value.indexOf(':') !== -1) {
 		var schema = value.toJSONSchema(name);
 		value = name + HASH(value);
 		F.jsonschemas[value] = schema;
