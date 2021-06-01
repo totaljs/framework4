@@ -1324,6 +1324,7 @@ FP.add = function(name, body, callback) {
 		component.ui = meta;
 	}
 
+	component.ui.raw = body;
 	return component;
 };
 
