@@ -31,6 +31,7 @@ function UIStream(name, errorhandler) {
 					counter = 1;
 				} else
 					counter++;
+				t.onstats && t.onstats(t.stats);
 				t.$events.stats && t.emit('stats', t.stats);
 			}, t.interval || 3000, t);
 		}

@@ -478,6 +478,7 @@ function Flow(name, errorhandler) {
 				} else
 					counter++;
 
+				t.onstats && t.onstats(t.stats);
 				t.$events.stats && t.emit('stats', t.stats);
 
 				if (is)
