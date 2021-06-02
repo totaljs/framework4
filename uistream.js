@@ -653,6 +653,7 @@ UI.components = function(prepare_export) {
 			obj.id = com.id;
 			obj.type = com.type;
 			obj.name = com.name;
+			obj.title = com.title;
 			obj.offset = com.offset;
 			obj.size = com.size;
 			obj.css = com.ui.css;

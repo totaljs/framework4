@@ -1387,6 +1387,7 @@ FP.components = function(prepare_export) {
 			var obj = {};
 			obj.id = com.id;
 			obj.name = com.name;
+			obj.title = com.title;
 			obj.type = com.type;
 			obj.css = com.ui.css;
 			obj.js = com.ui.js;
