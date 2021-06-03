@@ -1,6 +1,6 @@
 {
   "name": "total4",
-  "version": "0.0.42-11",
+  "version": "0.0.42-12",
   "description": "Total.js framework v4",
   "main": "index.js",
   "types": "index.d.ts",
