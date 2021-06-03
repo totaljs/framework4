@@ -674,7 +674,7 @@ WebSocketClientProto.send = function(message, raw, replacer) {
  */
 WebSocketClientProto.sendcustom = function(type, message) {
 
-	if (this.isClosed || this.closed)
+	if (this.isClosed || this.closed || !this.socket)
 		return false;
 
 	if (this.istext) {
@@ -721,8 +721,10 @@ WebSocketClientProto.sendDeflate = function() {
 				data = data.slice(0, data.length - 4);
 				self.deflatelock = false;
 				self.deflatechunks = null;
-				self.socket.write(U.getWebSocketFrame(0, data, self.type === 1 ? 0x02 : 0x01, true, self.options.masking));
-				self.sendDeflate();
+				if (self.socket) {
+					self.socket.write(U.getWebSocketFrame(0, data, self.type === 1 ? 0x02 : 0x01, true, self.options.masking));
+					self.sendDeflate();
+				}
 			}
 		});
 	}
