@@ -555,9 +555,6 @@ FP.register = function(name, declaration, config, callback, extend) {
 		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
 		curr.install && !prev && curr.install.call(curr, curr);
-		curr.destroy = function() {
-			self.unregister(name);
-		};
 
 		for (var key in self.meta.flow) {
 			if (key !== 'paused') {
