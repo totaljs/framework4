@@ -727,7 +727,7 @@ FP.ondebug = function(a, b, c, d) {
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
-FP.newmessage = function(data) {
+function newmessage(data) {
 	var self = this;
 	var msg = new Message();
 	msg.repo = {};
@@ -740,7 +740,7 @@ FP.newmessage = function(data) {
 	msg.main = self instanceof Flow ? self : self.main;
 	msg.processed = 1;
 	return msg;
-};
+}
 
 FP.ontrigger = function(outputindex, data, controller, events) {
 
@@ -1100,7 +1100,7 @@ FP.initcomponent = function(key, component) {
 	instance.debug = self.ondebug;
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
-	instance.newmessage = self.newmessage;
+	instance.newmessage = newmessage;
 
 	self.onconnect && self.onconnect(instance);
 
