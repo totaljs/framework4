@@ -3,6 +3,10 @@
 ========================
 
 - improved `flowinstance.newmessage(data)` method
+- removed method `U.set()`
+- removed method `U.get()`
+- removed method `U.sync()` and `global.sync()`
+- removed method `U.sync2()` and `global.sync2()`
 
 ========================
 0.0.42
