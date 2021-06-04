@@ -6489,4 +6489,43 @@ String.prototype.toJSONSchema = function(name, url) {
 	return obj;
 };
 
+exports.get = function(obj, path) {
+
+	var arr = path.split('.');
+	var length = arr.length;
+	var index;
+
+	for (var i = 0; i < length; i++) {
+
+		var key = arr[i];
+		var isarr = key[key.length - 1] === ']';
+
+		if (isarr) {
+			index = key.lastIndexOf('[', key.length - 1);
+			if (index === -1)
+				break;
+			key = key.substring(0, index);
+			index = +arr[i].substring(index + 1, arr[i].length - 1);
+		}
+
+		var val = obj[key];
+
+		if (val == null)
+			return val;
+
+		if (isarr) {
+			val = val[index];
+			if (val == null)
+				return val;
+		}
+
+		if ((i + 1) === length)
+			return val;
+		else if (typeof(val) === 'object')
+			obj = val;
+		else
+			break;
+	}
+};
+
 !global.F && require('./index');
