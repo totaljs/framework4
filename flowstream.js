@@ -732,7 +732,7 @@ function newmessage(data) {
 	var msg = new Message();
 	msg.repo = {};
 	msg.vars = {};
-	msg.data = data;
+	msg.data = data instanceof Message ? data.data : data;
 	msg.cloned = 0;
 	msg.instance = self;
 	msg.duration = msg.duration2 = Date.now();

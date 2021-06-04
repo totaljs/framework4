@@ -2,6 +2,7 @@
 0.0.43
 ========================
 
+- improved `flowinstance.newmessage(data)` method
 
 ========================
 0.0.42
