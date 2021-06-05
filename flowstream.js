@@ -1179,16 +1179,17 @@ FP.$can = function(isinput, id, index) {
 		return true;
 };
 
+/*
 function trigger(self, path, data, controller, events) {
 	self.trigger(path, data, controller, events);
-}
+}*/
 
 // path = ID__INPUTINDEX
 FP.trigger = function(path, data, controller, events) {
 
 	var self = this;
 	if (self.loading) {
-		setTimeout(trigger, 200, self, path, data, controller, events);
+		// setTimeout(trigger, 200, self, path, data, controller, events);
 		return;
 	}
 
