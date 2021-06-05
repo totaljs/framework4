@@ -201,6 +201,11 @@ MP.clone = function() {
 	obj.cloned = self.cloned + 1;
 	obj.$timeoutidtotal = self.$timeoutidtotal;
 
+	// additional custom variables
+	obj.uid = self.uid;
+	obj.reference = self.reference;
+	obj.ref = self.ref;
+
 	if (obj.$events && obj.$events.timeout) {
 		var index = 0;
 		while (true) {
