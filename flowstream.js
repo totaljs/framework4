@@ -192,10 +192,12 @@ MP.clone = function() {
 	obj.repo = self.repo;
 	obj.vars = self.vars;
 	obj.main = self.main;
+	obj.refs = self.refs;
 	obj.count = self.count;
 	obj.data = self.data;
 	obj.used = self.used;
 	obj.processed = 0;
+	obj.controller = self.controller;
 	obj.cloned = self.cloned + 1;
 	obj.$timeoutidtotal = self.$timeoutidtotal;
 
@@ -752,6 +754,7 @@ FP.ondebug = function(a, b, c, d) {
 function newmessage(data) {
 	var self = this;
 	var msg = new Message();
+	msg.refs = {};
 	msg.repo = {};
 	msg.vars = {};
 	msg.data = data instanceof Message ? data.data : data;
