@@ -759,6 +759,7 @@ function newmessage(data) {
 	msg.vars = {};
 	msg.data = data instanceof Message ? data.data : data;
 	msg.cloned = 0;
+	msg.count = 0;
 	msg.instance = self;
 	msg.duration = msg.duration2 = Date.now();
 	msg.used = 1;
