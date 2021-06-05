@@ -242,17 +242,23 @@ MP.throw = function(a, b, c, d) {
 };
 
 MP.variables = function(str, data) {
+
 	if (str.indexOf('{') !== -1) {
+
 		str = str.args(this.vars);
-		if (str.indexOf('{') !== -1) {
+
+		if (this.instance.main.variables)
 			str = str.args(this.instance.main.variables);
-			if (str.indexOf('{') !== -1) {
+
+		if (this.instance.main.variables2) {
+			if (!this.instance.main.variables || str.indexOf('{') !== -1)
 				str = str.args(this.instance.main.variables2);
-				if (data == true || (data && typeof(data) === 'object'))
-					str = str.args(data == true ? this.data : data);
-			}
 		}
+
+		if ((data == true || (data && typeof(data) === 'object')) && str.indexOf('{') !== -1)
+			str = str.args(data == true ? this.data : data);
 	}
+
 	return str;
 };
 
