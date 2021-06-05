@@ -263,6 +263,7 @@ MP.variables = function(str, data) {
 };
 
 function timeouthandler(msg) {
+	msg.error = 408;
 	msg.$events.timeout && msg.emit('timeout', msg);
 	msg.$events.timeout2 && msg.emit('timeout2', msg);
 	msg.end();
