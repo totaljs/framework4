@@ -254,8 +254,10 @@ MP.variables = function(str, data) {
 
 		str = str.args(this.vars);
 
-		if (this.instance.main.variables)
-			str = str.args(this.instance.main.variables);
+		if (this.instance.main.variables) {
+			if (str.indexOf('{') !== -1)
+				str = str.args(this.instance.main.variables);
+		}
 
 		if (this.instance.main.variables2) {
 			if (!this.instance.main.variables || str.indexOf('{') !== -1)
