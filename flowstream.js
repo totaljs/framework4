@@ -241,6 +241,21 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
+MP.variables = function(str, data) {
+	if (str.indexOf('{') !== -1) {
+		str = str.args(this.vars);
+		if (str.indexOf('{') !== -1) {
+			str = str.args(this.instance.main.variables);
+			if (str.indexOf('{') !== -1) {
+				str = str.args(this.instance.main.variables2);
+				if (data == true || (data && typeof(data) === 'object'))
+					str = str.args(data == true ? this.data : data);
+			}
+		}
+	}
+	return str;
+};
+
 function timeouthandler(msg) {
 	msg.$events.timeout && msg.emit('timeout', msg);
 	msg.$events.timeout2 && msg.emit('timeout2', msg);
