@@ -642,7 +642,19 @@ global.LOADCONFIG = function(value) {
 			var key = item.id || item.key || item.name;
 			var val = item.value || item.body;
 			if (item.type) {
+
 				var type = typeof(val);
+
+				if (type === 'string' && val) {
+					var from = 0;
+					if (val.substring(0, 4) === 'hex ')
+						from = 4;
+					else if (val.substring(0, 7) === 'base64 ')
+						from = 7;
+					if (from)
+						val = Buffer.from(val.substring(from).trim(), 'hex').toString('utf8');
+				}
+
 				switch (item.type.toLowerCase()) {
 					case 'number':
 						if (type !== 'number') {

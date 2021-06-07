@@ -3,6 +3,7 @@
 ========================
 
 - added `flowmessage.variables(str, [data])` method
+- updated `LOADCONFIG()` supports `hex/base64` encoding
 
 ========================
 0.0.43
