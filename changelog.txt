@@ -1,14 +1,9 @@
 ========================
-0.0.44
+0.0.43
 ========================
 
 - added `flowmessage.variables(str, [data])` method
 - updated `LOADCONFIG()` supports `hex/base64` encoding
-
-========================
-0.0.43
-========================
-
 - improved `flowinstance.newmessage(data)` method
 - removed method `U.set()`
 - removed method `U.get()`
