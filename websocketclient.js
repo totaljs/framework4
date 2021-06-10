@@ -104,9 +104,9 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 		self.options.reconnectserver && reconnect_client_timer(self);
 	});
 
-	self.req.on('response', function() {
+	self.req.on('response', function(res) {
 
-		self.$events.error && self.emit('error', new Error('Unexpected server response'));
+		self.$events.error && self.emit('error', new Error('Unexpected server response (' + res.statusCode + ')'));
 
 		if (self.options.reconnectserver) {
 			self.$onclose();
