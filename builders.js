@@ -2257,7 +2257,7 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 	var self = this;
 
 	if (arg.length > 1 || (response instanceof Error || response instanceof ErrorBuilder)) {
-		if ((response instanceof Error || response instanceof ErrorBuilder || typeof(response) === 'string') && builder !== response)
+		if ((response instanceof Error || response instanceof ErrorBuilder || typeof(response) === 'string' || response > 0) && builder !== response)
 			builder.push(response);
 		response = arg[1];
 	}
