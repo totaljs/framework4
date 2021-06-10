@@ -2,7 +2,7 @@
 0.0.44
 ========================
 
-- fixed schema error handling
+- fixed schema error handling with error code `{Number}` as the `err` argument in the `$.callback(err_code response)` method
 
 ========================
 0.0.43
