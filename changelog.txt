@@ -3,6 +3,7 @@
 ========================
 
 - fixed schema error handling with error code `{Number}` as the `err` argument in the `$.callback(err_code response)` method
+- improved error handling in `WEBSOCKETCLIENT()` method
 
 ========================
 0.0.43
