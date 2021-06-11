@@ -51,7 +51,10 @@ function registerapi(client) {
 			if (obj) {
 				delete CALLBACKS[msg.callbackid];
 				clearTimeout(obj.timeout);
-				obj.callback(null, msg.data);
+				if (msg.error)
+					obj.callbackid(msg.data);
+				else
+					obj.callback(null, msg.data);
 			}
 		}
 	});
@@ -76,6 +79,7 @@ WebSocketClientProto.api = function(schema, data, callback, timeout) {
 	var msg = { TYPE: 'api', data: { schema: schema, data: data }};
 
 	if (callback) {
+
 		msg.callbackid = (CALLBACKSCOUNTER++) + '';
 
 		if (CALLBACKSCOUNTER > 9999999999)
