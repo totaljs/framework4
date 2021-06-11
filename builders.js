@@ -5068,6 +5068,10 @@ function AuthOptions(req, res, callback) {
 
 AuthOptions.prototype = {
 
+	get websocket() {
+		return this.req.headers['upgrade'] === 'websocket';
+	},
+
 	get url() {
 		return this.req.url || '';
 	},

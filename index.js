@@ -3229,7 +3229,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		}
 	}
 
-	if (url[0] === '#') {
+	if (url[0] === '#' && url.length > 1) {
 		url = url.substring(1);
 		if (url !== '400' && url !== '401' && url !== '403' && url !== '404' && url !== '408' && url !== '409' && url !== '431' && url !== '500' && url !== '501') {
 
@@ -3799,7 +3799,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.isBOTH = isNOXHR ? false : true;
 	r.isXHR = flags.indexOf('xhr') !== -1;
 	r.isUPLOAD = flags.indexOf('upload') !== -1;
-	r.isSYSTEM = url.startsWith('/#');
+	r.isSYSTEM = !isAPI && url.startsWith('/#');
 	r.isPARAM = arr.length > 0;
 	r.isDELAY = isDELAY;
 	r.isDYNAMICSCHEMA = isDYNAMICSCHEMA;
@@ -3841,9 +3841,11 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	if (r.isSYSTEM) {
 		F.routes.system[url.substring(2)] = r;
 	} else {
-		F.routes.web.push(r);
-		// Appends cors route
-		isCORS && CORS(urlcache, corsflags);
+		if (!r.apiname || r.apiname.substring(0, 2) !== '/@') {
+			F.routes.web.push(r);
+			// Appends cors route
+			isCORS && CORS(urlcache, corsflags);
+		}
 	}
 
 	F.routes.all[mypath] = instance;
@@ -3852,7 +3854,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		F._request_check_mobile = true;
 
 	EMIT('route', 'web', instance);
-
 	routes_sort_id && clearTimeout(routes_sort_id);
 	routes_sort_id = setTimeout(routes_sort_worker, 50);
 	return instance;
@@ -8459,6 +8460,9 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 
 	var membertype = isAuthorized ? 1 : 2;
 	var req = $.req;
+
+	req.isAuthorized = isAuthorized;
+
 	if (user)
 		req.user = user;
 	var route = req.$total_route.MEMBER === membertype ? req.$total_route : F.lookup_websocket(req, membertype);
@@ -11473,6 +11477,83 @@ function controller_api() {
 	EXEC(s.action, model.data, self.callback(), self);
 }
 
+function websocket_api(url, client, model, callback) {
+
+	if (!model || !model.schema) {
+		callback(400);
+		return;
+	}
+
+	var api = F.routes.api[url];
+	if (!api) {
+		callback('WebSocket API not found');
+		return;
+	}
+
+	var urlschema = model.schema;
+	var index = model.schema.indexOf('?');
+	var query = null;
+
+	if (index !== -1) {
+		query = model.schema.substring(index + 1);
+		model.schema = model.schema.substring(0, index);
+	}
+
+	var schema = model.schema.split('/');
+	var s = api[schema[0].trim()];
+	if (!s) {
+		callback('Schema not found');
+		return;
+	}
+
+	// Authorization
+	if (s.member && ((s.member === 1 && (!client.req.isAuthorized || !client.user)) || (s.member === 2 && client.req.isAuthorized))) {
+		callback(401);
+		return;
+	}
+
+	var ctrl = new Controller(null, { uri: EMPTYOBJECT, query: query ? query.parseEncoded() : {}, body: model, urlschema: urlschema, files: EMPTYARRAY, ip: client.ip, headers: client.headers, ua: client.ua });
+
+	ctrl.params = {};
+	ctrl.req.urlschema = model.schema;
+
+	for (var i = 0; i < s.params.length; i++) {
+		var param = (schema[i + 1] || '').trim();
+		if (!param) {
+			callback('Invalid params');
+			return;
+		}
+		var p = s.params[i];
+
+		if (p.type === 'uid') {
+			if (!param.isUID()) {
+				callback('Invalid param type');
+				return;
+			}
+		} else if (p.type === 'number') {
+			param = +param;
+			if (isNaN(param)) {
+				callback('Invalid param type');
+				return;
+			}
+		} else if (p.type === 'date') {
+			param = param.length > 6 ? param.indexOf('-') === -1 ? param.parseDate('yyyyMMddHHmm') : param.parseDate('yyyy-MM-dd-HHmm') : null;
+			if (param == null || !param.getTime) {
+				callback('Invalid param type');
+				return;
+			}
+		}
+		if (i == 0)
+			model.id = param;
+		ctrl.params[p.name] = param;
+	}
+
+	ctrl.id = model.id || '';
+
+	// Evaluates action
+	EXEC(s.action, model.data, callback, ctrl);
+}
+
 ControllerProto.getSchema = function() {
 	var self = this;
 	var route = self.route;
@@ -14362,6 +14443,22 @@ WebSocketProto.ping = function() {
 	return this;
 };
 
+WebSocketProto.api = function(api) {
+	var self = this;
+
+	if (!api.startsWith('/@')) {
+		if (api[0] !== '@')
+			api = '@' + api;
+		api = '/' + api + '/';
+	}
+
+	self.on('message', function(client, msg) {
+		if (msg && msg.TYPE === 'api')
+			client.$exec(api, msg);
+	});
+	return self;
+};
+
 /**
  * Closes a connection
  * @param {String} message A message for the browser.
@@ -14593,6 +14690,38 @@ WebSocketClient.prototype = {
 const WebSocketClientProto = WebSocketClient.prototype;
 
 WebSocketClientProto.isWebSocket = true;
+
+WebSocketClientProto.$exec = function(url, msg, answer, callback) {
+	var self = this;
+	websocket_api(url, self, msg.data, function(err, response) {
+		console.log(err, response, url);
+
+		if (err && !(err instanceof ErrorBuilder)) {
+			err = new ErrorBuilder().push(err);
+			self.$language && err.setResource(self.$language);
+		}
+
+		callback && callback(err, response);
+
+		if (err instanceof ErrorBuilder) {
+			msg.error = true;
+			msg.data = err.output();
+		} else {
+			msg.success = true;
+			msg.data = response;
+		}
+
+		if (answer) {
+			if (answer === 'others')
+				self.websocket.send(msg, client => client !== self);
+			else if (answer === 'all')
+				self.websocket.send(msg);
+		} else if (msg.callbackid)
+			self.send(msg);
+
+	}, self);
+	return self;
+};
 
 WebSocketClientProto.cookie = function(name) {
 	return this.req.cookie(name);
