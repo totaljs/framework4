@@ -4268,6 +4268,13 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	url = url.replace(/SOCKET\s/gi, '').trim();
 
+	var apiname;
+
+	url = url.replace(/@[a-z0-9_]+/, function(text) {
+		apiname = text;
+		return '';
+	}).trim();
+
 	if (url[0] === '#') {
 
 		var index = url.indexOf('/');
@@ -4487,6 +4494,13 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	if (subdomain)
 		F._length_subdomain_websocket++;
+
+	if (apiname && !funcInitialize) {
+		funcInitialize = function() {
+			this.api(apiname);
+			this.autodestroy();
+		};
+	}
 
 	var instance = new FrameworkRoute();
 	instance.type = 'websocket';
@@ -14694,7 +14708,6 @@ WebSocketClientProto.isWebSocket = true;
 WebSocketClientProto.$exec = function(url, msg, answer, callback) {
 	var self = this;
 	websocket_api(url, self, msg.data, function(err, response) {
-		console.log(err, response, url);
 
 		if (err && !(err instanceof ErrorBuilder)) {
 			err = new ErrorBuilder().push(err);
