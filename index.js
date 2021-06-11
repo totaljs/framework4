@@ -11526,7 +11526,7 @@ function websocket_api(url, client, model, callback) {
 		return;
 	}
 
-	var ctrl = new Controller(null, { uri: EMPTYOBJECT, query: query ? query.parseEncoded() : {}, body: model, urlschema: urlschema, files: EMPTYARRAY, ip: client.ip, headers: client.headers, ua: client.ua });
+	var ctrl = new Controller(null, { uri: EMPTYOBJECT, query: query ? query.parseEncoded() : {}, body: model, urlschema: urlschema, files: EMPTYARRAY, ip: client.ip, headers: client.headers, ua: client.ua, user: client.user, session: client.session });
 
 	ctrl.params = {};
 	ctrl.req.urlschema = model.schema;
