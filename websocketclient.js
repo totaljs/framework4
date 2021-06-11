@@ -13,6 +13,9 @@ const CONCAT = [null, null];
 // const KeepAlive = new Http.Agent({ keepAlive: true, timeout: 60000 });
 // const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 
+var CALLBACKS = {};
+var CALLBACKSCOUNTER = 1;
+
 function WebSocketClient() {
 	this.current = {};
 	this.$events = {};
@@ -27,6 +30,66 @@ function WebSocketClient() {
 }
 
 const WebSocketClientProto = WebSocketClient.prototype;
+
+function timeoutapi(id) {
+	var obj = CALLBACKS[id];
+	if (obj) {
+		obj.callback(408);
+		delete CALLBACKS[id];
+	}
+}
+
+function registerapi(client) {
+
+	if (client.$api)
+		return;
+
+	client.$api = true;
+	client.on('message', function(msg) {
+		if (msg.TYPE === 'api') {
+			var obj = CALLBACKS[msg.callbackid];
+			if (obj) {
+				delete CALLBACKS[msg.callbackid];
+				clearTimeout(obj.timeout);
+				obj.callback(null, msg.data);
+			}
+		}
+	});
+
+}
+
+WebSocketClientProto.api = function(schema, data, callback, timeout) {
+
+	var self = this;
+
+	if (!schema) {
+		registerapi(self);
+		return self;
+	}
+
+	if (typeof(data) === 'function') {
+		timeout = callback;
+		callback = data;
+		data = null;
+	}
+
+	var msg = { TYPE: 'api', data: { schema: schema, data: data }};
+
+	if (callback) {
+		msg.callbackid = (CALLBACKSCOUNTER++) + '';
+
+		if (CALLBACKSCOUNTER > 9999999999)
+			CALLBACKSCOUNTER = 1;
+
+		var obj = {};
+		obj.callback = callback;
+		obj.timeout = setTimeout(timeoutapi, timeout || 5000, msg.callbackid);
+		CALLBACKS[msg.id] = obj;
+	}
+
+	self.send(msg);
+	return self;
+};
 
 WebSocketClientProto.connect = function(url, protocol, origin) {
 

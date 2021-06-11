@@ -9,6 +9,8 @@
 - extended `ROUTE('API @websocket_api_name opid *Schema --> operation')` method by adding `@websocketapi_endpoint_name`
 - added `websocket.api(url)` automatically processes `ROUTE()` with WebSocket APIs
 - extended `ROUTE('SOCKET / @websocket_api_name')` method by adding WebSocket API without action
+- added `websocketclient.api()` method
+- added `websocketclient.api(schema, [data], [callback], [timeout])` method
 
 ========================
 0.0.43
