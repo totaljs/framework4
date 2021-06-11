@@ -52,7 +52,7 @@ function registerapi(client) {
 				delete CALLBACKS[msg.callbackid];
 				clearTimeout(obj.timeout);
 				if (msg.error)
-					obj.callbackid(msg.data);
+					obj.callbackid(msg.data instanceof Array ? ErrorBuilder.assign(msg.data) : msg.data);
 				else
 					obj.callback(null, msg.data);
 			}
