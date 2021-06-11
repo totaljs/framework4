@@ -44,6 +44,10 @@ function TaskBuilder($) {
 
 TaskBuilder.prototype = {
 
+	get client() {
+		return this.controller;
+	},
+
 	get test() {
 		return this.controller ? this.controller.test : false;
 	},
@@ -133,6 +137,10 @@ TaskBuilderProto.encrypt = function(value) {
 };
 
 SchemaOptions.prototype = {
+
+	get client() {
+		return this.controller;
+	},
 
 	get value() {
 		return this.model;
@@ -4865,6 +4873,10 @@ function OperationOptions(error, value, options, controller) {
 }
 
 OperationOptions.prototype = {
+
+	get client() {
+		return this.controller;
+	},
 
 	get test() {
 		return this.controller ? this.controller.test : false;
