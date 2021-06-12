@@ -15106,7 +15106,7 @@ WebSocketClientProto.$decode = function() {
 			if (this.container.encodedecode === true)
 				data = $decodeURIComponent(data);
 
-			if (this.container.$encrypt)
+			if (this.container.$encrypt && CONF.secret_encryption)
 				data = framework_utils.decrypt_data(data, CONF.secret_encryption);
 
 			if (data.isJSON()) {
@@ -15128,7 +15128,7 @@ WebSocketClientProto.$decode = function() {
 			if (this.container.encodedecode === true)
 				data = $decodeURIComponent(data);
 
-			if (this.container.$encrypt)
+			if (this.container.$encrypt && CONF.secret_encryption)
 				data = framework_utils.decrypt_data(data, CONF.secret_encryption);
 
 			if (REG_EMPTYBUFFER_TEST.test(data))
@@ -15234,7 +15234,7 @@ WebSocketClientProto.send = function(message, raw, replacer) {
 		var data = self.type === 3 ? (raw ? message : JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer)) : typeof(message) === 'object' ? JSON.stringify(message, replacer == true ? framework_utils.json2replacer : replacer) : (message + '');
 		var buffer;
 
-		if (self.container.$encrypt)
+		if (self.container.$encrypt && CONF.secret_encryption)
 			data = framework_utils.encrypt_data(data, CONF.secret_encryption);
 
 		if (self.container.encodedecode === true && data)
