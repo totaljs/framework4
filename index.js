@@ -14718,7 +14718,7 @@ WebSocketClientProto.$exec = function(url, msg, answer, callback) {
 
 		if (err instanceof ErrorBuilder) {
 			msg.error = true;
-			msg.data = err.output();
+			msg.data = err.prepare().items;
 		} else {
 			msg.success = true;
 			msg.data = response;
