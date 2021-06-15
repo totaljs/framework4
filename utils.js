@@ -1359,7 +1359,7 @@ global.CLONE = exports.clone = function(obj, skip, skipFunctions) {
  * @param {Object} target Object target (optional)
  * @return {Object} Modified object.
  */
-exports.copy = function(source, target) {
+exports.copy = function(source, target, all) {
 
 	if (target === undefined)
 		return exports.extend({}, source, true);
@@ -1368,7 +1368,7 @@ exports.copy = function(source, target) {
 		return target;
 
 	for (var key in source) {
-		if (target[key] !== undefined)
+		if (all || target[key] !== undefined)
 			target[key] = exports.clone(source[key]);
 	}
 
@@ -5060,7 +5060,7 @@ AP.async = function(thread, callback, pending) {
 // Fisher-Yates shuffle
 AP.random = function(item) {
 	if (item)
-		return this[exports.random(this.length - 1)];
+		return this.length > 1 ? this[exports.random(this.length - 1)] : this[0];
 	for (var i = this.length - 1; i > 0; i--) {
 		var j = Math.floor(Math.random() * (i + 1));
 		var temp = this[i];
