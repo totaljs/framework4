@@ -5783,19 +5783,22 @@ DEF.onError = function(err, name, uri) {
 
 DEF.onCSRFcreate = function(req) {
 	var data = [req.ip, (req.headers['user-agent'] || '').hash(true), NOW.add(CONF.default_csrf_maxage).getTime()];
-	return JSON.stringify(data).encrypt(CONF.secret_csrf);
+	return CONF.secret_csrf ? JSON.stringify(data).encrypt(CONF.secret_csrf) : '';
 };
 
 DEF.onCSRFcheck = function(req) {
-	var token = req.headers['x-csrf-token'] || req.query.csrf;
-	var is = false;
-	if (token && token.length > 10) {
-		var data = token.decrypt(CONF.secret_csrf);
-		if (data)
-			data = data.parseJSON();
-		is = data && data[0] === req.ip && data[2] >= NOW.getTime() && data[1] === (req.headers['user-agent'] || '').hash(true) ? true : false;
+	if (CONF.secret_csrf) {
+		var token = req.headers['x-csrf-token'] || req.query.csrf;
+		var is = false;
+		if (token && token.length > 10) {
+			var data = token.decrypt(CONF.secret_csrf);
+			if (data)
+				data = data.parseJSON();
+			is = data && data[0] === req.ip && data[2] >= NOW.getTime() && data[1] === (req.headers['user-agent'] || '').hash(true) ? true : false;
+		}
+		return is;
 	}
-	return is;
+	return true;
 };
 
 /*
