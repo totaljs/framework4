@@ -13,6 +13,9 @@
 - added `websocketclient.api(schema, [data], [callback], [timeout])` method
 - extended `U.copy()` by adding `all` argument
 - fixed `array.random(true)` with only the one item
+- improved WebSocket ping (updated interval to 20 seconds)
+- updated `WebSocketClient.ping(timeout)` by adding `timeout {Number}` argument
+- added `WebSocketClient.latency {Number}` with a latency in `ms`
 
 ========================
 0.0.43

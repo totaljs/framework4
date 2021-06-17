@@ -1963,7 +1963,7 @@ function Framework() {
 		default_interval_clear_resources: 20,
 		default_interval_clear_cache: 10,
 		default_interval_clear_dnscache: 30,
-		default_interval_websocket_ping: 1
+		default_interval_websocket_ping: 20000
 	};
 
 	global.REPO = {};
@@ -7663,6 +7663,24 @@ function cleargc() {
 	global.gc();
 }
 
+
+var websocketpingerenabled = false;
+
+function websocketpinger() {
+	if (!websocketpingerenabled) {
+		websocketpingerenabled = true;
+		setInterval(function() {
+			for (var item in F.connections) {
+				var conn = F.connections[item];
+				if (conn && conn.keys.length) {
+					conn.check();
+					conn.ping();
+				}
+			}
+		}, CONF.default_interval_websocket_ping < 1000 ? 20000 : CONF.default_interval_websocket_ping);
+	}
+}
+
 /**
  * Internal service
  * @private
@@ -7720,17 +7738,6 @@ F.service = function(count) {
 	if (count % CONF.default_interval_clear_dnscache === 0) {
 		F.$events.clear && EMIT('clear', 'dns');
 		CMD('clear_dnscache');
-	}
-
-	var ping = CONF.default_interval_websocket_ping;
-	if (ping > 0 && count % ping === 0) {
-		for (var item in F.connections) {
-			var conn = F.connections[item];
-			if (conn) {
-				conn.check();
-				conn.ping();
-			}
-		}
 	}
 
 	// every 20 minutes (default) service clears resources
@@ -8559,6 +8566,7 @@ F.$websocketcontinue_process = function(route, req, path) {
 
 function next_upgrade_continue(socket, connection) {
 	socket.upgrade(connection);
+	websocketpinger();
 }
 
 /**
@@ -14445,19 +14453,21 @@ WebSocketProto.send = function(message, comparer, replacer, params) {
  */
 WebSocketProto.ping = function() {
 
-	var keys = this.keys;
+	var self = this;
+	var keys = self.keys;
 	if (!keys)
-		return this;
+		return self;
 
 	var length = keys.length;
 	if (length) {
-		this.$ping = true;
+		self.$ping = true;
 		F.stats.other.websocketping++;
+		var ts = Date.now();
 		for (var i = 0; i < length; i++)
-			this.connections[keys[i]].ping();
+			self.connections[keys[i]].ping(ts);
 	}
 
-	return this;
+	return self;
 };
 
 WebSocketProto.api = function(api) {
@@ -14608,7 +14618,7 @@ WebSocketProto.check = function() {
 	if (self.$ping && self.keys) {
 		for (var i = 0; i < self.keys.length; i++) {
 			var client = self.connections[self.keys[i]];
-			if (!client.$ping) {
+			if (client.$ping && (client.latency == null || client.latency > 2000)) {
 				client.close();
 				F.stats.other.websocketcleaner++;
 			}
@@ -14625,7 +14635,7 @@ WebSocketProto.check = function() {
  */
 function WebSocketClient(req, socket) {
 	// this.ID;
-	this.$ping = true;
+	this.$ping = 0;
 	this.container;
 	this.id = '';
 	this.socket = socket;
@@ -14970,12 +14980,11 @@ WebSocketClientProto.$ondata = function(data) {
 			self.socket.write(U.getWebSocketFrame(0, 'PONG', 0x0A, false, self.masking));
 			current.buffer = null;
 			current.inflatedata = null;
-			self.$ping = true;
 			break;
 
 		case 0x0a:
 			// pong
-			self.$ping = true;
+			self.latency = Date.now() - self.$ping;
 			current.buffer = null;
 			current.inflatedata = null;
 			break;
@@ -15297,17 +15306,18 @@ WebSocketClientProto.sendDeflate = function() {
  * Ping message
  * @return {WebSocketClient}
  */
-WebSocketClientProto.ping = function() {
-	if (!this.isClosed) {
+WebSocketClientProto.ping = function(ts) {
+	var self = this;
+	if (!self.isClosed) {
 		try {
-			this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, this.masking));
-			this.$ping = false;
+			self.$ping = ts || Date.now();
+			self.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, self.masking));
 		} catch (e) {
 			// Socket error
-			this.$onerror(e);
+			self.$onerror(e);
 		}
 	}
-	return this;
+	return self;
 };
 
 /**

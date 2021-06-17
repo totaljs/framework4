@@ -419,12 +419,13 @@ WebSocketClientProto.$ondata = function(data) {
 			self.socket.write(U.getWebSocketFrame(0, 'PONG', 0x0A, false, self.options.masking));
 			current.buffer = null;
 			current.inflatedata = null;
-			self.$ping = true;
 			break;
 
 		case 0x0a:
 			// pong
-			self.$ping = true;
+			self.$timeout && clearTimeout(self.$timeout);
+			self.$timeout = null;
+			self.latency = Date.now() - self.$ping;
 			current.buffer = null;
 			current.inflatedata = null;
 			break;
@@ -797,16 +798,23 @@ WebSocketClientProto.sendDeflate = function() {
 	}
 };
 
+function websockettimeout(self) {
+	self.$timeout = null;
+	self.$onerror('Timeout');
+}
+
 /**
  * Ping message
  * @return {WebSocketClient}
  */
-WebSocketClientProto.ping = function() {
-	if (!this.isClosed) {
-		this.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, self.options.masking));
-		this.$ping = false;
+WebSocketClientProto.ping = function(timeout) {
+	var self = this;
+	if (!self.isClosed && !self.$timeout) {
+		self.$timeout = setTimeout(websockettimeout, timeout || 3000);
+		self.socket.write(U.getWebSocketFrame(0, 'PING', 0x09, false, self.options.masking));
+		self.$ping = Date.now();
 	}
-	return this;
+	return self;
 };
 
 function websocket_inflate(data) {
