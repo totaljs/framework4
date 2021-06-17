@@ -16,6 +16,7 @@
 - improved WebSocket ping (updated interval to 20 seconds)
 - updated `WebSocketClient.ping(timeout)` by adding `timeout {Number}` argument
 - added `WebSocketClient.latency {Number}` with a latency in `ms`
+- allowed `.wasm` extension for handling static files
 
 ========================
 0.0.43

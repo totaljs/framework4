@@ -186,6 +186,7 @@ var CONTENTTYPES = {
 	txt: 'text/plain',
 	sql: 'text/plain',
 	wav: 'audio/x-wav',
+	wasm: 'application/wasm',
 	webm: 'video/webm',
 	webp: 'image/webp',
 	woff: 'application/font-woff',
