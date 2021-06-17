@@ -14720,6 +14720,7 @@ WebSocketClientProto.isWebSocket = true;
 
 WebSocketClientProto.$exec = function(url, msg, answer, callback) {
 	var self = this;
+
 	websocket_api(url, self, msg.data, function(err, response) {
 
 		if (err && !(err instanceof ErrorBuilder)) {
@@ -15062,6 +15063,7 @@ WebSocketClientProto.$parse = function() {
 			current.buffer.copy(current.mask, 0, index - 4, index);
 		}
 
+
 		if (this.inflate) {
 
 			var buf = Buffer.alloc(length);
@@ -15340,8 +15342,9 @@ WebSocketClientProto.close = function(message, code) {
 		if (self.ready) {
 			if (message && self.container && self.container.encodedecode)
 				message = encodeURIComponent(message);
-			self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08, false, self.masking));
-		} else
+			if (!self.closecode)
+				self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08, false, self.masking));
+		} else if (!self.closecode)
 			self.socket.end();
 
 		self.req.connection.destroy();
