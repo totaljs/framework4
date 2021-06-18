@@ -322,22 +322,44 @@ Message.prototype.attachment = function(filename, name, contentid) {
 
 Message.prototype.send2 = function(callback) {
 
-
 	var self = this;
 
 	if (CONF.allow_totalapi && CONF.mail_api) {
+
+
 		var data = {};
-		data.to = self.to;
+
+		data.to = [];
+
+		for (var m of self.address_to)
+			data.to.push(m instanceof Object ? m.email : m);
+
+		if (self.address_cc && self.address_cc.length) {
+			data.cc = [];
+			for (var m of self.address_cc)
+				data.cc.push(m instanceof Object ? m.email : m);
+		}
+
+		if (self.address_bcc && self.address_bcc.length) {
+			data.bcc = [];
+			for (var m of self.address_bcc)
+				data.bcc.push(m instanceof Object ? m.email : m);
+		}
+
+		if (self.address_reply && self.address_reply.length) {
+			data.reply = [];
+			for (var m of self.address_reply)
+				data.reply.push(m instanceof Object ? m.email : m);
+		}
+
 		data.from = self.from.email;
 		data.subject = self.subject;
 		data.type = self.type;
-		data.cc = self.cc;
-		data.bcc = self.bcc;
 		data.body = self.body;
 		data.priority = self.$priotity;
 		data.unsubscribe = self.$unsubscribe;
 		data.confidential = self.$confidential;
-		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? (CONF.totalapi || CONF.secret_totalapi) : CONF.mail_api, data, callback || NOOP);
+		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? (CONF.totalapi || CONF.secret_totalapi) : CONF.mail_api, 'mail', data, callback || NOOP);
 		return;
 	}
 
