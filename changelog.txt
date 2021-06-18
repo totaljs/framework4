@@ -17,6 +17,7 @@
 - updated `WebSocketClient.ping(timeout)` by adding `timeout {Number}` argument
 - added `WebSocketClient.latency {Number}` with a latency in `ms`
 - allowed `.wasm` extension for handling static files
+- fixed sending emails via Total.js API services
 
 ========================
 0.0.43
