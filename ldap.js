@@ -85,14 +85,24 @@ const TYPES = {
 	Context: 128
 };
 
-function Reader(buffer) {
+function Reader(buffer, callback) {
+
+	if (buffer instanceof Array)
+		buffer = Buffer.concat(buffer);
+
 	var t = this;
 	t.buffer = buffer;
 	t.size = t.buffer.length;
 	t.length = 0;
 	t.offset = 0;
 	t.response = [];
+	t.callback = callback;
 }
+
+Reader.parse = function(buffer, callback) {
+	var reader = new Reader(buffer, callback);
+	reader.parse();
+};
 
 Reader.prototype = {
 	get remain() {
@@ -121,9 +131,11 @@ Reader.prototype.readattribute = function(attr) {
 	var id = self.readstring();
 
 	if (self.peek() === PROTOCOL.LBER_SET) {
+
 		if (self.readsequence(PROTOCOL.LBER_SET)) {
 			var end = self.offset + self.length;
 			while (self.offset < end) {
+
 				var val = self.readstring(TYPES.OctetString, true);
 
 				if (id === 'objectGUID' || id === 'objectSid')
@@ -142,6 +154,33 @@ Reader.prototype.readattribute = function(attr) {
 	}
 
 	return true;
+};
+
+function slice(self, length) {
+	self.buffer = self.buffer.slice(length);
+	self.offset = 0;
+	self.length = 0;
+	if (self.buffer.length)
+		self.parse();
+	else
+		self.finish();
+}
+
+Reader.prototype.slice = function(length) {
+	var self = this;
+	self.buffer = self.buffer.slice(length);
+	self.offset = 0;
+	self.length = 0;
+	if (self.buffer.length)
+		self.parse();
+	else
+		self.finish();
+};
+
+Reader.prototype.finish = function() {
+	var self = this;
+	self.callback(null, self.response);
+	// PATH.fs.writeFile('users.json', JSON.stringify(self.response, null, '\t'), () => console.log(self.response.length));
 };
 
 Reader.prototype.parse = function() {
@@ -189,16 +228,15 @@ Reader.prototype.parse = function() {
 			self.readsequence();
 			var end = self.offset + self.length;
 			var attr = {};
+
 			while (self.offset < end)
 				self.readattribute(attr);
+
 			self.response.push(attr);
 			break;
 	}
 
-	self.buffer = self.buffer.slice(length);
-	self.offset = 0;
-	self.length = 0;
-	self.buffer.length && self.parse();
+	setImmediate(slice, self, length);
 };
 
 Reader.prototype.peek = function() {
@@ -303,6 +341,7 @@ Reader.prototype.readstring = function (tag, retbuf) {
 
 	var str = self.buffer.slice(self.offset, self.offset + self.length);
 	self.offset += self.length;
+
 	return retbuf ? str : str.toString('utf8');
 };
 
@@ -685,42 +724,48 @@ exports.load = function(opt, callback) {
 		var timeout;
 
 		var parse = function() {
-			try {
-				var reader = new Reader(Buffer.concat(buffer));
-				reader.parse();
-				callback(null, profile ? reader.response[0] : reader.response);
-			} catch (e) {
-				callback(e, profile ? null : EMPTYARRAY);
-			}
-			meta.close();
+			Reader.parse(buffer, function(err, response) {
+				callback(err, profile ? response[0] : response);
+				meta.close();
+			});
 		};
 
 		meta.ondata(function(chunk) {
 			if (auth) {
-				var reader = new Reader(buffer);
-				try {
-					reader.parse();
-					meta.socket.write(opt.type === 'profile' ? data2(opt.dn, opt.login) : data(opt.dn, 'objectClass', opt.type));
-				} catch (e) {
-					callback(e, EMPTYARRAY);
-					meta.close();
-				}
-				auth = false;
+				Reader.parse(chunk, function(err) {
+
+					if (err) {
+						callback(err, profile ? null : EMPTYARRAY);
+						meta.close();
+						return;
+					}
+
+					try {
+						meta.socket.write(opt.type === 'profile' ? data2(opt.dn, opt.login) : data(opt.dn, 'objectClass', opt.type));
+					} catch (e) {
+						callback(e, profile ? null : EMPTYARRAY);
+						meta.close();
+					}
+
+					auth = false;
+				});
 			} else {
 				buffer.push(chunk);
 				timeout && clearTimeout(timeout);
-				timeout = setTimeout(parse, 1000);
+				timeout = setTimeout(parse, 1500);
 			}
 		});
 
 		meta.onend(function() {
-			buffer = Buffer.concat(buffer);
-			var reader = new Reader(buffer);
-			try {
-				reader.parse();
-			} catch (e) {
-				callback(e, profile ? null : EMPTYARRAY);
-			}
+
+			if (timeout)
+				return;
+
+			// No emitted any data in "ondata" handler
+			Reader.parse(buffer, function(err) {
+				callback(err, profile ? null : EMPTYARRAY);
+			});
+
 		});
 
 		meta.socket.write(login(opt.user, opt.password));
