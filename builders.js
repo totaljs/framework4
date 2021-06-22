@@ -671,7 +671,7 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 					break;
 				case 8:
 					tmp = {};
-					tmp.type = 'string';
+					tmp.type = typeof(field.raw[0]);
 					tmp.enum = field.raw;
 					break;
 			}
