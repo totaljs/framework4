@@ -9,7 +9,7 @@
 0.0.44
 ========================
 
-- fixed schema error handling with error code `{Number}` as the `err` argument in the `$.callback(err_code response)` method
+- fixed schema error handling with error code `{Number}` as the `err` argument in the `$.callback(err_code, response)` method
 - improved error handling in `WEBSOCKETCLIENT()` method
 - updated `$` arg by adding `websocket {Boolean}` property in `AUTH($)` delegate
 - added support for WebSocket API
