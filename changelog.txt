@@ -3,6 +3,7 @@
 ========================
 
 - fixed parsing a lot of items via LDAP
+- added `noauth` option to the `LDAP()` method
 
 ========================
 0.0.44

@@ -199,14 +199,17 @@ Reader.prototype.parse = function() {
 	self.size = length;
 
 	switch (type) {
+
 		case PROTOCOL.LDAP_REP_BIND:
 			var obj = {};
 			obj.status = self.readenum();
 			obj.dn = self.readstring();
 			obj.error = self.readstring();
 
-			if (obj.error)
-				throw new Error(obj.error);
+			if (obj.error) {
+				self.callback(obj.error, null);
+				return;
+			}
 
 			break;
 
@@ -216,8 +219,10 @@ Reader.prototype.parse = function() {
 			obj.dn = self.readstring();
 			obj.error = self.readstring();
 
-			if (obj.error)
-				throw new Error(obj.error);
+			if (obj.error) {
+				self.callback(obj.error, null);
+				return;
+			}
 
 			break;
 
@@ -691,7 +696,6 @@ function data2(dn, name) {
 	return writer.output();
 }
 
-
 exports.load = function(opt, callback) {
 
 	// opt.ldap {Object} with { host: String, port: Number }
@@ -700,6 +704,7 @@ exports.load = function(opt, callback) {
 	// opt.type {String} can be: person, group, login, profile
 	// opt.login {String} required for the "profile" type
 	// opt.dn {String}
+	// opt.noauth {Boolean} true skips auth
 
 	if (opt.callback)
 		callback = opt.callback;
@@ -768,6 +773,20 @@ exports.load = function(opt, callback) {
 
 		});
 
-		meta.socket.write(login(opt.user, opt.password));
+		if (opt.noauth) {
+			try {
+				auth = false;
+				meta.socket.write(opt.type === 'profile' ? data2(opt.dn, opt.login) : data(opt.dn, 'objectClass', opt.type));
+			} catch (e) {
+				callback(e, profile ? null : EMPTYARRAY);
+			}
+		} else {
+			try {
+				meta.socket.write(login(opt.user, opt.password));
+			} catch (e) {
+				callback(e, profile ? null : EMPTYARRAY);
+			}
+		}
+
 	});
 };
