@@ -108,6 +108,40 @@ global.NEWJSONSCHEMA = function(name, value) {
 	}
 };
 
+function registerjsonschema(name, schema) {
+
+	var schemaid;
+	var tmp;
+
+	if (typeof(schema) === 'object') {
+		F.jsonschemas[schema.$id] = schema;
+		schemaid = schema.$id;
+	} else if (schema.indexOf('-->') !== -1) {
+		schema = schema.split('-->').trim()[0];
+		if (schema[0] === '+' || schema[0] === '-' || schema[0] === '#')
+			schema = schema.substring(1);
+	}
+	// Inline schema object
+	if (!schemaid && typeof(schema) === 'string') {
+		if ((/:|,/).test(schema)) {
+			var tmp = schema.toJSONSchema(name);
+			schemaid = name + HASH(schema);
+			F.jsonschemas[schemaid] = tmp;
+		} else if (!F.jsonschemas[schema]) {
+			// Tries to create from the Total.js Schema
+			tmp = GETSCHEMA(schema);
+			if (tmp)
+				tmp.toJSONSchema();
+			else
+				throw new Error('JSON schema "' + schema + '" not found.');
+			schemaid = schema;
+		} else
+			schemaid = schema;
+	}
+
+	return schemaid;
+}
+
 global.NEWPUBLISH = function(name, value) {
 
 	if (!value) {
@@ -115,29 +149,32 @@ global.NEWPUBLISH = function(name, value) {
 		return;
 	}
 
-	if (typeof(value) === 'object') {
-		F.jsonschemas[value.$id] = value;
-		value = value.$id;
-	}
-
-	// Inline schema object
-	if (value.indexOf(':') !== -1) {
-		var schema = value.toJSONSchema(name);
-		value = name + HASH(value);
-		F.jsonschemas[value] = schema;
-	}
-
-	if (!F.jsonschemas[value]) {
-		// Tries to create from the Total.js Schema
-		var schema = GETSCHEMA(value);
-		if (schema)
-			schema.toJSONSchema();
-		else
-			throw new Error('JSON schema "' + value + '" not found.');
-	}
+	var schemaid = registerjsonschema(name, value);
 
 	if (!F.tms.publish_cache[name])
-		F.tms.publish_cache[name] = value;
+		F.tms.publish_cache[name] = schemaid;
+
+};
+
+global.NEWCALL = function(name, schema, callback) {
+
+	if (typeof(schema) === 'function') {
+		var tmp = callback;
+		callback = schema;
+		schema = tmp;
+	}
+
+	var schemaid = registerjsonschema(name, schema);
+
+	if (!callback && schema.indexOf('-->') !== -1) {
+		var path = schema;
+		callback = (data, callback, client) => EXEC(path, data, callback, client);
+	}
+
+	if (callback)
+		F.tms.calls[name] = { schema: schemaid, callback: callback };
+	else
+		delete F.tms.calls[name];
 
 };
 
@@ -148,29 +185,10 @@ global.NEWSUBSCRIBE = function(name, value) {
 		return;
 	}
 
-	if (typeof(value) === 'object') {
-		F.jsonschemas[value.$id] = value;
-		value = value.$id;
-	}
-
-	// Inline schema object
-	if (value.indexOf(',') !== -1) {
-		var schema = value.toJSONSchema(name);
-		value = name + HASH(value);
-		F.jsonschemas[value] = schema;
-	}
-
-	if (!F.jsonschemas[value]) {
-		// Tries to create from the Total.js Schema
-		var schema = GETSCHEMA(value);
-		if (schema)
-			schema.toJSONSchema();
-		else
-			throw new Error('JSON schema "' + value + '" not found.');
-	}
+	var schemaid = registerjsonschema(name, value);
 
 	if (!F.tms.subscribe_cache[name])
-		F.tms.subscribe_cache[name] = value;
+		F.tms.subscribe_cache[name] = schemaid;
 
 };
 
@@ -1098,6 +1116,10 @@ global.AUTH = function(fn) {
 		DEF.onAuthorize = framework_builders.AuthOptions.wrap(fn);
 	else
 		authbuiltin(fn);
+};
+
+global.TMSCLIENT = function(url, token, callback) {
+	return require('./tmsclient').create(url, token, callback);
 };
 
 global.WEBSOCKETCLIENT = function(callback) {
@@ -2031,7 +2053,7 @@ function Framework() {
 	self.flows = {};
 	self.ui = {};
 	self.jsonschemas = {};
-	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {}, publishers: {} };
+	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {}, publishers: {}, calls: {} };
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
@@ -2076,6 +2098,7 @@ function Framework() {
 		performance: {
 			publish: 0,
 			subscribe: 0,
+			calls: 0,
 			download: 0,
 			upload: 0,
 			request: 0,
@@ -4985,7 +5008,11 @@ function tmsrefresh() {
 			subscribed.push({ id: key, schema: schema });
 		}
 
-		F.tms.socket.send({ type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers) });
+		var calls = [];
+		for (var key in F.tms.calls)
+			calls.push({ id: key, schema: F.jsonschemas[F.tms.calls[key].schema] });
+
+		F.tms.socket.send({ type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers), calls: calls });
 	}
 }
 
@@ -5026,7 +5053,7 @@ function tmscontroller() {
 		// msg.data {Object}
 
 		if (client.tmsready) {
-			if (msg.id) {
+			if (msg.type === 'subscribe' && msg.id) {
 				F.stats.performance.subscribe++;
 				var schema = F.tms.subscribe_cache[msg.id];
 				if (schema) {
@@ -5039,6 +5066,37 @@ function tmscontroller() {
 				F.tms.publishers = {};
 				for (var i = 0; i < msg.subscribers.length; i++)
 					F.tms.publishers[msg.subscribers[i]] = 1;
+			} else if (msg.type === 'call' && msg.id) {
+				var tmp = F.tms.calls[msg.id];
+				if (tmp) {
+					F.stats.performance.call++;
+					JSONSCHEMA(tmp.schema, msg.data, function(err, response) {
+						if (err) {
+							msg.data = err instanceof ErrorBuilder ? err._prepare().items : err.toString();
+							msg.error = true;
+							client.send(msg);
+						} else {
+							tmp.callback(response, function(err, response) {
+								if (err) {
+									msg.error = true;
+									if (err instanceof ErrorBuilder)
+										msg.data = err._prepare().items;
+									else
+										msg.data = [{ error: err + '' }];
+								} else {
+									msg.success = true;
+									msg.data = response;
+								}
+								if (client && !client.isClosed)
+									client.send(msg);
+							}, client);
+						}
+					});
+				} else {
+					msg.error = true;
+					msg.data = [{ name: msg.id, error: '404: not found' }];
+					client.send(msg);
+				}
 			}
 		}
 	});
@@ -10790,6 +10848,7 @@ FrameworkCacheProto.recycle = function() {
 
 	F.temporary.service.publish = F.stats.performance.publish;
 	F.temporary.service.subscribe = F.stats.performance.subscribe;
+	F.temporary.service.call = F.stats.performance.call;
 	F.temporary.service.request = F.stats.performance.request;
 	F.temporary.service.file = F.stats.performance.file;
 	F.temporary.service.message = F.stats.performance.message;
@@ -10805,6 +10864,7 @@ FrameworkCacheProto.recycle = function() {
 	F.stats.response.size += F.stats.performance.upload;
 	F.stats.performance.publish = 0;
 	F.stats.performance.subscribe = 0;
+	F.stats.performance.call = 0;
 	F.stats.performance.upload = 0;
 	F.stats.performance.download = 0;
 	F.stats.performance.external = 0;
@@ -18437,6 +18497,7 @@ function runsnapshot() {
 		stats.um = (F.temporary.service.upload || 0).floor(3);         // uploaded MB min
 		stats.pm = F.temporary.service.publish || 0;      // publish messages min
 		stats.sm = F.temporary.service.subscribe || 0;    // subscribe messages min
+		stats.cm = F.temporary.service.call || 0;         // calls messages min
 		stats.dbrm = F.temporary.service.dbrm || 0;       // db read
 		stats.dbwm = F.temporary.service.dbwm || 0;       // db write
 		stats.usage = F.temporary.service.usage.floor(2); // app usage in % min

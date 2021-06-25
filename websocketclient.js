@@ -677,6 +677,8 @@ WebSocketClientProto.destroy = function() {
 	self.free();
 	self.options.reconnect = 0;
 	self.$reconnecting && clearTimeout(self.$reconnecting);
+	self.$events.destroy && self.emit('destroy');
+	self.$events = null;
 };
 
 /**

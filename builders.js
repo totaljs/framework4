@@ -662,6 +662,16 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 					} else
 						tmp.type = 'date';
 					break;
+
+				case 6:
+					tmp = {};
+					if (field.isArray) {
+						tmp.type = 'array';
+						tmp.items = { type: 'object' };
+					} else
+						tmp.type = 'object';
+					break;
+
 				case 7:
 					// another schema
 					var tmpschema = GETSCHEMA(field.raw);
@@ -3099,10 +3109,19 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 
 ErrorBuilder.assign = function(arr) {
 	var builder = new ErrorBuilder();
-	for (var i = 0; i < arr.length; i++) {
-		if (arr[i].error)
-			builder.items.push(arr[i]);
+	if (arr instanceof Array) {
+		for (var i = 0; i < arr.length; i++) {
+			if (arr[i].error)
+				builder.items.push(arr[i]);
+		}
+	} else {
+		var type = typeof(arr);
+		if (type === 'number' || type === 'string')
+			builder.push(arr);
+		else if (arr instanceof Error)
+			builder.push(arr + '');
 	}
+
 	builder.count = builder.items.length;
 	return builder.count ? builder : null;
 };

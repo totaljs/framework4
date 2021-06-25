@@ -350,9 +350,14 @@ function check_object(meta, error, value, response, stop) {
 				}
 				break;
 			case 'object':
-				tmp = check_object(prop, error, val);
-				if (tmp != null) {
-					response[key] = tmp;
+				if (prop.properties) {
+					tmp = check_object(prop, error, val);
+					if (tmp != null) {
+						response[key] = tmp;
+						count++;
+					}
+				} else {
+					response[key] = val;
 					count++;
 				}
 				break;
