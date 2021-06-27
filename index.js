@@ -5021,7 +5021,10 @@ function tmscontroller() {
 	var $ = this;
 
 	F.tms.socket = $;
-	$.autodestroy(() => F.tms.socket = null);
+
+	$.autodestroy(function() {
+		F.tms.socket = null;
+	});
 
 	$.on('open', function(client) {
 
@@ -5030,15 +5033,16 @@ function tmscontroller() {
 			return;
 		}
 
-		if (CONF.secret_tms && CONF.secret_tms !== client.headers['x-token']) {
-
-			if (TMSBLOCKED[client.ip])
-				TMSBLOCKED[client.ip]++;
-			else
-				TMSBLOCKED[client.ip] = 1;
-
-			client.close(4001);
-			return;
+		if (CONF.secret_tms) {
+			var token = client.headers['x-token']; // || client.query.token;
+			if (token !== CONF.secret_tms) {
+				if (TMSBLOCKED[client.ip])
+					TMSBLOCKED[client.ip]++;
+				else
+					TMSBLOCKED[client.ip] = 1;
+				client.close(4001);
+				return;
+			}
 		}
 
 		delete TMSBLOCKED[client.ip];
@@ -5053,7 +5057,10 @@ function tmscontroller() {
 		// msg.data {Object}
 
 		if (client.tmsready) {
-			if (msg.type === 'subscribe' && msg.id) {
+			if (msg.type === 'ping') {
+				msg.type = 'pong';
+				client.send(msg);
+			} else if (msg.type === 'subscribe' && msg.id) {
 				F.stats.performance.subscribe++;
 				var schema = F.tms.subscribe_cache[msg.id];
 				if (schema) {
@@ -5094,7 +5101,7 @@ function tmscontroller() {
 					});
 				} else {
 					msg.error = true;
-					msg.data = [{ name: msg.id, error: '404: not found' }];
+					msg.data = new ErrorBuilder.push(404)._prepare().items;
 					client.send(msg);
 				}
 			}
