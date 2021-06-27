@@ -5012,7 +5012,7 @@ function tmsrefresh() {
 		for (var key in F.tms.calls)
 			calls.push({ id: key, schema: F.jsonschemas[F.tms.calls[key].schema] });
 
-		F.tms.socket.send({ type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers), calls: calls });
+		F.tms.socket.send({ type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers), call: calls });
 	}
 }
 
