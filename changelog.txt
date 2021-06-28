@@ -9,6 +9,8 @@
 - added `NEWCALL(name, schema, [callback(data, next)])` that registers `call`
 - extended JSON stats by adding `cm` - calls per minute
 - added `destroy` event to the `WEBSOCKETCLIENT()`
+- fixed `U.extend()` method
+- fixed `CLONE()` method
 
 ========================
 0.0.44
