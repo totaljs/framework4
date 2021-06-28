@@ -17356,6 +17356,9 @@ function extend_response(PROTO) {
 	};
 }
 
+F.extendreq = extend_request;
+F.extendres = extend_response;
+
 function $image_persistent(exists, size, isFile, stats, res) {
 	if (exists) {
 		delete F.temporary.processing[res.req.$key];

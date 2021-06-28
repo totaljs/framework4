@@ -11,6 +11,8 @@
 - added `destroy` event to the `WEBSOCKETCLIENT()`
 - fixed `U.extend()` method
 - fixed `CLONE()` method
+- added `F.extendreq()` method
+- added `F.extendres()` method
 
 ========================
 0.0.44
