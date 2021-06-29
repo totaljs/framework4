@@ -5,7 +5,7 @@
 - fixed parsing a lot of items via LDAP
 - added `noauth` option to the `LDAP()` method
 - added `TMSCLIENT(url, [token], [callback(client)])` that creates a connection to the Total.js Message Service server
-- extend Total.js Message Service by adding `call(name, data, callback)` functionality
+- extended Total.js Message Service by adding `call(name, data, callback)` functionality
 - added `NEWCALL(name, schema, [callback(data, next)])` that registers `call`
 - extended JSON stats by adding `cm` - calls per minute
 - added `destroy` event to the `WEBSOCKETCLIENT()`
