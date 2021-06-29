@@ -2474,6 +2474,11 @@ Mail.use = function(smtp, options, callback) {
  */
 F.routes_sort = function(type) {
 
+	if (routes_sort_id) {
+		clearTimeout(routes_sort_id);
+		routes_sort_id = null;
+	}
+
 	F.routes.web.sort((a, b) => a.priority > b.priority ? -1 : a.priority < b.priority ? 1 : 0);
 	F.routes.websockets.sort((a, b) => a.priority > b.priority ? -1 : a.priority < b.priority ? 1 : 0);
 
@@ -3877,8 +3882,9 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		F._request_check_mobile = true;
 
 	EMIT('route', 'web', instance);
+
 	routes_sort_id && clearTimeout(routes_sort_id);
-	routes_sort_id = setTimeout(routes_sort_worker, 50);
+	routes_sort_id = setTimeout(routes_sort_worker, global.totalserverless ? 1 : 50);
 	return instance;
 };
 
@@ -4580,7 +4586,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	EMIT('route', 'websocket', r);
 	routes_sort_id && clearTimeout(routes_sort_id);
-	routes_sort_id = setTimeout(routes_sort_worker, 50);
+	routes_sort_id = setTimeout(routes_sort_worker, global.totalserverless ? 1 : 50);
 	return instance;
 };
 
@@ -5108,6 +5114,112 @@ function tmscontroller() {
 		}
 	});
 }
+
+F.serverless = function(req, res, callback, types, cwd) {
+
+	if (!cwd)
+		cwd = process.env.CWD || process.cwd();
+
+	if (cwd && cwd[0] === '.' && cwd.length < 4)
+		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
+	else if (cwd)
+		F.directory = directory = U.$normalize(cwd);
+	else if (process.env.istotaljsworker)
+		F.directory = process.cwd();
+	else if ((/\/scripts\/.*?.js/).test(process.argv[1]))
+		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
+
+	if (typeof(types) === 'string')
+		types = types.split(/\s|,/).trim();
+
+	if (!types)
+		types = ['nobundles', 'nopackages', 'nocomponents', 'nothemes'];
+
+	if (cwd && cwd[0] === '.' && cwd.length < 4)
+		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
+	else if (cwd)
+		F.directory = directory = U.$normalize(cwd);
+	else if (process.env.istotaljsworker)
+		F.directory = process.cwd();
+	else if ((/\/scripts\/.*?.js/).test(process.argv[1]))
+		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
+
+	var isdebug = types instanceof Array ? types.indexOf('debug') !== -1 : false;
+
+	global.totalserverless = true;
+	F.isWorker = false;
+	global.isWORKER = false;
+	global.DEBUG = isdebug;
+	global.RELEASE = !isdebug;
+
+	var isno = true;
+
+	if (types) {
+		for (var i = 0; i < types.length; i++) {
+			if (types[i].substring(0, 2) !== 'no') {
+				isno = false;
+				break;
+			}
+		}
+	}
+
+	var can = function(type) {
+		if (!types)
+			return true;
+		if (types.indexOf('no' + type) !== -1)
+			return false;
+		return isno ? true : types.indexOf(type) !== -1;
+	};
+
+	F.$bundle(function() {
+
+		configure_env();
+		configure_configs();
+
+		if (isTYPESCRIPT)
+			SCRIPTEXT = '.ts';
+
+		can('versions') && configure_versions();
+		can('sitemap') && configure_sitemap();
+
+		var noservice = true;
+		for (var i = 0; i < types.length; i++) {
+			switch(types[i]) {
+				case 'service':
+				case 'services':
+					noservice = false;
+					break;
+			}
+			if (!noservice)
+				break;
+		}
+
+		F.cache.init(noservice);
+		EMIT('init');
+
+		F.$load(types, directory, function() {
+
+			F.isLoaded = true;
+
+			try {
+				EMIT('load');
+				EMIT('ready');
+			} catch (err) {
+				F.error(err, 'ON("load/ready")');
+			}
+
+			callback && callback();
+
+			if (req && res) {
+				extend_request(req);
+				extend_response(res);
+				setImmediate(F.listener, req, res);
+			}
+
+		});
+	}, can('bundles'));
+
+};
 
 F.$load = function(types, targetdirectory, callback) {
 
@@ -7241,6 +7353,7 @@ global.LOAD = F.load = function(types, cwd, ready) {
 				F.removeAllListeners('ready');
 
 			}, 500);
+
 		});
 	}, can('bundles'));
 };
@@ -7907,6 +8020,9 @@ F.listener = function(req, res) {
 		else
 			F.temporary.ddos[ip] = 1;
 	}
+
+	if (!req.url)
+		req.url = '/';
 
 	var headers = req.headers;
 	req.$protocol = ((req.connection && req.connection.encrypted) || ((headers['x-forwarded-proto'] || ['x-forwarded-protocol']) === 'https')) ? 'https' : 'http';
@@ -15487,6 +15603,9 @@ function extend_request(PROTO) {
 
 	PROTOREQ = PROTO;
 
+	if (PROTO.$total_success)
+		return;
+
 	Object.defineProperty(PROTO, 'ip', {
 		get: function() {
 			if (this._ip)
@@ -15500,6 +15619,9 @@ function extend_request(PROTO) {
 				this._ip = this.connection.remoteAddress;
 
 			return this._ip;
+		},
+		set: function(val) {
+			this._ip = val;
 		}
 	});
 
@@ -16272,6 +16394,9 @@ function total_endmiddleware(req) {
 function extend_response(PROTO) {
 
 	PROTORES = PROTO;
+
+	if (PROTO.$throw)
+		return;
 
 	/**
 	 * Add a cookie into the response

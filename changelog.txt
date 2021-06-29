@@ -13,6 +13,7 @@
 - fixed `CLONE()` method
 - added `F.extendreq(req)` method
 - added `F.extendres(res)` method
+- added `F.serverless(req, res, [callback], [types], [cwd])` method
 
 ========================
 0.0.44
