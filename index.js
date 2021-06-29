@@ -37,7 +37,7 @@ const REG_WINDOWSPATH = /\\/g;
 const REG_HTTPHTTPS = /^(\/)?(http|https):\/\//i;
 const REG_NOCOMPRESS = /[.|-]+min(@[a-z0-9]*)?\.(css|js)$/i;
 const REG_WWW = /^www\./i;
-const REG_TEXTAPPLICATION = /text|application/;
+const REG_TEXTAPPLICATION = (/text|application\/(json|xml)/);
 const REG_ENCODINGCLEANER = /[;\s]charset=utf-8/g;
 const REG_SKIPERROR = /epipe|invalid\sdistance/i;
 //const REG_UTF8 = /[^\x20-\x7E]+/;
@@ -16581,7 +16581,7 @@ function extend_response(PROTO) {
 		headers[HEADER_CACHE] = 'private, no-cache, no-store, max-age=0';
 		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 
-		if ((/text|application/).test(contentType))
+		if (REG_TEXTAPPLICATION.test(contentType))
 			contentType += '; charset=utf-8';
 
 		headers[HEADER_TYPE] = contentType;
