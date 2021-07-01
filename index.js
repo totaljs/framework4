@@ -262,8 +262,19 @@ global.NPMINSTALL = function(name, callback) {
 
 		if (is) {
 			callback && callback();
-		} else
-			require('child_process').exec('npm install ' + name, err => callback && callback(err));
+		} else {
+
+			var args = {};
+
+			if (process.getuid && process.getuid() === 33)
+				args.env = { NPM_CONFIG_CACHE: '/var/www/.npm' };
+
+			args.cwd = PATH.root();
+
+			F.Child.exec('npm install ' + name, args, function(err, response, output) {
+				callback && callback(err ? (output || err) : null);
+			});
+		}
 	});
 
 };
