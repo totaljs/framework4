@@ -77,6 +77,28 @@ FP.readfilename = function(id) {
 	return Path.join(directory, id + '.file');
 };
 
+FP.savejson = function(id, value, callback, custom, expire) {
+	return this.save(id, id + '.json', Buffer.from(JSON.stringify(value), 'utf8'), callback, custom, expire);
+};
+
+FP.readjson = function(id, callback) {
+	return this.read(id, function(err, meta) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var buffer = [];
+		meta.stream.on('data', chunk => buffer.push(chunk));
+		meta.stream.on('end', function() {
+			meta.stream = null;
+			callback(null, Buffer.concat(buffer).toString('utf8').parseJSON(true), meta);
+		});
+
+	});
+};
+
 FP.save = FP.insert = function(id, name, filename, callback, custom, expire, headers) {
 
 	var self = this;

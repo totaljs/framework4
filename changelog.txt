@@ -16,6 +16,8 @@
 - added `F.serverless(req, res, [callback], [types], [cwd])` method
 - fixed content-types for `application/*` content types
 - improved `NPMINSTALL()` by adding check for existing modules
+- added `FILESTORAGE().savejson(id, value, [callback(err, meta)], [custom], [expire])`
+- added `FILESTORAGE().readjson(id, callback(err, value, meta))`
 
 ========================
 0.0.44
