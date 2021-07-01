@@ -243,10 +243,29 @@ global.UNSUBSCRIBE = function(name, callback) {
 };
 
 global.NPMINSTALL = function(name, callback) {
-	PATH.mkdir(PATH.root('node_modules'));
-	require('child_process').exec('npm install ' + name, function(err) {
-		callback && callback(err);
+
+	var path = PATH.root('node_modules');
+
+	PATH.mkdir(path);
+
+	var index = name.lastIndexOf('@');
+	var folder = index === -1 ? name : name.substring(0, index);
+
+	Fs.readFile(PATH.join(path, folder, 'package.json'), function(err, response) {
+
+		var is = false;
+
+		if (response) {
+			response = response.toString('utf8').parseJSON();
+			is = response && (index === -1 || response.version === name.substring(index + 1));
+		}
+
+		if (is) {
+			callback && callback();
+		} else
+			require('child_process').exec('npm install ' + name, err => callback && callback(err));
 	});
+
 };
 
 global.IMPORT = function(url, callback) {
@@ -1842,7 +1861,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4042;
+	self.is4 = self.version = 4045;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();

@@ -15,6 +15,7 @@
 - added `F.extendres(res)` method
 - added `F.serverless(req, res, [callback], [types], [cwd])` method
 - fixed content-types for `application/*` content types
+- improved `NPMINSTALL()` by adding check for existing modules
 
 ========================
 0.0.44
