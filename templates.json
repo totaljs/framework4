@@ -23,6 +23,12 @@
 		"total": 4,
 		"description": "Empty project ready to be used with postgreSQL"
 	},
+	"app-builder": {
+		"id": "emptyproject-builder",
+		"name": "App builder",
+		"total": 4,
+		"description": "Tool for creating Total.js server-side applications"
+	},
 	"empty-spa": {
 		"id": "emptyproject-emptyspa",
 		"name": "Empty SPA",
