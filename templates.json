@@ -1,3 +1,6 @@
 {
-	"pwa": "emptyproject-pwa"
+	"pwa": {
+		"id": "emptyproject-pwa",
+		"description": "simple pwa template"
+	}
 }
