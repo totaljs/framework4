@@ -29,7 +29,6 @@ function display_help() {
 	console.log('-minify filename      : minifies .js, .css or .html file into filename.min.[extension]');
 	console.log('-bundle filename      : makes a bundle from the current directory');
 	console.log('-package filename     : makes a package from the current directory');
-	console.log('-install              : run "totaljs -install help" to see what can be installed');
 	console.log('8000                  : starts a server');
 	console.log('');
 }
