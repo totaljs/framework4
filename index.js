@@ -4318,6 +4318,12 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	if (CUSTOM)
 		url = '/';
 
+	if (funcInitialize && typeof(funcInitialize) !== 'function') {
+		length = flags;
+		flags = funcInitialize;
+		funcInitialize = null;
+	}
+
 	if (typeof(flags) === 'number') {
 		length = flags;
 		flags = null;
