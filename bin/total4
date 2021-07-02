@@ -15,21 +15,21 @@ function display_help() {
 	console.log('Total.js v4 command-line utilities');
 	console.log('--------------------------------------------------------');
 	console.log('');
-	console.log('without arguments     : creates emptyproject');
-	console.log('-templates            : list of all total.js templates');
-	console.log('-translate            : creates a resource file with the localized text from views');
-	console.log('-translate "TEXT"     : creates an identificator for the resource');
-	console.log('-translate filename   : parses and creates a resource file from the text file');
-	console.log('-translatecsv         : parses and creates CSV with localization in the current directory');
-	console.log('-translate4 source    : converts old version of localization to a new');
-	console.log('-csv filename         : parses CSV and creates resources from CSV file');
-	console.log('-diff source target   : creates differences between two resources "-diff source target"');
-	console.log('-merge source target  : merges first resource into the second "-merge source target"');
-	console.log('-clean source         : cleans a resource file "-clean source"');
-	console.log('-minify filename      : minifies .js, .css or .html file into filename.min.[extension]');
-	console.log('-bundle filename      : makes a bundle from the current directory');
-	console.log('-package filename     : makes a package from the current directory');
-	console.log('8000                  : starts a server');
+	console.log('-templates                : list of all total.js templates');
+	console.log('-translate                : creates a resource file with the localized text from views');
+	console.log('-translate "TEXT"         : creates an identificator for the resource');
+	console.log('-translate {filename}     : parses and creates a resource file from the text file');
+	console.log('-translatecsv             : parses and creates CSV with localization in the current directory');
+	console.log('-translate4 {source}      : converts old version of localization to a new');
+	console.log('-csv {filename}           : parses CSV and creates resources from CSV file');
+	console.log('-diff {source} {target}   : creates differences between two resources "-diff source target"');
+	console.log('-merge {source} {target}  : merges first resource into the second "-merge source target"');
+	console.log('-clean {source}           : cleans a resource file "-clean source"');
+	console.log('-minify {filename}        : minifies .js, .css or .html file into filename.min.[extension]');
+	console.log('-bundle {filename}        : makes a bundle from the current directory');
+	console.log('-package {filename}       : makes a package from the current directory');
+	console.log('template {name} {dir}     : download template from "-templates" list');
+	console.log('8000                      : starts a server');
 	console.log('');
 }
 
@@ -520,6 +520,11 @@ function main() {
 			break;
 		}
 
+		if (cmd === 'template') {
+			$type = 8;
+			break;
+		}
+
 		dir = arg;
 		isDirectory = true;
 	}
@@ -735,41 +740,43 @@ function main() {
 			}
 
 			console.log();
-			console.log('To download template type `total4 {template} {directory}`');
+			console.log('To download template type "total4 {template} {directory}"');
 			console.log();
 			
 		});
 		return;
 	}
 
-	var files = Fs.readdirSync(dir);
-	if (files.length > 0) {
+	if ($type === 8) {
+		var files = Fs.readdirSync(dir);
+		if (files.length > 0) {
 
-		var can = true;
-		for (var i = 0; i < files.length; i++) {
-			var name = files[i];
-			if (name[0] !== '.')
-				can = false;
+			var can = true;
+			for (var i = 0; i < files.length; i++) {
+				var name = files[i];
+				if (name[0] !== '.')
+					can = false;
+			}
+
+			if (!can) {
+				console.log('ERROR: directory is not empty');
+				console.log('');
+				return;
+			}
 		}
 
-		if (!can) {
-			console.log('ERROR: directory is not empty');
-			console.log('');
-			return;
-		}
+		templates(function(res) {
+			var name = process.argv[3] || 'emptyproject';
+			var template = res[name];
+
+			if (template)
+				git(dir, template);
+			else {
+				console.log('Template "{0}" is invalid. Use "total4 -templates" to list all avaliable templates'.format(name));
+				console.log();
+			}
+		});
 	}
-
-	templates(function(res) {
-		var name = process.argv[2] || 'emptyproject';
-		var template = res[name];
-
-		if (template)
-			git(dir, template);
-		else {
-			console.log('Template `{0}` is invalid. Use `total4 -templates` to list all avaliable templates'.format(name));
-			console.log();
-		}
-	});
 
 }
 
