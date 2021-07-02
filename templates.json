@@ -45,7 +45,7 @@
 		"id": "emptyproject-flow",
 		"name": "Flow",
 		"total": 4,
-		"description": "Visual programming interface for IOT"
+		"description": "Visual programming interface for IoT"
 	},
 	"dashboard": {
 		"id": "emptyproject-dashboard",
@@ -57,6 +57,6 @@
 		"id": "emptyproject-flowboard",
 		"name": "Flowboard",
 		"total": 3,
-		"description": "Data renderer for Total.js Flow"
+		"description": "Friendly designer for the IoT"
 	}
 }
