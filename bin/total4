@@ -16,6 +16,7 @@ function display_help() {
 	console.log('--------------------------------------------------------');
 	console.log('');
 	console.log('without arguments     : creates emptyproject');
+	console.log('-templates            : list of all total.js templates');
 	console.log('-translate            : creates a resource file with the localized text from views');
 	console.log('-translate "TEXT"     : creates an identificator for the resource');
 	console.log('-translate filename   : parses and creates a resource file from the text file');
@@ -515,6 +516,11 @@ function main() {
 			return;
 		}
 
+		if (cmd === '-templates' || cmd === '--templates') {
+			$type = 7;
+			break;
+		}
+
 		dir = arg;
 		isDirectory = true;
 	}
@@ -720,6 +726,23 @@ function main() {
 		return;
 	}
 
+	if ($type === 7) {
+		templates(function(templates) {
+			console.log('Templates');
+
+			for (var key in templates) {
+				var template = templates[key];
+				console.log(key.padRight(17, ' ') + ': ' + template.description);
+			}
+
+			console.log();
+			console.log('To download template type `total4 {template} {directory}`');
+			console.log();
+			
+		});
+		return;
+	}
+
 	var files = Fs.readdirSync(dir);
 	if (files.length > 0) {
 
@@ -737,13 +760,35 @@ function main() {
 		}
 	}
 
-	git(dir, 'emptyproject');
+	templates(function(res) {
+		var name = process.argv[2] || 'emptyproject';
+		var template = res[name];
+
+		if (template)
+			git(dir, template);
+		else {
+			console.log('Template `{0}` is invalid. Use `total4 -templates` to list all avaliable templates'.format(name));
+			console.log();
+		}
+	});
+
 }
 
-function git(dir, type) {
+function templates(callback) {
+	RESTBuilder.GET('https://raw.githubusercontent.com/totaljs/framework4/master/templates.json').exec(function(err, res, out) {
+		if (err || out.status !== 200) {
+			console.log('Total.js templates are currently unavailable.');	
+			return;
+		}
+		
+		callback(res);
+	});
+}
+
+function git(dir, template) {
 
 	var done = function() {
-		console.log('Installed: {0}'.format(type));
+		console.log('Installed: {0}'.format(template.name));
 		console.log();
 	};
 
@@ -756,7 +801,7 @@ function git(dir, type) {
 		}
 
 		PATH.mkdir(dir);
-		Exec('git clone https://github.com/totaljs/{0}.git {1}'.format(type, dir), function() {
+		Exec('git clone https://github.com/totaljs/{0}.git {1}'.format(template.id, dir), function() {
 			PATH.mkdir(Path.join(dir, '/node_modules/'));
 			PATH.rmdir(Path.join(dir, '.git'), function() {
 				PATH.unlink(Path.join(dir, '.gitignore'), function() {
