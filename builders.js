@@ -1269,14 +1269,14 @@ SchemaBuilderEntityProto.setGetExtension = SchemaBuilderEntityProto.setReadExten
 	return this;
 };
 
-SchemaBuilderEntityProto.setQuery = function(fn, filter) {
+SchemaBuilderEntityProto.setList = SchemaBuilderEntityProto.setQuery = function(fn, filter) {
 	this.onQuery = fn;
 	this.meta.query = 1;
 	this.meta.queryfilter = filter;
 	return this;
 };
 
-SchemaBuilderEntityProto.setQueryExtension = function(fn) {
+SchemaBuilderEntityProto.setListExtension = SchemaBuilderEntityProto.setQueryExtension = function(fn) {
 	var key = 'query';
 	if (this.extensions[key])
 		this.extensions[key].push(fn);
@@ -2424,6 +2424,8 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 			break;
 		case 'Query':
 		case 'query':
+		case 'List':
+		case 'list':
 			ntype = 'onQuery';
 			break;
 	}
