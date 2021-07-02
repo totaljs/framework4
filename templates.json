@@ -1,7 +1,62 @@
 {
+	"empty": {
+		"id": "emptyproject",
+		"name": "Empty",
+		"total": 4,
+		"description": "Empty project without any special setups"
+	},
+	"typescript": {
+		"id": "emptyproject-typescript",
+		"name": "Typescript",
+		"total": 4,
+		"description": "Total.js with typescript"
+	},
+	"website": {
+		"id": "emptyproject-website",
+		"name": "Website",
+		"total": 4,
+		"description": "Website example"
+	},
+	"postgres": {
+		"id": "emptyproject-postgresql",
+		"name": "Postgres template",
+		"total": 4,
+		"description": "Empty project ready to be used with postgreSQL"
+	},
+	"empty-spa": {
+		"id": "emptyproject-emptyspa",
+		"name": "Empty SPA",
+		"total": 4,
+		"description": "Empty single page application project"
+	},
+	"spa": {
+		"id": "emptyproject-spa",
+		"name": "SPA",
+		"total": 4,
+		"description": "Single page application template"
+	},
 	"pwa": {
-		"id": "emptyproject-pwa",
+		"id": "emptyproject-emptyspa",
 		"name": "PWA",
-		"description": "simple pwa template"
+		"total": 4,
+		"description": "Progressive web application template"
+	},
+	"flow": {
+		"id": "emptyproject-flow",
+		"name": "Flow",
+		"total": 4,
+		"description": "Visual programming interface for IOT"
+	},
+	"dashboard": {
+		"id": "emptyproject-dashboard",
+		"name": "Dashboard",
+		"total": 3,
+		"description": "Data renderer for Total.js Flow"
+	},
+	"flowboard": {
+		"id": "emptyproject-flowboard",
+		"name": "Flowboard",
+		"total": 3,
+		"description": "Data renderer for Total.js Flow"
 	}
 }
