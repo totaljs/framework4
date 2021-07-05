@@ -417,6 +417,12 @@ FP.browse2 = function(callback) {
 		}
 
 		response.wait(function(item, next) {
+
+			if (item.substring(item.length - 5) !== '.file') {
+				next();
+				return;
+			}
+
 			Fs.readdir(Path.join(self.directory, item), function(err, response) {
 				if (response instanceof Array) {
 					response.wait(function(item, next) {
@@ -434,6 +440,7 @@ FP.browse2 = function(callback) {
 			});
 		}, () => callback(null, files));
 	});
+
 	return self;
 };
 
