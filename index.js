@@ -1624,6 +1624,7 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 				}
 
 				tmp.name = item;
+
 				if (!o.meta[item]) {
 					if (o.meta['workflow_' + item])
 						tmp.type = 'workflow';
@@ -1632,8 +1633,16 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 					else if (o.meta['task_' + item])
 						tmp.type = 'task';
 					else {
-						callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
-						return;
+
+						if (item === 'get') {
+							tmp.name = item = 'read';
+						} else if (item === 'list')
+							tmp.name = item = 'query';
+
+						if (!o.meta[item]) {
+							callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
+							return;
+						}
 					}
 				}
 
@@ -14838,6 +14847,7 @@ WebSocketProto.check = function() {
 		for (var i = 0; i < self.keys.length; i++) {
 			var client = self.connections[self.keys[i]];
 			if (client.$ping && (client.latency == null || client.latency > 2000)) {
+				console.log('CLOSE LATENCY', client.latency, client.ua, client.ip, client.user);
 				client.close();
 				F.stats.other.websocketcleaner++;
 			}
