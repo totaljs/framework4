@@ -362,7 +362,7 @@ FP.readbuffer = function(id, callback) {
 				return;
 			}
 
-			var buffer = [];
+			buffer = [];
 			F.stats.performance.open++;
 
 			var stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
