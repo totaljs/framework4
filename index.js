@@ -11767,6 +11767,7 @@ function websocket_api(url, client, model, callback) {
 
 	var ctrl = new Controller(null, { uri: EMPTYOBJECT, query: query ? query.parseEncoded() : {}, body: model, urlschema: urlschema, files: EMPTYARRAY, ip: client.ip, headers: client.headers, ua: client.ua, user: client.user, session: client.session });
 
+	ctrl.client = client;
 	ctrl.params = {};
 	ctrl.req.urlschema = model.schema;
 
@@ -15106,7 +15107,7 @@ WebSocketClientProto.upgrade = function(container) {
 	var self = this;
 	self.req.on('abort', websocket_onerror);
 	self.req.on('error', websocket_onerror);
-	self.container = container;
+	self.container = self.controller = container;
 	self.socket.$websocket = this;
 	self.socket.on('data', websocket_ondata);
 	self.socket.on('error', websocket_onerror);
