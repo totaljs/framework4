@@ -369,8 +369,7 @@ FP.readbuffer = function(id, callback) {
 			stream.on('data', chunk => buffer.push(chunk));
 
 			CLEANUP(stream, function() {
-				meta.buffer = Buffer.concat(buffer);
-				callback(err, meta);
+				callback(err, Buffer.concat(buffer), meta);
 				Fs.close(fd, NOOP);
 			});
 		});

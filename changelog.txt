@@ -18,6 +18,7 @@
 - improved `NPMINSTALL()` by adding check for existing modules
 - added `FILESTORAGE().savejson(id, value, [callback(err, meta)], [custom], [expire])`
 - added `FILESTORAGE().readjson(id, callback(err, value, meta))`
+- added `FILESTORAGE().readbuffer(id, callback(err, buffer, meta))`
 
 ========================
 0.0.44
