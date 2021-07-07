@@ -326,6 +326,59 @@ FP.read = function(id, callback, nostream) {
 	return self;
 };
 
+FP.readbuffer = function(id, callback) {
+
+	var self = this;
+
+	if (self.pause) {
+		setTimeout(self.readbuffer, 500, id, callback);
+		return self;
+	}
+
+	var filename = Path.join(self.makedirectory(id), id + '.file');
+	F.stats.performance.open++;
+	Fs.open(filename, 'r', function(err, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var buffer = Buffer.alloc(HEADERSIZE);
+		Fs.read(fd, buffer, 0, HEADERSIZE, 0, function(err) {
+
+			if (err) {
+				Fs.close(fd, NOOP);
+				callback(err);
+				return;
+			}
+
+			var meta = buffer.toString('utf8').replace(REGCLEAN, '').parseJSON(true);
+			meta.id = id;
+
+			if (meta.expire && meta.expire < NOW) {
+				Fs.close(fd, NOOP);
+				callback('File is expired');
+				return;
+			}
+
+			var buffer = [];
+			F.stats.performance.open++;
+
+			var stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
+			stream.on('data', chunk => buffer.push(chunk));
+
+			CLEANUP(stream, function() {
+				meta.buffer = Buffer.concat(buffer);
+				callback(err, meta);
+				Fs.close(fd, NOOP);
+			});
+		});
+	});
+
+	return self;
+};
+
 FP.browse = function(callback) {
 	var db = NOSQL('~' + this.logger).find();
 	if (callback)
