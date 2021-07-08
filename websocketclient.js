@@ -70,6 +70,9 @@ WebSocketClientProto.api = function(schema, data, callback, timeout) {
 		return self;
 	}
 
+	if (!self.$api)
+		self.api();
+
 	if (typeof(data) === 'function') {
 		timeout = callback;
 		callback = data;
@@ -88,7 +91,7 @@ WebSocketClientProto.api = function(schema, data, callback, timeout) {
 		var obj = {};
 		obj.callback = callback;
 		obj.timeout = setTimeout(timeoutapi, timeout || 5000, msg.callbackid);
-		CALLBACKS[msg.id] = obj;
+		CALLBACKS[msg.callbackid] = obj;
 	}
 
 	self.send(msg);
