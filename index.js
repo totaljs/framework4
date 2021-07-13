@@ -2661,6 +2661,10 @@ function textdbwrapper(name) {
 	return instance;
 }
 
+global.CMSCOMPILER = function(html, widgets, used) {
+	return require('./cms').compile(html, widgets, used);
+};
+
 global.NOSQL = function(name) {
 	global.NOSQL = nosqlwrapper;
 	return nosqlwrapper(name);
