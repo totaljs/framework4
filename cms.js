@@ -332,12 +332,14 @@ exports.compile = function(html, widgets, used) {
 		index = body.lastIndexOf('<');
 		body = body.substring(0, index) + '~END~' + body.substring(index);
 
+		index = w.indexOf('__');
 		var config = decodeURIComponent(w.substring(index + 2, w.length - 1)).parseJSON(true);
+
 		var opt = {};
 		opt.id = id;
 		opt.indexer = indexer;
 		opt.body = clean(body);
-		opt.config = config;
+		opt.config = config || EMPTYOBJECT;
 		opt.render = widget.render;
 		response.widgets.push(opt);
 		indexer++;
@@ -476,7 +478,7 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 		opt.html = item.html;
 
 		item.render(opt, function(response) {
-			widgets[item.index] = response || '';
+			widgets[item.indexer] = response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '');
 			next();
 		});
 
