@@ -65,9 +65,11 @@ exports.create = function(url, token, callback) {
 				isopen = true;
 				client.ready = true;
 				if (callback) {
-					setImmediate(callback, client);
+					setImmediate(callback, client, client.meta);
 					callback = null;
 				}
+				client.meta = msg;
+				client.emit('meta', msg);
 				client.emit('ready');
 			}
 		});
