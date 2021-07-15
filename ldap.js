@@ -730,7 +730,7 @@ exports.load = function(opt, callback) {
 
 		var parse = function() {
 			Reader.parse(buffer, function(err, response) {
-				callback(err, profile ? response[0] : response);
+				callback(err, profile ? (response ? response[0] : null) : response);
 				meta.close();
 			});
 		};
