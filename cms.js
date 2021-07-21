@@ -3,6 +3,7 @@
 // Copyright 2021 (c) Peter Širka <petersirka@gmail.com>
 
 const SKIP_CLASSES = { CMS_hidden: 1, CMS_mv: 1, CMS_mh: 1, CMS_expression: 1, CMS_multiple: 1 };
+const VERSION = 1;
 
 function clean(html) {
 	var index = html.indexOf('>');
@@ -470,12 +471,14 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 	self.widgets.wait(function(item, next) {
 
 		var opt = {};
+		opt.version = VERSION;
 		opt.controller = meta.controller;
 		opt.vars = meta.vars;
 		opt.refs = meta.refs;
 		opt.config = item.config;
 		opt.body = item.body;
 		opt.html = item.html;
+		opt.nav = meta.nav;
 
 		item.render(opt, function(response) {
 			widgets[item.indexer] = response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '');
