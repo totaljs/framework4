@@ -304,6 +304,7 @@ exports.compile = function(html, widgets, used) {
 		var widget = widgets instanceof Array ? widgets.findItem('id', id) : widgets[id];
 		var body = html.substring(index, pos);
 
+		// Widget not found
 		if (!widget) {
 			html = html.replace(body, '');
 			continue;
