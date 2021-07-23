@@ -19,6 +19,11 @@
 - added `FILESTORAGE().savejson(id, value, [callback(err, meta)], [custom], [expire])`
 - added `FILESTORAGE().readjson(id, callback(err, value, meta))`
 - added `FILESTORAGE().readbuffer(id, callback(err, buffer, meta))`
+- added `SafeString` type to the Schemas with a check for XSS and SQL Injections
+- added `Color` type to the Schemas
+- added `Icon` type to the Schemas
+- fixed `EACHSCHEMA()` method
+- improved schema types `Capitalize`, `Capitalize2` by adding a check for `XSS`
 
 ========================
 0.0.44

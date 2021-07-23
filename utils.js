@@ -15,6 +15,8 @@ const KeepAliveHttps = new Https.Agent({ keepAlive: true, timeout: 60000 });
 const SKIPBODYENCRYPTOR = { ':': 1, '"': 1, '[': 1, ']': 1, '\'': 1, '_': 1, '{': 1, '}': 1, '&': 1, '=': 1, '+': 1, '-': 1, '\\': 1, '/': 1, ',': 1 };
 const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
 const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
+const REG_XSS = /<.*>/;
+const REG_SQLINJECTION = /'(''|[^'])*'|\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE|UNION( +ALL){0,1})\b/;
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -3683,6 +3685,14 @@ SP.isURL = function() {
 
 SP.isZIP = function() {
 	return DEF.validators.zip.test(this);
+};
+
+SP.isXSS = function() {
+	return REG_XSS.test(this);
+};
+
+SP.isSQLInjection = function() {
+	return REG_SQLINJECTION.test(this);
 };
 
 SP.isEmail = function() {

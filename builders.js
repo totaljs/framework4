@@ -1,8 +1,9 @@
 'use strict';
 
-const DEFAULT_SCHEMA = 'default';
 const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
+const REGEXP_COLOR = /^#([A-F0-9]{3}|[A-F0-9]{6}|[A-F0-9]{8})$/i;
+const REGEXP_ICON = /^(far|fab|fad|fal|fas|fa)?\sfa-[a-z0-9-]+$/;
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 const BOOL = { true: 1, on: 1, '1': 1 };
 
@@ -695,7 +696,7 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 	return obj;
 };
 
-SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, invalid) {
+SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, invalid, xss) {
 
 	var self = this;
 
@@ -708,6 +709,7 @@ SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, inva
 	var rt = typeof(required);
 
 	if (required !== undefined && rt === 'string') {
+		xss = invalid;
 		invalid = required;
 		required = true;
 	}
@@ -724,6 +726,7 @@ SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, inva
 
 	var a = self.schemajson[name] = self.$parse(name, type, required);
 	a.invalid = invalid || '@';
+	a.xss = xss;
 
 	if (a.type === 7)
 		required = true;
@@ -739,7 +742,7 @@ SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, inva
 	};
 };
 
-SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
+SchemaBuilderEntityProto.define = function(name, type, required, invalid, xss) {
 
 	var self = this;
 
@@ -781,6 +784,7 @@ SchemaBuilderEntityProto.define = function(name, type, required, invalid) {
 
 	self.fields = Object.keys(self.schema);
 	a.invalid = invalid || '@';
+	a.xss = xss;
 
 	if (a.type === 7)
 		required = true;
@@ -1046,6 +1050,12 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 		return parseLength(lower, result);
 	}
 
+	if ((/^(safestring)+(\(\d+\))?$/).test(lower)) {
+		result.type = 3;
+		result.subtype = 'safestring';
+		return parseLength(lower, result);
+	}
+
 	if ((/^(name)+(\(\d+\))?$/).test(lower)) {
 		result.type = 3;
 		result.subtype = 'name';
@@ -1068,6 +1078,20 @@ SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
 		result.subtype = 'lowercase';
 		result.type = 3;
 		return parseLength(lower, result);
+	}
+
+	if (lower.indexOf('color') !== -1) {
+		result.type = 3;
+		result.raw = 'string';
+		result.subtype = 'color';
+		return result;
+	}
+
+	if (lower.indexOf('icon') !== -1) {
+		result.type = 3;
+		result.raw = 'string';
+		result.subtype = 'icon';
+		return result;
 	}
 
 	if (lower.indexOf('base64') !== -1) {
@@ -1922,7 +1946,6 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 				case 2:
 					item[property] = self.$onprepare(property, framework_utils.parseFloat(val, def ? type.def() : type.def), undefined, model, $);
 					break;
-
 				// string
 				case 3:
 
@@ -1934,6 +1957,14 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 						tmp = autotrim(self, val);
 					else
 						tmp = autotrim(self, val.toString());
+
+					if (type.xss && ((type.xss === true && (tmp.isXSS() || tmp.isSQLInjection())) || (type.xss === 1 && tmp.isXSS()) || (type.xss === 2 && tmp.isSQLInjection()))) {
+						tmp = '';
+						if (type.def !== undefined)
+							tmp = def ? type.def() : type.def;
+						item[property] = self.$onprepare(property, tmp, undefined, model, $);
+						break;
+					}
 
 					if (type.length && type.length < tmp.length)
 						tmp = tmp.substring(0, type.length);
@@ -1962,11 +1993,21 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							if (tmp && !type.required && !tmp.isPhone())
 								tmp = '';
 							break;
+						case 'safestring':
+							if (tmp.isXSS() || tmp.isSQLInjection())
+								tmp = '';
+							break;
 						case 'capitalize':
-							tmp = tmp.capitalize();
+							if (tmp.isXSS())
+								tmp = '';
+							else
+								tmp = tmp.capitalize();
 							break;
 						case 'capitalize2':
-							tmp = tmp.capitalize(true);
+							if (tmp.isXSS())
+								tmp = '';
+							else
+								tmp = tmp.capitalize(true);
 							break;
 						case 'name':
 							tmp = toName(tmp);
@@ -1979,6 +2020,14 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							break;
 						case 'json':
 							if (tmp && !type.required && !tmp.isJSON())
+								tmp = '';
+							break;
+						case 'color':
+							if (tmp && !type.required && !REGEXP_COLOR.test(tmp))
+								tmp = '';
+							break;
+						case 'icon':
+							if (tmp && !type.required && !REGEXP_ICON.test(tmp))
 								tmp = '';
 							break;
 						case 'base64':
@@ -2814,9 +2863,8 @@ global.EACHSCHEMA = exports.eachschema = function(group, fn) {
 		group = undefined;
 	}
 
-	var keys = Object.keys(schemas);
-	for (var i = 0; i < keys.length; i++) {
-		var schema = schemas[keys[i]];
+	for (var key in schemas) {
+		var schema = schemas[key];
 		fn(schema.name, schema);
 	}
 };
@@ -2854,7 +2902,7 @@ exports.findschema = function(groupname) {
 exports.newschema = function(name) {
 	var o = new SchemaBuilderEntity(name);
 	o.owner = F.$owner();
-	schemasall[name.toLowerCase()] = schemasall[name] = o;
+	schemasall[name.toLowerCase()] = schemasall[name] = schemas[name] = o;
 	return o;
 };
 
@@ -2873,55 +2921,6 @@ exports.remove = function(name) {
 global.EACHOPERATION = function(fn) {
 	for (var key in operations)
 		fn(key);
-};
-
-/**
- * Validate model
- * @param {String} name Schema name.
- * @param {Object} model Object for validating.
- * @return {ErrorBuilder}
- */
-exports.validate = function(name, model, resourcePrefix, resourceName) {
-	var schema = schemas[DEFAULT_SCHEMA];
-	if (schema === undefined)
-		return null;
-	schema = schema.get(name);
-	model = schema.prepare(model);
-	return schema === undefined ? null : schema.validate(model, resourcePrefix, resourceName);
-};
-
-/**
- * Create default object according to schema
- * @param  {String} name Schema name.
- * @return {Object}
- */
-exports.create = function(name) {
-	return exports.defaults(name);
-};
-
-/**
- * Create default object according to schema
- * @param  {String} name Schema name.
- * @return {Object}
- */
-exports.defaults = function(name) {
-	if (schemas[DEFAULT_SCHEMA] === undefined)
-		return null;
-	var schema = schemas[DEFAULT_SCHEMA].get(name);
-	return schema === undefined ? null : schema.default();
-};
-
-/**
- * Prepare object according to schema
- * @param {String} name Schema name.
- * @param {Object} model Object to prepare.
- * @return {Object} Prepared object.
- */
-exports.prepare = function(name, model) {
-	if (schemas[DEFAULT_SCHEMA] === undefined)
-		return null;
-	var schema = schemas[DEFAULT_SCHEMA].get(name);
-	return schema === undefined ? null : schema.prepare(model);
 };
 
 // ======================================================
@@ -5266,10 +5265,25 @@ function convertorcompile(schema, data, key) {
 				obj.fn = (val, obj) => $convertstring(val, obj).toLowerCase();
 				break;
 			case 'capitalize':
-				obj.fn = (val, obj) => $convertstring(val, obj).capitalize();
+				obj.fn = (val, obj) => $convertstring(val, obj, true).capitalize();
 				break;
 			case 'capitalize2':
-				obj.fn = (val, obj) => $convertstring(val, obj).capitalize(true);
+				obj.fn = (val, obj) => $convertstring(val, obj, true).capitalize(true);
+				break;
+			case 'color':
+				obj.fn = function(val, obj) {
+					var tmp = $convertstring(val, obj);
+					return REGEXP_COLOR.test(tmp) ? tmp : '';
+				};
+				break;
+			case 'icon':
+				obj.fn = function(val, obj) {
+					var tmp = $convertstring(val, obj);
+					return REGEXP_ICON.test(tmp) ? tmp : '';
+				};
+				break;
+			case 'safestring':
+				obj.fn = (val, obj) => $convertstring(val, obj, true);
 				break;
 			case 'name':
 				obj.fn = (val, obj) => toName($convertstring(val, obj));
@@ -5361,8 +5375,19 @@ function convertorcompile(schema, data, key) {
 	return fn(data);
 }
 
-function $convertstring(value, obj) {
-	return value == null ? '' : typeof(value) !== 'string' ? obj.size ? value.toString().max(obj.size) : value.toString() : obj.size ? value.max(obj.size) : value;
+function $convertstring(value, obj, xss) {
+
+	var tmp = value == null ? '' : typeof(value) !== 'string' ? obj.size ? value.toString() : value.toString() : value;
+
+	if (xss) {
+		if (tmp.isXSS() || tmp.isSQLInjection())
+			tmp = '';
+	}
+
+	if (tmp && obj.size)
+		tmp = tmp.max(obj.size);
+
+	return tmp;
 }
 
 function $convertnumber(value) {
