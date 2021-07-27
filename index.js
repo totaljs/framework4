@@ -10038,11 +10038,15 @@ const EMPTYREQSPLIT = ['/'];
 
 function compareflags(req, routes, membertype) {
 
+	var status = null;
+
 	for (var i = 0; i < routes.length; i++) {
 		var route = routes[i];
 
-		if (membertype && route.MEMBER && route.MEMBER !== membertype)
+		if (membertype && route.MEMBER && route.MEMBER !== membertype) {
+			status = 0;
 			continue;
+		}
 
 		if (route.isREFERER) {
 			if (!req.headers.referer || req.headers.referer.indexOf(req.headers.host) === -1)
@@ -10084,9 +10088,16 @@ function compareflags(req, routes, membertype) {
 
 		return route;
 	}
+
+	return status;
 }
 
 F.lookup = function(req, membertype, skipflags) {
+
+	// May returns three responses:
+	// {Route} with a route
+	// 0 {Number} unauthorized
+	// null {Object} 404
 
 	// membertype 0: does not matter
 	// membertype 1: logged
@@ -10158,7 +10169,7 @@ F.lookup = function(req, membertype, skipflags) {
 		routes.push.apply(routes, item);
 	}
 
-	return routes && routes.length ? compareflags(req, routes, membertype) : null;
+	return routes && routes.length ? compareflags(req, routes, membertype) : route;
 };
 
 F.lookup_websocket = function(req, membertype, skipflags) {
@@ -16191,7 +16202,7 @@ function extend_request(PROTO) {
 		if (!route || route.MEMBER !== membertype)
 			route = this.bodyexceeded ? F.lookup_system(431) : F.lookup(this, membertype);
 
-		var status = this.$isAuthorized ? 404 : 401;
+		var status = this.$isAuthorized || route == null ? 404 : 401
 		var code = this.bodyexceeded ? 431 : status;
 		if (!route)
 			route = F.lookup_system(status);
