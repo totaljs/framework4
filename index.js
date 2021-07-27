@@ -9217,7 +9217,7 @@ global.RESOURCE = function(name, key) {
 
 	var res = F.resources[name];
 	if (res) {
-		if (res.$empty && res[key] == null && name !== DEFNAME)
+		if (res[key] == null && name !== DEFNAME)
 			return res[key] = RESOURCE(DEFNAME, key); // tries to load a value from "default.resource"
 		return res[key] == null ? '' : res[key];
 	}
