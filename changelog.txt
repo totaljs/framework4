@@ -25,6 +25,7 @@
 - fixed `EACHSCHEMA()` method
 - improved schema types `Capitalize`, `Capitalize2` by adding a check for `XSS`
 - fixed a bad status code with the usage of `AUTH()` #22
+- improved Total.js 4 command-line tool by [Helferino](https://github.com/Helferino/)
 
 ========================
 0.0.44
