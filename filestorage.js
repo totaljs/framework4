@@ -470,7 +470,7 @@ FP.browse2 = function(callback) {
 
 		response.wait(function(item, next) {
 
-			if (item.substring(item.length - 5) !== '.file') {
+			if (item.length !== 4) {
 				next();
 				return;
 			}
