@@ -433,8 +433,12 @@ FP.clear = function(callback) {
 	self.pause = true;
 
 	Fs.readdir(self.directory, function(err, response) {
-		if (err)
-			return callback(err);
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
 		Fs.unlink(self.logger, NOOP);
 		response.wait(function(item, next) {
 			var dir = Path.join(self.directory, item);
