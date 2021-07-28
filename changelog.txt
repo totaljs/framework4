@@ -27,6 +27,7 @@
 - fixed a bad status code with the usage of `AUTH()` #22
 - improved Total.js 4 command-line tool by [Helferino](https://github.com/Helferino/)
 - fixed loading of default values from the `default.resource`
+- fixed `FILESTORAGE().browse2()` method
 
 ========================
 0.0.44
