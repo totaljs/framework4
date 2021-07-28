@@ -28,6 +28,7 @@
 - improved Total.js 4 command-line tool by [Helferino](https://github.com/Helferino/)
 - fixed loading of default values from the `default.resource`
 - fixed `FILESTORAGE().browse2()` method
+- added `FILESTORAGE().rename()` method
 
 ========================
 0.0.44

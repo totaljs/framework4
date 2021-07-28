@@ -385,6 +385,52 @@ FP.browse = function(callback) {
 	return db;
 };
 
+FP.rename = function(id, newname, callback) {
+
+	var self = this;
+	var filename = Path.join(self.makedirectory(id), id + '.file');
+	F.stats.performance.open++;
+
+	Fs.open(filename, 0o666, function(err, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var buffer = Buffer.alloc(HEADERSIZE);
+		Fs.read(fd, buffer, 0, HEADERSIZE, 0, function(err) {
+
+			if (err) {
+				Fs.close(fd, NOOP);
+				callback(err);
+				return;
+			}
+
+			var meta = buffer.toString('utf8').replace(REGCLEAN, '').parseJSON(true);
+			meta.name = newname;
+
+			if (meta.name.length > 250)
+				meta.name = meta.name.substring(0, 250);
+
+			buffer.write(JSON.stringify(meta));
+
+			// Update header
+			Fs.write(fd, buffer, 0, buffer.length, 0, function(err) {
+				if (err) {
+					callback(err);
+					Fs.close(fd, NOOP);
+				} else {
+					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
+					Fs.close(fd, () => callback(null, meta));
+				}
+			});
+		});
+	});
+
+	return self;
+};
+
 FP.remove = function(id, callback) {
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
