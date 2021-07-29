@@ -219,14 +219,14 @@ function tidy(body) {
 		var arr = text.substring(is ? 8 : 7, text.length - 1).split(' ');
 		var builder = '';
 
-		for (var i = 0, length = arr.length; i < length; i++) {
+		for (var i = 0; i < arr.length; i++) {
 			var cls = arr[i];
 			if (cls[0] === 'C' && cls[1] === 'M' && cls[2] === 'S' && !SKIP_CLASSES[cls])
 				continue;
 			builder += (builder ? ' ' : '') + cls;
 		}
 
-		return builder ? (is ? ' ' : '') + 'class="' + builder + '"' : '';
+		return builder ? ((is ? ' ' : '') + 'class="' + builder + '"') : '';
 
 	}).replace(/<div\s>/g, '<div>');
 }
