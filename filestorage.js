@@ -5,6 +5,7 @@ const IMAGES = { jpg: 1, png: 1, gif: 1, svg: 1, jpeg: 1, heic: 1, heif: 1, webp
 const HEADERSIZE = 2000;
 const MKDIR = { recursive: true };
 const REGCLEAN = /^[\s]+|[\s]+$/g;
+const REGCLEAN2 = /\0/g;
 
 function FileDB(name, directory) {
 	var t = this;
@@ -39,7 +40,7 @@ FP.storage = function(value) {
 	var self = this;
 	self.cache = {};
 	self.directory = value;
-	self.logger = value + '/files.log';
+	self.logger = Path.join(value, 'files.log');
 	return self;
 };
 
@@ -541,8 +542,9 @@ FP.backup = function(filename, callback) {
 
 };
 
-var restoremetafile = function(self, fd, filename, offset, callback) {
-	var buffer = Buffer.alloc(104);
+var restoremetafile = function(self, fd, filename, offset, log, callback) {
+
+	var buffer = Buffer.alloc(104 + HEADERSIZE);
 
 	Fs.read(fd, buffer, 0, buffer.length, offset, function() {
 
@@ -553,10 +555,18 @@ var restoremetafile = function(self, fd, filename, offset, callback) {
 			return;
 		}
 
-		var id = buffer.toString('utf8', 4).replace(/\0/g, '').trim();
+		var id = buffer.toString('utf8', 4, 104).replace(REGCLEAN2, '').trim();
 		var dir = self.makedirectory(id);
 		var file = Path.join(dir, id + '.file');
-		var offsetnext = offset + size + buffer.length;
+		var offsetnext = offset + size + 104;
+		var meta = buffer.toString('utf8', 104).replace(REGCLEAN2, '').trim();
+
+		if (!meta) {
+			callback(null, offsetnext);
+			return;
+		}
+
+		log.write(meta + '\n');
 
 		var writer;
 
@@ -578,42 +588,44 @@ var restoremetafile = function(self, fd, filename, offset, callback) {
 };
 
 FP.restore = function(filename, callback) {
-
 	var self = this;
+	Fs.mkdir(self.directory, MKDIR, function(err) {
+		Fs.open(filename, function(err, fd) {
 
-	Fs.open(filename, function(err, fd) {
-
-		if (err) {
-			callback(err);
-			return;
-		}
-
-		var offset = 50;
-		var buffer = Buffer.alloc(offset);
-
-		Fs.read(fd, buffer, 0, buffer.length, 0, function() {
-			var version = buffer.readInt8(30);
-			var files = buffer.readInt32BE(32);
-
-			if (version !== 1) {
-				callback('Unsupported version');
+			if (err) {
+				callback(err);
 				return;
 			}
 
-			files.async(function(index, next) {
-				restoremetafile(self, fd, filename, offset, function(err, nextoffset) {
-					if (nextoffset) {
-						offset = nextoffset;
-						next();
-					} else
-						next();
-				});
-			}, function() {
-				Fs.close(fd, NOOP);
-				callback(null, { files: files });
-			});
-		});
+			var offset = 50;
+			var buffer = Buffer.alloc(offset);
+			var log = Fs.createWriteStream(self.logger);
 
+			Fs.read(fd, buffer, 0, buffer.length, 0, function() {
+				var version = buffer.readInt8(30);
+				var files = buffer.readInt32BE(32);
+
+				if (version !== 1) {
+					callback('Unsupported version');
+					return;
+				}
+
+				files.async(function(index, next) {
+					restoremetafile(self, fd, filename, offset, log, function(err, nextoffset) {
+						if (nextoffset) {
+							offset = nextoffset;
+							next();
+						} else
+							next();
+					});
+				}, function() {
+					log.end();
+					Fs.close(fd, NOOP);
+					callback(null, { files: files });
+				});
+			});
+
+		});
 	});
 
 };
