@@ -471,6 +471,155 @@ FP.clean = function(callback) {
 	return self;
 };
 
+FP.backup = function(filename, callback) {
+
+	var self = this;
+	var writer = Fs.createWriteStream(filename);
+	var header = Buffer.alloc(50);
+	var version = 1;
+	var files = 0;
+	var size = 0;
+
+	header.write('Total.js FileStorage Archive', 'ascii');
+	header.writeInt8(version, 30);
+	header.writeInt32BE(0, 32);
+	writer.write(header);
+
+	Fs.readdir(self.directory, function(err, response) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		response.wait(function(item, next) {
+
+			if (item.length !== 4) {
+				next();
+				return;
+			}
+
+			var dir = Path.join(self.directory, item);
+			Fs.readdir(dir, function(err, response) {
+				response.wait(function(name, next) {
+					var filename = Path.join(self.directory, item, name);
+					Fs.stat(filename, function(err, stat) {
+						if (stat) {
+							var buffer = Buffer.alloc(104);
+							var id = name.substring(0, name.length - 5);
+							buffer.writeInt32BE(stat.size);
+							buffer.write(id, 4);
+							writer.write(buffer);
+							files++;
+							size += stat.size;
+							Fs.createReadStream(filename).on('end', next).pipe(writer, { end: false });
+						} else
+							next();
+					});
+				}, next);
+			});
+
+		}, function() {
+
+			// @TODO: improve error handling
+
+			writer.end();
+			writer.on('finish', function() {
+				Fs.open(filename, 'a', function(err, fd) {
+					header.writeInt32BE(files, 32);
+					Fs.write(fd, header, 0, header.length, 0, function(err) {
+						console.log(err);
+						Fs.close(fd, function() {
+							callback && callback(null, { filename: filename, files: files, size: size });
+						});
+					});
+				});
+			});
+		});
+
+	});
+
+};
+
+var restoremetafile = function(self, fd, filename, offset, callback) {
+	var buffer = Buffer.alloc(104);
+
+	Fs.read(fd, buffer, 0, buffer.length, offset, function() {
+
+		var size = buffer.readInt32BE(0);
+
+		if (!size) {
+			callback();
+			return;
+		}
+
+		var id = buffer.toString('utf8', 4).replace(/\0/g, '').trim();
+		var dir = self.makedirectory(id);
+		var file = Path.join(dir, id + '.file');
+		var offsetnext = offset + size + buffer.length;
+
+		var writer;
+
+		var next = function() {
+			callback(null, offsetnext);
+		};
+
+		if (self.cache[dir]) {
+			writer = Fs.createWriteStream(file);
+			Fs.createReadStream(filename, { fd: fd, start: offset + 104, end: offsetnext }).on('end', next).pipe(writer);
+		} else {
+			Fs.mkdir(dir, MKDIR, function() {
+				self.cache[dir] = 1;
+				writer = Fs.createWriteStream(file);
+				Fs.createReadStream(filename, { start: offset + 104, end: offsetnext }).on('end', next).pipe(writer);
+			});
+		}
+	});
+};
+
+FP.restore = function(filename, callback) {
+
+	var self = this;
+
+	Fs.open(filename, function(err, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var offset = 50;
+		var buffer = Buffer.alloc(offset);
+
+		Fs.read(fd, buffer, 0, buffer.length, 0, function() {
+			var version = buffer.readInt8(30);
+			var files = buffer.readInt32BE(32);
+
+			console.log(files);
+
+			if (version !== 1) {
+				callback('Unsupported version');
+				return;
+			}
+
+			files.async(function(index, next) {
+				restoremetafile(self, fd, filename, offset, function(err, nextoffset) {
+					if (nextoffset) {
+						offset = nextoffset;
+						next();
+					} else
+						next();
+				});
+			}, function() {
+				Fs.close(fd, NOOP);
+				callback(null, { files: files });
+			});
+		});
+
+	});
+
+};
+
 FP.clear = function(callback) {
 
 	var self = this;
