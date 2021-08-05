@@ -595,8 +595,6 @@ FP.restore = function(filename, callback) {
 			var version = buffer.readInt8(30);
 			var files = buffer.readInt32BE(32);
 
-			console.log(files);
-
 			if (version !== 1) {
 				callback('Unsupported version');
 				return;
