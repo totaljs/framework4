@@ -304,7 +304,24 @@ FP.read = function(id, callback, nostream) {
 				return;
 			}
 
-			var meta = buffer.toString('utf8').replace(REGCLEAN, '').parseJSON(true);
+			var str = buffer.toString('utf8').replace(REGCLEAN, '');
+			if (!str) {
+				// Invalid file
+				Fs.close(fd, function() {
+					if (buffer.length === HEADERSIZE)
+						Fs.unlink(filename, NOOP);
+				});
+				callback('File not found');
+				return;
+			}
+
+			var meta = str.parseJSON(true);
+			if (!meta) {
+				Fs.close(fd, NOOP);
+				callback('Invalid file');
+				return;
+			}
+
 			meta.id = id;
 
 			if (meta.expire && meta.expire < NOW) {
@@ -436,13 +453,15 @@ FP.remove = function(id, callback) {
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
 	Fs.unlink(filename, function(err) {
-		NOSQL('~' + self.logger).remove().where('id', id);
+		// NOSQL('~' + self.logger).remove().where('id', id);
+		Fs.appendFile(self.logger, JSON.stringify({ id: id, removed: true, date: NOW = new Date() }) + '\n', NOOP);
 		callback && callback(err);
 	});
 	return self;
 };
 
 FP.clean = function(callback) {
+
 	var self = this;
 	var db = NOSQL('~' + self.logger);
 
