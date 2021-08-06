@@ -549,12 +549,6 @@ var restoremetafile = function(self, fd, filename, offset, log, callback) {
 	Fs.read(fd, buffer, 0, buffer.length, offset, function() {
 
 		var size = buffer.readInt32BE(0);
-
-		if (!size) {
-			callback();
-			return;
-		}
-
 		var id = buffer.toString('utf8', 4, 104).replace(REGCLEAN2, '').trim();
 		var dir = self.makedirectory(id);
 		var file = Path.join(dir, id + '.file');
@@ -589,7 +583,8 @@ var restoremetafile = function(self, fd, filename, offset, log, callback) {
 
 FP.restore = function(filename, callback) {
 	var self = this;
-	Fs.mkdir(self.directory, MKDIR, function(err) {
+	Fs.mkdir(self.directory, MKDIR, function() {
+
 		Fs.open(filename, function(err, fd) {
 
 			if (err) {
@@ -615,8 +610,9 @@ FP.restore = function(filename, callback) {
 						if (nextoffset) {
 							offset = nextoffset;
 							next();
-						} else
+						} else {
 							next();
+						}
 					});
 				}, function() {
 					log.end();
