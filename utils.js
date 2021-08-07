@@ -5003,7 +5003,7 @@ AP.wait = function(onItem, callback, thread, tmp) {
 				tmp.pending--;
 				tmp.canceled = true;
 				if (!tmp.pending && callback)
-					callback();
+					callback('cancel');
 			} else
 				setImmediate(next_wait, self, onItem, callback, thread, tmp);
 		};
@@ -5061,7 +5061,7 @@ AP.async = function(thread, callback, tmp) {
 				tmp.pending--;
 				tmp.canceled = true;
 				if (!tmp.pending && callback)
-					callback();
+					callback('cancel');
 			} else
 				setImmediate(async_next, self, callback,  tmp);
 		};
