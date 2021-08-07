@@ -32,6 +32,7 @@ function TextDB(filename, onetime) {
 	t.total = 0;
 	t.filesize = 0;
 	t.files = [];
+	t.writing = {};
 
 	t.next2 = function() {
 		t.next(0);
@@ -64,11 +65,17 @@ TD.$refresh = function() {
 		}
 
 		self.filesize = 0;
-		files.wait(function(item, next) {
+		files.wait(function load(item, next) {
+
+			if (self.writing[item]) {
+				setTimeout(load, 10, item, next);
+				return;
+			}
+
 			var filename = Path.join(self.filename, item);
 			Fs.lstat(filename, function(err, stat) {
 				if (stat && stat.isFile()) {
-					self.files.push({ filename: filename, size: stat.size, sortindex: parseInt(item, 36) });
+					self.files.push({ id: item, filename: filename, size: stat.size, sortindex: parseInt(item, 36) });
 					self.filesize += stat.size;
 				}
 				next();
@@ -301,7 +308,12 @@ TD.$append = function() {
 	var now = Date.now();
 	var output = [];
 
-	self.files.wait(function(item, next) {
+	self.files.wait(function load(item, next) {
+
+		if (self.writing[item.id]) {
+			setTimeout(load, 10, item, next);
+			return;
+		}
 
 		if (item.size > FILELIMIT || item.failed) {
 			next();
@@ -346,9 +358,13 @@ TD.$append = function() {
 					break;
 			}
 
-			if (is)
-				Fs.writeFile(item.filename, JSON.stringify(arr).replace(REGDATE, replacedate), next);
-			else
+			if (is) {
+				self.writing[item.id] = 1;
+				Fs.writeFile(item.filename, JSON.stringify(arr).replace(REGDATE, replacedate), function() {
+					delete self.writing[item.id];
+					next();
+				});
+			} else
 				next();
 
 		});
@@ -428,10 +444,15 @@ TD.$reader = function() {
 		self.next(0);
 	};
 
-	self.files.wait(function(item, next) {
+	self.files.wait(function load(item, next) {
 
 		if (!next)
 			return;
+
+		if (self.writing[item.id]) {
+			setTimeout(load, 10, item, next);
+			return;
+		}
 
 		if (item.error) {
 			next();
@@ -507,10 +528,15 @@ TD.$update = function() {
 			filters.db.total = filters.total;
 	};
 
-	self.files.wait(function(item, next) {
+	self.files.wait(function load(item, next) {
 
 		if (!next)
 			return;
+
+		if (self.writing[item.id]) {
+			setTimeout(load, 10, item, next);
+			return;
+		}
 
 		if (item.failed) {
 			next();
@@ -541,10 +567,14 @@ TD.$update = function() {
 			}
 
 			if (r === 2) {
+				self.writing[item.id] = 1;
 				var buffer = Buffer.from(JSON.stringify(docs).replace(REGDATE, replacedate));
 				item.size = buffer.length;
 				item.modified = true;
-				Fs.writeFile(item.filename, buffer, next);
+				Fs.writeFile(item.filename, buffer, function() {
+					delete self.writing[item.id];
+					next();
+				});
 			} else
 				next();
 		});
@@ -592,10 +622,15 @@ TD.$remove = function() {
 		self.next(0);
 	};
 
-	self.files.wait(function(item, next) {
+	self.files.wait(function load(item, next) {
 
 		if (!next)
 			return;
+
+		if (self.writing[item.id]) {
+			setTimeout(load, 10, item, next);
+			return;
+		}
 
 		if (item.failed) {
 			next();
@@ -636,7 +671,11 @@ TD.$remove = function() {
 				var buffer = Buffer.from(JSON.stringify(docs).replace(REGDATE, replacedate));
 				item.size = buffer.length;
 				item.modified = true;
-				Fs.writeFile(item.filename, buffer, next);
+				self.writing[item.id] = 1;
+				Fs.writeFile(item.filename, buffer, function() {
+					delete self.writing[item.id];
+					next();
+				});
 
 			} else
 				next();
@@ -657,8 +696,11 @@ TD.$clear = function() {
 
 	var filter = self.pending_clear.splice(0);
 
-	self.files.wait(function(item, next) {
-		Fs.unlink(item.filename, next);
+	self.files.wait(function load(item, next) {
+		if (self.writing[item.id])
+			setTimeout(load, 10, item, next);
+		else
+			Fs.unlink(item.filename, next);
 	}, function() {
 
 		self.total = 0;
@@ -679,7 +721,7 @@ TD.$drop = function() {
 	if (self.pending_drops) {
 		self.total = 0;
 		self.filesize = 0;
-		self.files.wait((item, next) => Fs.unlink(item.filename, next), () => Fs.rmdir(self.filename, function(err) {
+		self.files.wait((item, next) => Fs.unlink(item.filename, next), () => Fs.rmdir(self.filename, function() {
 			self.pending_drops();
 			self.pending_drops = null;
 			self.next(0);
@@ -704,10 +746,15 @@ TD.$count = function() {
 	self.filesize = 0;
 	self.total = 0;
 
-	self.files.wait(function(item, next) {
+	self.files.wait(function load(item, next) {
 
 		if (item.failed) {
 			next();
+			return;
+		}
+
+		if (self.writing[item.id]) {
+			setTimeout(load, 10, item, next);
 			return;
 		}
 

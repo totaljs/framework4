@@ -5,6 +5,7 @@
 - added `FILESTORAGE().backup()` method
 - added `FILESTORAGE().restore()` method
 - improved `FAKE({ id: UID, name: 'string(30)' })` method by adding a support for inline schemas
+- added a writing locks to the TextDB engine
 
 ========================
 0.0.45
