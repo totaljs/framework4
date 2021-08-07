@@ -495,14 +495,14 @@ FP.backup = function(filename, callback) {
 
 	var self = this;
 	var writer = Fs.createWriteStream(filename);
-	var header = Buffer.alloc(50);
+	var header = Buffer.alloc(30);
 	var version = 1;
 	var files = 0;
 	var size = 0;
 
-	header.write('Total.js FileStorage Archive', 'ascii');
-	header.writeInt8(version, 30);
-	header.writeInt32BE(0, 32);
+	header.write('Total.js Archive', 'ascii');
+	header.writeInt8(version, 20);
+	header.writeInt32BE(0, 21);
 	writer.write(header);
 
 	Fs.readdir(self.directory, function(err, response) {
@@ -525,13 +525,15 @@ FP.backup = function(filename, callback) {
 					var filename = Path.join(self.directory, item, name);
 					Fs.stat(filename, function(err, stat) {
 						if (stat) {
-							var buffer = Buffer.alloc(104);
 							var id = name.substring(0, name.length - 5);
+							var buffer = Buffer.alloc(104);
 							buffer.writeInt32BE(stat.size);
-							buffer.write(id, 4);
+							buffer.writeInt8(0, 4); // for compression (0: no compression, 1: gzip)
+							buffer.write(id, 5);
 							writer.write(buffer);
 							files++;
 							size += stat.size;
+							// Fs.createReadStream(filename).on('end', next).pipe(F.Zlib.createGzip()).pipe(writer, { end: false });
 							Fs.createReadStream(filename).on('end', next).pipe(writer, { end: false });
 						} else
 							next();
@@ -546,9 +548,8 @@ FP.backup = function(filename, callback) {
 			writer.end();
 			writer.on('finish', function() {
 				Fs.open(filename, 'a', function(err, fd) {
-					header.writeInt32BE(files, 32);
-					Fs.write(fd, header, 0, header.length, 0, function(err) {
-						console.log(err);
+					header.writeInt32BE(files, 21);
+					Fs.write(fd, header, 0, header.length, 0, function() {
 						Fs.close(fd, function() {
 							callback && callback(null, { filename: filename, files: files, size: size });
 						});
@@ -568,10 +569,17 @@ var restoremetafile = function(self, fd, filename, offset, log, callback) {
 	Fs.read(fd, buffer, 0, buffer.length, offset, function() {
 
 		var size = buffer.readInt32BE(0);
-		var id = buffer.toString('utf8', 4, 104).replace(REGCLEAN2, '').trim();
+		var compression = buffer.readInt8(4);
+		var id = buffer.toString('utf8', 5, 104).replace(REGCLEAN2, '').trim();
+		var offsetnext = offset + size + 104;
+
+		if (!id) {
+			callback(null, offsetnext);
+			return;
+		}
+
 		var dir = self.makedirectory(id);
 		var file = Path.join(dir, id + '.file');
-		var offsetnext = offset + size + 104;
 		var meta = buffer.toString('utf8', 104).replace(REGCLEAN2, '').trim();
 
 		if (!meta) {
@@ -589,12 +597,20 @@ var restoremetafile = function(self, fd, filename, offset, log, callback) {
 
 		if (self.cache[dir]) {
 			writer = Fs.createWriteStream(file);
-			Fs.createReadStream(filename, { fd: fd, start: offset + 104, end: offsetnext }).on('end', next).pipe(writer);
+			var reader = Fs.createReadStream(filename, { start: offset + 104, end: offsetnext }).on('end', next);
+			if (compression === 1)
+				reader.pipe(F.Zlib.createUnzip()).pipe(writer);
+			else
+				reader.pipe(writer);
 		} else {
 			Fs.mkdir(dir, MKDIR, function() {
 				self.cache[dir] = 1;
 				writer = Fs.createWriteStream(file);
-				Fs.createReadStream(filename, { start: offset + 104, end: offsetnext }).on('end', next).pipe(writer);
+				var reader = Fs.createReadStream(filename, { start: offset + 104, end: offsetnext }).on('end', next);
+				if (compression === 1)
+					reader.pipe(F.Zlib.createUnzip()).pipe(writer);
+				else
+					reader.pipe(writer);
 			});
 		}
 	});
@@ -611,13 +627,14 @@ FP.restore = function(filename, callback) {
 				return;
 			}
 
-			var offset = 50;
+			var offset = 30;
 			var buffer = Buffer.alloc(offset);
 			var log = Fs.createWriteStream(self.logger);
 
 			Fs.read(fd, buffer, 0, buffer.length, 0, function() {
-				var version = buffer.readInt8(30);
-				var files = buffer.readInt32BE(32);
+
+				var version = buffer.readInt8(20);
+				var files = buffer.readInt32BE(21);
 
 				if (version !== 1) {
 					callback('Unsupported version');
