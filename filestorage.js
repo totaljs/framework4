@@ -681,16 +681,18 @@ FP.clear = function(callback) {
 	return self;
 };
 
-FP.browse2 = function(callback) {
+FP.stream = function(onfile, callback, workers) {
+
 	var self = this;
+
 	Fs.readdir(self.directory, function(err, response) {
 
-		var files = [];
-
 		if (err) {
-			callback(null, files);
+			callback();
 			return;
 		}
+
+		var count = 0;
 
 		response.wait(function(item, next) {
 
@@ -699,24 +701,35 @@ FP.browse2 = function(callback) {
 				return;
 			}
 
-			Fs.readdir(Path.join(self.directory, item), function(err, response) {
-				if (response instanceof Array) {
-					response.wait(function(item, next) {
+			Fs.readdir(Path.join(self.directory, item), function(err, files) {
+				if (files instanceof Array) {
+					files.wait(function(item, next) {
 						var id = item.substring(0, item.lastIndexOf('.'));
 						self.read(id, function(err, meta) {
 							if (meta) {
 								meta.id = id;
-								files.push(meta);
-							}
-							next();
+								meta.index = count++;
+								onfile(meta, next);
+							} else
+								next();
 						}, true);
-					}, next);
+					}, next, workers);
 				} else
 					next();
 			});
-		}, () => callback(null, files));
+		}, callback);
 	});
 
+	return self;
+};
+
+FP.browse2 = function(callback) {
+	var self = this;
+	var files = [];
+	self.stream(function(item, next) {
+		files.push(item);
+		next();
+	}, () => callback(null, files), 5);
 	return self;
 };
 
