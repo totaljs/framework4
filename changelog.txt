@@ -4,6 +4,7 @@
 
 - added `FILESTORAGE().backup()` method
 - added `FILESTORAGE().restore()` method
+- improved `FAKE({ id: UID, name: 'string(30)' })` method by adding a support for inline schemas
 
 ========================
 0.0.45

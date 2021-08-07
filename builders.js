@@ -724,7 +724,7 @@ SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, inva
 	if (type instanceof SchemaBuilderEntity)
 		type = type.name;
 
-	var a = self.schemajson[name] = self.$parse(name, type, required);
+	var a = self.schemajson[name] = exports.parsetype(name, type, required);
 	a.invalid = invalid || '@';
 	a.xss = xss;
 
@@ -772,7 +772,7 @@ SchemaBuilderEntityProto.define = function(name, type, required, invalid, xss) {
 	if (type instanceof SchemaBuilderEntity)
 		type = type.name;
 
-	var a = self.schema[name] = self.$parse(name, type, required);
+	var a = self.schema[name] = exports.parsetype(name, type, required);
 	switch (self.schema[name].type) {
 		case 7:
 			if (self.dependencies)
@@ -924,7 +924,7 @@ function parseLength(lower, result) {
 	return result;
 }
 
-SchemaBuilderEntityProto.$parse = function(name, value, required, custom) {
+exports.parsetype = function(name, value, required, custom) {
 
 	var type = typeof(value);
 	var result = {};

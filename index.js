@@ -1253,7 +1253,15 @@ function makefake(type, max, name) {
 
 global.FAKE = function(schema, onlyrequired) {
 
-	var o = framework_builders.getschema(schema);
+	var o;
+
+	if (typeof(schema) === 'object') {
+		o = { schema: {} };
+		for (var key in schema)
+			o.schema[key] = framework_builders.parsetype(key, schema[key], true);
+	} else
+		o = framework_builders.getschema(schema);
+
 	var output = {};
 
 	for (var key in o.schema) {
