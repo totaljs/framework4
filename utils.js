@@ -4998,9 +4998,17 @@ AP.wait = function(onItem, callback, thread, tmp) {
 		tmp.pending = 0;
 		tmp.index = 0;
 		tmp.thread = thread;
+		tmp.next = function(type) {
+			if (type === 'cancel' || tmp.canceled) {
+				tmp.pending--;
+				tmp.canceled = true;
+				if (!tmp.pending && callback)
+					callback();
+			} else
+				setImmediate(next_wait, self, onItem, callback, thread, tmp);
+		};
 
 		// thread === Boolean then array has to be removed item by item
-
 		init = true;
 	}
 
@@ -5008,13 +5016,13 @@ AP.wait = function(onItem, callback, thread, tmp) {
 	if (item === undefined) {
 		if (!tmp.pending) {
 			callback && callback();
-			tmp.cancel = true;
+			tmp.canceled = true;
 		}
 		return self;
 	}
 
 	tmp.pending++;
-	onItem.call(self, item, () => setImmediate(next_wait, self, onItem, callback, thread, tmp), tmp.index);
+	onItem.call(self, item, tmp.next, tmp.index);
 
 	if (!init || tmp.thread === 1)
 		return self;
@@ -5035,7 +5043,7 @@ function next_wait(self, onItem, callback, thread, tmp) {
  * @param {Function} callback Optional
  * @return {Array}
  */
-AP.async = function(thread, callback, pending) {
+AP.async = function(thread, callback, tmp) {
 
 	var self = this;
 
@@ -5045,34 +5053,41 @@ AP.async = function(thread, callback, pending) {
 	} else if (thread === undefined)
 		thread = 1;
 
-	if (pending === undefined)
-		pending = 0;
+	if (!tmp) {
+		tmp = {};
+		tmp.pending = 0;
+		tmp.next = function(type) {
+			if (type === 'cancel' || tmp.canceled) {
+				tmp.pending--;
+				tmp.canceled = true;
+				if (!tmp.pending && callback)
+					callback();
+			} else
+				setImmediate(async_next, self, callback,  tmp);
+		};
+	}
 
 	var item = self.shift();
 	if (item === undefined) {
-		if (!pending) {
-			pending = undefined;
-			callback && callback();
-		}
+		if (!tmp.pending && callback)
+			callback();
 		return self;
 	}
 
 	for (var i = 0; i < thread; i++) {
-
 		if (i)
 			item = self.shift();
-
-		pending++;
-		item(function() {
-			setImmediate(function() {
-				pending--;
-				self.async(1, callback, pending);
-			});
-		});
+		tmp.pending++;
+		item(tmp.next);
 	}
 
 	return self;
 };
+
+function async_next(self, callback, tmp) {
+	tmp.pending--;
+	self.async(1, callback, tmp);
+}
 
 // Fisher-Yates shuffle
 AP.random = function(item) {

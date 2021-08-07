@@ -6,6 +6,8 @@
 - added `FILESTORAGE().restore()` method
 - improved `FAKE({ id: UID, name: 'string(30)' })` method by adding a support for inline schemas
 - added a writing locks to the TextDB engine
+- improved performance for `Array.wait()` + added canceling of processing (more in documentation)
+- improved performance for `Array.async()` + added canceling of processing (more in documentation)
 
 ========================
 0.0.45
