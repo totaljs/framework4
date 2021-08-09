@@ -5,7 +5,9 @@ const IMAGES = { jpg: 1, png: 1, gif: 1, svg: 1, jpeg: 1, heic: 1, heif: 1, webp
 const HEADERSIZE = 2000;
 const MKDIR = { recursive: true };
 const REGCLEAN = /^[\s]+|[\s]+$/g;
-const REGCLEAN2 = /\0/g;
+const GZIPFILE = { memLevel: 9 };
+const ENCODING = 'utf8';
+const CONCAT = [null, null];
 
 function FileDB(name, directory) {
 	var t = this;
@@ -494,22 +496,28 @@ FP.clean = function(callback) {
 FP.backup = function(filename, callback) {
 
 	var self = this;
-	var writer = Fs.createWriteStream(filename);
-	var header = Buffer.alloc(30);
-	var version = 1;
-	var files = 0;
-	var size = 0;
+	var writer = typeof(filename) === 'string' ? Fs.createWriteStream(filename) : filename;
+	var totalsize = 0;
+	var counter = 0;
+	var padding = 50;
 
-	header.write('Total.js Archive', 'ascii');
-	header.writeInt8(version, 20);
-	header.writeInt32BE(0, 21);
-	writer.write(header);
+	writer.on('finish', function() {
+		callback && callback(null, { filename: filename, files: counter, size: totalsize });
+	});
 
 	Fs.readdir(self.directory, function(err, response) {
 
 		if (err) {
 			callback(err);
 			return;
+		}
+
+		for (var dir of response) {
+			if (dir.length === 4) {
+				var tmp = Buffer.from(('/' + dir + '/').padRight(padding) + ': #\n', ENCODING);
+				writer.write(tmp);
+				totalsize += tmp.length;
+			}
 		}
 
 		response.wait(function(item, next) {
@@ -522,144 +530,51 @@ FP.backup = function(filename, callback) {
 			var dir = Path.join(self.directory, item);
 			Fs.readdir(dir, function(err, response) {
 				response.wait(function(name, next) {
-					var filename = Path.join(self.directory, item, name);
-					Fs.stat(filename, function(err, stat) {
-						if (stat) {
-							var id = name.substring(0, name.length - 5);
-							var buffer = Buffer.alloc(104);
-							buffer.writeInt32BE(stat.size);
-							buffer.writeInt8(0, 4); // for compression (0: no compression, 1: gzip)
-							buffer.write(id, 5);
-							writer.write(buffer);
-							files++;
-							size += stat.size;
-							// Fs.createReadStream(filename).on('end', next).pipe(F.Zlib.createGzip()).pipe(writer, { end: false });
-							Fs.createReadStream(filename).on('end', next).pipe(writer, { end: false });
-						} else
-							next();
+
+					var filename = Path.join(dir, name);
+					var data = Buffer.alloc(0);
+					var tmp = Buffer.from(('/' + Path.join(item, name)).padRight(padding) + ': ');
+
+					totalsize += tmp.length;
+					writer.write(tmp);
+
+					Fs.createReadStream(filename).pipe(F.Zlib.createGzip(GZIPFILE)).on('data', function(chunk) {
+
+						CONCAT[0] = data;
+						CONCAT[1] = chunk;
+						data = Buffer.concat(CONCAT);
+
+						var remaining = data.length % 3;
+						if (remaining) {
+							var tmp = data.slice(0, data.length - remaining).toString('base64');
+							writer.write(tmp, ENCODING);
+							data = data.slice(data.length - remaining);
+							totalsize += tmp.length;
+						}
+
+					}).on('end', function() {
+						var tmp = data.length ? data.toString('base64') : '';
+						data.length && writer.write(tmp);
+						writer.write('\n', ENCODING);
+						totalsize += tmp.length + 1;
+						counter++;
+						setImmediate(next);
+					}).on('error', function() {
+						setImmediate(next);
 					});
+
 				}, next);
 			});
 
-		}, function() {
-
-			// @TODO: improve error handling
-
-			writer.end();
-			writer.on('finish', function() {
-				Fs.open(filename, 'a', function(err, fd) {
-					header.writeInt32BE(files, 21);
-					Fs.write(fd, header, 0, header.length, 0, function() {
-						Fs.close(fd, function() {
-							callback && callback(null, { filename: filename, files: files, size: size });
-						});
-					});
-				});
-			});
-		});
-
-	});
-
-};
-
-var restoremetafile = function(self, fd, filename, offset, log, callback) {
-
-	var buffer = Buffer.alloc(104 + HEADERSIZE);
-
-	Fs.read(fd, buffer, 0, buffer.length, offset, function() {
-
-		var size = buffer.readInt32BE(0);
-		var compression = buffer.readInt8(4);
-		var id = buffer.toString('utf8', 5, 104).replace(REGCLEAN2, '').trim();
-		var offsetnext = offset + size + 104;
-
-		if (!id) {
-			callback(null, offsetnext);
-			return;
-		}
-
-		var dir = self.makedirectory(id);
-		var file = Path.join(dir, id + '.file');
-		var meta = buffer.toString('utf8', 104).replace(REGCLEAN2, '').trim();
-
-		if (!meta) {
-			callback(null, offsetnext);
-			return;
-		}
-
-		log.write(meta + '\n');
-
-		var writer;
-
-		var next = function() {
-			callback(null, offsetnext);
-		};
-
-		if (self.cache[dir]) {
-			writer = Fs.createWriteStream(file);
-			var reader = Fs.createReadStream(filename, { start: offset + 104, end: offsetnext }).on('end', next);
-			if (compression === 1)
-				reader.pipe(F.Zlib.createUnzip()).pipe(writer);
-			else
-				reader.pipe(writer);
-		} else {
-			Fs.mkdir(dir, MKDIR, function() {
-				self.cache[dir] = 1;
-				writer = Fs.createWriteStream(file);
-				var reader = Fs.createReadStream(filename, { start: offset + 104, end: offsetnext }).on('end', next);
-				if (compression === 1)
-					reader.pipe(F.Zlib.createUnzip()).pipe(writer);
-				else
-					reader.pipe(writer);
-			});
-		}
+		}, () => writer.end());
 	});
 };
 
 FP.restore = function(filename, callback) {
 	var self = this;
-	Fs.mkdir(self.directory, MKDIR, function() {
-
-		Fs.open(filename, function(err, fd) {
-
-			if (err) {
-				callback(err);
-				return;
-			}
-
-			var offset = 30;
-			var buffer = Buffer.alloc(offset);
-			var log = Fs.createWriteStream(self.logger);
-
-			Fs.read(fd, buffer, 0, buffer.length, 0, function() {
-
-				var version = buffer.readInt8(20);
-				var files = buffer.readInt32BE(21);
-
-				if (version !== 1) {
-					callback('Unsupported version');
-					return;
-				}
-
-				files.async(function(index, next) {
-					restoremetafile(self, fd, filename, offset, log, function(err, nextoffset) {
-						if (nextoffset) {
-							offset = nextoffset;
-							next();
-						} else {
-							next();
-						}
-					});
-				}, function() {
-					log.end();
-					Fs.close(fd, NOOP);
-					callback(null, { files: files });
-				});
-			});
-
-		});
+	self.clear(function() {
+		RESTORE(filename, self.directory, callback);
 	});
-
 };
 
 FP.clear = function(callback) {

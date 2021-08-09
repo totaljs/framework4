@@ -6908,7 +6908,8 @@ global.RESTORE = function(filename, target, callback, filter) {
 	var end = false;
 	var output = {};
 
-	output.count = 0;
+	output.files = 0;
+	output.size = 0;
 	output.path = target;
 
 	parser.parse_key = function() {
@@ -6968,7 +6969,7 @@ global.RESTORE = function(filename, target, callback, filter) {
 		tmp.zlib.$self = tmp;
 		pending++;
 
-		output.count++;
+		output.files++;
 
 		tmp.zlib.on('error', function(e) {
 			pending--;
@@ -6981,6 +6982,7 @@ global.RESTORE = function(filename, target, callback, filter) {
 		});
 
 		tmp.zlib.on('data', function(chunk) {
+			output.size += chunk.length;
 			this.$self.writer.write(chunk);
 		});
 
@@ -7098,8 +7100,10 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 		filelist = [''];
 
 	var counter = 0;
+	var totalsize = 0;
+	var unlink = typeof(filename) === 'string' ? Fs.unlink : (filename, callback) => callback();
 
-	Fs.unlink(filename, function() {
+	unlink(filename, function() {
 
 		filelist.sort(function(a, b) {
 			var ac = a.split('/');
@@ -7128,7 +7132,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 		var writer = Fs.createWriteStream(filename);
 
 		writer.on('finish', function() {
-			callback && Fs.stat(filename, (e, stat) => callback(null, { filename: filename, files: counter, size: stat.size }));
+			callback && callback(null, { filename: filename, files: counter, size: totalsize });
 		});
 
 		filelist.wait(function(item, next) {
@@ -7176,7 +7180,10 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 								return next();
 							}
 
-							writer.write(item.substring(length).padRight(padding) + ':#\n', ENCODING);
+							var tmp = Buffer.from(item.substring(length).padRight(padding) + ': #\n', ENCODING);
+							writer.write(tmp);
+							totalsize += tmp.length;
+
 							next();
 						}, function() {
 							for (var i = 0; i < f.length; i++)
@@ -7191,7 +7198,11 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 					return next();
 
 				var data = Buffer.alloc(0);
-				writer.write(item.padRight(padding) + ':');
+				var tmp = Buffer.from(item.padRight(padding) + ': ');
+
+				totalsize += tmp.length;
+				writer.write(tmp);
+
 				Fs.createReadStream(file).pipe(Zlib.createGzip(GZIPFILE)).on('data', function(chunk) {
 
 					CONCAT[0] = data;
@@ -7200,13 +7211,17 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 
 					var remaining = data.length % 3;
 					if (remaining) {
-						writer.write(data.slice(0, data.length - remaining).toString('base64'));
+						var tmp = data.slice(0, data.length - remaining).toString('base64');
+						writer.write(tmp, ENCODING);
 						data = data.slice(data.length - remaining);
+						totalsize += tmp.length;
 					}
 
 				}).on('end', function() {
-					data.length && writer.write(data.toString('base64'));
+					var tmp = data.length ? data.toString('base64') : '';
+					data.length && writer.write(tmp);
 					writer.write('\n', ENCODING);
+					totalsize += tmp.length + 1;
 					counter++;
 					setImmediate(next);
 				}).on('error', function(err) {
@@ -16210,7 +16225,7 @@ function extend_request(PROTO) {
 		if (!route || route.MEMBER !== membertype)
 			route = this.bodyexceeded ? F.lookup_system(431) : F.lookup(this, membertype);
 
-		var status = this.$isAuthorized || route == null ? 404 : 401
+		var status = this.$isAuthorized || route == null ? 404 : 401;
 		var code = this.bodyexceeded ? 431 : status;
 		if (!route)
 			route = F.lookup_system(status);
