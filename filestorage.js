@@ -572,8 +572,14 @@ FP.backup = function(filename, callback) {
 
 FP.restore = function(filename, callback) {
 	var self = this;
+	self.pause = true;
 	self.clear(function() {
-		RESTORE(filename, self.directory, callback);
+		self.pause = true;
+		RESTORE(filename, self.directory, function(err, meta) {
+			self.cache = {};
+			self.pause = false;
+			callback && callback(err, meta);
+		});
 	});
 };
 
