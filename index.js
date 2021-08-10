@@ -6900,7 +6900,7 @@ global.RESTORE = function(filename, target, callback, filter) {
 	var data = null;
 	var type = 0;
 	var item = null;
-	var stream = Fs.createReadStream(filename);
+	var stream = typeof(filename) === 'string' ? Fs.createReadStream(filename) : filename;
 	var index = 0;
 	var parser = {};
 	var open = {};
@@ -7089,6 +7089,8 @@ global.RESTORE = function(filename, target, callback, filter) {
 		parser.end();
 	});
 
+	stream.resume();
+
 };
 
 global.BACKUP = function(filename, filelist, callback, filter) {
@@ -7129,7 +7131,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 			}
 		};
 
-		var writer = Fs.createWriteStream(filename);
+		var writer = typeof(filename) === 'string' ? Fs.createWriteStream(filename) : filename;
 
 		writer.on('finish', function() {
 			callback && callback(null, { filename: filename, files: counter, size: totalsize });
