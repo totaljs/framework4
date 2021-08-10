@@ -8681,7 +8681,7 @@ F.$upgrade = function(req, socket, head) {
 	socket.on('error', NOOP);
 
 	var headers = req.headers;
-	req.$protocol = req.connection.encrypted || headers['x-forwarded-protocol'] === 'https' ? 'https' : 'http';
+	req.$protocol = req.connection.encrypted || (headers['x-forwarded-protocol'] || headers['x-forwarded-proto']) === 'https' ? 'https' : 'http';
 	req.uri = framework_internal.parseURI(req);
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
@@ -13970,6 +13970,7 @@ ControllerProto.proxy = function(opt) {
 		switch (key) {
 			case 'x-forwarded-for':
 			case 'x-forwarded-protocol':
+			case 'x-forwarded-proto':
 			case 'x-nginx-proxy':
 			case 'connection':
 			case 'host':

@@ -9,6 +9,7 @@
 - added a writing locks to the TextDB engine
 - improved performance for `Array.wait()` + added canceling of processing (more in documentation)
 - improved performance for `Array.async()` + added canceling of processing (more in documentation)
+- fixed `protocol` parser for WebSocket routes
 
 ========================
 0.0.45
