@@ -108,6 +108,31 @@ global.NEWJSONSCHEMA = function(name, value) {
 	}
 };
 
+global.MEMORIZE = function(name, delay) {
+
+	if (!name)
+		name = '';
+
+	var data = {};
+	var filename = PATH.databases('memorize' + (name ? ('_' + name) : '') + '.json');
+
+	try {
+		data = F.Fs.readFileSync(filename).toString('utf8').parseJSON(true);
+	} catch (e) {}
+
+	var timeout;
+	var save = function() {
+		F.Fs.writeFile(filename, JSON.stringify(data), ERROR('MEMORIZE(\'' + name + '\').save()'));
+	};
+
+	data.save = function() {
+		timeout && clearTimeout(timeout);
+		timeout = setTimeout(save, delay || 10000);
+	};
+
+	return data;
+};
+
 function registerjsonschema(name, schema) {
 
 	var schemaid;
