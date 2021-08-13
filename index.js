@@ -14914,7 +14914,6 @@ WebSocketProto.check = function() {
 		for (var i = 0; i < self.keys.length; i++) {
 			var client = self.connections[self.keys[i]];
 			if (client.$ping && (client.latency == null || client.latency > 2000)) {
-				console.log('CLOSE LATENCY', client.latency, client.ua, client.ip, client.user);
 				client.close();
 				F.stats.other.websocketcleaner++;
 			}
