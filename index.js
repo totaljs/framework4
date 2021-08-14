@@ -108,10 +108,17 @@ global.NEWJSONSCHEMA = function(name, value) {
 	}
 };
 
-global.MEMORIZE = function(name, delay) {
+global.MEMORIZE = function(name, delay, skip) {
 
 	if (!name)
 		name = '';
+
+	if (delay && typeof(delay) !== 'number') {
+		var tmp;
+		tmp = skip;
+		skip = delay;
+		delay = tmp;
+	}
 
 	var data = {};
 	var filename = PATH.databases('memorize' + (name ? ('_' + name) : '') + '.json');
@@ -120,9 +127,20 @@ global.MEMORIZE = function(name, delay) {
 		data = F.Fs.readFileSync(filename).toString('utf8').parseJSON(true);
 	} catch (e) {}
 
+	var blacklist = {};
 	var timeout;
+	var replacer;
+
+	if (skip) {
+		if (typeof(skip) === 'string')
+			skip = skip.split(',').trim();
+		for (var m of skip)
+			blacklist[m] = 1;
+		replacer = (key, value) => blacklist[key] ? undefined : value;
+	}
+
 	var save = function() {
-		F.Fs.writeFile(filename, JSON.stringify(data), ERROR('MEMORIZE(\'' + name + '\').save()'));
+		F.Fs.writeFile(filename, replacer ? JSON.stringify(data, replacer) : JSON.stringify(data), ERROR('MEMORIZE(\'' + name + '\').save()'));
 	};
 
 	data.save = function() {
