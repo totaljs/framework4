@@ -461,6 +461,7 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 	// meta.refs {Object}
 	// meta.body {String} targeted for the layout
 	// meta.nav {Object Array}
+	// meta.widgets {Object Array}
 
 	if (typeof(layout) === 'function') {
 		callback = layout;
@@ -483,7 +484,15 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 		opt.nav = meta.nav;
 		opt.template = item.template;
 
-		item.render(opt, function(response) {
+		var render = item.render;
+
+		if (meta.widgets) {
+			var w = meta.widgets instanceof Array ? meta.widgets.findItem('id', item.id) : meta.widgets[item.id];
+			if (w)
+				render = w.render;
+		}
+
+		render(opt, function(response) {
 			widgets[item.indexer] = response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '');
 			next();
 		});
