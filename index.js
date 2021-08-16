@@ -11127,7 +11127,7 @@ FrameworkCacheProto.recycle = function() {
 	F.stats.performance.message = 0;
 	F.stats.performance.mail = 0;
 
-	CONF.allow_stats_snapshot && F.snapshotstats();
+	CONF.allow_stats_snapshot && F.snapshotstats && F.snapshotstats();
 	F.temporary.service.usage = 0;
 	measure_usage();
 	return this;
