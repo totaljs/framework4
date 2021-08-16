@@ -11,6 +11,7 @@
 - improved performance for `Array.wait()` + added canceling of processing (more in documentation)
 - improved performance for `Array.async()` + added canceling of processing (more in documentation)
 - fixed `protocol` parser for WebSocket routes
+- fixed CSS variables
 
 ========================
 0.0.45
