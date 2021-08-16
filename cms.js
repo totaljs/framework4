@@ -460,6 +460,7 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 	// meta.vars {Object}
 	// meta.refs {Object}
 	// meta.body {String} targeted for the layout
+	// meta.nav {Object Array}
 
 	if (typeof(layout) === 'function') {
 		callback = layout;
@@ -477,9 +478,10 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 		opt.vars = meta.vars;
 		opt.refs = meta.refs;
 		opt.config = item.config;
-		opt.body = item.body;
-		opt.html = item.html;
+		opt.body = item.body || '';
+		opt.html = item.html || '';
 		opt.nav = meta.nav;
+		opt.template = item.template;
 
 		item.render(opt, function(response) {
 			widgets[item.indexer] = response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '');
@@ -487,7 +489,7 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 		});
 
 	}, function() {
-		var html = self.toString(self.text, widgets, meta.body);
+		var html = self.toString(self.text, widgets, meta.body || '');
 		if (layout) {
 			meta.body = html;
 			layout.render(meta, callback);
