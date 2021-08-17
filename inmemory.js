@@ -117,7 +117,6 @@ IM.remove = function() {
 	return builder;
 };
 
-
 IM.$append = function() {
 	var self = this;
 	if (self.pending_append.length) {
