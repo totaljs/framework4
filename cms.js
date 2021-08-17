@@ -311,6 +311,7 @@ exports.compile = function(html, widgets, used) {
 		}
 
 		if (used) {
+
 			if (widget.css)
 				response.css.push(U.minify_css(widget.css));
 
@@ -321,6 +322,7 @@ exports.compile = function(html, widgets, used) {
 				widget.ui.css && response.css.push(U.minify_css(widget.ui.css));
 				widget.ui.js && response.js.push(U.minify_js(widget.ui.js));
 			}
+
 		}
 
 		if (!widget.render) {
@@ -340,9 +342,12 @@ exports.compile = function(html, widgets, used) {
 		var opt = {};
 		opt.id = id;
 		opt.indexer = indexer;
-		opt.body = clean(body);
+		opt.body = tidy(clean(body));
+		opt.text = body.substring(body.lastIndexOf('~BEG~') + 5, body.lastIndexOf('~END~'));
 		opt.config = config || EMPTYOBJECT;
 		opt.render = widget.render;
+		opt.beg = opt.body.substring(0, opt.body.indexOf('>') + 1);
+		opt.end = opt.body.substring(opt.body.lastIndexOf('<'));
 		response.widgets.push(opt);
 		indexer++;
 	}
@@ -492,8 +497,8 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 				render = w.render;
 		}
 
-		render(opt, function(response) {
-			widgets[item.indexer] = response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '');
+		render(opt, function(response, replace) {
+			widgets[item.indexer] = replace === true ? response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '') : (item.beg + (response || '') + item.end);
 			next();
 		});
 
