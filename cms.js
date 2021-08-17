@@ -390,7 +390,6 @@ exports.compile = function(html, widgets, used) {
 
 	response.js = response.js.length ? response.js.join('\n') : '';
 	response.css = response.css.length ? response.css.join('') : '';
-
 	response.toString = new Function('text', 'widget', 'body', 'return ' + builder.join('+'));
 	response.text = text;
 	delete response.html;
