@@ -461,11 +461,12 @@ CMSRender.prototype.importjs = function(val) {
 
 CMSRender.prototype.render = function(meta, layout, callback) {
 
-	// meta.controllers {Object}
+	// meta.controller {Object}
 	// meta.vars {Object}
 	// meta.refs {Object}
 	// meta.body {String} targeted for the layout
 	// meta.nav {Object Array}
+	// meta.breadcrumb {Object Array}
 	// meta.widgets {Object Array}
 
 	if (typeof(layout) === 'function') {
@@ -475,18 +476,19 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 
 	var self = this;
 	var widgets = [];
+	var opt = {};
+
+	for (var key in meta) {
+		if (key !== 'widgets')
+			opt[key] = meta[key];
+	}
 
 	self.widgets.wait(function(item, next) {
 
-		var opt = {};
 		opt.version = VERSION;
-		opt.controller = meta.controller;
-		opt.vars = meta.vars;
-		opt.refs = meta.refs;
 		opt.config = item.config;
 		opt.body = item.body || '';
 		opt.html = item.html || '';
-		opt.nav = meta.nav;
 		opt.template = item.template;
 
 		var render = item.render;
