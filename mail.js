@@ -26,11 +26,6 @@ const CONCAT = [null, null];
 
 var CONNECTION;
 
-/**
- * Mailer
- * @class
- * @property {Boolean} debug Debug mode (true/false).
- */
 function Mailer() {
 	this.debug = false;
 	this.Message = Message;
