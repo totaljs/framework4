@@ -12,6 +12,7 @@
 - improved performance for `Array.async()` + added canceling of processing (more in documentation)
 - fixed `protocol` parser for WebSocket routes
 - fixed CSS variables
+- added `schema.undefine(name)` for removing of defined field in the schema
 
 ========================
 0.0.45

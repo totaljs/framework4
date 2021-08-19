@@ -742,6 +742,13 @@ SchemaBuilderEntityProto.jsonschema_define = function(name, type, required, inva
 	};
 };
 
+SchemaBuilderEntityProto.undefine = function(name) {
+	var self = this;
+	self.define(name, null).jsonschema_define(name, null);
+	F.jsonschemas[self.name] && self.toJSONSchema();
+	return self;
+};
+
 SchemaBuilderEntityProto.define = function(name, type, required, invalid, xss) {
 
 	var self = this;
