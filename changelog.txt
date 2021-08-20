@@ -15,6 +15,7 @@
 - added `schema.undefine(name)` for removing of defined field in the schema
 - added `options.servicemode` to the start script for running Total.js app without HTTP server
 - fixed error status codes
+- fixed JavaScript compressor
 
 ========================
 0.0.45

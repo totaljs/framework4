@@ -500,8 +500,8 @@ function minify_javascript(data) {
 
 	var index = 0;
 	var output = [];
-	var isCS = false;
-	var isCI = false;
+	var isCS = false; // comment multiline
+	var isCI = false; // comment inline
 	var alpha = /[0-9a-z$]/i;
 	var white = /\W/;
 	var skip = { '$': true, '_': true };
@@ -526,10 +526,11 @@ function minify_javascript(data) {
 		if (!scope) {
 
 			if (!regexp) {
-				if (c === '/' && next === '*') {
+
+				if (!isCI && !isCS && c === '/' && next === '*') {
 					isCS = true;
 					continue;
-				} else if (c === '*' && next === '/') {
+				} else if (!isCI && !isCS && c === '*' && next === '/') {
 					isCS = false;
 					index++;
 					continue;
