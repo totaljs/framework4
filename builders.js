@@ -1336,6 +1336,8 @@ SchemaBuilderEntityProto.addTask = function(name, task, filter, callback) {
 
 	var self = this;
 
+	name = name.trim();
+
 	if (typeof(filter) === 'function') {
 		callback = filter;
 		filter = null;
@@ -1363,6 +1365,8 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 
 	var self = this;
 
+	name = name.trim();
+
 	var fn = function($) {
 		$.schema = self.name;
 		OPERATION(opname, $.model, $.callback, self.name, $);
@@ -1376,6 +1380,9 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 };
 
 SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
+
+	name = name.trim();
+
 	!this.workflows && (this.workflows = {});
 	this.workflows[name] = fn;
 	this.meta['workflow_' + name] = 1;
@@ -1384,6 +1391,9 @@ SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
 };
 
 SchemaBuilderEntityProto.addWorkflowExtension = function(name, fn) {
+
+	name = name.trim();
+
 	var key = 'workflow.' + name;
 	if (this.extensions[key])
 		this.extensions[key].push(fn);
