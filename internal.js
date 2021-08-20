@@ -527,10 +527,10 @@ function minify_javascript(data) {
 
 			if (!regexp) {
 
-				if (!isCI && !isCS && c === '/' && next === '*') {
+				if (!isCI && c === '/' && next === '*') {
 					isCS = true;
 					continue;
-				} else if (!isCI && !isCS && c === '*' && next === '/') {
+				} else if (!isCI && c === '*' && next === '/') {
 					isCS = false;
 					index++;
 					continue;
