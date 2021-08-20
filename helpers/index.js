@@ -15,6 +15,11 @@ const options = {};
 // options.watch = ['private'];
 // options.livereload = 'https://yourhostname';
 // options.https = { key: Fs.readFileSync('keys/agent2-key.pem'), cert: Fs.readFileSync('keys/agent2-cert.pem')};
+// options.watcher = true; // enables watcher for the release mode only controlled by the app `F.restart()`
+
+// Service mode:
+// options.servicemode = true;
+// options.servicemode = 'definitions,modules,config';
 
 // Enables cluster:
 // options.cluster = 'auto';

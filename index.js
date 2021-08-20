@@ -7384,6 +7384,10 @@ global.LOAD = F.load = function(types, cwd, ready) {
 	if (typeof(types) === 'string')
 		types = types.split(/\s|,/).trim();
 
+	var isdebug = types instanceof Array ? types.indexOf('debug') !== -1 : false;
+	if (isdebug)
+		types = types.remove('debug');
+
 	if (!types)
 		types = ['nobundles', 'nopackages', 'nocomponents', 'nothemes'];
 
@@ -7395,8 +7399,6 @@ global.LOAD = F.load = function(types, cwd, ready) {
 		F.directory = process.cwd();
 	else if ((/\/scripts\/.*?.js/).test(process.argv[1]))
 		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
-
-	var isdebug = types instanceof Array ? types.indexOf('debug') !== -1 : false;
 
 	F.isWorker = true;
 	global.isWORKER = true;
@@ -7454,6 +7456,8 @@ global.LOAD = F.load = function(types, cwd, ready) {
 
 			// if (process.send && process.argv.indexOf('--worker') === -1)
 			// 	process.send('total:ready');
+
+			process.send && process.send('total:ready');
 
 			setTimeout(function() {
 

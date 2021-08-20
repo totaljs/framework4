@@ -36,6 +36,7 @@ module.exports = function(opt) {
 
 	if (!WATCHER)
 		WATCHER = process.argv.indexOf('--watcher') === -1 && !options.watcher;
+
 };
 
 function makestamp() {
@@ -62,11 +63,10 @@ function runapp() {
 		arr.push('--restart');
 
 	port && arr.push(port);
-
 	var filename = U.getName(process.argv[1] || 'index.js');
 
 	pidname = Path.join(directory, filename.replace(/\.js$/, '.pid'));
-	app = Fork(require('path').join(process.cwd(), filename), arr);
+	app = Fork(Path.join(process.cwd(), filename), arr);
 	app.on('message', function(msg) {
 		switch (msg) {
 			case 'total:eaddrinuse':
@@ -117,7 +117,11 @@ function init() {
 
 		delete options.watcher;
 
-		if (options.https)
+		if (options.servicemode) {
+			LOAD(options.servicemode === true || options.servicemode === 1 ? '' : options.servicemode);
+			if (!process.connected)
+				F.console();
+		} else if (options.https)
 			HTTPS('release', options);
 		else
 			HTTP('release', options);
