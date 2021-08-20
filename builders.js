@@ -3095,6 +3095,8 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 	if (name > 0) {
 		status = +name;
 		name = name + '';
+		if (status > 399 && status < 512)
+			this.status = status;
 	}
 
 	if (!error && typeof(name) === 'string') {
