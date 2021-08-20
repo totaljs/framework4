@@ -78,6 +78,7 @@ function runapp() {
 		else
 			types += (types ? ',' : '') + 'debug';
 		LOAD(types);
+		ON('ready', F.cache.init_timer); // internal hack
 	} else if (options.https)
 		HTTPS('debug', options);
 	else

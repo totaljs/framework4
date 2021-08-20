@@ -119,6 +119,7 @@ function init() {
 
 		if (options.servicemode) {
 			LOAD(options.servicemode === true || options.servicemode === 1 ? '' : options.servicemode);
+			ON('ready', F.cache.init_timer); // internal hack
 			if (!process.connected)
 				F.console();
 		} else if (options.https)
