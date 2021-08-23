@@ -72,13 +72,20 @@ function runapp() {
 	require('./index');
 
 	if (options.servicemode) {
+
 		var types = options.servicemode === true || options.servicemode === 1 ? '' : options.servicemode;
 		if (types instanceof Array)
 			types.push('debug');
 		else
 			types += (types ? ',' : '') + 'debug';
+
 		LOAD(types);
-		ON('ready', F.cache.init_timer); // internal hack
+
+		ON('ready', function() {
+			F.cache.init_timer(); // internal hack
+			F.$snapshot();
+		});
+
 	} else if (options.https)
 		HTTPS('debug', options);
 	else

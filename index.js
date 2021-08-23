@@ -7473,6 +7473,8 @@ global.LOAD = F.load = function(types, cwd, ready) {
 				F.removeAllListeners('load');
 				F.removeAllListeners('ready');
 
+				F.$snapshot();
+
 			}, 500);
 
 		});
@@ -7636,7 +7638,6 @@ F.initialize = function(http, debug, options, callback) {
 
 					F.removeAllListeners('load');
 					F.removeAllListeners('ready');
-					runsnapshot();
 				}, 500);
 			});
 
@@ -18725,7 +18726,7 @@ global.ACTION = function(url, data, callback) {
 		callback('404');
 };
 
-function runsnapshot() {
+F.$snapshot = function() {
 
 	var main = {};
 	var stats = {};

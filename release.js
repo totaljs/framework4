@@ -118,10 +118,17 @@ function init() {
 		delete options.watcher;
 
 		if (options.servicemode) {
+
 			LOAD(options.servicemode === true || options.servicemode === 1 ? '' : options.servicemode);
-			ON('ready', F.cache.init_timer); // internal hack
+
+			ON('ready', function() {
+				F.cache.init_timer();  // internal hack
+				F.$snapshot();
+			});
+
 			if (!process.connected)
 				F.console();
+
 		} else if (options.https)
 			HTTPS('release', options);
 		else
