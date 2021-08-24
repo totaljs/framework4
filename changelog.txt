@@ -17,6 +17,9 @@
 - fixed error status codes
 - fixed default root [#24](https://github.com/totaljs/framework4/issues/24)
 - fixed JavaScript compressor [#25](https://github.com/totaljs/framework4/issues/25)
+- added `flowstream.pause(is)` method
+- added `flowstream.paused {Boolean}` property
+- added `flowstream_component.pause = function(is) {}` delegate
 
 ========================
 0.0.45

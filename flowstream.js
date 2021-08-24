@@ -282,7 +282,7 @@ MP.send = function(outputindex, data, clonedata) {
 
 	var self = this;
 
-	if (self.isdestroyed || (self.instance && self.instance.isdestroyed))
+	if (self.isdestroyed || self.main.paused || (self.instance && self.instance.isdestroyed))
 		return 0;
 
 	var outputs;
@@ -484,6 +484,7 @@ function Flow(name, errorhandler) {
 	t.meta.cache = {};
 	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0, minutes: 0 };
 	t.mm = 0;
+	t.paused = false;
 	t.$events = {};
 
 	var counter = 1;
@@ -523,6 +524,17 @@ function Flow(name, errorhandler) {
 }
 
 var FP = Flow.prototype;
+
+FP.pause = function(is) {
+	var self = this;
+	self.paused = is;
+	for (var m in self.meta.flow) {
+		var instance = self.meta.flow[m];
+		if (instance && instance.pause)
+			instance.pause(is);
+	}
+	return self;
+};
 
 FP.register = function(name, declaration, config, callback, extend) {
 
@@ -782,6 +794,9 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 	var schema = this;
 	var self = schema.main;
 	var count = 0;
+
+	if (self.paused)
+		return count;
 
 	if (schema && schema.ready && schema.component && schema.connections) {
 		var instance = self.meta.components[schema.component];
@@ -1156,13 +1171,17 @@ FP.initcomponent = function(key, component) {
 	} else
 		instance.ready = true;
 
+	// Notifies about the pause state
+	if (self.paused && instance.pause)
+		instance.pause(true);
+
 	self.meta.flow[key] = instance;
 	return instance;
 };
 
 function sendmessage(instance, message, event) {
 
-	if (instance.isdestroyed || message.isdestroyed) {
+	if (instance.isdestroyed || message.isdestroyed || instance.main.paused) {
 		message.destroy();
 		return;
 	}
@@ -1184,6 +1203,8 @@ function sendmessage(instance, message, event) {
 
 FP.$can = function(isinput, id, index) {
 	var self = this;
+	if (self.paused)
+		return false;
 	if (!self.meta.flow.paused)
 		return true;
 	var key = (isinput ? 'input' : 'output') + D + id + D + index;
@@ -1204,6 +1225,9 @@ FP.trigger = function(path, data, controller, events) {
 		// setTimeout(trigger, 200, self, path, data, controller, events);
 		return;
 	}
+
+	if (self.paused)
+		return;
 
 	path = path.split(D);
 
@@ -1283,6 +1307,10 @@ FP.trigger = function(path, data, controller, events) {
 FP.trigger2 = function(path, data, controller) {
 
 	var self = this;
+
+	if (self.paused)
+		return;
+
 	var events = {};
 	var obj;
 
@@ -1316,7 +1344,7 @@ FP.find = function(id) {
 
 FP.send = function(path, body) {
 	var self = this;
-	if (self.meta && self.meta.flow) {
+	if (!self.paused && self.meta && self.meta.flow) {
 		path = path.split(D);
 		var instance = self.meta.flow[path[0]];
 		if (instance)
