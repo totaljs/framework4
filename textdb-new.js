@@ -27,7 +27,7 @@ function TextDB(filename, onetime) {
 	t.pending_locks = [];
 	t.step = 0;
 	t.$timeoutmeta;
-	t.$writting = false;
+	t.$writing = false;
 	t.$reading = 0;
 	t.total = 0;
 	t.filesize = 0;
@@ -205,7 +205,7 @@ TD.next = function(type) {
 		return;
 	}
 
-	if (!this.$writting && !this.$reading) {
+	if (!this.$writing && !this.$reading) {
 
 		if (this.step !== 12 && this.pending_clear.length) {
 			this.$clear();
@@ -228,19 +228,19 @@ TD.next = function(type) {
 		}
 	}
 
-	if (!this.$writting) {
+	if (!this.$writing) {
 
 		if (this.step !== 1 && this.pending_append.length) {
 			this.$append();
 			return;
 		}
 
-		if (this.step !== 2 && !this.$writting && this.pending_update.length) {
+		if (this.step !== 2 && !this.$writing && this.pending_update.length) {
 			this.$update();
 			return;
 		}
 
-		if (this.step !== 3 && !this.$writting && this.pending_remove.length) {
+		if (this.step !== 3 && !this.$writing && this.pending_remove.length) {
 			this.$remove();
 			return;
 		}
@@ -304,7 +304,7 @@ TD.$append = function() {
 		return;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 	var now = Date.now();
 	var output = [];
 
@@ -418,7 +418,7 @@ TD.$append = function() {
 };
 
 function next_append(self) {
-	self.$writting = false;
+	self.$writing = false;
 	self.next(0);
 }
 
@@ -493,7 +493,7 @@ TD.$update = function() {
 		return self;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	var filter = self.pending_update.splice(0);
 	var filters = TextReader.make();
@@ -516,7 +516,7 @@ TD.$update = function() {
 
 	var done = function() {
 
-		self.$writting = false;
+		self.$writing = false;
 		self.next(0);
 
 		var diff = filters.done().diff;
@@ -594,7 +594,7 @@ TD.$remove = function() {
 		return;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	var filter = self.pending_remove.splice(0);
 	var filters = TextReader.make(filter);
@@ -618,7 +618,7 @@ TD.$remove = function() {
 		if (self.duration.push({ type: 'remove', duration: diff }) > 20)
 			self.duration.shift();
 
-		self.$writting = false;
+		self.$writing = false;
 		self.next(0);
 	};
 

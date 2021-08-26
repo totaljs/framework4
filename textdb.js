@@ -50,7 +50,7 @@ function TableDB(filename, schema, onetime) {
 
 	t.step = 0;
 	t.ready = false;
-	t.$writting = false;
+	t.$writing = false;
 	t.$reading = 0;
 	t.$allocations = true;
 	t.total = 0;
@@ -100,7 +100,7 @@ function JsonDB(filename, onetime) {
 	t.step = 0;
 	t.pending_drops = false;
 	t.$timeoutmeta;
-	t.$writting = false;
+	t.$writing = false;
 	t.$reading = 0;
 	t.total = 0;
 	t.inmemory = false;
@@ -359,7 +359,7 @@ JD.next = function(type) {
 	if (type && NEXTWAIT[this.step])
 		return;
 
-	if (!this.$writting && !this.$reading) {
+	if (!this.$writing && !this.$reading) {
 
 		if (this.step !== 12 && this.pending_clear.length) {
 			this.$clear();
@@ -387,19 +387,19 @@ JD.next = function(type) {
 		}
 	}
 
-	if (!this.$writting) {
+	if (!this.$writing) {
 
 		if (this.step !== 1 && this.pending_append.length) {
 			this.$append();
 			return;
 		}
 
-		if (this.step !== 2 && !this.$writting && this.pending_update.length) {
+		if (this.step !== 2 && !this.$writing && this.pending_update.length) {
 			this.$update();
 			return;
 		}
 
-		if (this.step !== 3 && !this.$writting && this.pending_remove.length) {
+		if (this.step !== 3 && !this.$writing && this.pending_remove.length) {
 			this.$remove();
 			return;
 		}
@@ -446,7 +446,7 @@ JD.$append = function() {
 		return;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	self.pending_append.splice(0).limit(JSONBUFFER, function(items, next) {
 
@@ -485,7 +485,7 @@ JD.$append = function() {
 };
 
 function next_append(self) {
-	self.$writting = false;
+	self.$writing = false;
 	self.next(0);
 }
 
@@ -499,7 +499,7 @@ JD.$update = function() {
 		return self;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	var filter = self.pending_update.splice(0);
 	var filters = TextReader.make();
@@ -572,7 +572,7 @@ JD.$update = function() {
 			CACHEITEMS[self.id] = [];
 
 		fs = null;
-		self.$writting = false;
+		self.$writing = false;
 		self.next(0);
 
 		for (var i = 0; i < filters.builders.length; i++) {
@@ -783,7 +783,7 @@ JD.$remove = function() {
 		return;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	var fs = new TextStreamReader(self.filename);
 	var filter = self.pending_remove.splice(0);
@@ -828,7 +828,7 @@ JD.$remove = function() {
 
 		filters.done();
 		fs = null;
-		self.$writting = false;
+		self.$writing = false;
 		self.next(0);
 	};
 
@@ -1105,7 +1105,7 @@ TD.next = function(type) {
 	if (!this.ready || (type && NEXTWAIT[this.step]))
 		return;
 
-	if (!this.$writting && !this.$reading) {
+	if (!this.$writing && !this.$reading) {
 
 		if (this.step !== 12 && this.pending_clear.length) {
 			this.$clear();
@@ -1133,19 +1133,19 @@ TD.next = function(type) {
 		}
 	}
 
-	if (!this.$writting) {
+	if (!this.$writing) {
 
 		if (this.step !== 1 && this.pending_append.length) {
 			this.$append();
 			return;
 		}
 
-		if (this.step !== 2 && !this.$writting && this.pending_update.length) {
+		if (this.step !== 2 && !this.$writing && this.pending_update.length) {
 			this.$update();
 			return;
 		}
 
-		if (this.step !== 3 && !this.$writting && this.pending_remove.length) {
+		if (this.step !== 3 && !this.$writing && this.pending_remove.length) {
 			this.$remove();
 			return;
 		}
@@ -1187,7 +1187,7 @@ TD.$append = function() {
 		return;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	self.pending_append.splice(0).limit(JSONBUFFER, function(items, next) {
 
@@ -1441,7 +1441,7 @@ TD.$update = function() {
 		return self;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	var fs = new TextStreamReader(self.filename);
 	var filter = self.pending_update.splice(0);
@@ -1518,7 +1518,7 @@ TD.$update = function() {
 		CONF.textdb_inmemory && self.$check();
 
 		fs = null;
-		self.$writting = false;
+		self.$writing = false;
 		self.next(0);
 
 		for (var i = 0; i < filters.builders.length; i++) {
@@ -1545,7 +1545,7 @@ TD.$remove = function() {
 		return;
 	}
 
-	self.$writting = true;
+	self.$writing = true;
 
 	var fs = new TextStreamReader(self.filename);
 	var filter = self.pending_remove.splice(0);
@@ -1604,7 +1604,7 @@ TD.$remove = function() {
 		self.filesize = fs.stats.size;
 		CONF.textdb_inmemory && self.$check();
 		fs = null;
-		self.$writting = false;
+		self.$writing = false;
 		self.next(0);
 	};
 
