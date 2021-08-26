@@ -146,7 +146,7 @@ FP.save = FP.insert = function(id, name, filename, callback, custom, expire, hea
 				callback(err);
 			else {
 				self.cache[directory] = 1;
-				if (typeof(filename) === 'string' && filename[7] === '/') {
+				if (typeof(filename) === 'string' && filename[0] === 'h' && filename[1] === 't' && filename[7] === '/') {
 					// URL address
 					var opt = {};
 					opt.url = filename;
