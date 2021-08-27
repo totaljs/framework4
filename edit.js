@@ -33,7 +33,7 @@ exports.init = function(url) {
 
 		client.on('error', function(err) {
 			console.log('Total.js Code Editor:', err.message);
-		})
+		});
 
 		client.connect(url.replace(/^http/, 'ws'));
 	});
