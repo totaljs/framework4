@@ -173,8 +173,10 @@ function init() {
 		});
 	}, 4000);
 
-	if (options.edit)
-		require('../edit').init(options.edit.replace(/^http/, 'ws'));
+	if (options.edit) {
+		require('./index');
+		require('./edit').init(options.edit.replace(/^http/, 'ws'));
+	}
 
 	setImmediate(runapp);
 }

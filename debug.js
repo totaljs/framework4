@@ -556,8 +556,10 @@ function init() {
 		return;
 	}
 
-	if (options.edit)
-		require('../edit').init(options.edit.replace(/^http/, 'ws'));
+	if (options.edit) {
+		require('./index');
+		require('./edit').init(options.edit.replace(/^http/, 'ws'));
+	}
 
 	process.on('uncaughtException', e => e.toString().indexOf('ESRCH') == -1 && console.log(e));
 	process.title = 'total: debug';
