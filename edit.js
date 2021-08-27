@@ -7,6 +7,9 @@ exports.init = function(url) {
 
 	WEBSOCKETCLIENT(function(client) {
 
+		client.options.reconnect = 10000;
+		client.options.reconnectserver = true;
+
 		client.on('message', function(msg) {
 
 			if (msg.TYPE === 'init') {
@@ -31,8 +34,24 @@ exports.init = function(url) {
 			client.send({ TYPE: 'init', version: VERSION });
 		});
 
+		client.on('close', function(e) {
+
+			if (e === 4004) {
+				console.log('> Total.js Code Editor: 404 project not found');
+				client.destroy();
+				return;
+			}
+
+			if (e === 4009) {
+				console.log('> Total.js Code Editor: 409 project is already open');
+				client.destroy();
+				return;
+			}
+
+		});
+
 		client.on('error', function(err) {
-			console.log('Total.js Code Editor:', err.message);
+			console.log('> Total.js Code Editor:', err.message);
 		});
 
 		client.connect(url.replace(/^http/, 'ws'));

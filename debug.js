@@ -556,18 +556,18 @@ function init() {
 		return;
 	}
 
-	if (options.edit) {
-		require('./index');
-		require('./edit').init(options.edit.replace(/^http/, 'ws'));
-	}
-
 	process.on('uncaughtException', e => e.toString().indexOf('ESRCH') == -1 && console.log(e));
 	process.title = 'total: debug';
 
 	if (debugging)
 		setImmediate(runapp);
-	else
+	else {
+		if (options.edit) {
+			require('./index');
+			require('./edit').init(options.edit.replace(/^http/, 'ws'));
+		}
 		setImmediate(runwatching);
+	}
 }
 
 initdelay = setTimeout(init, 100);

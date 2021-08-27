@@ -114,6 +114,11 @@ function init() {
 		return;
 	}
 
+	if (options.edit) {
+		require('./index');
+		require('./edit').init(options.edit.replace(/^http/, 'ws'));
+	}
+
 	if (WATCHER) {
 
 		delete options.watcher;
@@ -172,11 +177,6 @@ function init() {
 			}
 		});
 	}, 4000);
-
-	if (options.edit) {
-		require('./index');
-		require('./edit').init(options.edit.replace(/^http/, 'ws'));
-	}
 
 	setImmediate(runapp);
 }
