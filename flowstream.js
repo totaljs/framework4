@@ -817,7 +817,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					if (!com || (com.$inputs && !com.$inputs[m.index]))
 						continue;
 
-					if (target.isdestroyed || (data.instance && data.instance.isdestroyed))
+					if (target.isdestroyed || (data && data.instance && data.instance.isdestroyed))
 						continue;
 
 					var ismessage = data instanceof Message;

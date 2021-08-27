@@ -21,6 +21,7 @@
 - added `flowstream.paused {Boolean}` property
 - added `flowstream_component.pause = function(is) {}` delegate
 - fixed saving files in `FILESTORAGE()` in OS Windows
+- fixed sending nullable data in the FlowStream
 
 ========================
 0.0.45
