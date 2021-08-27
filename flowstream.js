@@ -526,7 +526,7 @@ function Flow(name, errorhandler) {
 var FP = Flow.prototype;
 
 function customrequire(path) {
-	require(F.directory + '/node_modules/' + path);
+	return require(F.directory + '/node_modules/' + path);
 }
 
 FP.pause = function(is) {
