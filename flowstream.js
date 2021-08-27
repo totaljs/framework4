@@ -1199,15 +1199,15 @@ function sendmessage(instance, message, event) {
 
 		var is = false;
 
-		if (instance.message) {
-			instance.message.call(message.instance, message);
-			is = true;
-		}
-
 		var key = 'message_' + message.toindex;
 		if (instance[key]) {
 			is = true;
 			instance[key].call(message.instance, message);
+		}
+
+		if (instance.message) {
+			instance.message.call(message.instance, message);
+			is = true;
 		}
 
 		if (!is)
