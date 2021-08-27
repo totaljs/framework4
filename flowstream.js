@@ -525,6 +525,10 @@ function Flow(name, errorhandler) {
 
 var FP = Flow.prototype;
 
+function customrequire(path) {
+	require(F.directory + '/node_modules/' + path);
+}
+
 FP.pause = function(is) {
 	var self = this;
 	self.paused = is;
@@ -564,7 +568,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {}, ui: {}, iscomponent: true };
 	if (extend) {
 		try {
-			declaration(curr, require);
+			declaration(curr, customrequire);
 		} catch (e) {
 			self.error(e, 'register', name);
 			callback && callback(e);
