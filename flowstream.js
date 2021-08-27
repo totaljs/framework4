@@ -1192,9 +1192,23 @@ function sendmessage(instance, message, event) {
 	}
 
 	try {
-		instance.message.call(message.instance, message);
+
+		var is = false;
+
+		if (instance.message) {
+			instance.message.call(message.instance, message);
+			is = true;
+		}
+
 		var key = 'message_' + message.toindex;
-		instance[key] && instance[key].call(message.instance, message);
+		if (instance[key]) {
+			is = true;
+			instance[key].call(message.instance, message);
+		}
+
+		if (!is)
+			message.destroy();
+
 	} catch (e) {
 		instance.main.error(e, 'instance_message', message);
 		message.destroy();
