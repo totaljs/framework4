@@ -10,7 +10,7 @@ exports.init = function(url) {
 		client.on('message', function(msg) {
 
 			if (msg.TYPE === 'init') {
-				console.log('> Connected to Total.js Code Editor: ' + msg.name + ' (' + msg.version + ')');
+				console.log('> Connected to the Total.js Code Editor: ' + msg.name + ' (' + msg.version + ')');
 				return;
 			}
 
