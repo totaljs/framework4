@@ -29,6 +29,7 @@ function display_help() {
 	console.log(' package <filename>        : Makes a package from the current directory');
 	console.log(' help                      : List all total4 commands');
 	console.log(' 8000                      : Starts a server on port "8000"');
+	console.log(' edit <url?id=project>     : Synchronizes the current directory with the Total.js Code Editor');
 	console.log('');
 }
 
@@ -44,10 +45,6 @@ function log_title(title) {
 }
 
 function log_error(error) {
-	var chunks = '';
-	for (var i = 0; i < error.length + 7; i++)
-		chunks += '─';
-
 	console.log(' ⬢ [ERROR]: ' + error + ' ⬢');
 	console.log('');
 }
@@ -457,6 +454,13 @@ function main() {
 
 		if (!$type && (cmd === '-v' || cmd === '-version' || cmd === 'version'))
 			return;
+
+		if (!$type && (cmd === '-e' || cmd === '-edit' || cmd === 'edit')) {
+			F.dir(dir);
+			console.log('Directory: ' + F.directory);
+			require('../edit').init(process.argv[i + 1]);
+			return;
+		}
 
 		if (!$type && (cmd === '-t' || cmd === '-translate' || cmd === 'translate')) {
 			$type = 4;

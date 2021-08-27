@@ -16,6 +16,7 @@ const options = {};
 // options.livereload = 'https://yourhostname';
 // options.https = { key: Fs.readFileSync('keys/agent2-key.pem'), cert: Fs.readFileSync('keys/agent2-cert.pem')};
 // options.watcher = true; // enables watcher for the release mode only controlled by the app `F.restart()`
+// options.edit = 'wss://www.yourcodeinstance.com/?id=projectname'
 
 // Service mode:
 // options.servicemode = true;

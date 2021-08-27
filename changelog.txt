@@ -24,6 +24,8 @@
 - fixed sending nullable data in the FlowStream
 - fixed handling messages in the form `instance.message_<INPUT_NAME>` in the FlowStream
 - fixed using `require()` in the components in the FlowStream
+- added a support for editing local files via Total.js Code Editor
+- extended Total.js terminal app by adding `total4 edit URL_TO_CODE_EDITOR?id=projectid`
 
 ========================
 0.0.45

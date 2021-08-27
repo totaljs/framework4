@@ -33,6 +33,7 @@ module.exports = function(opt) {
 	// options.threads = '/api/' || or true or false;
 	// options.thread = 'thread_name';
 	// options.logs = 'isolated';
+	// options.edit = 'wss://.....com/?id=myprojectname'
 
 	if (!WATCHER)
 		WATCHER = process.argv.indexOf('--watcher') === -1 && !options.watcher;
@@ -171,6 +172,9 @@ function init() {
 			}
 		});
 	}, 4000);
+
+	if (options.edit)
+		require('../edit').init(options.edit.replace(/^http/, 'ws'));
 
 	setImmediate(runapp);
 }

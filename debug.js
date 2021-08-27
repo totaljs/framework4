@@ -56,6 +56,7 @@ module.exports = function(opt) {
 	// options.threads = '/api/' || or true or false;
 	// options.thread = 'thread_name';
 	// options.logs = 'isolated';
+	// options.edit = 'wss://.....com/?id=myprojectname'
 
 };
 
@@ -554,6 +555,9 @@ function init() {
 		require('total4').cluster.http(cluster, 'debug', options);
 		return;
 	}
+
+	if (options.edit)
+		require('../edit').init(options.edit.replace(/^http/, 'ws'));
 
 	process.on('uncaughtException', e => e.toString().indexOf('ESRCH') == -1 && console.log(e));
 	process.title = 'total: debug';
