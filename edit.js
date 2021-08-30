@@ -2,6 +2,8 @@ const Fs = require('fs');
 const Path = require('path');
 const SKIP = /\/\.git\//;
 const VERSION = 1;
+const HEADER = '> Total.js Code Editor';
+const DIVIDER = '----------------------------------------------------';
 
 exports.init = function(url) {
 
@@ -13,7 +15,9 @@ exports.init = function(url) {
 		client.on('message', function(msg) {
 
 			if (msg.TYPE === 'init') {
-				console.log('> Connected to the Total.js Code Editor: ' + msg.name + ' (' + msg.version + ')');
+				console.log(DIVIDER);
+				console.log(HEADER + ': Welcome to "' + msg.name + ' (' + msg.version + ')"');
+				console.log('> Project: "' + msg.project + '"');
 				return;
 			}
 
@@ -37,13 +41,13 @@ exports.init = function(url) {
 		client.on('close', function(e) {
 
 			if (e === 4004) {
-				console.log('> Total.js Code Editor: 404 project not found');
+				console.log(HEADER + ': 404 project not found');
 				client.destroy();
 				return;
 			}
 
 			if (e === 4009) {
-				console.log('> Total.js Code Editor: 409 project is already open');
+				console.log(HEADER + ': 409 project is already open');
 				client.destroy();
 				return;
 			}
@@ -51,7 +55,7 @@ exports.init = function(url) {
 		});
 
 		client.on('error', function(err) {
-			console.log('> Total.js Code Editor:', err.message);
+			console.log(HEADER + ':', err.message);
 		});
 
 		client.connect(url.replace(/^http/, 'ws'));
@@ -81,6 +85,16 @@ NEWSCHEMA('CodeModule', function(schema) {
 			// Download
 			case 'download':
 				download($, model);
+				break;
+
+			// import
+			case 'import':
+				customimport($, model);
+				break;
+
+			// upload
+			case 'send':
+				send($, model);
 				break;
 
 			// Creates file/directory
@@ -288,6 +302,23 @@ function download($, model) {
 				$.callback({ type: U.getContentType(ext), data: F.Zlib.deflateSync(Fs.readFileSync(filename)).toString('utf8') });
 		}
 	});
+}
+
+function send($, model) {
+	var filename = PATH.root(model.path);
+	F.Fs.fstat(filename, function() {
+		var opt = {};
+		opt.method = 'GET';
+		opt.url = model.data;
+		opt.files = [{ name: U.getName(filename), filename: filename }];
+		opt.callback = $.done();
+		REQUEST(opt);
+	});
+}
+
+function customimport($, model) {
+	var filename = PATH.root(model.path);
+	DOWNLOAD(model.data, filename, $.done());
 }
 
 function rename($, model) {
