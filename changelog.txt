@@ -26,6 +26,7 @@
 - fixed using `require()` in the components in the FlowStream
 - added a support for editing local files via Total.js Code Editor
 - extended Total.js terminal app by adding `total4 edit URL_TO_CODE_EDITOR?id=projectid`
+- extended `UID([type], [date])`, `UID16([type], [date])` and `UID1([type], [date])` by adding `date` argument
 
 ========================
 0.0.45

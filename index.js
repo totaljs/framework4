@@ -904,7 +904,7 @@ global.FILESTORAGE = function(name) {
 	return filestoragewrapper(name);
 };
 
-global.UID16 = function(type) {
+global.UID16 = function(type, date) {
 	var index;
 	if (type) {
 		if (UIDGENERATOR.types[type])
@@ -915,10 +915,11 @@ global.UID16 = function(type) {
 		}
 	} else
 		index = UIDGENERATOR.index++;
-	return UIDGENERATOR.date16 + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date16.length + (index % 2 ? 1 : 0) + 'c'; // "c" version
+	var ts = date ? UIDGENERATOR_DATE(date).toString(16) : UIDGENERATOR.date16;
+	return ts + index.padLeft(3, '0') + UIDGENERATOR.instance + ts.length + (index % 2 ? 1 : 0) + 'c'; // "c" version
 };
 
-global.UID = function(type) {
+global.UID = function(type, date) {
 	var index;
 	if (type) {
 		if (UIDGENERATOR.types[type])
@@ -929,10 +930,12 @@ global.UID = function(type) {
 		}
 	} else
 		index = UIDGENERATOR.index++;
-	return UIDGENERATOR.date36 + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date36.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
+
+	var ts = date ? UIDGENERATOR_DATE(date).toString(36) : UIDGENERATOR.date36;
+	return ts + index.padLeft(3, '0') + UIDGENERATOR.instance + ts.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
 };
 
-global.UID1 = function(type) {
+global.UID1 = function(type, date) {
 	var index;
 	if (type) {
 		if (UIDGENERATOR.types[type])
@@ -943,7 +946,9 @@ global.UID1 = function(type) {
 		}
 	} else
 		index = UIDGENERATOR.index++;
-	return UIDGENERATOR.date + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date.length + (index % 2 ? 1 : 0) + 'b'; // "b" version
+
+	var ts = date ? (UIDGENERATOR_DATE(date) + '') : UIDGENERATOR.date;
+	return ts + index.padLeft(3, '0') + UIDGENERATOR.instance + ts.length + (index % 2 ? 1 : 0) + 'b'; // "b" version
 };
 
 global.ERROR = function(name) {
@@ -1879,16 +1884,21 @@ const WEBSOCKET_COMPRESS = Buffer.from([0x00, 0x00, 0xFF, 0xFF]);
 const WEBSOCKET_COMPRESS_OPTIONS = { windowBits: Zlib.Z_DEFAULT_WINDOWBITS };
 const UIDGENERATOR = { types: {}, typesnumber: {} };
 
+function UIDGENERATOR_DATE(date) {
+	return Math.round(((date.getTime() - 1580511600000) / 1000 / 60));
+}
+
 function UIDGENERATOR_REFRESH() {
 
-	var ticks = NOW.getTime();
-	var dt = Math.round(((ticks - 1580511600000) / 1000 / 60));
+	var dt = UIDGENERATOR_DATE(NOW);
 
 	UIDGENERATOR.date = dt + '';
 	UIDGENERATOR.date16 = dt.toString(16);
 	UIDGENERATOR.date36 = dt.toString(36);
 	UIDGENERATOR.index = 1;
-	UIDGENERATOR.instance = random2string();
+
+	if (!UIDGENERATOR.instance)
+		UIDGENERATOR.instance = random2string();
 
 	if (UIDGENERATOR.multiple) {
 		for (var key in UIDGENERATOR.types)

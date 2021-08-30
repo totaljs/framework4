@@ -2199,6 +2199,11 @@ exports.ls2 = function(path, callback, filter) {
 	ls(path, callback, true, filter);
 };
 
+DP.uid = function() {
+UIDGENERATOR.index++
+	this.toString(36) + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date36.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
+};
+
 DP.setTimeZone = function(timezone) {
 
 	var dt = new Date(this.toLocaleString('en-US', { timeZone: timezone }));
