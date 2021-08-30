@@ -18,6 +18,7 @@ exports.init = function(url) {
 				console.log(DIVIDER);
 				console.log(HEADER + ': Welcome to "' + msg.name + ' (' + msg.version + ')"');
 				console.log('> Project: "' + msg.project + '"');
+				console.log(DIVIDER);
 				return;
 			}
 

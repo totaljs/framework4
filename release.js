@@ -114,11 +114,6 @@ function init() {
 		return;
 	}
 
-	if (options.edit) {
-		require('./index');
-		require('./edit').init(options.edit.replace(/^http/, 'ws'));
-	}
-
 	if (WATCHER) {
 
 		delete options.watcher;
@@ -178,7 +173,12 @@ function init() {
 		});
 	}, 4000);
 
-	setImmediate(runapp);
+	if (!process.connected && options.edit) {
+		require('./index');
+		require('./edit').init(options.edit.replace(/^http/, 'ws'));
+		setTimeout(runapp, 1000);
+	} else
+		setImmediate(runapp);
 }
 
 setTimeout(init, 50);

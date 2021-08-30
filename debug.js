@@ -565,8 +565,9 @@ function init() {
 		if (options.edit) {
 			require('./index');
 			require('./edit').init(options.edit.replace(/^http/, 'ws'));
-		}
-		setImmediate(runwatching);
+			setTimeout(runwatching, 1000);
+		} else
+			setImmediate(runwatching);
 	}
 }
 
