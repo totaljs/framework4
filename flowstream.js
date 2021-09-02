@@ -282,8 +282,11 @@ MP.send = function(outputindex, data, clonedata) {
 
 	var self = this;
 
-	if (self.isdestroyed || self.main.paused || (self.instance && self.instance.isdestroyed))
+	if (self.isdestroyed || self.main.paused || (self.instance && self.instance.isdestroyed)) {
+		if (!self.isdestroyed)
+			self.destroy();
 		return 0;
+	}
 
 	var outputs;
 	var count = 0;
@@ -363,7 +366,7 @@ MP.send = function(outputindex, data, clonedata) {
 				message.to = message.schema = schema;
 				message.toid = output.id;
 				message.toindex = inputindex;
-				message.index = inputindex;
+				message.input = message.index = inputindex;
 				message.tocomponent = schema.component;
 				message.cache = schema.cache;
 				message.options = message.config = schema.config;
@@ -865,7 +868,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.to = message.schema = target;
 					message.toid = m.id;
 					message.toindex = m.index;
-					message.index = m.index;
+					message.input = message.index = m.index;
 					message.tocomponent = target.component;
 					message.cache = target.cache;
 					message.config = message.options = target.config;
@@ -1290,7 +1293,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.to = message.schema = schema;
 			message.toid = path[0];
 			message.toindex = inputindex;
-			message.index = inputindex;
+			message.input = message.index = inputindex;
 			message.tocomponent = instance.id;
 			message.cache = instance.cache;
 
