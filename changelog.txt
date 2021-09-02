@@ -5,7 +5,7 @@
 - added `FILESTORAGE().backup()` method
 - added `FILESTORAGE().restore()` method
 - added `FILESTORAGE().stream(callback(file, next), [done])` for streaming of meta information for each file
-- added `MEMORIZE()` creates a simple and persistent storag
+- added `MEMORIZE()` creates a simple and persistent storage
 - improved `FAKE({ id: UID, name: 'string(30)' })` method by adding a support for inline schemas
 - added a writing locks to the TextDB engine
 - improved performance for `Array.wait()` + added canceling of processing (more in documentation)
