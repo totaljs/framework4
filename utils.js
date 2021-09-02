@@ -5384,17 +5384,17 @@ function queue_next(name) {
 		item.running = 0;
 
 	if (item.pending.length) {
-		var fn = item.pending.shift();
-		if (fn) {
-			item.running++;
-			setImmediate(queue_next_callback, fn, name);
+		var next = item.pending.shift();
+		if (next) {
+			next.running++;
+			setImmediate(queue_next_callback, next, item);
 		} else
 			item.running = 0;
 	}
 }
 
-function queue_next_callback(fn, name) {
-	fn(() => queue_next(name));
+function queue_next_callback(next, item) {
+	next.fn(item.next, item.param);
 }
 
 exports.json2replacer = function(key, value) {
@@ -5408,7 +5408,7 @@ exports.json2replacer = function(key, value) {
  * @param {Number} max Maximum stack.
  * @param {Function(next)} fn
  */
-exports.queue = function(name, max, fn) {
+exports.queue = function(name, max, fn, param) {
 
 	if (!fn)
 		return false;
@@ -5419,16 +5419,18 @@ exports.queue = function(name, max, fn) {
 	}
 
 	if (!exports.queuecache[name])
-		exports.queuecache[name] = { limit: max, running: 0, pending: [] };
+		exports.queuecache[name] = { limit: max, running: 0, pending: [], next: () => queue_next(name) };
 
+	var obj = { fn: fn, param: param };
 	var item = exports.queuecache[name];
-	if (item.running >= item.limit) {
-		item.pending.push(fn);
+
+	if ((item.running + 1) >= item.limit) {
+		item.pending.push(obj);
 		return false;
 	}
 
 	item.running++;
-	setImmediate(queue_next_callback, fn, name);
+	setImmediate(queue_next_callback, obj, item);
 	return true;
 };
 
