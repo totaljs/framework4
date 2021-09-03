@@ -405,6 +405,43 @@ FP.browse = function(callback) {
 	return db;
 };
 
+FP.move = function(id, newid, callback) {
+
+	var self = this;
+	var filename = Path.join(self.makedirectory(id), id + '.file');
+
+	F.stats.performance.open++;
+
+	Fs.lstat(filename, function(err) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var directory = self.makedirectory(newid);
+		var filenamenew = Path.join(directory, newid + '.file');
+
+		if (self.cache[directory]) {
+			Fs.rename(filename, filenamenew, err => callback && callback(err));
+		} else {
+			Fs.mkdir(directory, MKDIR, function(err) {
+
+				if (err) {
+					callback(err);
+					return;
+				}
+
+				self.cache[directory] = 1;
+				Fs.rename(filename, filenamenew, err => callback && callback(err));
+			});
+		}
+
+	});
+
+	return self;
+};
+
 FP.rename = function(id, newname, callback) {
 
 	var self = this;

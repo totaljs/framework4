@@ -5,6 +5,7 @@
 - added `FILESTORAGE().backup(filename, callback)` method
 - added `FILESTORAGE().restore(filename, callback)` method
 - added `FILESTORAGE().stream(callback(file, next), [done])` for streaming of meta information for each file
+- added `FILESTORAGE().move(id, newid, callback)` method
 - added `MEMORIZE()` creates a simple and persistent storage
 - improved `FAKE({ id: UID, name: 'string(30)' })` method by adding a support for inline schemas
 - added a writing locks to the TextDB engine
