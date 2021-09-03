@@ -30,6 +30,7 @@
 - extended `UID([type], [date])`, `UID16([type], [date])` and `UID1([type], [date])` by adding `date` argument
 - extended `U.queue(name, max, fn, [param])` by adding the `param` argument
 - added `flowmessage.input {String}` for determining input name (alias for `flowmessage.index`)
+- added a support dynamic inputs/outputs in the FlowStream
 
 ========================
 0.0.45

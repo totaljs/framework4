@@ -340,7 +340,8 @@ MP.send = function(outputindex, data, clonedata) {
 		var schema = meta.flow[output.id];
 		if (schema && (schema.message || schema['message_' + output.index]) && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			if (next && next.connected && !next.isdestroyed && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
+			// if (next && next.connected && !next.isdestroyed && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
+			if (next && next.connected && !next.isdestroyed && !next.disabled) {
 
 				var inputindex = output.index;
 				var message = self.clone();
@@ -583,20 +584,6 @@ FP.register = function(name, declaration, config, callback, extend) {
 
 	curr.config = CLONE(curr.config || curr.options);
 
-	if (extend) {
-		curr.$inputs = {};
-		if (curr.inputs) {
-			for (var i = 0; i < curr.inputs.length; i++) {
-				var m = curr.inputs[i];
-				if (curr.$inputs[m.id])
-					curr.$inputs[m.id]++;
-				else
-					curr.$inputs[m.id] = 1;
-			}
-		}
-	} else
-		self.$inputs = null;
-
 	var errors = new ErrorBuilder();
 	var done = function() {
 
@@ -665,9 +652,28 @@ FP.cleanforce = function() {
 		if (key !== 'paused') {
 			var instance = self.meta.flow[key];
 			if (instance.connections) {
+
 				for (var key2 in instance.connections) {
-					var conn = instance.connections[key2];
-					var arr = conn.remove(c => self.meta.flow[c.id] == null);
+
+					var conns = instance.connections[key2];
+					var rem = {};
+
+					for (var conn of conns) {
+						var target = self.meta.flow[conn.id];
+						if (target) {
+							var com = self.meta.components[target.component];
+							if (com) {
+								if (target.inputs && !target.inputs.findItem('id', conn.index)) {
+									rem[conn.id] = 1;
+								} else if (!com.inputs || !com.inputs.findItem('id', conn.index))
+									rem[conn.id] = 1;
+							} else
+								rem[conn.id] = 1;
+						} else
+							rem[conn.id] = 1;
+					}
+
+					var arr = conns.remove(c => rem[c.id] === 1);
 					if (arr.length)
 						instance.connections[key2] = arr;
 					else
@@ -822,7 +828,8 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						continue;
 
 					var com = self.meta.components[target.component];
-					if (!com || (com.$inputs && !com.$inputs[m.index]))
+					// if (!com || (com.$inputs && !com.$inputs[m.index]))
+					if (!com)
 						continue;
 
 					if (target.isdestroyed || (data && data.instance && data.instance.isdestroyed))
@@ -1099,6 +1106,7 @@ FP.use = function(schema, callback, reinit) {
 			}
 
 			self.loading--;
+			self.cleanforce();
 			self.$events.schema && self.emit('schema', self.meta.flow);
 			callback && callback(err.length ? err : null);
 
@@ -1450,6 +1458,8 @@ FP.export = function() {
 		tmp.connected = true;
 		tmp.note = instance.note;
 		tmp.reference = instance.reference;
+		tmp.outputs = instance.outputs;
+		tmp.inputs = instance.inputs;
 		output[tmp.id] = tmp;
 	}
 
