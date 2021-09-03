@@ -28,6 +28,7 @@
 - extended Total.js terminal app by adding `total4 edit URL_TO_CODE_EDITOR?id=projectid`
 - extended `UID([type], [date])`, `UID16([type], [date])` and `UID1([type], [date])` by adding `date` argument
 - extended `U.queue(name, max, fn, [param])` by adding the `param` argument
+- added `flowmessage.input {String}` for determining input name (alias for `flowmessage.index`)
 
 ========================
 0.0.45
