@@ -19,7 +19,7 @@ const options = {};
 // options.edit = 'wss://www.yourcodeinstance.com/?id=projectname'
 
 // Service mode:
-// options.servicemode = true;
+options.servicemode = process.argv.indexOf('--servicemode', 1) !== -1;
 // options.servicemode = 'definitions,modules,config';
 
 // Enables cluster:
@@ -33,5 +33,5 @@ const options = {};
 // options.threads = '/api/';
 // options.logs = 'isolated';
 
-var type = process.argv.indexOf('--release', 1) !== -1 || process.argv.indexOf('release', 1) !== -1 ? 'release' : 'debug';
+var type = process.argv.indexOf('--release', 1) !== -1 ? 'release' : 'debug';
 require('total4/' + type)(options);
