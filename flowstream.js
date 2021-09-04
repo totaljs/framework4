@@ -1458,8 +1458,13 @@ FP.export = function() {
 		tmp.connected = true;
 		tmp.note = instance.note;
 		tmp.reference = instance.reference;
-		tmp.outputs = instance.outputs;
-		tmp.inputs = instance.inputs;
+
+		if (instance.outputs)
+			tmp.outputs = instance.outputs;
+
+		if (instance.inputs)
+			tmp.inputs = instance.inputs;
+
 		output[tmp.id] = tmp;
 	}
 
