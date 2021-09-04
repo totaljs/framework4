@@ -11571,7 +11571,7 @@ ControllerProto.runtest = function(url, name, callback) {
 	}
 
 	if (!name && url.substring(0, 3) === 'API') {
-		name = url.split(' ')[2];
+		name = url.split(/\s{1,}/)[2];
 		var index = name.indexOf('?');
 		if (index !== -1)
 			name = name.substring(0, index);

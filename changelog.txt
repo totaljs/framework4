@@ -31,6 +31,7 @@
 - extended `U.queue(name, max, fn, [param])` by adding the `param` argument
 - added `flowmessage.input {String}` for determining input name (alias for `flowmessage.index`)
 - added a support dynamic inputs/outputs in the FlowStream
+- fixed a problem with multiple spaces in the `controller.runtest()` method
 
 ========================
 0.0.45
