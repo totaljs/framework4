@@ -43,7 +43,8 @@ exports.init = function(url) {
 
 			if (e === 4004) {
 				console.log(HEADER + ': 404 project not found');
-				client.destroy();
+				// Tries again in 10 second interval
+				// client.destroy();
 				return;
 			}
 
