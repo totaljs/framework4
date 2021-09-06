@@ -147,7 +147,7 @@ var CONTENTTYPES = {
 	json: 'application/json',
 	jsx: 'text/jsx',
 	less: 'text/css',
-	m3u8: 'application/x-mpegURL or vnd.apple.mpegURL',
+	m3u8: 'application/x-mpegURL',
 	m4a: 'audio/mp4a-latm',
 	m4v: 'video/x-m4v',
 	manifest: 'text/cache-manifest',
