@@ -182,7 +182,7 @@ var CONTENTTYPES = {
 	svg: 'image/svg+xml',
 	swf: 'application/x-shockwave-flash',
 	tar: 'application/x-tar',
-	ts: 'video/MP2T',
+	ts: 'video/mp2t',
 	tif: 'image/tiff',
 	tiff: 'image/tiff',
 	txt: 'text/plain',
