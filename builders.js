@@ -9,10 +9,9 @@ const BOOL = { true: 1, on: 1, '1': 1 };
 
 var schemas = {};
 var schemasall = {};
-var operations = {};
-var tasks = {};
 var transforms = { pagination: {}, error: {}, restbuilder: {} };
 var restbuilderupgrades = [];
+var pendingdownload = {};
 
 function SchemaValue() {}
 
@@ -2936,7 +2935,7 @@ exports.remove = function(name) {
 };
 
 global.EACHOPERATION = function(fn) {
-	for (var key in operations)
+	for (var key in F.operations)
 		fn(key);
 };
 
@@ -4611,13 +4610,13 @@ function $decodeURIComponent(value) {
 
 global.NEWTASK = function(name, fn, filter) {
 	if (fn == null) {
-		delete tasks[name];
+		delete F.tasks[name];
 	} else {
-		tasks[name] = {};
-		tasks[name].$owner = F.$owner();
-		tasks[name].$filter = filter;
+		F.tasks[name] = {};
+		F.tasks[name].$owner = F.$owner();
+		F.tasks[name].$filter = filter;
 		var append = function(key, fn) {
-			tasks[name][key] = fn;
+			F.tasks[name][key] = fn;
 		};
 		fn(append);
 	}
@@ -4627,11 +4626,74 @@ function taskrunner(obj, name, callback) {
 	obj.exec(name, callback);
 }
 
-global.TASK = function(taskname, name, callback, options, value) {
+function downloadtask(url, name, callback, options, value) {
 
-	var tmp = taskname.split('/');
+	var arr = url.split(' ');
+
+	// arr[0] url
+	// arr[1] expiration
+
+	url = arr[0];
+
+	var id = HASH(url).toString(36);
+
+	if (pendingdownload[id]) {
+		setTimeout(TASK, 500, url, name, callback, options, value);
+		return;
+	}
+
+	pendingdownload[id] = 1;
+
+	// var filename = PATH.external(id + '.js');
+	var opt = {};
+
+	opt.url = url;
+	opt.callback = function(err, response) {
+
+		delete pendingdownload[id];
+
+		if (err) {
+			callback(new ErrorBuilder().push(err));
+			return;
+		}
+
+		try {
+			var expire = arr[1] ? arr[1].replace(/<|>/g, '') : null;
+
+			F.tasks[url] = {};
+			F.tasks[url].$owner = F.$owner();
+			F.tasks[url].expire = expire ? NOW.add(expire) : null;
+
+			var append = function(key, fn) {
+				F.tasks[url][key] = fn;
+			};
+
+			new Function('push', response.body)(append);
+			setImmediate(TASK, url, name, callback, options, value, true);
+		} catch (e) {
+			callback(new ErrorBuilder().push(url, e));
+			return;
+		}
+
+	};
+
+	REQUEST(opt);
+}
+
+global.TASK = function(taskname, name, callback, options, value, isprocessed) {
+
+	// https://
+	// http://
+
+	if (!isprocessed && taskname[0] === 'h' && taskname[6] === '/') {
+		downloadtask(taskname, name, callback, options, value, isprocessed);
+		return;
+	}
+
+	var tmp;
 
 	if (typeof(name) !== 'string') {
+		tmp = taskname.split('/');
 		value = options;
 		options = callback;
 		callback = name;
@@ -4646,7 +4708,7 @@ global.TASK = function(taskname, name, callback, options, value) {
 	}
 
 	var obj = new TaskBuilder(options);
-	obj.name = tmp[0];
+	obj.name = tmp ? tmp[0] : taskname;
 
 	if (value)
 		obj.value = value;
@@ -4691,14 +4753,14 @@ global.NEWOPERATION = function(name, fn, repeat, stop, binderror, filter) {
 
 	// Remove operation
 	if (fn == null) {
-		delete operations[name];
+		delete F.operations[name];
 	} else {
-		operations[name] = fn;
-		operations[name].$owner = F.$owner();
-		operations[name].$repeat = repeat;
-		operations[name].$stop = stop !== false;
-		operations[name].$binderror = binderror === true;
-		operations[name].$filter = filter;
+		F.operations[name] = fn;
+		F.operations[name].$owner = F.$owner();
+		F.operations[name].$repeat = repeat;
+		F.operations[name].$stop = stop !== false;
+		F.operations[name].$binderror = binderror === true;
+		F.operations[name].$filter = filter;
 	}
 };
 
@@ -4708,7 +4770,61 @@ function getLoggerNameOperation(name) {
 
 function NoOp() {}
 
-global.OPERATION = function(name, value, callback, param, controller) {
+function downloadoperation(url, value, callback, param, controller) {
+
+	var arr = url.split(' ');
+
+	// arr[0] url
+	// arr[1] expiration
+
+	url = arr[0];
+
+	var id = HASH(url).toString(36);
+
+	if (pendingdownload[id]) {
+		setTimeout(OPERATION, 500, url, value, callback, param, controller);
+		return;
+	}
+
+	pendingdownload[id] = 1;
+
+	// var filename = PATH.external(id + '.js');
+	var opt = {};
+	opt.url = url;
+	opt.callback = function(err, response) {
+
+		delete pendingdownload[id];
+
+		if (err) {
+			callback(new ErrorBuilder().push(err));
+			return;
+		}
+
+		try {
+			var expire = arr[1] ? arr[1].replace(/<|>/g, '') : null;
+			F.operations[url] = new Function('$', response.body);
+			F.operations[url].$owner = F.$owner();
+			F.operations[url].expire = expire ? NOW.add(expire) : null;
+			setImmediate(OPERATION, url, value, callback, param, controller, true);
+		} catch (e) {
+			callback(new ErrorBuilder().push(url, e));
+			return;
+		}
+
+	};
+
+	REQUEST(opt);
+}
+
+global.OPERATION = function(name, value, callback, param, controller, isprocessed) {
+
+	// https://
+	// http://
+
+	if (!isprocessed && name[0] === 'h' && name[6] === '/') {
+		downloadoperation(name, value, callback, param, controller);
+		return;
+	}
 
 	if (typeof(value) === 'function') {
 		controller = param;
@@ -4725,7 +4841,7 @@ global.OPERATION = function(name, value, callback, param, controller) {
 	if (controller && controller.controller)
 		controller = controller.controller;
 
-	var fn = operations[name];
+	var fn = F.operations[name];
 
 	var error = new ErrorBuilder();
 	var $now;
@@ -4872,7 +4988,7 @@ global.RUN = function(name, value, callback, param, controller, result) {
 
 	name.wait(function(key, next, index) {
 
-		var fn = operations[key];
+		var fn = F.operations[key];
 		if (!fn) {
 			// What now?
 			// F.error('Operation "{0}" not found'.format(key), 'RUN()');
@@ -5480,9 +5596,9 @@ exports.uninstall = function(owner) {
 	if (!owner)
 		return;
 
-	for (var key in operations) {
-		if (operations[key].$owner === owner)
-			delete operations[key];
+	for (var key in F.operations) {
+		if (F.operations[key].$owner === owner)
+			delete F.operations[key];
 	}
 
 	exports.eachschema(function(group, name, schema) {
@@ -5491,11 +5607,11 @@ exports.uninstall = function(owner) {
 };
 
 exports.check_task = function(name) {
-	return tasks[name];
+	return F.tasks[name];
 };
 
 exports.check_operation = function(name) {
-	return operations[name];
+	return F.operations[name];
 };
 
 exports.SchemaValue = SchemaValue;
@@ -5528,7 +5644,7 @@ TaskBuilderProto.next = function() {
 		self.prev = self.current;
 		for (var i = 0; i < arguments.length; i++) {
 			self.current = arguments[i];
-			var task = self.tasks[self.current] || (self.name ? tasks[self.name] && tasks[self.name][self.current] : null);
+			var task = self.tasks[self.current] || (self.name ? F.tasks[self.name] && F.tasks[self.name][self.current] : null);
 			if (task) {
 				task.call(self, self, self.value);
 				return self;

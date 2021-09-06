@@ -32,6 +32,8 @@
 - added `flowmessage.input {String}` for determining input name (alias for `flowmessage.index`)
 - added a support dynamic inputs/outputs in the FlowStream
 - fixed a problem with multiple spaces in the `controller.runtest()` method
+- added support for external operations `OPERATION('https://..fn.js <5 minutes>', console.log)`
+- added support for external tasks `TASK('https://..fn.js <5 minutes>', 'init', console.log)`
 
 ========================
 0.0.45

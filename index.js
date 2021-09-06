@@ -2138,6 +2138,8 @@ function Framework() {
 	self.builds = {};
 	self.plugins = {};
 	self.sources = {};
+	self.operations = {};
+	self.tasks = {};
 	self.controllers = {};
 	self.dependencies = {};
 	self.components = { has: false, css: false, js: false, views: {}, instances: {}, version: null, links: '', groups: {}, files: {} };
@@ -2365,6 +2367,12 @@ global.CMD2 = function(key, a, b, c, d) {
 
 F.callback_redirect = function(url) {
 	this.url = url;
+};
+
+var modules = { buffer: 1, child_process: 1, process: 1, fs: 1, events: 1, http: 1, https: 1, http2: 1, util: 1, net: 1, os: 1, path: 1, punycode: 1, readline: 1, repl: 1, stream: 1, string_decoder: 1, tls: 1, trace_events: 1, tty: 1, dgram: 1, url: 1, v8: 1, vm: 1, wasi: 1, worker_threads: 1, zlib: 1, crypto: 1 };
+
+F.require = function(path) {
+	return modules[path] ? require(path) : require(F.directory + '/node_modules/' + path);
 };
 
 F.dir = function(path) {
@@ -8039,6 +8047,18 @@ F.service = function(count) {
 				F.sessions[key].clean();
 				CONF.allow_sessions_unused && F.sessions[key].releaseunused(CONF.allow_sessions_unused);
 			}
+		}
+
+		// Clears expired operations
+		for (var key in F.operations) {
+			if (F.operations[key].expire && F.operations[key].expire < NOW)
+				delete F.operations[key];
+		}
+
+		// Clears expired tasks
+		for (var key in F.tasks) {
+			if (F.tasks[key].expire && F.tasks[key].expire < NOW)
+				delete F.tasks[key];
 		}
 	}
 
@@ -18814,7 +18834,7 @@ F.$snapshot = function() {
 	};
 
 	CONF.allow_stats_snapshot && F.snapshotstats();
-}
+};
 
 var lastusagedate;
 
