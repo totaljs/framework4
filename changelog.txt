@@ -34,6 +34,8 @@
 - fixed a problem with multiple spaces in the `controller.runtest()` method
 - added support for external operations `OPERATION('https://..fn.js <5 minutes>', console.log)`
 - added support for external tasks `TASK('https://..fn.js <5 minutes>', 'init', console.log)`
+- allows `.ts` (MPEG stream) and `.m3u8` file types for the web server
+- extend `U.getContentType()` by adding `.ts` and `.m3u8` extensions
 
 ========================
 0.0.45
