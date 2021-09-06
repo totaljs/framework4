@@ -4668,7 +4668,7 @@ function downloadtask(url, name, callback, options, value) {
 				F.tasks[url][key] = fn;
 			};
 
-			new Function('push', response.body)(append);
+			new Function('push', cleandownloadedcode('task', response.body))(append);
 			setImmediate(TASK, url, name, callback, options, value, true);
 		} catch (e) {
 			callback(new ErrorBuilder().push(url, e));
@@ -4770,6 +4770,31 @@ function getLoggerNameOperation(name) {
 
 function NoOp() {}
 
+function cleandownloadedcode(type, body) {
+
+	body = body.trim();
+
+	var index;
+
+	if (type === 'operation') {
+		index = body.indexOf('NEWOPERATION');
+		if (index !== -1) {
+			body = body.replace(/NEWOPERATION\(.*?\{/, '');
+			body = body.replace(/\}\)(;)$/, '');
+			return body;
+		}
+	} else if (type === 'task') {
+		index = body.indexOf('NEWTASK');
+		if (index !== -1) {
+			body = body.replace(/NEWTASK\(.*?\{/, '');
+			body = body.replace(/\}\)(;)$/, '');
+			return body;
+		}
+	}
+
+	return body;
+}
+
 function downloadoperation(url, value, callback, param, controller) {
 
 	var arr = url.split(' ');
@@ -4802,7 +4827,7 @@ function downloadoperation(url, value, callback, param, controller) {
 
 		try {
 			var expire = arr[1] ? arr[1].replace(/<|>/g, '') : null;
-			F.operations[url] = new Function('$', response.body);
+			F.operations[url] = new Function('$', cleandownloadedcode('operation', response.body));
 			F.operations[url].$owner = F.$owner();
 			F.operations[url].expire = expire ? NOW.add(expire) : null;
 			setImmediate(OPERATION, url, value, callback, param, controller, true);
