@@ -4633,7 +4633,14 @@ function compile(body) {
 
 function downloadtask(url, name, callback, options, value) {
 
-	var arr = url.split(' ');
+	var index = url.indexOf(' ');
+	var arr = [];
+
+	if (index !== -1) {
+		arr[0] = url.substring(0, index);
+		arr[1] = url.substring(index + 1);
+	} else
+		arr[0] = url;
 
 	// arr[0] url
 	// arr[1] expiration
@@ -4666,6 +4673,10 @@ function downloadtask(url, name, callback, options, value) {
 			var expire = arr[1] ? arr[1].replace(/<|>/g, '').toLowerCase() : null;
 			var precompiled = compile(response.body);
 
+			F.tasks[url] = {};
+			F.tasks[url].expire = expire ? (expire === 'once' || expire === 'asap') ? NOW : NOW.add(expire) : null;
+			F.tasks[url].$owner = F.$owner();
+
 			var append = function(key, fn) {
 				F.tasks[url][key] = fn;
 			};
@@ -4685,9 +4696,6 @@ function downloadtask(url, name, callback, options, value) {
 							return;
 						}
 
-						F.tasks[url] = {};
-						F.tasks[url].$owner = F.$owner();
-						F.tasks[url].expire = expire ? NOW.add(expire) : null;
 						F.tasks[url].uninstall = compiled.uninstall;
 						compiled.make && compiled.make(append);
 						compiled.exec && compiled.exec(append);
@@ -4699,9 +4707,6 @@ function downloadtask(url, name, callback, options, value) {
 					delete pendingdownload[id];
 					compiled.make && compiled.make(append);
 					compiled.exec && compiled.exec(append);
-					F.tasks[url] = {};
-					F.tasks[url].$owner = F.$owner();
-					F.tasks[url].expire = expire ? (expire === 'once' || expire === 'asap') ? NOW : NOW.add(expire) : null;
 					F.tasks[url].uninstall = compiled.uninstall;
 					setImmediate(TASK, url, name, callback, options, value, true);
 				}
@@ -4712,6 +4717,7 @@ function downloadtask(url, name, callback, options, value) {
 			}
 
 		} catch (e) {
+			delete F.tasks[url];
 			delete pendingdownload[id];
 			callback(new ErrorBuilder().push(url, e));
 		}
@@ -4838,7 +4844,14 @@ function cleandownloadedcode(type, body) {
 
 function downloadoperation(url, value, callback, param, controller) {
 
-	var arr = url.split(' ');
+	var index = url.indexOf(' ');
+	var arr = [];
+
+	if (index !== -1) {
+		arr[0] = url.substring(0, index);
+		arr[1] = url.substring(index + 1);
+	} else
+		arr[0] = url;
 
 	// arr[0] url
 	// arr[1] expiration
@@ -4866,6 +4879,9 @@ function downloadoperation(url, value, callback, param, controller) {
 
 		try {
 			var expire = arr[1] ? arr[1].replace(/<|>/g, '').toLowerCase() : null;
+			if (expire)
+				expire = expire ? (expire === 'once' || expire === 'asap') ? NOW : NOW.add(expire) : null;
+
 			var precompiled = compile(response.body);
 			if (precompiled) {
 
@@ -4884,7 +4900,7 @@ function downloadoperation(url, value, callback, param, controller) {
 
 						F.operations[url] = compiled.make || compiled.exec;
 						F.operations[url].$owner = F.$owner();
-						F.operations[url].expire = expire ? NOW.add(expire) : null;
+						F.operations[url].expire = expire;
 						F.operations[url].uninstall = compiled.uninstall;
 						setImmediate(OPERATION, url, value, callback, param, controller, true);
 					});
@@ -4893,7 +4909,7 @@ function downloadoperation(url, value, callback, param, controller) {
 					delete pendingdownload[id];
 					F.operations[url] = compiled.make || compiled.exec;
 					F.operations[url].$owner = F.$owner();
-					F.operations[url].expire = expire ? NOW.add(expire) : null;
+					F.operations[url].expire = expire;
 					F.operations[url].uninstall = compiled.uninstall;
 					setImmediate(OPERATION, url, value, callback, param, controller, true);
 				}
@@ -4902,7 +4918,7 @@ function downloadoperation(url, value, callback, param, controller) {
 				delete pendingdownload[id];
 				F.operations[url] = new Function('$', cleandownloadedcode('operation', response.body));
 				F.operations[url].$owner = F.$owner();
-				F.operations[url].expire = expire ? (expire === 'once' || expire === 'asap') ? NOW : NOW.add(expire) : null;
+				F.operations[url].expire = expire;
 				setImmediate(OPERATION, url, value, callback, param, controller, true);
 			}
 
