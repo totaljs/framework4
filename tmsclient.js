@@ -43,6 +43,7 @@ exports.create = function(url, token, callback) {
 		});
 
 		client.on('message', function(msg) {
+
 			if (msg.type === 'call') {
 				if (callbacks[msg.callbackid]) {
 					var tmp = callbacks[msg.callbackid];
@@ -64,11 +65,11 @@ exports.create = function(url, token, callback) {
 				sync_subscribers();
 				isopen = true;
 				client.ready = true;
+				client.meta = msg;
 				if (callback) {
-					setImmediate(callback, client, client.meta);
+					setImmediate(callback, null, client, client.meta);
 					callback = null;
 				}
-				client.meta = msg;
 				client.emit('meta', msg);
 				client.emit('ready');
 			}
