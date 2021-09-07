@@ -8053,17 +8053,29 @@ F.service = function(count) {
 				CONF.allow_sessions_unused && F.sessions[key].releaseunused(CONF.allow_sessions_unused);
 			}
 		}
+	}
 
-		// Clears expired operations
-		for (var key in F.operations) {
-			if (F.operations[key].expire && F.operations[key].expire < NOW)
-				delete F.operations[key];
+	// Clears expired operations
+	for (var key in F.operations) {
+		if (F.operations[key].expire && F.operations[key].expire < NOW) {
+			if (F.operations[key].uninstall) {
+				try {
+					F.operations[key].uninstall();
+				} catch (e) {}
+			}
+			delete F.operations[key];
 		}
+	}
 
-		// Clears expired tasks
-		for (var key in F.tasks) {
-			if (F.tasks[key].expire && F.tasks[key].expire < NOW)
-				delete F.tasks[key];
+	// Clears expired tasks
+	for (var key in F.tasks) {
+		if (F.tasks[key].expire && F.tasks[key].expire < NOW) {
+			if (F.tasks[key].uninstall) {
+				try {
+					F.tasks[key].uninstall();
+				} catch (e) {}
+			}
+			delete F.tasks[key];
 		}
 	}
 

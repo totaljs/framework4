@@ -4626,6 +4626,11 @@ function taskrunner(obj, name, callback) {
 	obj.exec(name, callback);
 }
 
+function compile(body) {
+	if ((/exports\.(install|uninstall|exec|make)/).test(body))
+		return new Function('exports', 'require', body);
+}
+
 function downloadtask(url, name, callback, options, value) {
 
 	var arr = url.split(' ');
@@ -4650,29 +4655,65 @@ function downloadtask(url, name, callback, options, value) {
 	opt.url = url;
 	opt.callback = function(err, response) {
 
-		delete pendingdownload[id];
-
 		if (err) {
+			delete pendingdownload[id];
 			callback(new ErrorBuilder().push(err));
 			return;
 		}
 
 		try {
-			var expire = arr[1] ? arr[1].replace(/<|>/g, '') : null;
 
-			F.tasks[url] = {};
-			F.tasks[url].$owner = F.$owner();
-			F.tasks[url].expire = expire ? NOW.add(expire) : null;
+			var expire = arr[1] ? arr[1].replace(/<|>/g, '').toLowerCase() : null;
+			var precompiled = compile(response.body);
 
 			var append = function(key, fn) {
 				F.tasks[url][key] = fn;
 			};
 
-			new Function('push', cleandownloadedcode('task', response.body))(append);
-			setImmediate(TASK, url, name, callback, options, value, true);
+			if (precompiled) {
+
+				var compiled = {};
+				precompiled(compiled, F.require);
+
+				if (compiled.install) {
+					compiled.install(function(err) {
+
+						delete pendingdownload[id];
+
+						if (err) {
+							callback(err);
+							return;
+						}
+
+						F.tasks[url] = {};
+						F.tasks[url].$owner = F.$owner();
+						F.tasks[url].expire = expire ? NOW.add(expire) : null;
+						F.tasks[url].uninstall = compiled.uninstall;
+						compiled.make && compiled.make(append);
+						compiled.exec && compiled.exec(append);
+						setImmediate(TASK, url, name, callback, options, value, true);
+					});
+
+				} else {
+
+					delete pendingdownload[id];
+					compiled.make && compiled.make(append);
+					compiled.exec && compiled.exec(append);
+					F.tasks[url] = {};
+					F.tasks[url].$owner = F.$owner();
+					F.tasks[url].expire = expire ? (expire === 'once' || expire === 'asap') ? NOW : NOW.add(expire) : null;
+					F.tasks[url].uninstall = compiled.uninstall;
+					setImmediate(TASK, url, name, callback, options, value, true);
+				}
+
+			} else {
+				new Function('push', cleandownloadedcode('task', response.body))(append);
+				setImmediate(TASK, url, name, callback, options, value, true);
+			}
+
 		} catch (e) {
+			delete pendingdownload[id];
 			callback(new ErrorBuilder().push(url, e));
-			return;
 		}
 
 	};
@@ -4818,22 +4859,56 @@ function downloadoperation(url, value, callback, param, controller) {
 	opt.url = url;
 	opt.callback = function(err, response) {
 
-		delete pendingdownload[id];
-
 		if (err) {
 			callback(new ErrorBuilder().push(err));
 			return;
 		}
 
 		try {
-			var expire = arr[1] ? arr[1].replace(/<|>/g, '') : null;
-			F.operations[url] = new Function('$', cleandownloadedcode('operation', response.body));
-			F.operations[url].$owner = F.$owner();
-			F.operations[url].expire = expire ? NOW.add(expire) : null;
-			setImmediate(OPERATION, url, value, callback, param, controller, true);
+			var expire = arr[1] ? arr[1].replace(/<|>/g, '').toLowerCase() : null;
+			var precompiled = compile(response.body);
+			if (precompiled) {
+
+				var compiled = {};
+				precompiled(compiled, F.require);
+
+				if (compiled.install) {
+					compiled.install(function(err) {
+
+						delete pendingdownload[id];
+
+						if (err) {
+							callback(err);
+							return;
+						}
+
+						F.operations[url] = compiled.make || compiled.exec;
+						F.operations[url].$owner = F.$owner();
+						F.operations[url].expire = expire ? NOW.add(expire) : null;
+						F.operations[url].uninstall = compiled.uninstall;
+						setImmediate(OPERATION, url, value, callback, param, controller, true);
+					});
+
+				} else {
+					delete pendingdownload[id];
+					F.operations[url] = compiled.make || compiled.exec;
+					F.operations[url].$owner = F.$owner();
+					F.operations[url].expire = expire ? NOW.add(expire) : null;
+					F.operations[url].uninstall = compiled.uninstall;
+					setImmediate(OPERATION, url, value, callback, param, controller, true);
+				}
+
+			} else {
+				delete pendingdownload[id];
+				F.operations[url] = new Function('$', cleandownloadedcode('operation', response.body));
+				F.operations[url].$owner = F.$owner();
+				F.operations[url].expire = expire ? (expire === 'once' || expire === 'asap') ? NOW : NOW.add(expire) : null;
+				setImmediate(OPERATION, url, value, callback, param, controller, true);
+			}
+
 		} catch (e) {
+			delete pendingdownload[id];
 			callback(new ErrorBuilder().push(url, e));
-			return;
 		}
 
 	};
