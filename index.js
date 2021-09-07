@@ -208,10 +208,15 @@ global.NEWCALL = function(name, schema, callback) {
 	}
 
 	var schemaid = registerjsonschema(name, schema);
+	var path;
 
 	if (!callback && schema.indexOf('-->') !== -1) {
-		var path = schema;
+		path = schema;
 		callback = (data, callback, client) => EXEC(path, data, callback, client);
+	} else if (typeof(callback) === 'string') {
+		// operation
+		path = callback;
+		callback = (data, callback, client) => OPERATION(path, data, callback, null, client);
 	}
 
 	if (callback)
