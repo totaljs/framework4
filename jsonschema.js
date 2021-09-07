@@ -394,8 +394,10 @@ function check_object(meta, error, value, response, stop) {
 		return response;
 }
 
-function check(meta, error, value, stop) {
+function transform(meta, error, value, stop) {
+
 	var output;
+
 	switch (meta.type) {
 		case 'string':
 			output = check_string(meta, error, value);
@@ -427,7 +429,7 @@ function check(meta, error, value, stop) {
 	if (stop && error.length)
 		return;
 
-	return output;
+	return output || {};
 }
 
 function register(schema) {
@@ -436,4 +438,4 @@ function register(schema) {
 }
 
 exports.register = register;
-exports.transform = check;
+exports.transform = transform;
