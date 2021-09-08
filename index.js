@@ -1947,7 +1947,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4046;
+	self.is4 = self.version = 4047;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
@@ -14886,7 +14886,7 @@ WebSocketProto.error = function(err) {
 WebSocketProto.destroy = function() {
 	var self = this;
 
-	if (!self.connections && !self.keys)
+	if (!self.connections || !self.keys)
 		return self;
 
 	self.close();
