@@ -7,6 +7,106 @@ function Message() {
 	this.ismessage = true;
 }
 
+Message.prototype = {
+
+	get user() {
+		return this.controller ? this.controller.user : null;
+	},
+
+	get session() {
+		return this.controller ? this.controller.session : null;
+	},
+
+	get sessionid() {
+		return this.controller && this.controller ? this.controller.req.sessionid : null;
+	},
+
+	get language() {
+		return (this.controller ? this.controller.language : '') || '';
+	},
+
+	get ip() {
+		return this.controller ? this.controller.ip : null;
+	},
+
+	get req() {
+		return this.controller ? this.controller.req : null;
+	},
+
+	get res() {
+		return this.controller ? this.controller.res : null;
+	},
+
+	get params() {
+		return this.controller ? this.controller.params : null;
+	},
+
+	get files() {
+		return this.controller ? this.controller.files : null;
+	},
+
+	get body() {
+		return this.controller ? this.controller.body : null;
+	},
+
+	get query() {
+		return this.controller ? this.controller.query : null;
+	},
+
+	get headers() {
+		return this.controller && this.controller.req ? this.controller.req.headers : null;
+	},
+
+	get ua() {
+		return this.controller && this.controller.req ? this.controller.req.ua : null;
+	}
+};
+
+var MP = Message.prototype;
+
+MP.status = function(a, b, c, d) {
+	this.instance.status(a, b, c, d);
+	return this;
+};
+
+MP.dashboard = function(a, b, c, d) {
+	this.instance.dashboard(a, b, c, d);
+	return this;
+};
+
+MP.debug = function(a, b, c, d) {
+	this.instance.debug(a, b, c, d);
+	return this;
+};
+
+MP.throw = function(a, b, c, d) {
+	this.instance.throw(a, b, c, d);
+	return this;
+};
+
+MP.variables = function(str, data) {
+
+	if (str.indexOf('{') !== -1) {
+
+		str = str.args(this.vars);
+
+		if (this.instance.main.variables) {
+			if (str.indexOf('{') !== -1)
+				str = str.args(this.instance.main.variables);
+		}
+
+		if (this.instance.main.variables2) {
+			if (!this.instance.main.variables || str.indexOf('{') !== -1)
+				str = str.args(this.instance.main.variables2);
+		}
+
+		if ((data == true || (data && typeof(data) === 'object')) && str.indexOf('{') !== -1)
+			str = str.args(data == true ? this.data : data);
+	}
+
+	return str;
+};
+
 function UIStream(name, errorhandler) {
 
 	var t = this;

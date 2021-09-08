@@ -3,6 +3,7 @@
 ========================
 
 - fixed unhandled error until destroying WebSocket
+- added missing properties into the `UIStreamMessage`
 
 ========================
 0.0.46
