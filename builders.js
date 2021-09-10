@@ -2079,7 +2079,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					else
 						tmp = val;
 
-					if (tmp instanceof Date && tmp.getTime() > 0)
+					if (tmp instanceof Date && !isNaN(tmp.getTime()))
 						tmp = self.$onprepare(property, tmp, undefined, model, $);
 					else {
 						if (type.def !== undefined)

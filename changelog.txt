@@ -4,6 +4,7 @@
 
 - fixed unhandled error until destroying WebSocket
 - added missing properties into the `UIStreamMessage`
+- fixed parsing dates (lower than 1.1.1970) in the schemas
 
 ========================
 0.0.46
