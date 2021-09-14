@@ -7185,6 +7185,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 
 		var clean = function(path, files) {
 			var index = 0;
+
 			while (true) {
 				var filename = files[index];
 				if (!filename)
@@ -7232,6 +7233,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 					if (dir[dir.length - 1] !== '/')
 						dir += '/';
 
+
 					if (filter && !filter(dir, true))
 						return next();
 
@@ -7245,6 +7247,7 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 
 							if (filter && !filter(item.substring(length), true)) {
 								clean(item, f);
+								clean(item, d);
 								return next();
 							}
 
