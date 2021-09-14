@@ -6,6 +6,7 @@
 - added missing properties into the `UIStreamMessage`
 - fixed parsing dates (lower than 1.1.1970) in the schemas
 - fixed applying `filter` argument in the `BACKUP()` method
+- improved bundle generator in the `$ total4` executable
 
 ========================
 0.0.46

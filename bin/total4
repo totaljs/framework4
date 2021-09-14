@@ -868,13 +868,20 @@ function makebundle(dir, filename) {
 	var blacklist = {};
 	blacklist['/bundle.json'] = 1;
 	blacklist['/debug.js'] = 1;
-	blacklist['/release.js'] = 1;
+	blacklist['/debug.js.json'] = 1;
 	blacklist['/debug.pid'] = 1;
+	blacklist['/release.js'] = 1;
+	blacklist['/release.js.json'] = 1;
+	blacklist['/release.pid'] = 1;
+	blacklist['/index.js'] = 1;
+	blacklist['/index.js.json'] = 1;
+	blacklist['/index.pid'] = 1;
 	blacklist['/package.json'] = 1;
 	blacklist['/readme.md'] = 1;
 	blacklist['/license.txt'] = 1;
 	blacklist['/bundles/'] = 1;
 	blacklist['/tmp/'] = 1;
+	blacklist['/.src/'] = 1;
 
 	if (filename[0] !== '/')
 		blacklist['/' + filename] = 1;
