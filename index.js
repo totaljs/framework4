@@ -7185,15 +7185,13 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 
 		var clean = function(path, files) {
 			var index = 0;
-
 			while (true) {
 				var filename = files[index];
 				if (!filename)
 					break;
-				if (filename.substring(0, path.length) === path) {
+				if (filename.substring(0, path.length) === path)
 					files.splice(index, 1);
-					continue;
-				} else
+				else
 					index++;
 			}
 		};
@@ -7203,6 +7201,9 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 		writer.on('finish', function() {
 			callback && callback(null, { filename: filename, files: counter, size: totalsize });
 		});
+
+		var lastchar = path[path.length - 1];
+		var cleanpath = lastchar === '/' || lastchar === '\\' ? path.substring(0, path.length - 1) : path;
 
 		filelist.wait(function(item, next) {
 
@@ -7228,11 +7229,10 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 				}
 
 				if (stats.isDirectory()) {
-					var dir = item.replace(/\\/g, '/');
 
+					var dir = item.replace(/\\/g, '/');
 					if (dir[dir.length - 1] !== '/')
 						dir += '/';
-
 
 					if (filter && !filter(dir, true))
 						return next();
@@ -7243,30 +7243,38 @@ global.BACKUP = function(filename, filelist, callback, filter) {
 						if (path[path.length - 1] === '/')
 							length--;
 
-						d.wait(function(item, next) {
+						var processdir = function() {
 
-							if (filter && !filter(item.substring(length), true)) {
-								clean(item, f);
-								clean(item, d);
-								return next();
+							var dir = d.shift();
+							if (dir == null) {
+								for (var i = 0; i < f.length; i++)
+									filelist.push(f[i].substring(length));
+								next();
+								return;
 							}
 
-							var tmp = Buffer.from(item.substring(length).padRight(padding) + ': #\n', ENCODING);
-							writer.write(tmp);
-							totalsize += tmp.length;
+							if (filter && !filter(dir.substring(length), true)) {
+								clean(dir, f, true);
+								clean(dir, d, true);
+							} else {
+								var tmp = Buffer.from(dir.substring(length).padRight(padding) + ': #\n', ENCODING);
+								writer.write(tmp);
+								totalsize += tmp.length;
+							}
 
-							next();
-						}, function() {
-							for (var i = 0; i < f.length; i++)
-								filelist.push(f[i].substring(length));
-							next();
-						});
+							processdir();
+						};
+
+						processdir();
+
 					});
 					return;
 				}
 
-				if (filter && !filter(file.substring(path.length - 1), false))
-					return next();
+				if (filter && !filter(file.substring(cleanpath.length), false)) {
+					next();
+					return;
+				}
 
 				var data = Buffer.alloc(0);
 				var tmp = Buffer.from(item.padRight(padding) + ': ');
