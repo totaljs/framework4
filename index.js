@@ -4518,12 +4518,6 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 		});
 	}
 
-	if (typeof(allow) === 'string')
-		allow = allow[allow];
-
-	if (typeof(protocols) === 'string')
-		protocols = protocols[protocols];
-
 	tmp = [];
 
 	var isJSON = true;
