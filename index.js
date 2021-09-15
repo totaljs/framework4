@@ -4385,18 +4385,6 @@ function merge_middleware(a, b, first) {
 	return a;
 }
 
-/**
- * Add a new websocket route
- * @param {String} url
- * @param {Function()} funcInitialize
- * @param {String Array} flags Optional.
- * @param {String Array} protocols Optional, framework compares this array with request protocol (http or https)
- * @param {String Array} allow Optional, framework compares this array with "origin" request header
- * @param {Number} length Optional, maximum message length.
- * @param {String Array} middleware Optional, middlewares.
- * @param {Object} options Optional, additional options for middleware.
- * @return {Framework}
- */
 global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 
 	var tmp;
