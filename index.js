@@ -15923,14 +15923,14 @@ function extend_request(PROTO) {
 
 		var arr = cookie.split(';');
 
-		for (var i = 0, length = arr.length; i < length; i++) {
+		for (var i = 0; i < arr.length; i++) {
 			var line = arr[i].trim();
 			var index = line.indexOf('=');
 			if (index !== -1)
 				this.cookies[line.substring(0, index)] = line.substring(index + 1);
 		}
 
-		return $decodeURIComponent(this.cookies[name] || '');
+		return name ? $decodeURIComponent(this.cookies[name] || '') : '';
 	};
 
 	/**
