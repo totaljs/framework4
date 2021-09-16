@@ -13805,8 +13805,15 @@ ControllerProto.image = function(filename, make, headers, done) {
  * @param {Function} done Optinoal, callback.
  * @return {Controller}
  */
-ControllerProto.stream = function(type, stream, download, headers, done, nocompress) {
+ControllerProto.stream = function(stream, type, download, headers, done, nocompress) {
 	var res = this.res;
+
+	if (typeof(stream) === 'string') {
+		var tmp = type;
+		type = stream;
+		stream = tmp;
+	}
+
 	res.options.type = type;
 	res.options.stream = stream;
 	res.options.download = download;
