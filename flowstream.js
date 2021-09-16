@@ -322,7 +322,7 @@ MP.send = function(outputindex, data, clonedata) {
 		self.instance.stats.duration = now - self.duration2;
 	}
 
-	if (!self.main.$can(false, self.toid, outputindex)) {
+	if (!self.main.$can(false, self.instance.id, outputindex)) {
 		self.destroy();
 		return count;
 	}
