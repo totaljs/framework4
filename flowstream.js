@@ -1507,6 +1507,7 @@ FP.components = function(prepare_export) {
 			obj.group = com.group;
 			obj.version = com.version;
 			obj.author = com.author;
+			obj.permissions = com.permissions;
 
 			arr.push(obj);
 
