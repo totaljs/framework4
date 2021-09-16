@@ -201,6 +201,11 @@ MP.clone = function() {
 	obj.cloned = self.cloned + 1;
 	obj.$timeoutidtotal = self.$timeoutidtotal;
 
+	if (obj.refs.pending)
+		obj.refs.pending++;
+	else
+		obj.refs.pending = 1;
+
 	// additional custom variables
 	obj.uid = self.uid;
 	obj.reference = self.reference;
@@ -395,7 +400,9 @@ MP.send = function(outputindex, data, clonedata) {
 		}
 	}
 
-	if (!count)
+	if (count)
+		self.refs.pending--;
+	else
 		self.destroy();
 
 	return count;
@@ -454,14 +461,20 @@ MP.end = MP.destroy = function() {
 		self.$timeoutidtotal = null;
 	}
 
-	if (self.$events) {
-		self.$events.something && self.emit('something', self);
-		self.$events.end && self.emit('end', self);
-		self.$events.destroy && self.emit('destroy', self);
-	}
+	if (self.refs.pending)
+		self.refs.pending--;
 
-	if (self.main.$events)
-		self.main.$events.end && self.main.emit('end', self);
+	self.$events.something && self.emit('something', self);
+	self.$events.terminate && self.emit('terminate', self);
+
+	if (!self.refs.pending || self.refs.pending < 0) {
+		if (self.$events) {
+			self.$events.end && self.emit('end', self);
+			self.$events.destroy && self.emit('destroy', self);
+		}
+		if (self.main.$events)
+			self.main.$events.end && self.main.emit('end', self);
+	}
 
 	self.isdestroyed = true;
 	self.repo = null;
@@ -782,7 +795,7 @@ FP.ondebug = function(a, b, c, d) {
 function newmessage(data) {
 	var self = this;
 	var msg = new Message();
-	msg.refs = {};
+	msg.refs = { pending: 1 };
 	msg.repo = {};
 	msg.vars = {};
 	msg.data = data instanceof Message ? data.data : data;
@@ -814,7 +827,6 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 			if (conn && conn.length) {
 
 				var ts = Date.now();
-
 				for (var i = 0; i < conn.length; i++) {
 
 					var m = conn[i];
@@ -823,7 +835,6 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						continue;
 
 					var com = self.meta.components[target.component];
-					// if (!com || (com.$inputs && !com.$inputs[m.index]))
 					if (!com)
 						continue;
 
@@ -849,13 +860,13 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						}
 					} else {
 
+						message.refs = { pending: 1 };
 						message.$events = events || {};
 						message.repo = {};
 						message.vars = {};
 						message.data = data;
 						message.duration = message.duration2 = ts;
 						message.used = 1;
-
 					}
 
 					message.main = self;
@@ -1277,6 +1288,7 @@ FP.trigger = function(path, data, controller, events) {
 					data.instance.stats.duration = ts - self.duration2;
 				}
 			} else {
+				message.refs = { pending: 1 };
 				message.$events = events || {};
 				message.repo = {};
 				message.data = data;

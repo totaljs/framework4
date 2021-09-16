@@ -8,6 +8,8 @@
 - fixed applying `filter` argument in the `BACKUP()` method
 - improved bundle generator in the `$ total4` executable
 - changed arguments position in the `controller.stream()` method
+- improved ending of messages in the FlowStream
+- added `terminate` event to the FlowStream messages
 
 ========================
 0.0.46
