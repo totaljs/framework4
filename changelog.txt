@@ -10,6 +10,7 @@
 - changed arguments position in the `controller.stream()` method
 - improved `end` event in the FlowStream messages
 - added `terminate` event to the FlowStream messages
+- fixed `pause` state in the outputs in the FlowStream
 
 ========================
 0.0.46
