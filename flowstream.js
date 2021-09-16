@@ -464,8 +464,10 @@ MP.end = MP.destroy = function() {
 	if (self.refs.pending)
 		self.refs.pending--;
 
-	self.$events.something && self.emit('something', self);
-	self.$events.terminate && self.emit('terminate', self);
+	if (self.$events) {
+		self.$events.something && self.emit('something', self);
+		self.$events.terminate && self.emit('terminate', self);
+	}
 
 	if (!self.refs.pending || self.refs.pending < 0) {
 		if (self.$events) {
