@@ -447,11 +447,11 @@ function parseProxy(p) {
 
 global.REQUEST = function(opt, callback) {
 
-	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
-	var proxy;
-
 	if (callback)
 		opt.callback = callback;
+
+	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
+	var proxy;
 
 	if (global.F)
 		global.F.stats.performance.external++;

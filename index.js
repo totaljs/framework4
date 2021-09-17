@@ -2293,6 +2293,10 @@ function Framework() {
 	self.path.fs = Fs;
 	self.Zlib = Zlib;
 	self.Fs = Fs;
+	self.Path = Path;
+	self.Http = Http;
+	self.Https = Https;
+	self.Worker = Worker;
 	self.Crypto = Crypto;
 	self.Child = Child;
 	self.OS = Os;
