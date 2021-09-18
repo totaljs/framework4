@@ -3,6 +3,8 @@
 ========================
 
 - updated `GUID()` method by returning a valid GUID value (if the `length` argument is undefined)
+- added a new schema type `GUID`
+- added `String.isGUID()` for validating GUIDs
 
 ========================
 0.0.47

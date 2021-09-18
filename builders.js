@@ -976,6 +976,14 @@ exports.parsetype = function(name, value, required, custom) {
 			return result;
 		}
 
+		if (value === GUID) {
+			result.type = 3;
+			result.length = 36;
+			result.raw = 'string';
+			result.subtype = 'guid';
+			return result;
+		}
+
 		if (value === Number) {
 			result.type = 2;
 			return result;
@@ -1118,6 +1126,14 @@ exports.parsetype = function(name, value, required, custom) {
 		result.length = 20;
 		result.raw = 'string';
 		result.subtype = 'uid';
+		return result;
+	}
+
+	if (lower === 'guid') {
+		result.type = 3;
+		result.length = 36;
+		result.raw = 'string';
+		result.subtype = 'guid';
 		return result;
 	}
 
@@ -2050,6 +2066,10 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							if (tmp && !type.required && !tmp.isBase64(true))
 								tmp = '';
 							break;
+						case 'guid':
+							if (tmp && !type.required && !tmp.isGUID())
+								tmp = '';
+							break;
 					}
 
 					if (!tmp && type.def !== undefined)
@@ -2242,6 +2262,10 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							break;
 						case 'base64':
 							if (tmp && !type.required && !tmp.isBase64(true))
+								continue;
+							break;
+						case 'guid':
+							if (tmp && !type.required && !tmp.isGUID())
 								continue;
 							break;
 					}
@@ -2785,6 +2809,10 @@ SchemaBuilderEntityProto.props = function() {
 				switch (meta.subtype) {
 					case 'uid':
 						obj.type = 'uid';
+						delete obj.length;
+						break;
+					case 'guid':
+						obj.type = 'guid';
 						delete obj.length;
 						break;
 					default:
@@ -5509,6 +5537,9 @@ function convertorcompile(schema, data, key) {
 			case 'uid':
 				obj.fn = $convertuid;
 				break;
+			case 'guid':
+				obj.fn = $convertguid;
+				break;
 			case 'upper':
 				obj.fn = (val, obj) => $convertstring(val, obj).toUpperCase();
 				break;
@@ -5665,6 +5696,10 @@ function $convertboolean(value) {
 
 function $convertuid(value) {
 	return value == null ? '' : typeof(value) === 'string' ? value.isUID() ? value : '' : '';
+}
+
+function $convertguid(value) {
+	return value == null ? '' : typeof(value) === 'string' ? value.isGUID() ? value : '' : '';
 }
 
 function $convertdate(value) {

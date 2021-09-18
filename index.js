@@ -1288,6 +1288,8 @@ function makefake(type, max, name) {
 			return Buffer.from(GUID(10), 'ascii').toString('base64');
 		case 'uid':
 			return UID('fake');
+		case 'guid':
+			return GUID();
 		case 'uid16':
 			return UID16('fake');
 		case 'date':
@@ -1340,6 +1342,7 @@ global.FAKE = function(schema, onlyrequired) {
 				case 'json':
 				case 'url':
 				case 'uid':
+				case 'guid':
 				case 'uid16':
 				case 'number2':
 					if (type.isArray) {
@@ -3803,10 +3806,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				var tmp = name.split(':');
 				name = tmp[0];
 				type = tmp[1].toLowerCase();
-			} else if (name === 'uid')
+			} else if (name === 'uid') {
 				type = 'uid';
+			} else if (name === 'guid')
+				type = 'guid';
 
-			if (name === 'id' || name === 'uid')
+			if (name === 'id' || name === 'uid' || name === 'guid')
 				dynamicidindex = i;
 
 			params.push(name);
@@ -11829,6 +11834,11 @@ function controller_api() {
 				self.throw400('Invalid param type');
 				return;
 			}
+		} else if (p.type === 'guid') {
+			if (!param.isGUID()) {
+				self.throw400('Invalid param type');
+				return;
+			}
 		} else if (p.type === 'date') {
 			param = param.length > 6 ? param.indexOf('-') === -1 ? param.parseDate('yyyyMMddHHmm') : param.parseDate('yyyy-MM-dd-HHmm') : null;
 			if (param == null || !param.getTime) {
@@ -11913,6 +11923,11 @@ function websocket_api(url, client, model, callback) {
 
 		if (p.type === 'uid') {
 			if (!param.isUID()) {
+				callback('Invalid param type');
+				return;
+			}
+		} else if (p.type === 'guid') {
+			if (!param.isGUID()) {
 				callback('Invalid param type');
 				return;
 			}

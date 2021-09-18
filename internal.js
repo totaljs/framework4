@@ -194,6 +194,10 @@ exports.routeParameters = function(routeUrl, route) {
 				if (!value.isUID())
 					is = true;
 				break;
+			case 'guid':
+				if (!value.isGUID())
+					is = true;
+				break;
 			case 'number':
 				value = +value;
 				if (isNaN(value)) {

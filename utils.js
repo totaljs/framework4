@@ -17,6 +17,7 @@ const REG_EMPTYBUFFER = /\0|%00|\\u0000/g;
 const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const REG_XSS = /<.*>/;
 const REG_SQLINJECTION = /'(''|[^'])*'|\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE|UNION( +ALL){0,1})\b/;
+const REG_GUID = (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -1830,13 +1831,18 @@ function rnd() {
 function rnd2() {
 	return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
 }
+
+function rnd3() {
+	return arguments[Math.floor(Math.random() * arguments.length)];
+}
+
 global.GUID = exports.GUID = function(max) {
 
 	if (max == null) {
 		var ticks = Date.now();
 		var low = ticks.toString(16);
 		var sec = (ticks / 60000 >> 0).toString(16);
-		return low.substring(0, 8) + '-' + (low.length < 8 ? low.substring(8).padLeft(4, '0') : low.substring(4, 8)) + '-' + sec.substring(0, 4) + '-' + (sec.length < 8 ? sec.substring(4).padLeft(4, '0') : sec.substring(4, 8)) + '-' + rnd2() + rnd2() + rnd2();
+		return low.substring(0, 8) + '-' + (low.length < 8 ? low.substring(8).padLeft(4, '0') : low.substring(4, 8)) + '-' + rnd3(1, 2, 3, 4, 5) + sec.substring(1, 4) + '-' + rnd3(0, 8, 9, 'a', 'b') + sec.substring(4, 7) + '-' + rnd2() + rnd2() + rnd2();
 	}
 
 	max = max || 40;
@@ -1873,6 +1879,8 @@ function validate_builder_default(name, value, entity) {
 			return value.isURL();
 		case 'phone':
 			return value.isPhone();
+		case 'guid':
+			return value.isGUID();
 		case 'base64':
 			return value.isBase64(true);
 	}
@@ -3733,6 +3741,10 @@ SP.isBase64 = function(isdata) {
 	}
 
 	return count % 4 === 0 && (isdata ? regexpBASE64_2.test(str) : regexpBASE64.test(str));
+};
+
+SP.isGUID = function() {
+	return this.length === 36 ? REG_GUID.test(this) : false;
 };
 
 SP.isUID = function() {
@@ -6489,6 +6501,7 @@ String.prototype.toJSONSchema = function(name, url) {
 		switch (type) {
 			case 'string':
 			case 'uid':
+			case 'guid':
 				tmp = {};
 				if (isarr) {
 					tmp.type = 'array';
