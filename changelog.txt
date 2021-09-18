@@ -2,6 +2,8 @@
 0.0.48
 ========================
 
+- updated `GUID()` method by returning a valid GUID value (if the `length` argument is undefined)
+
 ========================
 0.0.47
 ========================

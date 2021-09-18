@@ -1827,7 +1827,18 @@ function rnd() {
 	return Math.floor(Math.random() * 65536).toString(36);
 }
 
+function rnd2() {
+	return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+}
 global.GUID = exports.GUID = function(max) {
+
+	if (max == null) {
+		var ticks = Date.now();
+		var low = ticks.toString(16);
+		var sec = (ticks / 60000 >> 0).toString(16);
+		return low.substring(0, 8) + '-' + (low.length < 8 ? low.substring(8).padLeft(4, '0') : low.substring(4, 8)) + '-' + sec.substring(0, 4) + '-' + (sec.length < 8 ? sec.substring(4).padLeft(4, '0') : sec.substring(4, 8)) + '-' + rnd2() + rnd2() + rnd2();
+	}
+
 	max = max || 40;
 	var str = '';
 	for (var i = 0; i < (max / 3) + 1; i++)
