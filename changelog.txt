@@ -5,6 +5,9 @@
 - updated `GUID()` method by returning a valid GUID value (if the `length` argument is undefined)
 - added a new schema type `GUID`
 - added `String.isGUID()` for validating GUIDs
+- fixed live reload for `.ts` files
+- added output log for the hostname of live reload
+- improved live reload by sending a filename of changed file
 
 ========================
 0.0.47

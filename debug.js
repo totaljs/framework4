@@ -105,6 +105,7 @@ function runwatching() {
 
 	var directory = process.cwd();
 	var directory_root = directory;
+	var LIVERELOADCHANGE = '';
 	const FILENAME = U.getName(process.argv[1] || 'index.js');
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
@@ -116,7 +117,7 @@ function runwatching() {
 	const REG_JSONSCHEMAS = /jsonschemas\/.*?\.json$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
-	const REG_RELOAD = /\.(js|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
+	const REG_RELOAD = /\.(js|ts|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
 	const ARGV = CLONE(process.argv);
@@ -230,8 +231,10 @@ function runwatching() {
 							WS = null;
 						});
 						WS = self;
-					});
-					HTTP('release', { port: typeof(options.livereload) === 'number' ? options.livereload : 35729, directory: tmppath });
+					}, ['text']);
+					var port = typeof(options.livereload) === 'number' ? options.livereload : 35729;
+					HTTP('release', { port: port, directory: tmppath });
+					console.log('> Live reload: ws://127.0.0.1:' + port);
 				});
 			}
 		}
@@ -280,8 +283,8 @@ function runwatching() {
 			});
 		}
 
-		function livereload() {
-			isRELOAD && setTimeout2('livereload', () => WS && WS.send(typeof(options.livereload) === 'string' ? options.livereload : 'reload'), 500);
+		function livereload(filename) {
+			isRELOAD && setTimeout2('livereload', (filename) => WS && WS.send(filename || 'unknown'), 500, null, filename);
 		}
 
 		function isViewPublic(filename) {
@@ -307,15 +310,16 @@ function runwatching() {
 
 		function refresh() {
 			var reload = false;
+			LIVERELOADCHANGE = '';
+
 			Object.keys(files).wait(function(filename, next) {
 				Fs.stat(filename, function(err, stat) {
-
 					var stamp = makestamp();
-
 					if (err) {
 						delete files[filename];
 						var tmp = isViewPublic(filename);
-						var log = stamp.replace('#', 'REM') + prefix + normalize(filename.replace(directory, ''));
+						LIVERELOADCHANGE = normalize(filename.replace(directory, ''));
+						var log = stamp.replace('#', 'REM') + prefix + LIVERELOADCHANGE;
 						if (tmp) {
 							if (isBUNDLE) {
 								Fs.unlinkSync(Path.join(SRC, tmp));
@@ -329,7 +333,6 @@ function runwatching() {
 					} else {
 
 						var ticks = stat.mtime.getTime();
-
 						if (files[filename] != null && files[filename] !== ticks) {
 
 							if (filename.endsWith('.bundle') && files[filename.replace(/\.bundle$/, '.url')]) {
@@ -346,7 +349,8 @@ function runwatching() {
 								return;
 							}
 
-							var log = stamp.replace('#', files[filename] === 0 ? 'ADD' : 'UPD') + prefix + normalize(filename.replace(directory, ''));
+							LIVERELOADCHANGE = normalize(filename.replace(directory, ''));
+							var log = stamp.replace('#', files[filename] === 0 ? 'ADD' : 'UPD') + prefix + LIVERELOADCHANGE;
 							if (files[filename]) {
 								var tmp = isViewPublic(filename);
 								if (tmp) {
@@ -379,7 +383,7 @@ function runwatching() {
 				isLoaded = true;
 
 				if (status !== 1 || !force) {
-					reload && livereload();
+					reload && livereload(LIVERELOADCHANGE);
 					if (counter % 150 === 0)
 						speed = isRELOAD ? 3000 : 6000;
 					setTimeout(refresh_directory, speed);
@@ -463,7 +467,7 @@ function runwatching() {
 							app.send('total:debug');
 							status = 1;
 						}
-						livereload();
+						livereload(LIVERELOADCHANGE);
 						break;
 				}
 			});
