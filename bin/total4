@@ -14,7 +14,7 @@ function display_help() {
 	log_title('Help');
 
 	console.log(' create <template> <path>  : Download template from "total4 templates" list. Default path is "./<template>"');
-	console.log(' templates                 : List of all total.js templates');
+	console.log(' templates                 : List of all Total.js templates');
 	console.log(' translate                 : Creates a resource file with the localized text from views');
 	console.log(' translate "TEXT"          : Creates an identificator for the resource');
 	console.log(' translate <filename>      : Parses and creates a resource file from the text file');
