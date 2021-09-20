@@ -9,6 +9,8 @@
 - added output log for the hostname of live reload
 - improved live reload by sending a filename of changed file
 - fixed internal stats
+- improved middleware
+- improved `F.use()` method
 
 ========================
 0.0.47
