@@ -3,7 +3,7 @@
 		"id": "emptyproject",
 		"name": "Empty",
 		"total": 4,
-		"description": "Empty project without any special setups"
+		"description": "Empty project without any special setup"
 	},
 	"typescript": {
 		"id": "emptyproject-typescript",
@@ -21,11 +21,11 @@
 		"id": "emptyproject-postgresql",
 		"name": "Postgres template",
 		"total": 4,
-		"description": "Empty project ready to be used with postgreSQL"
+		"description": "Empty project ready to be used with PostgreSQL"
 	},
 	"app-builder": {
 		"id": "emptyproject-builder",
-		"name": "App builder",
+		"name": "App Builder",
 		"total": 4,
 		"description": "Tool for creating Total.js server-side applications"
 	},
@@ -53,16 +53,22 @@
 		"total": 4,
 		"description": "Visual programming interface for IoT"
 	},
-	"dashboard": {
-		"id": "emptyproject-dashboard",
-		"name": "Dashboard",
-		"total": 3,
-		"description": "Data renderer for Total.js Flow"
+	"flowstream": {
+		"id": "flowstream",
+		"name": "FlowStream",
+		"total": 4,
+		"description": "Total.js FlowStream"
 	},
-	"flowboard": {
-		"id": "emptyproject-flowboard",
-		"name": "Flowboard",
-		"total": 3,
-		"description": "Friendly designer for the IoT"
+	"tms": {
+		"id": "tms",
+		"name": "TMS",
+		"total": 4,
+		"description": "Total.js Message Service integrator"
+	},
+	"cms": {
+		"id": "cmsbundle",
+		"name": "CMS",
+		"total": 4,
+		"description": "Total.js CMS"
 	}
 }
