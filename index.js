@@ -4279,7 +4279,7 @@ global.MIDDLEWARE = function(name, fn, assign, first) {
 		F._length_request_middleware = F.routes.request.length;
 	}
 
-	if (tmp.route || tmp.web || tmp.dynamic || tmp.routes || tmp.http || tmp.https) {
+	if (tmp.route || tmp.web || tmp.dynamic || tmp.routes || tmp.http || tmp.https || tmp.schema || tmp.schemas || tmp.api) {
 		for (var i = 0; i < F.routes.web.length; i++) {
 			route = F.routes.web[i];
 			!route.middleware && (route.middleware = []);
@@ -4287,7 +4287,7 @@ global.MIDDLEWARE = function(name, fn, assign, first) {
 		}
 	}
 
-	if (tmp.files || tmp.file) {
+	if (tmp.files || tmp.file || tmp.static) {
 		for (var i = 0; i < F.routes.files.length; i++) {
 			route = F.routes.files[i];
 			!route.middleware && (route.middleware = []);
@@ -4321,12 +4321,14 @@ F.use = function(name, url, types, first) {
 		name = tmp;
 	}
 
+	if (typeof(name) === 'string')
+		name = name.split(',').trim();
+
 	if (!url && !types) {
 		if (name instanceof Array) {
 			for (var i = 0; i < name.length; i++)
 				F.routes.request.push(name[i]);
-		} else
-			F.routes.request.push(name);
+		}
 		F._length_request_middleware = F.routes.request.length;
 		return;
 	}
@@ -4344,7 +4346,20 @@ F.use = function(name, url, types, first) {
 	if (url)
 		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
 
-	if (!types || types.indexOf('web') !== -1) {
+	var customtypes = null;
+
+	if (types) {
+
+		customtypes = {}
+
+		if (typeof(types) === 'string')
+			types = types.split(',').trim();
+
+		for (var i = 0; i < types.length; i++)
+			customtypes[types[i].toLowerCase()] = 1;
+	}
+
+	if (!types || customtypes.route || customtypes.web || customtypes.dynamic || customtypes.routes || customtypes.http || customtypes.https || customtypes.schema || customtypes.schemas || customtypes.api) {
 		for (var i = 0; i < F.routes.web.length; i++) {
 			route = F.routes.web[i];
 			if (url && !route.url.join('/').startsWith(url))
@@ -4354,7 +4369,7 @@ F.use = function(name, url, types, first) {
 		}
 	}
 
-	if (!types || types.indexOf('file') !== -1 || types.indexOf('files') !== -1) {
+	if (!types || customtypes.files || customtypes.file || customtypes.static) {
 		for (var i = 0; i < F.routes.files.length; i++) {
 			route = F.routes.files[i];
 			if (url && !route.url.join('/').startsWith(url))
@@ -4364,7 +4379,7 @@ F.use = function(name, url, types, first) {
 		}
 	}
 
-	if (!types || types.indexOf('websocket') !== -1 || types.indexOf('websockets') !== -1) {
+	if (!types || customtypes.websocket || customtypes.socket || customtypes.wss || customtypes.ws || customtypes.sockets || customtypes.websockets) {
 		for (var i = 0; i < F.routes.websockets.length; i++) {
 			route = F.routes.websockets[i];
 			if (url && !route.url.join('/').startsWith(url))
