@@ -2354,7 +2354,6 @@ Framework.prototype = {
 		CLUSTER_CACHE_REMOVEALL.ID = value;
 		CLUSTER_CACHE_CLEAR.ID = value;
 		F.$id = value;
-		return F.$id;
 	}
 };
 
