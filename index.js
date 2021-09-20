@@ -7498,7 +7498,7 @@ global.LOAD = F.load = function(types, cwd, ready) {
 				F.removeAllListeners('load');
 				F.removeAllListeners('ready');
 
-				F.$snapshot();
+				F.$snapshot && F.$snapshot();
 
 			}, 500);
 
@@ -7663,6 +7663,9 @@ F.initialize = function(http, debug, options, callback) {
 
 					F.removeAllListeners('load');
 					F.removeAllListeners('ready');
+
+					F.$snapshot && F.$snapshot();
+
 				}, 500);
 			});
 
