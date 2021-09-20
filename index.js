@@ -18859,7 +18859,9 @@ F.$snapshot = function() {
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
 			lastwarning = NOW.getHours();
 			stats.overload++;
-			Fs.appendFile(process.mainModule.filename + '.overload', JSON.stringify(stats) + '\n', NOOP);
+			try {
+				Fs.appendFile(process.mainModule.filename + '.overload', JSON.stringify(stats) + '\n', NOOP);
+			} catch (e) {}
 		}
 
 		if (F.isCluster) {
@@ -18867,9 +18869,14 @@ F.$snapshot = function() {
 				CLUSTER_SNAPSHOT.data = stats;
 				process.send(CLUSTER_SNAPSHOT);
 			}
-		} else
-			Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '\t'), NOOP);
-
+		} else {
+			try {
+				Fs.writeFile(process.mainModule.filename + '.json', JSON.stringify(main, null, '\t'), NOOP);
+			} catch (e) {
+				// readonly or something else
+				F.snapshotstats = null;
+			}
+		}
 	};
 
 	CONF.allow_stats_snapshot && F.snapshotstats();
