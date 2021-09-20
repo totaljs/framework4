@@ -2150,6 +2150,7 @@ function Framework() {
 	self.tasks = {};
 	self.controllers = {};
 	self.dependencies = {};
+	self.pending = [];
 	self.components = { has: false, css: false, js: false, views: {}, instances: {}, version: null, links: '', groups: {}, files: {} };
 	self.tests = [];
 	self.convertors = {};
@@ -3244,7 +3245,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var apimethod;
 
 	if (url instanceof Array) {
-		url.forEach(url => ROUTE(url, funcExecute, flags));
+		for (var u of url)
+			ROUTE(u, funcExecute, flags, length, language);
 		return;
 	}
 
@@ -4203,6 +4205,52 @@ global.PAUSE = function(value) {
 	F.paused = !!value;
 };
 
+function middleware_assign(name, assign, first) {
+
+	if (!F.isLoaded) {
+		F.pending.push(() => middleware_assign(name, assign, first));
+		return;
+	}
+
+	if (typeof(assign) === 'string')
+		assign = assign.split(',').trim();
+
+	var route;
+	var tmp = {};
+
+	for (var i = 0; i < assign.length; i++)
+		tmp[assign[i].toLowerCase()] = 1;
+
+	if (tmp['*'] || tmp.all) {
+		F.routes.request.push(name);
+		F._length_request_middleware = F.routes.request.length;
+	}
+
+	if (tmp.route || tmp.web || tmp.dynamic || tmp.routes || tmp.http || tmp.https || tmp.schema || tmp.schemas || tmp.api) {
+		for (var i = 0; i < F.routes.web.length; i++) {
+			route = F.routes.web[i];
+			!route.middleware && (route.middleware = []);
+			merge_middleware(route.middleware, name, first);
+		}
+	}
+
+	if (tmp.files || tmp.file || tmp.static) {
+		for (var i = 0; i < F.routes.files.length; i++) {
+			route = F.routes.files[i];
+			!route.middleware && (route.middleware = []);
+			merge_middleware(route.middleware, name, first);
+		}
+	}
+
+	if (tmp.websocket || tmp.socket || tmp.wss || tmp.ws || tmp.sockets || tmp.websockets) {
+		for (var i = 0; i < F.routes.websockets.length; i++) {
+			route = F.routes.websockets[i];
+			!route.middleware && (route.middleware = []);
+			merge_middleware(route.middleware, name, first);
+		}
+	}
+}
+
 /**
  * Add a middleware
  * @param {String} name
@@ -4263,46 +4311,7 @@ global.MIDDLEWARE = function(name, fn, assign, first) {
 
 	F.routes.middleware[name] = fn;
 	F.dependencies['middleware_' + name] = fn;
-
-	if (!assign)
-		return;
-
-	if (typeof(assign) === 'string')
-		assign = assign.split(',').trim();
-
-	var tmp = {};
-	for (var i = 0; i < assign.length; i++)
-		tmp[assign[i].toLowerCase()] = 1;
-
-	if (tmp['*'] || tmp.all) {
-		F.routes.request.push(name);
-		F._length_request_middleware = F.routes.request.length;
-	}
-
-	if (tmp.route || tmp.web || tmp.dynamic || tmp.routes || tmp.http || tmp.https || tmp.schema || tmp.schemas || tmp.api) {
-		for (var i = 0; i < F.routes.web.length; i++) {
-			route = F.routes.web[i];
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
-		}
-	}
-
-	if (tmp.files || tmp.file || tmp.static) {
-		for (var i = 0; i < F.routes.files.length; i++) {
-			route = F.routes.files[i];
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
-		}
-	}
-
-	if (tmp.websocket || tmp.socket || tmp.wss || tmp.ws || tmp.sockets || tmp.websockets) {
-		for (var i = 0; i < F.routes.websockets.length; i++) {
-			route = F.routes.websockets[i];
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
-		}
-	}
-
+	assign && middleware_assign(name, assign, first);
 };
 
 /**
@@ -4314,6 +4323,11 @@ global.MIDDLEWARE = function(name, fn, assign, first) {
  * @return {Framework}
  */
 F.use = function(name, url, types, first) {
+
+	if (!F.isLoaded) {
+		F.pending.push(() => F.use(name, url, types, first));
+		return;
+	}
 
 	if (typeof(name) === 'function') {
 		var tmp = 'mid' + GUID(5);
@@ -4350,7 +4364,7 @@ F.use = function(name, url, types, first) {
 
 	if (types) {
 
-		customtypes = {}
+		customtypes = {};
 
 		if (typeof(types) === 'string')
 			types = types.split(',').trim();
@@ -5329,6 +5343,12 @@ F.serverless = function(req, res, callback, types, cwd) {
 		F.$load(types, directory, function() {
 
 			F.isLoaded = true;
+
+			if (F.pending) {
+				for (var fn of F.pending)
+					fn();
+				delete F.pending;
+			}
 
 			try {
 				EMIT('load');
@@ -7494,6 +7514,12 @@ global.LOAD = F.load = function(types, cwd, ready) {
 
 			F.isLoaded = true;
 
+			if (F.pending) {
+				for (var fn of F.pending)
+					fn();
+				delete F.pending;
+			}
+
 			// if (process.send && process.argv.indexOf('--worker') === -1)
 			// 	process.send('total:ready');
 
@@ -7666,6 +7692,12 @@ F.initialize = function(http, debug, options, callback) {
 					F.console();
 
 				setTimeout(function() {
+
+					if (F.pending) {
+						for (var fn of F.pending)
+							fn();
+						delete F.pending;
+					}
 
 					callback && callback();
 
@@ -18172,6 +18204,7 @@ process.on('message', function(msg, h) {
 		WAIT(() => F.isLoaded, function() {
 			F.isLoaded = undefined;
 			F.console();
+			F.isLoaded = true;
 		}, 10000, 500);
 	} else if (msg === 'reconnect')
 		F.reconnect();
