@@ -1986,6 +1986,7 @@ function Framework() {
 		directory_schemas: '/schemas/',
 		directory_jsonschemas: '/jsonschemas/',
 		directory_operations: '/operations/',
+		directory_middleware: '/middleware/',
 		directory_resources: '/resources/',
 		directory_public: '/public/',
 		directory_modules: '/modules/',
@@ -4210,59 +4211,13 @@ global.PAUSE = function(value) {
 	F.paused = !!value;
 };
 
-function middleware_assign(name, assign, first) {
-
-	if (!F.isLoaded) {
-		F.pending.push(() => middleware_assign(name, assign, first));
-		return;
-	}
-
-	if (typeof(assign) === 'string')
-		assign = assign.split(',').trim();
-
-	var route;
-	var tmp = {};
-
-	for (var i = 0; i < assign.length; i++)
-		tmp[assign[i].toLowerCase()] = 1;
-
-	if (tmp['*'] || tmp.all) {
-		F.routes.request.push(name);
-		F._length_request_middleware = F.routes.request.length;
-	}
-
-	if (tmp.route || tmp.web || tmp.dynamic || tmp.routes || tmp.http || tmp.https || tmp.schema || tmp.schemas || tmp.api) {
-		for (var i = 0; i < F.routes.web.length; i++) {
-			route = F.routes.web[i];
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
-		}
-	}
-
-	if (tmp.files || tmp.file || tmp.static) {
-		for (var i = 0; i < F.routes.files.length; i++) {
-			route = F.routes.files[i];
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
-		}
-	}
-
-	if (tmp.websocket || tmp.socket || tmp.wss || tmp.ws || tmp.sockets || tmp.websockets) {
-		for (var i = 0; i < F.routes.websockets.length; i++) {
-			route = F.routes.websockets[i];
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
-		}
-	}
-}
-
 /**
  * Add a middleware
  * @param {String} name
  * @param {Function(req, res, next, options)} funcExecute
  * @return {Framework}
  */
-global.MIDDLEWARE = function(name, fn, assign, first) {
+global.NEWMIDDLEWARE = global.MIDDLEWARE = function(name, fn, assign, first) {
 
 	var route;
 
@@ -4316,7 +4271,7 @@ global.MIDDLEWARE = function(name, fn, assign, first) {
 
 	F.routes.middleware[name] = fn;
 	F.dependencies['middleware_' + name] = fn;
-	assign && middleware_assign(name, assign, first);
+	assign && F.use(name, '', assign, first);
 };
 
 /**
@@ -4327,7 +4282,7 @@ global.MIDDLEWARE = function(name, fn, assign, first) {
  * @first {Boolean} Optional, add a middleware as first
  * @return {Framework}
  */
-F.use = function(name, url, types, first) {
+global.USE = F.use = function(name, url, types, first) {
 
 	if (!F.isLoaded) {
 		F.pending.push(() => F.use(name, url, types, first));
@@ -4341,13 +4296,10 @@ F.use = function(name, url, types, first) {
 	}
 
 	if (typeof(name) === 'string')
-		name = name.split(',').trim();
+		name = name.replace(/&|#/g, '').split(/,|\s/).trim();
 
 	if (!url && !types) {
-		if (name instanceof Array) {
-			for (var i = 0; i < name.length; i++)
-				F.routes.request.push(name[i]);
-		}
+		merge_middleware(F.routes.request, name, first);
 		F._length_request_middleware = F.routes.request.length;
 		return;
 	}
@@ -4357,14 +4309,6 @@ F.use = function(name, url, types, first) {
 		url = null;
 	}
 
-	if (url === '*')
-		url = null;
-
-	var route;
-
-	if (url)
-		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
-
 	var customtypes = null;
 
 	if (types) {
@@ -4372,11 +4316,25 @@ F.use = function(name, url, types, first) {
 		customtypes = {};
 
 		if (typeof(types) === 'string')
-			types = types.split(',').trim();
+			types = types.split(/,|\s/).trim();
 
 		for (var i = 0; i < types.length; i++)
 			customtypes[types[i].toLowerCase()] = 1;
 	}
+
+	if (!types || customtypes.all || customtypes['*']) {
+		merge_middleware(F.routes.request, name, first);
+		F._length_request_middleware = F.routes.request.length;
+		return;
+	}
+
+	if (url === '*')
+		url = null;
+
+	var route;
+
+	if (url)
+		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
 
 	if (!types || customtypes.route || customtypes.web || customtypes.dynamic || customtypes.routes || customtypes.http || customtypes.https || customtypes.schema || customtypes.schemas || customtypes.api) {
 		for (var i = 0; i < F.routes.web.length; i++) {
@@ -4415,7 +4373,7 @@ function merge_middleware(a, b, first) {
 	if (typeof(b) === 'string')
 		b = [b];
 
-	for (var i = 0, length = b.length; i < length; i++) {
+	for (var i = 0; i < b.length; i++) {
 		var index = a.indexOf(b[i]);
 		if (index === -1) {
 			if (first)
@@ -5633,6 +5591,17 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	// Controllers are skipped for threads
+	if (can('middleware') && !global.THREAD) {
+		operations.push(function(resume) {
+			arr = [];
+			dir = U.combine(targetdirectory, isPackage ? '/middleware/' : CONF.directory_middleware);
+			listing(dir, 0, arr);
+			arr.forEach(item => dependencies.push(next => install('middleware', item.name, item.filename, next)));
+			resume();
+		});
+	}
+
 	if (can('builds')) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
@@ -5985,7 +5954,9 @@ function install(type, name, filename, next) {
 		delete m.install;
 	}
 
-	F.routes_sort();
+	if (type !== 'model' && type !== 'schema' && type !== 'middleware' && type !== 'operation' && type !== 'task' && type !== 'definition')
+		F.routes_sort();
+
 	next && internal_next(next);
 	F.temporary.ready[key] = NOW;
 	EMIT(key, m);
@@ -10976,6 +10947,10 @@ FrameworkPathProto.public_cache = function(filename) {
 
 FrameworkPathProto.private = function(filename) {
 	return U.combine(CONF.directory_private, filename);
+};
+
+FrameworkPathProto.middleware = function(filename) {
+	return U.combine(CONF.directory_middleware, filename);
 };
 
 FrameworkPathProto.configs = function(filename) {

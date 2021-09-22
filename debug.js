@@ -167,6 +167,7 @@ function runwatching() {
 			Path.join(directory, CONF.directory_workers),
 			Path.join(directory, CONF.directory_packages),
 			Path.join(directory, CONF.directory_themes),
+			Path.join(directory, CONF.directory_middleware),
 			Path.join(directory, CONF.directory_configs),
 			Path.join(directory, CONF.directory_bundles),
 			Path.join(directory, '/startup/'),

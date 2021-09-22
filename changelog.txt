@@ -12,6 +12,11 @@
 - improved middleware
 - improved `F.use()` method
 - added support for inline middleware for `ROUTE()` method in the form `ROUTE('GET / &middlewareA &middlewareB')`
+- added `/middleware/` directory for storing middleware
+- added `directory_middleware` config key
+- added `PATH.middleware()` method
+- added `USE(middleware, url, type, [first])` method assigns specified middleware to routes
+- replaced `MIDDLEWARE()` to `NEWMIDDLEWARE()` (the old name has remained)
 
 ========================
 0.0.47
