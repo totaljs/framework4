@@ -3322,6 +3322,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		url = '/';
 
 	if (url) {
+
 		url = url.replace(/\t/g, ' ').trim();
 		var first = url.substring(0, 1);
 		if (first === '+' || first === '-' || url.substring(0, 2) === '🔒') {
@@ -3331,7 +3332,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			flags.push(first === '-' ? 'unauthorized' : 'authorized');
 		}
 
-		//url = url.replace(/(^|\s?)\*([{}a-z0-9}]|\s)?.*?$/i, function(text) {
+		url = url.replace(/\s&[0-9a-z]/gi, function(text) {
+			!flags && (flags = []);
+			flags.push(text.trim());
+			return '';
+		}).trim();
+
 		url = url.replace(/\s\*([{}a-z0-9}]|\s)?.*?$/i, function(text) {
 			!flags && (flags = []);
 
@@ -3525,7 +3531,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				continue;
 			}
 
-			if (first === '#') {
+			if (first === '#' || first === '&') {
 				!middleware && (middleware = []);
 				middleware.push(flags[i].substring(1).trim());
 				continue;
@@ -4472,6 +4478,12 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 			throw new Error('Sitemap item "' + url + '" not found.');
 	}
 
+	url = url.replace(/\s&[0-9a-z]/gi, function(text) {
+		!flags && (flags = []);
+		flags.push(text.trim());
+		return '';
+	}).trim();
+
 	var first = url.substring(0, 1);
 	if (first === '+' || first === '-' || url.substring(0, 2) === '🔒') {
 		// auth/unauth
@@ -4578,7 +4590,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 		}
 
 		// Middleware
-		if (flag[0] === '#') {
+		if (flag[0] === '#' || flag[0] === '&') {
 			!middleware && (middleware = []);
 			middleware.push(flag.substring(1).trim());
 			continue;
@@ -4752,8 +4764,13 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	var a;
 	var mypath = fnValidation;
 
-	if (typeof(fnValidation) === 'string')
-		fnValidation = fnValidation.replace(/FILE\s/gi, '').trim();
+	if (typeof(fnValidation) === 'string') {
+		fnValidation = fnValidation.replace(/\s&[0-9a-z]/gi, function(text) {
+			!flags && (flags = []);
+			flags.push(text.trim());
+			return '';
+		}).trim().replace(/FILE\s/gi, '').trim();
+	}
 
 	if (fnValidation instanceof Array) {
 		a = fnExecute;
@@ -4787,11 +4804,11 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	}
 
 	if (flags) {
-		for (var i = 0, length = flags.length; i < length; i++) {
+		for (var i = 0; i < flag.slength; i++) {
 			var flag = flags[i];
 			if (typeof(flag) === 'object')
 				options = flag;
-			else if (flag[0] === '#') {
+			else if (flag[0] === '#' || flag[0] === '&') {
 				!middleware && (middleware = []);
 				middleware.push(flag.substring(1).trim());
 			} else if (flag[0] === '.') {

@@ -11,6 +11,7 @@
 - fixed internal stats
 - improved middleware
 - improved `F.use()` method
+- added support for inline middleware for `ROUTE()` method in the form `ROUTE('GET / &middlewareA &middlewareB')`
 
 ========================
 0.0.47
