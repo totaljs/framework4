@@ -2,7 +2,8 @@
 0.0.49
 ========================
 
-- fixed typo in the flags in the file route by [fenddigital](https://github.com/fenddigital)
+- fixed typo in the flags in the file route by @fenddigital
+- fixed typo in the file route by @KangGeunSu
 
 ========================
 0.0.48
