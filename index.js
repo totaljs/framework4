@@ -4762,7 +4762,7 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	}
 
 	if (flags) {
-		for (var i = 0; i < flags.slength; i++) {
+		for (var i = 0; i < flags.length; i++) {
 			var flag = flags[i];
 			if (typeof(flag) === 'object')
 				options = flag;
