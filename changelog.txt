@@ -6,6 +6,7 @@
 - debug mode skips all `.js` files in the root
 - extended `MiddlewareOptions` by adding `url` property
 - improved middleware functionality
+- improved `HTTP` server in terminal utility
 
 ========================
 0.0.49
