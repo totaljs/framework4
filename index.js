@@ -2131,6 +2131,9 @@ function Framework() {
 		redirects: {},
 		resize: {},
 		request: [],
+		request_dynamic: [],
+		request_static: [],
+		request_socket: [],
 		views: {},
 		merge: {},
 		mapping: {},
@@ -2314,6 +2317,9 @@ function Framework() {
 	self._request_check_mobile = false;
 	self._request_check_proxy = false;
 	self._length_request_middleware = 0;
+	self._length_request_middleware_dynamic = 0;
+	self._length_request_middleware_static = 0;
+	self._length_request_middleware_socket = 0;
 	self._length_files = 0;
 	self._length_wait = 0;
 	self._length_themes = 0;
@@ -4233,6 +4239,24 @@ global.NEWMIDDLEWARE = global.MIDDLEWARE = function(name, fn, assign, first) {
 			F._length_request_middleware = F.routes.request.length;
 		}
 
+		index = F.routes.request_static.indexOf(name);
+		if (index !== -1) {
+			F.routes.request_static.splice(index, 1);
+			F._length_request_middleware_static = F.routes.request_static.length;
+		}
+
+		index = F.routes.request_dynamic.indexOf(name);
+		if (index !== -1) {
+			F.routes.request_dynamic.splice(index, 1);
+			F._length_request_middleware_dynamic = F.routes.request_dynamic.length;
+		}
+
+		index = F.routes.request_socket.indexOf(name);
+		if (index !== -1) {
+			F.routes.request_socket.splice(index, 1);
+			F._length_request_middleware_socket = F.routes.request_socket.length;
+		}
+
 		for (var i = 0; i < F.routes.web.length; i++) {
 			route = F.routes.web[i];
 			if (route.middleware) {
@@ -4337,35 +4361,49 @@ global.USE = F.use = function(name, url, types, first) {
 		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
 
 	if (!types || customtypes.route || customtypes.web || customtypes.dynamic || customtypes.routes || customtypes.http || customtypes.https || customtypes.schema || customtypes.schemas || customtypes.api) {
-		for (var i = 0; i < F.routes.web.length; i++) {
-			route = F.routes.web[i];
-			if (url && !route.url.join('/').startsWith(url))
-				continue;
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
+		if (url) {
+			for (var i = 0; i < F.routes.web.length; i++) {
+				route = F.routes.web[i];
+				if (route.url.join('/').startsWith(url)) {
+					!route.middleware && (route.middleware = []);
+					merge_middleware(route.middleware, name, first);
+				}
+			}
+		} else {
+			merge_middleware(F.routes.request_dynamic, name, first);
+			F._length_request_middleware_dynamic = F.routes.request_dynamic.length;
 		}
 	}
 
 	if (!types || customtypes.files || customtypes.file || customtypes.static) {
-		for (var i = 0; i < F.routes.files.length; i++) {
-			route = F.routes.files[i];
-			if (url && !route.url.join('/').startsWith(url))
-				continue;
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
+		if (url) {
+			for (var i = 0; i < F.routes.files.length; i++) {
+				route = F.routes.files[i];
+				if (route.url.join('/').startsWith(url)) {
+					!route.middleware && (route.middleware = []);
+					merge_middleware(route.middleware, name, first);
+				}
+			}
+		} else {
+			merge_middleware(F.routes.request_static, name, first);
+			F._length_request_middleware_static = F.routes.request_static.length;
 		}
 	}
 
 	if (!types || customtypes.websocket || customtypes.socket || customtypes.wss || customtypes.ws || customtypes.sockets || customtypes.websockets) {
-		for (var i = 0; i < F.routes.websockets.length; i++) {
-			route = F.routes.websockets[i];
-			if (url && !route.url.join('/').startsWith(url))
-				continue;
-			!route.middleware && (route.middleware = []);
-			merge_middleware(route.middleware, name, first);
+		if (url) {
+			for (var i = 0; i < F.routes.websockets.length; i++) {
+				route = F.routes.websockets[i];
+				if (route.url.join('/').startsWith(url)) {
+					!route.middleware && (route.middleware = []);
+					merge_middleware(route.middleware, name, first);
+				}
+			}
+		} else {
+			merge_middleware(F.routes.request_socket, name, first);
+			F._length_request_middleware_socket = F.routes.request_socket.length;
 		}
 	}
-
 };
 
 function merge_middleware(a, b, first) {
@@ -8280,15 +8318,34 @@ F.listener = function(req, res) {
 
 	req.on('abort', onrequesterror);
 
-	if (F._length_request_middleware)
+	if (F._length_request_middleware) {
 		async_middleware(0, req, res, F.routes.request, requestcontinue_middleware);
-	else
+	} else {
+
+		if (req.isStaticFile && F._length_request_middleware_static) {
+			async_middleware(0, req, res, F.routes.request_static, requestcontinue_middleware2);
+			return;
+		}
+
 		F.$requestcontinue(req, res, headers);
+	}
 };
 
 function requestcontinue_middleware(req, res)  {
+
 	if (req.$total_middleware)
 		req.$total_middleware = null;
+
+	if (req.isStaticFile && F._length_request_middleware_static) {
+		async_middleware(0, req, res, F.routes.request_static, requestcontinue_middleware2);
+		return;
+	}
+
+	F.$requestcontinue(req, res, req.headers);
+}
+
+function requestcontinue_middleware2(req, res)  {
+	req.$total_middleware = null;
 	F.$requestcontinue(req, res, req.headers);
 }
 
@@ -8844,13 +8901,32 @@ F.$upgrade = function(req, socket, head) {
 
 	if (F._length_request_middleware) {
 		async_middleware(0, req, req.websocket, F.routes.request, websocketcontinue_middleware);
-	} else
+	} else {
+
+		if (F._length_request_middleware_socket) {
+			async_middleware(0, req, req.websocket, F.routes.request_socket, websocketcontinue_middleware2);
+			return;
+		}
+
 		F.$websocketcontinue(req, req.$wspath, headers);
+	}
 };
 
 function websocketcontinue_middleware(req) {
+
+	if (F._length_request_middleware_socket) {
+		async_middleware(0, req, req.websocket, F.routes.request_socket, websocketcontinue_middleware2);
+		return;
+	}
+
 	if (req.$total_middleware)
 		req.$total_middleware = null;
+
+	F.$websocketcontinue(req, req.$wspath, req.headers);
+}
+
+function websocketcontinue_middleware2(req) {
+	req.$total_middleware = null;
 	F.$websocketcontinue(req, req.$wspath, req.headers);
 }
 
@@ -8878,6 +8954,7 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 
 	if (user)
 		req.user = user;
+
 	var route = req.$total_route.MEMBER === membertype ? req.$total_route : F.lookup_websocket(req, membertype);
 	if (route) {
 		F.$websocketcontinue_process(route, req, req.websocketpath);
@@ -11362,10 +11439,23 @@ FrameworkCacheProto.fn = function(name, fnCache, fnCallback, options) {
 };
 
 function subscribe_timeout_middleware(req) {
+
 	if (req.$total_middleware)
 		req.$total_middleware = null;
+
+	if (F._length_request_middleware_dynamic) {
+		async_middleware(0, req, req.res, F.routes.request_dynamic, subscribe_timeout_middleware2, null, req.controller);
+		return;
+	}
+
 	req.$total_execute2();
 }
+
+function subscribe_timeout_middleware2(req) {
+	req.$total_middleware = null;
+	req.$total_execute2();
+}
+
 
 function subscribe_validate_callback(req, code) {
 	req.$total_execute(code);
@@ -16262,8 +16352,15 @@ function extend_request(PROTO) {
 
 		if (route.middleware)
 			async_middleware(0, this, res, route.middleware, subscribe_timeout_middleware, route.options, controller);
-		else
+		else {
+
+			if (F._length_request_middleware_dynamic) {
+				async_middleware(0, this, res, F.routes.request_dynamic, subscribe_timeout_middleware2, null, controller);
+				return;
+			}
+
 			this.$total_execute2();
+		}
 	};
 
 	PROTO.$total_execute2 = function() {
@@ -18162,7 +18259,12 @@ MiddlewareOptions.prototype = {
 
 	get query() {
 		return this.req.query;
+	},
+
+	get url() {
+		return this.req.url;
 	}
+
 };
 
 const MiddlewareOptionsProto = MiddlewareOptions.prototype;
@@ -18348,13 +18450,16 @@ function async_middleware(index, req, res, middleware, callback, options, contro
 	}
 
 	var name = middleware[index++];
-	if (!name)
-		return callback && callback(req, res);
+	if (!name) {
+		callback && callback(req, res);
+		return;
+	}
 
 	var item = F.routes.middleware[name];
 	if (!item) {
 		F.error('Middleware not found: ' + name, null, req.uri);
-		return async_middleware(index, req, res, middleware, callback, options, controller);
+		async_middleware(index, req, res, middleware, callback, options, controller);
+		return;
 	}
 
 	var output;
