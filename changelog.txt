@@ -3,6 +3,7 @@
 ========================
 
 - fixed `filestorage.rename()` method
+- debug mode skips all `.js` files in the root
 
 ========================
 0.0.49

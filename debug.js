@@ -118,6 +118,7 @@ function runwatching() {
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
 	const REG_RELOAD = /\.(js|ts|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
+	const REG_NESTED = /\\|\//;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
 	const ARGV = CLONE(process.argv);
@@ -261,6 +262,16 @@ function runwatching() {
 			return isDirectory && REG_THEMES.test(path) ? true : isDirectory ? true : !REG_PUBLIC.test(path) && (REG_EXTENSION.test(path) || REG_COMPONENTS.test(path) || REG_JSONSCHEMAS.test(path) || REG_CONFIGS.test(path) || REG_THEMES_INDEX.test(path));
 		}
 
+		function skiproot(filename) {
+			if (filename.substring(filename.length - 3) === '.js') {
+				for (var i = 0; i < filename.length - 3; i++) {
+					if (filename[i] === '/' || filename[i] === '\\')
+						return;
+				}
+				return true;
+			}
+		}
+
 		function onComplete(f) {
 
 			Fs.readdir(directory, function(err, arr) {
@@ -268,7 +279,7 @@ function runwatching() {
 				var length = arr.length;
 				for (var i = 0; i < length; i++) {
 					var name = arr[i];
-					if (name !== FILENAME && !REG_INDEX.test(name) && REG_FILES.test(name))
+					if (name !== FILENAME && !REG_INDEX.test(name) && REG_FILES.test(name) && !skiproot(name))
 						f.push(name);
 				}
 
