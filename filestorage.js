@@ -470,6 +470,7 @@ FP.rename = function(id, newname, callback) {
 			if (meta.name.length > 250)
 				meta.name = meta.name.substring(0, 250);
 
+			buffer = Buffer.alloc(HEADERSIZE, ' ');
 			buffer.write(JSON.stringify(meta));
 
 			// Update header
