@@ -399,6 +399,17 @@ function main() {
 
 				CONF.directory_temp = '~' + Path.join(Os.tmpdir(), 'total' + dir.makeid());
 				CONF.directory_public = '~' + dir;
+				CONF.directory_tasks = '';
+				CONF.directory_definitions = '';
+				CONF.directory_models = '';
+				CONF.directory_modules = '';
+				CONF.directory_plugins = '';
+				CONF.directory_schemas = '';
+				CONF.directory_operations = '';
+				CONF.directory_middleware = '';
+				CONF.directory_themes = '';
+				CONF.directory_packages = '';
+				CONF.directory_jsonschemas = '';
 				CONF.allow_compile_html = false;
 				CONF.allow_compile_script = false;
 				CONF.allow_compile_style = false;

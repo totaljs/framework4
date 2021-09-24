@@ -5472,7 +5472,7 @@ F.$load = function(types, targetdirectory, callback) {
 		return isNo ? true : types.indexOf(type) !== -1;
 	};
 
-	if (can('jsonschemas')) {
+	if (can('jsonschemas') && CONF.directory_jsonschemas) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/jsonschemas/' : CONF.directory_jsonschemas);
 			arr = [];
@@ -5482,7 +5482,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('modules')) {
+	if (can('modules') && CONF.directory_modules) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/modules/' : CONF.directory_modules);
 			arr = [];
@@ -5492,7 +5492,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('packages')) {
+	if (can('packages') && CONF.directory_packages) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/packages/' : CONF.directory_packages);
 			arr = [];
@@ -5541,7 +5541,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('models')) {
+	if (can('models') && CONF.directory_models) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/models/' : CONF.directory_models);
 			arr = [];
@@ -5551,7 +5551,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('schemas')) {
+	if (can('schemas') && CONF.directory_schemas) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/schemas/' : CONF.directory_schemas);
 			arr = [];
@@ -5561,7 +5561,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('tasks')) {
+	if (can('tasks') && CONF.directory_tasks) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/tasks/' : CONF.directory_tasks);
 			arr = [];
@@ -5571,7 +5571,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('operations')) {
+	if (can('operations') && CONF.directory_operations) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/operations/' : CONF.directory_operations);
 			arr = [];
@@ -5581,7 +5581,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('themes')) {
+	if (can('themes') && CONF.directory_themes) {
 		operations.push(function(resume) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/themes/' : CONF.directory_themes);
@@ -5598,7 +5598,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('definitions')) {
+	if (can('definitions') && CONF.directory_definitions) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/definitions/' : CONF.directory_definitions);
 			arr = [];
@@ -5609,7 +5609,7 @@ F.$load = function(types, targetdirectory, callback) {
 	}
 
 	// Controllers are skipped for threads
-	if (can('controllers') && !global.THREAD) {
+	if (can('controllers') && !global.THREAD && CONF.directory_controllers) {
 		operations.push(function(resume) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/controllers/' : CONF.directory_controllers);
@@ -5619,7 +5619,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('components')) {
+	if (can('components') && CONF.directory_components) {
 		operations.push(function(resume) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/components/' : CONF.directory_components);
@@ -5630,7 +5630,7 @@ F.$load = function(types, targetdirectory, callback) {
 	}
 
 	// Controllers are skipped for threads
-	if (can('middleware') && !global.THREAD) {
+	if (can('middleware') && !global.THREAD && CONF.directory_middleware) {
 		operations.push(function(resume) {
 			arr = [];
 			dir = U.combine(targetdirectory, isPackage ? '/middleware/' : CONF.directory_middleware);
@@ -5640,7 +5640,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('builds')) {
+	if (can('builds') && CONF.directory_builds) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/builds/' : CONF.directory_builds);
 			arr = [];
@@ -5662,7 +5662,7 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
-	if (can('plugins')) {
+	if (can('plugins') && CONF.directory_plugins) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/plugins/' : CONF.directory_plugins);
 			arr = [];
