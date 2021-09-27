@@ -15960,7 +15960,7 @@ function extend_request(PROTO) {
 	Object.defineProperty(PROTO, 'query', {
 		get: function() {
 			if (!this._querydata) {
-				this._querydata = this.uri.query ? DEF.parsers.urlencoded(this.uri.query) : {};
+				this._querydata = this.uri && this.uri.query ? DEF.parsers.urlencoded(this.uri.query) : {};
 			}
 			return this._querydata;
 		},
