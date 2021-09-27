@@ -7,6 +7,7 @@
 - extended `MiddlewareOptions` by adding `url` property
 - improved middleware functionality
 - improved `HTTP` server in terminal utility
+- added check for existance of this.uri by @fenddigital
 
 ========================
 0.0.49
