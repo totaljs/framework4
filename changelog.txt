@@ -8,6 +8,7 @@
 - improved middleware functionality
 - improved `HTTP` server in terminal utility
 - added check for existance of this.uri by @fenddigital
+- removed `.trim()` from the `String.parseComponet()` method
 
 ========================
 0.0.49
