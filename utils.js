@@ -2758,7 +2758,7 @@ SP.parseComponent = function(tags) {
 			if (end !== -1) {
 				var tmp = html.substring(html.indexOf('>', beg) + 1, end);
 				html = html.replace(html.substring(beg, end + tagend.length), '').trim();
-				output[key] = tmp;
+				output[key] = tmp.replace(/^\n|\n$/, '');
 			}
 
 		}
