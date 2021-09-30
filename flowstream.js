@@ -1,6 +1,7 @@
 if (!global.framework_utils)
 	global.framework_utils = require('./utils');
 
+const BLACKLISTID = { paused: 1, groups: 1, tabs: 1 };
 const D = '__';
 
 function Message() {
@@ -605,7 +606,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 		curr.install && !prev && curr.install.call(curr, curr);
 
 		for (var key in self.meta.flow) {
-			if (key !== 'paused') {
+			if (!BLACKLISTID[key]) {
 				var f = self.meta.flow[key];
 				if (f.component === curr.id)
 					self.initcomponent(key, curr);
@@ -659,7 +660,7 @@ FP.cleanforce = function() {
 		return self;
 
 	for (var key in self.meta.flow) {
-		if (key !== 'paused') {
+		if (!BLACKLISTID[key]) {
 			var instance = self.meta.flow[key];
 			if (instance.connections) {
 
@@ -1050,6 +1051,11 @@ FP.use = function(schema, callback, reinit) {
 		self.loading++;
 		keys.wait(function(key, next) {
 
+			if (key === 'groups' || key === 'tabs') {
+				next();
+				return;
+			}
+
 			if (key === 'paused') {
 				self.meta.flow.paused = schema.paused;
 				next();
@@ -1100,7 +1106,7 @@ FP.use = function(schema, callback, reinit) {
 		}, function() {
 
 			for (var key in self.meta.flow) {
-				if (key !== 'paused') {
+				if (!BLACKLISTID[key]) {
 					var instance = self.meta.flow[key];
 					var component = self.meta.components[instance.component];
 					if (instance.ts !== ts) {
@@ -1434,7 +1440,7 @@ FP.instances = function() {
 	var arr = [];
 
 	for (var key in self.meta.flow) {
-		if (key !== 'paused') {
+		if (!BLACKLISTID[key]) {
 			var instance = self.meta.flow[key];
 			if (instance.ready)
 				arr.push(instance);
@@ -1452,7 +1458,8 @@ FP.export = function() {
 	for (var key in self.meta.flow) {
 
 		var instance = self.meta.flow[key];
-		if (key === 'paused') {
+
+		if (BLACKLISTID[key]) {
 			output[key] = CLONE(instance);
 			continue;
 		}
