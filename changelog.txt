@@ -9,6 +9,7 @@
 - improved `HTTP` server in terminal utility
 - added a check for existance of this.uri by @fenddigital
 - removed `.trim()` from the `String.parseComponet()` method
+- fixed cleaning design in the FlowStream
 
 ========================
 0.0.49
