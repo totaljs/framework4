@@ -1048,16 +1048,17 @@ FP.use = function(schema, callback, reinit) {
 		if (self.meta.flow.paused)
 			delete self.meta.flow.paused;
 
+		if (self.meta.flow.groups)
+			delete self.meta.flow.groups;
+
+		if (self.meta.flow.tabs)
+			delete self.meta.flow.tabs;
+
 		self.loading++;
 		keys.wait(function(key, next) {
 
-			if (key === 'groups' || key === 'tabs') {
-				next();
-				return;
-			}
-
-			if (key === 'paused') {
-				self.meta.flow.paused = schema.paused;
+			if (BLACKLISTID[key]) {
+				self.meta.flow[key] = schema[key];
 				next();
 				return;
 			}
