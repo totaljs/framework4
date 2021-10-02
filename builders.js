@@ -174,6 +174,10 @@ SchemaOptions.prototype = {
 		return (this.controller ? this.controller.req.url : '') || '';
 	},
 
+	get path() {
+		return (this.controller ? this.controller.req.path : '') || '';
+	},
+
 	get language() {
 		return (this.controller ? this.controller.language : '') || '';
 	},
@@ -1700,6 +1704,10 @@ SchemaOptionsVerify.prototype = {
 
 	get url() {
 		return (this.controller ? this.controller.req.url : '') || '';
+	},
+
+	get path() {
+		return (this.controller ? this.controller.req.path : '') || '';
 	},
 
 	get language() {
@@ -5197,6 +5205,10 @@ OperationOptions.prototype = {
 		return (this.controller ? this.controller.req.url : '') || '';
 	},
 
+	get path() {
+		return (this.controller ? this.controller.req.path : '') || '';
+	},
+
 	get language() {
 		return (this.controller ? this.controller.language : '') || '';
 	},
@@ -5385,6 +5397,10 @@ AuthOptions.prototype = {
 
 	get url() {
 		return this.req.url || '';
+	},
+
+	get path() {
+		return this.req.path || '';
 	},
 
 	get language() {

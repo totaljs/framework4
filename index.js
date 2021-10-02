@@ -18263,6 +18263,10 @@ MiddlewareOptions.prototype = {
 
 	get url() {
 		return this.req.url;
+	},
+
+	get path() {
+		return this.req.path;
 	}
 
 };

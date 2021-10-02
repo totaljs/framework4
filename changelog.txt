@@ -12,6 +12,7 @@
 - fixed cleaning design in the FlowStream
 - added a small support for Groups and Tabs into the FlowStream
 - fixed API routing with same `paths` with various HTTP methods
+- added `path` property to `SchemaOptions`, `OperationOptions`, `TaskOptions`, `AuthOptions` and `MiddlewareOptions`
 
 ========================
 0.0.49
