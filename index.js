@@ -18265,6 +18265,10 @@ MiddlewareOptions.prototype = {
 		return this.req.url;
 	},
 
+	get split() {
+		return this.req.split;
+	},
+
 	get path() {
 		return this.req.path;
 	}

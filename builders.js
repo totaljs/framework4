@@ -175,7 +175,11 @@ SchemaOptions.prototype = {
 	},
 
 	get path() {
-		return (this.controller ? this.controller.req.path : '') || '';
+		return (this.controller ? this.controller.req.path : EMPTYARRAY);
+	},
+
+	get split() {
+		return (this.controller ? this.controller.req.split : EMPTYARRAY);
 	},
 
 	get language() {
@@ -1707,7 +1711,11 @@ SchemaOptionsVerify.prototype = {
 	},
 
 	get path() {
-		return (this.controller ? this.controller.req.path : '') || '';
+		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
+	},
+
+	get split() {
+		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
 	},
 
 	get language() {
@@ -5206,7 +5214,11 @@ OperationOptions.prototype = {
 	},
 
 	get path() {
-		return (this.controller ? this.controller.req.path : '') || '';
+		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
+	},
+
+	get split() {
+		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
 	},
 
 	get language() {
@@ -5400,7 +5412,11 @@ AuthOptions.prototype = {
 	},
 
 	get path() {
-		return this.req.path || '';
+		return this.req.path;
+	},
+
+	get split() {
+		return this.req.split;
 	},
 
 	get language() {
