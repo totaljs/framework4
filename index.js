@@ -3893,7 +3893,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
-			if (tmp.hash === hash && tmp.MEMBER === membertype) {
+			if (tmp.hash === hash && tmp.MEMBER === membertype && tmp.isAPI) {
 				if (timeout && tmp.timeout < timeout)
 					tmp.timeout = timeout;
 				F.routes.all[mypath].routepath = tmp.path;

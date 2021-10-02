@@ -11,6 +11,7 @@
 - removed `.trim()` from the `String.parseComponet()` method
 - fixed cleaning design in the FlowStream
 - added a small support for Groups and Tabs into the FlowStream
+- fixed API routing with same `paths` with various HTTP methods
 
 ========================
 0.0.49
