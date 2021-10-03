@@ -353,6 +353,7 @@ TD.$append = function() {
 					output.push(builder);
 
 				is = true;
+				self.oninsert && self.oninsert(builder.payload);
 
 				if (diff <= 0)
 					break;
@@ -508,6 +509,7 @@ TD.$update = function() {
 		try {
 			f.modifyrule(docs[dindex], f.modifyarg);
 			f.backuprule && f.backuprule(doc);
+			self.onupdate && self.onupdate(docs[dindex]);
 		} catch (e) {
 			f.canceled = true;
 			f.error = e + '';
@@ -608,6 +610,7 @@ TD.$remove = function() {
 		removed.push(d);
 		filters.total--;
 		f.backuprule && f.backuprule(d);
+		self.onremove && self.onremove(d);
 		return 1;
 	};
 

@@ -458,6 +458,7 @@ JD.$append = function() {
 			json += JSON.stringify(builder.payload) + NEWLINE;
 			if (self.id && self.inmemory && CACHEITEMS[self.id].length)
 				CACHEITEMS[self.id].push(builder.payload);
+			self.oninsert && self.oninsert(builder.payload);
 		}
 
 		Fs.appendFile(self.filename, json, function(err) {
@@ -554,6 +555,8 @@ JD.$update = function() {
 			fs.write(tmp, rec.position);
 			fs.write2(upd + NEWLINE);
 		}
+
+		self.onupdate && self.onupdate(doc);
 	};
 
 	fs.ondocuments = function() {
@@ -802,6 +805,7 @@ JD.$remove = function() {
 	var remove = function(docs, d, dindex, f) {
 		filters.total--;
 		f.backuprule && f.backuprule(fs.docsbuffer[dindex].doc);
+		self.onremove && self.onremove(fs.docsbuffer[dindex].doc);
 		return 1;
 	};
 
@@ -1492,6 +1496,8 @@ TD.$update = function() {
 			fs.write(tmp, rec.position);
 			fs.write2(upd + NEWLINE);
 		}
+
+		self.onupdate && self.onupdate(doc);
 	};
 
 	fs.ondocuments = function() {
@@ -1572,6 +1578,7 @@ TD.$remove = function() {
 	var remove = function(docs, d, dindex, f) {
 		filters.total--;
 		f.backuprule && f.backuprule(fs.docsbuffer[dindex].doc);
+		self.onremove && self.onremove(fs.docsbuffer[dindex].doc);
 		return 1;
 	};
 

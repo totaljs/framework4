@@ -14,6 +14,7 @@
 - fixed API routing with same `paths` with various HTTP methods
 - added `path` property to `SchemaOptions`, `OperationOptions`, `TaskOptions`, `AuthOptions` and `MiddlewareOptions`
 - added `split` property to `SchemaOptions`, `OperationOptions`, `TaskOptions`, `AuthOptions` and `MiddlewareOptions`
+- added `TextDB` internal handlers `instance.oninsert = function(doc)`, `instance.onupdate = function(doc)`, `instance.onremove = function(doc)`
 
 ========================
 0.0.49
