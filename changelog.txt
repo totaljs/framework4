@@ -15,6 +15,8 @@
 - added `path` property to `SchemaOptions`, `OperationOptions`, `TaskOptions`, `AuthOptions` and `MiddlewareOptions`
 - added `split` property to `SchemaOptions`, `OperationOptions`, `TaskOptions`, `AuthOptions` and `MiddlewareOptions`
 - added `TextDB` internal handlers `instance.oninsert = function(doc)`, `instance.onupdate = function(doc)`, `instance.onremove = function(doc)`
+- fixed parsing `object` types for inline schemas via `String.toJSONSchema(name)`
+- updated `NEWJSONSCHEMA(name, 'name:String, age:Number')` by adding inline declaring fields
 
 ========================
 0.0.49
