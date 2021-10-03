@@ -6543,6 +6543,15 @@ String.prototype.toJSONSchema = function(name, url) {
 				} else
 					tmp.type = 'date';
 				break;
+			case 'object':
+				tmp = {};
+				if (isarr) {
+					tmp.type = 'array';
+					tmp.items = { type: 'object' };
+				} else {
+					tmp.type = 'object';
+				}
+				break;
 		}
 		if (tmp)
 			obj.properties[arr[0].trim()] = tmp;
