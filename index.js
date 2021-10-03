@@ -103,8 +103,12 @@ global.NEWJSONSCHEMA = function(name, value) {
 	} else {
 		if (value == null)
 			delete F.jsonschemas[name];
-		else
-			F.jsonschemas[name] = value;
+		else {
+			if (value.indexOf(':') === 1)
+				F.jsonschemas[name] = value;
+			else
+				F.jsonschemas[name] = value.toJSONSchema(name);
+		}
 	}
 };
 
