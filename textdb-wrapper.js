@@ -124,9 +124,15 @@ function Database(type, name, onetime, schema, fork) {
 					if (type === 'textdb') {
 						db = require('./textdb-new');
 						t.fork[key] = db.TextDB(name, !t.onetime);
+						t.fork[key].oninsert = t.oninsert;
+						t.fork[key].onupdate = t.onupdate;
+						t.fork[key].onremove = t.onremove;
 					} else {
 						db = require('./textdb');
 						t.fork[key] = type === 'nosql' ? db.JsonDB(name, !t.onetime) : db.TableDB(name, schema, !t.onetime);
+						t.fork[key].oninsert = t.oninsert;
+						t.fork[key].onupdate = t.onupdate;
+						t.fork[key].onremove = t.onremove;
 					}
 				}
 
