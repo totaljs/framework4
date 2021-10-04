@@ -5779,6 +5779,11 @@ exports.uninstall = function(owner) {
 	if (!owner)
 		return;
 
+	for (var key in F.tasks) {
+		if (F.tasks[key].$owner === owner)
+			delete F.tasks[key];
+	}
+
 	for (var key in F.operations) {
 		if (F.operations[key].$owner === owner)
 			delete F.operations[key];
