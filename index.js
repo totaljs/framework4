@@ -2573,7 +2573,9 @@ F.removeAllListeners = function(name) {
  * Internal function
  * @return {String} Returns current (dependency type and name) owner.
  */
-F.$owner = function() {
+F.$owner = function(val) {
+	if (val)
+		return CURRENT_OWNER = val;
 	return CURRENT_OWNER;
 };
 
@@ -3047,7 +3049,7 @@ global.RESIZE = function(url, fn, flags) {
 	else if (extensions.jpeg && !extensions.jpg)
 		extensions.jpg = true;
 
-	F.routes.resize[url] = { fn: fn, path: U.path(path || url), ishttp: path.match(/http:|https:/gi) ? true : false, extension: extensions, cache: cache };
+	F.routes.resize[url] = { fn: fn, path: U.path(path || url), ishttp: path.match(/http:|https:/gi) ? true : false, extension: extensions, cache: cache, owner: CURRENT_OWNER };
 };
 
 /**
@@ -5826,10 +5828,19 @@ function install_build(name, filename, next) {
 		return;
 	}
 
-	F.builds[name] = { filename: filename };
+	var meta = F.builds[name] = { filename: filename };
 	var build = Fs.readFileSync(filename).toString('utf8').parseJSON();
 	if (build && build.compiled) {
+
 		var code;
+
+		meta.id = build.id || HASH(build.name).toString(36);
+		meta.name = build.name;
+		meta.icon = build.icon;
+		meta.url = build.url;
+		meta.color = build.color;
+		meta.summary = build.summary;
+		meta.uninstall = uninstall_plugin;
 
 		if ((/^base64\s/i).test(build.compiled))
 			code = decodeURIComponent(Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64'));
@@ -5840,13 +5851,20 @@ function install_build(name, filename, next) {
 
 		var tmp = PATH.temp(name + '.build.js');
 		Fs.writeFileSync(tmp, code);
-		F.builds[name] = require(tmp);
+		meta.module = require(tmp);
 
 		if (!F.buildserrorhandling)
 			F.buildserrorhandling = code.indexOf('//@build') !== -1;
 	}
 
 	internal_next(next);
+}
+
+function uninstall_plugin() {
+
+	framework_builders.uninstall(this.id);
+
+
 }
 
 function install_component(name, filename, next) {
@@ -8066,7 +8084,6 @@ F.reconnect = function() {
 function cleargc() {
 	global.gc();
 }
-
 
 var websocketpingerenabled = false;
 

@@ -17,6 +17,8 @@
 - added `TextDB` internal handlers `instance.oninsert = function(doc)`, `instance.onupdate = function(doc)`, `instance.onremove = function(doc)`
 - fixed parsing `object` types for inline schemas via `String.toJSONSchema(name)`
 - updated `NEWJSONSCHEMA(name, 'name:String, age:Number')` by adding inline declaring fields
+- updated `F.$owner([new_owner])` added a new optional `new_owner` argument
+- updated `F.builds` by adding a new meta information
 
 ========================
 0.0.49
