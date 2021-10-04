@@ -157,6 +157,7 @@ function runwatching() {
 			Path.join(directory, CONF.directory_controllers),
 			Path.join(directory, CONF.directory_definitions),
 			Path.join(directory, CONF.directory_operations),
+			Path.join(directory, CONF.directory_extensions),
 			Path.join(directory, CONF.directory_modules),
 			Path.join(directory, CONF.directory_models),
 			Path.join(directory, CONF.directory_builds),

@@ -1988,6 +1988,7 @@ function Framework() {
 		directory_temp: '/tmp/',
 		directory_models: '/models/',
 		directory_schemas: '/schemas/',
+		directory_extensions: '/extensions/',
 		directory_jsonschemas: '/jsonschemas/',
 		directory_operations: '/operations/',
 		directory_middleware: '/middleware/',
@@ -5675,6 +5676,16 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('extensions') && CONF.directory_extensions) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/extensions/' : CONF.directory_extensions);
+			arr = [];
+			listing(dir, 0, arr);
+			arr.forEach(item => dependencies.push(next => install_extension(item.filename, next)));
+			resume();
+		});
+	}
+
 	if (can('plugins') && CONF.directory_plugins) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/plugins/' : CONF.directory_plugins);
@@ -5802,6 +5813,18 @@ function internal_next(next) {
 		setTimeout(internal_next, 100, next);
 	else
 		setImmediate(next);
+}
+
+function install_extension(filename, next) {
+	F.Fs.readFile(filename, function(err, buffer) {
+		if (buffer) {
+			NEWEXTENSION(buffer.toString('utf8'), function(err) {
+				err && F.error(err, 'Extension: ' + err);
+				next();
+			});
+		} else
+			next();
+	});
 }
 
 function install_package(name, filename, next) {
@@ -11112,6 +11135,10 @@ FrameworkPathProto.schemas = function(filename) {
 
 FrameworkPathProto.jsonschemas = function(filename) {
 	return U.combine(CONF.directory_jsonschemas, filename);
+};
+
+FrameworkPathProto.extensions = function(filename) {
+	return U.combine(CONF.extensions, filename);
 };
 
 FrameworkPathProto.operations = function(filename) {
