@@ -19149,19 +19149,17 @@ global.NEWEXTENSION = function(code, callback) {
 		obj.id = HASH(id).toString(36);
 		CURRENT_OWNER = 'extension' + obj.id;
 
-		if (obj.uninstall)
-			obj.$uninstall = obj.uninstall;
-
-		obj.uninstall = function() {
-			obj.$uninstall && obj.$uninstall();
-			delete obj.$uninstall;
+		obj.remove = function() {
+			obj.uninstall && obj.uninstall();
+			delete obj.remove;
 			delete obj.uninstall;
 			delete obj.install;
 			delete obj.make;
+			delete obj.done;
 			var index = F.extensions.indexOf(obj);
 			if (index !== -1)
 				F.extensions.splice(index, 1);
-			CMD('clear_owner', 'ext' + obj.id);
+			CMD('clear_owner', 'extension' + obj.id);
 		};
 
 		if (obj.install) {
@@ -19172,12 +19170,14 @@ global.NEWEXTENSION = function(code, callback) {
 					F.extensions.push(obj);
 					callback && callback(null, obj);
 					obj.make && obj.make();
+					obj.done && obj.done();
 				}
 			});
 		} else {
 			F.extensions.push(obj);
 			callback && callback(null, obj);
 			obj.make && obj.make();
+			obj.done && obj.done();
 		}
 	} catch (e) {
 		callback && callback(new ErrorBuilder().push(e));
