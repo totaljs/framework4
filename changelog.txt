@@ -19,6 +19,9 @@
 - updated `NEWJSONSCHEMA(name, 'name:String, age:Number')` by adding inline declaring fields
 - updated `F.$owner([new_owner])` added a new optional `new_owner` argument
 - updated `F.builds` by adding a new meta information
+- added `EXTENSION(code, [callback(err, module)])`
+- added `F.extensions {Object}` for storing all extensions
+- added a new command: `clear_owner` for removing all dependencies for the specific owner
 
 ========================
 0.0.49

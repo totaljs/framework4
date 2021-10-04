@@ -2152,6 +2152,7 @@ function Framework() {
 	self.modules = {};
 	self.models = {};
 	self.builds = {};
+	self.extensions = [];
 	self.plugins = {};
 	self.sources = {};
 	self.operations = {};
@@ -2482,6 +2483,9 @@ global.ON = function(name, fn) {
 				break;
 		}
 	}
+
+	if (CURRENT_OWNER)
+		fn.$owner = CURRENT_OWNER;
 
 	if (isWORKER && name === 'service' && !F.cache.interval)
 		F.cache.init_timer();
@@ -4237,7 +4241,7 @@ global.NEWMIDDLEWARE = global.MIDDLEWARE = function(name, fn, assign, first) {
 	if (fn == null) {
 
 		delete F.routes.middleware[name];
-		F.dependencies['middleware_' + name];
+		delete F.dependencies['middleware_' + name];
 
 		var index = F.routes.request.indexOf(name);
 		if (index !== -1) {
@@ -4299,6 +4303,7 @@ global.NEWMIDDLEWARE = global.MIDDLEWARE = function(name, fn, assign, first) {
 		return;
 	}
 
+	fn.$owner = CURRENT_OWNER;
 	F.routes.middleware[name] = fn;
 	F.dependencies['middleware_' + name] = fn;
 	assign && F.use(name, '', assign, first);
@@ -4724,6 +4729,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	r.options = options;
 	r.isPARAM = arr.length > 0;
 	r.type = 'websocket';
+	r.parent = instance;
 	F.routes.websockets.push(r);
 	F.initwebsocket && F.initwebsocket();
 	F.routes.all[mypath] = instance;
@@ -4889,6 +4895,7 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	r.middleware = middleware;
 	r.options = options;
 	instance.type = 'file';
+	r.parent = instance;
 	F.routes.files.push(r);
 	F.routes.files.sort((a, b) => !a.url ? -1 : !b.url ? 1 : a.url.length > b.url.length ? -1 : 1);
 
@@ -5861,10 +5868,7 @@ function install_build(name, filename, next) {
 }
 
 function uninstall_plugin() {
-
-	framework_builders.uninstall(this.id);
-
-
+	CMD('clear_owner', this.id);
 }
 
 function install_component(name, filename, next) {
@@ -19096,6 +19100,63 @@ NEWCOMMAND('refresh_tms', function() {
 
 });
 
+global.NEWEXTENSION = function(code, callback) {
+
+	if (code[0] === 'h' && code[6] === '/') {
+		var opt = {};
+		opt.url = code;
+		opt.callback = function(err, response) {
+			if (err) {
+				callback && callback(new ErrorBuilder().push(err));
+			} else
+				global.EXTENSION(response.body, callback);
+		};
+		REQUEST(opt);
+		return;
+	}
+
+	var obj = {};
+	try {
+		new Function('exports', code)(obj);
+		var id = obj.name || code;
+		obj.id = HASH(id).toString(36);
+		CURRENT_OWNER = 'extension' + obj.id;
+
+		if (obj.uninstall)
+			obj.$uninstall = obj.uninstall;
+
+		obj.uninstall = function() {
+			obj.$uninstall && obj.$uninstall();
+			delete obj.$uninstall;
+			delete obj.uninstall;
+			delete obj.install;
+			delete obj.make;
+			var index = F.extensions.indexOf(obj);
+			if (index !== -1)
+				F.extensions.splice(index, 1);
+			CMD('clear_owner', 'ext' + obj.id);
+		};
+
+		if (obj.install) {
+			obj.install(function(err) {
+				if (err) {
+					callback && callback(new ErrorBuilder().push(err));
+				} else {
+					F.extensions.push(obj);
+					callback && callback(null, obj);
+					obj.make && obj.make();
+				}
+			});
+		} else {
+			F.extensions.push(obj);
+			callback && callback(null, obj);
+			obj.make && obj.make();
+		}
+	} catch (e) {
+		callback && callback(new ErrorBuilder().push(e));
+	}
+};
+
 NEWCOMMAND('clear_smtpcache', function() {
 	if (CONF.mail_smtp || CONF.mail_smtp_options)
 		delete F.temporary.mail_settings;
@@ -19109,6 +19170,108 @@ NEWCOMMAND('clear_viewscache', function() {
 	}
 	F.cache.removeAll('$view');
 	F.temporary.views = {};
+});
+
+NEWCOMMAND('clear_owner', function(owner) {
+
+	var arr = [];
+	var index;
+
+	// Schemas, Operations, Tasks
+	framework_builders.uninstall(owner);
+
+	// Modificators
+	if (F.modificators) {
+		for (var item of F.modificators) {
+			if (item.$owner === owner)
+				arr.push(item);
+		}
+
+		for (var item of arr) {
+			index = F.modificators.indexOf(item);
+			if (index !== -1)
+				F.modificators.splice(index, 1);
+		}
+	}
+
+	// Modificators
+	if (F.modificators2) {
+		for (var key in F.modificators2) {
+
+			arr = [];
+			var items = F.modificators2[key];
+
+			for (var item of items) {
+				if (item.$owner === owner)
+					arr.push(item);
+			}
+
+			for (var item of arr) {
+				index = F.modificators2[key].indexOf(item);
+				if (index !== -1) {
+					F.modificators2[key].splice(index, 1);
+					if (!F.modificators2[key].length)
+						delete F.modificators2[key];
+				}
+			}
+		}
+
+		for (var item of arr) {
+			index = F.modificators.indexOf(item);
+			if (index !== -1)
+				F.modificators.splice(index, 1);
+		}
+
+	}
+
+	arr = [];
+	for (var key in F.routes.middleware) {
+		var fn = F.routes.middleware[key];
+		if (fn.$owner === owner)
+			NEWMIDDLEWARE(key, null);
+	}
+
+	// WebSocket routes
+	for (var item of F.routes.websockets) {
+		if (item.owner === owner)
+			item.parent.remove(true);
+	}
+
+	// Dynamic routes
+	for (var item of F.routes.web) {
+		if (item.owner === owner)
+			item.parent.remove(true);
+	}
+
+	// Static routes
+	for (var item of F.routes.files) {
+		if (item.owner === owner)
+			item.parent.remove(true);
+	}
+
+	// CORS
+	arr = [];
+	for (var item of F.routes.cors) {
+		if (item.owner === owner)
+			arr.push(item);
+	}
+
+	for (var item of F.routes.cors)
+		F.routes.cors.splice(F.routes.cors.indexOf(item), 1);
+
+	// Events
+	for (var key in F.$events) {
+		var arr = F.$events[key];
+		var rem = [];
+		for (var evt of arr) {
+			if (evt.$owner === owner)
+				rem.push(evt);
+		}
+		for (var evt of rem)
+			F.removeListener(key, evt);
+	}
+
+	F.routes_sort();
 });
 
 // Because of controller prototypes
