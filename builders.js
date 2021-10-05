@@ -5789,8 +5789,9 @@ exports.uninstall = function(owner) {
 			delete F.operations[key];
 	}
 
-	exports.eachschema(function(group, name, schema) {
-		schema.owner === owner && schema.destroy();
+	exports.eachschema(function(name, schema) {
+		if (schema.owner === owner)
+			schema.destroy();
 	});
 };
 
