@@ -19173,15 +19173,13 @@ global.NEWEXTENSION = function(code, callback) {
 		return;
 	}
 
-	var index = F.extensions.findItem('id', obj.id);
-	if (index !== -1) {
-		var ext = F.extensions[index];
+	var ext = F.extensions.findItem('id', obj.id);
+	if (ext !== -1) {
 		try {
 			ext.remove();
 		} catch (e) {
 			F.error(e, 'Removing extension: ' + ext.name);
 		}
-		F.extensions.splice(index, 1);
 	}
 
 	CURRENT_OWNER = 'extension' + obj.id;
