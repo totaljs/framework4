@@ -19174,7 +19174,7 @@ global.NEWEXTENSION = function(code, callback) {
 	}
 
 	var ext = F.extensions.findItem('id', obj.id);
-	if (ext !== -1) {
+	if (ext) {
 		try {
 			ext.remove();
 		} catch (e) {
