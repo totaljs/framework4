@@ -19133,6 +19133,7 @@ function newextension_make(obj, callback) {
 			if (err) {
 				callback && callback(new ErrorBuilder().push(err));
 			} else {
+				CURRENT_OWNER = 'extension' + obj.id;
 				F.extensions.push(obj);
 				callback && callback(null, obj);
 				obj.make && obj.make();
@@ -19140,6 +19141,7 @@ function newextension_make(obj, callback) {
 			}
 		});
 	} else {
+		CURRENT_OWNER = 'extension' + obj.id;
 		F.extensions.push(obj);
 		callback && callback(null, obj);
 		obj.make && obj.make();
