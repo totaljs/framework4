@@ -19127,6 +19127,26 @@ NEWCOMMAND('refresh_tms', function() {
 
 });
 
+function newextension_make(obj, callback) {
+	if (obj.install) {
+		obj.install(function(err) {
+			if (err) {
+				callback && callback(new ErrorBuilder().push(err));
+			} else {
+				F.extensions.push(obj);
+				callback && callback(null, obj);
+				obj.make && obj.make();
+				obj.done && obj.done();
+			}
+		});
+	} else {
+		F.extensions.push(obj);
+		callback && callback(null, obj);
+		obj.make && obj.make();
+		obj.done && obj.done();
+	}
+}
+
 global.NEWEXTENSION = function(code, callback) {
 
 	if (code[0] === 'h' && code[6] === '/') {
@@ -19136,52 +19156,50 @@ global.NEWEXTENSION = function(code, callback) {
 			if (err) {
 				callback && callback(new ErrorBuilder().push(err));
 			} else
-				global.EXTENSION(response.body, callback);
+				global.NEWEXTENSION(response.body, callback);
 		};
 		REQUEST(opt);
 		return;
 	}
 
 	var obj = {};
+
 	try {
 		new Function('exports', code)(obj);
 		var id = obj.name || code;
 		obj.id = HASH(id).toString(36);
-		CURRENT_OWNER = 'extension' + obj.id;
-
-		obj.remove = function() {
-			obj.uninstall && obj.uninstall();
-			delete obj.remove;
-			delete obj.uninstall;
-			delete obj.install;
-			delete obj.make;
-			delete obj.done;
-			var index = F.extensions.indexOf(obj);
-			if (index !== -1)
-				F.extensions.splice(index, 1);
-			CMD('clear_owner', 'extension' + obj.id);
-		};
-
-		if (obj.install) {
-			obj.install(function(err) {
-				if (err) {
-					callback && callback(new ErrorBuilder().push(err));
-				} else {
-					F.extensions.push(obj);
-					callback && callback(null, obj);
-					obj.make && obj.make();
-					obj.done && obj.done();
-				}
-			});
-		} else {
-			F.extensions.push(obj);
-			callback && callback(null, obj);
-			obj.make && obj.make();
-			obj.done && obj.done();
-		}
 	} catch (e) {
 		callback && callback(new ErrorBuilder().push(e));
+		return;
 	}
+
+	var index = F.extensions.findItem('id', obj.id);
+	if (index === -1) {
+		var ext = F.extensions[index];
+		try {
+			ext.remove();
+		} catch (e) {
+			F.error(e, 'Removing extension: ' + ext.name);
+		}
+		F.extensions.splice(index, 1);
+	}
+
+	CURRENT_OWNER = 'extension' + obj.id;
+
+	obj.remove = function() {
+		obj.uninstall && obj.uninstall();
+		delete obj.remove;
+		delete obj.uninstall;
+		delete obj.install;
+		delete obj.make;
+		delete obj.done;
+		var index = F.extensions.indexOf(obj);
+		if (index !== -1)
+			F.extensions.splice(index, 1);
+		CMD('clear_owner', 'extension' + obj.id);
+	};
+
+	setTimeout(newextension_make, 100, obj, callback);
 };
 
 NEWCOMMAND('clear_smtpcache', function() {
