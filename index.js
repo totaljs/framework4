@@ -19149,7 +19149,7 @@ function newextension_make(obj, callback) {
 
 global.NEWEXTENSION = function(code, callback) {
 
-	if (code[0] === 'h' && code[6] === '/') {
+	if (code[0] === 'h' && code[6] === '/' && code.indexOf('\n') === -1) {
 		var opt = {};
 		opt.url = code;
 		opt.callback = function(err, response) {
