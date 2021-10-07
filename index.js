@@ -11968,7 +11968,11 @@ function controller_api() {
 		return;
 	}
 
-	var api = F.routes.api[self.url];
+	var tmp = self.url;
+	if (CONF.default_root)
+		tmp = tmp.substring(CONF.default_root.length - 1);
+
+	var api = F.routes.api[tmp];
 	if (!api) {
 		self.throw404('API not found');
 		return;
