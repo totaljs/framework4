@@ -14146,22 +14146,13 @@ ControllerProto.sse = function(data, eventname, id, retry) {
 	var self = this;
 	var res = self.res;
 
-	if (!self.isConnected)
-		return self;
-
-	if (!self.type && res.success)
-		throw new Error('Response was sent.');
-
-	if (self.type > 0 && self.type !== 1)
-		throw new Error('Response was used.');
+	if (!self.isConnected || (!self.type && res.success) || (self.type > 0 && self.type !== 1))
+		return false;
 
 	if (!self.type) {
-
 		self.type = 1;
-
 		if (retry === undefined)
 			retry = self.route.timeout;
-
 		self.req.$total_success();
 		self.req.on('close', () => self.close());
 		res.success = true;
@@ -14190,7 +14181,7 @@ ControllerProto.sse = function(data, eventname, id, retry) {
 	builder += newline;
 	res.write(builder);
 	F.stats.response.sse++;
-	return self;
+	return true;
 };
 
 /**
