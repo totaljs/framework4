@@ -13,23 +13,23 @@ var isDirectory = false;
 function display_help() {
 	log_title('Help');
 
-	console.log(' create <template> <path>  : Download template from "total4 templates" list. Default path is "./<template>"');
-	console.log(' templates                 : List of all Total.js templates');
-	console.log(' translate                 : Creates a resource file with the localized text from views');
-	console.log(' translate "TEXT"          : Creates an identificator for the resource');
-	console.log(' translate <filename>      : Parses and creates a resource file from the text file');
-	console.log(' translatecsv              : Parses and creates CSV with localization in the current directory');
-	console.log(' translate4 <source>       : Converts old version of localization to a new');
-	console.log(' csv <filename>            : Parses CSV and creates resources from CSV file');
-	console.log(' diff <source> <target>    : Creates differences between two resources');
-	console.log(' merge <source> <target>   : Merges first resource into the second');
-	console.log(' clean <source>            : Cleans a resource file "total4 clean source"');
-	console.log(' minify <filename>         : Minifies .js, .css or .html file into filename.min.<extension>');
-	console.log(' bundle <filename>         : Makes a bundle from the current directory');
-	console.log(' package <filename>        : Makes a package from the current directory');
-	console.log(' help                      : List all total4 commands');
-	console.log(' 8000                      : Starts a server on port "8000"');
-	console.log(' edit <url?id=project>     : Synchronizes the current directory with the Total.js Code Editor');
+	console.log('create <template> <path>  : Download template from "total4 templates" list. Default path is "./<template>"');
+	console.log('templates                 : List of all Total.js templates');
+	console.log('translate                 : Creates a resource file with the localized text from views');
+	console.log('translate "TEXT"          : Creates an identificator for the resource');
+	console.log('translate <filename>      : Parses and creates a resource file from the text file');
+	console.log('translatecsv              : Parses and creates CSV with localization in the current directory');
+	console.log('translate4 <source>       : Converts old version of localization to a new');
+	console.log('csv <filename>            : Parses CSV and creates resources from CSV file');
+	console.log('diff <source> <target>    : Creates differences between two resources');
+	console.log('merge <source> <target>   : Merges first resource into the second');
+	console.log('clean <source>            : Cleans a resource file "total4 clean source"');
+	console.log('minify <filename>         : Minifies .js, .css or .html file into filename.min.<extension>');
+	console.log('bundle <filename>         : Makes a bundle from the current directory');
+	console.log('package <filename>        : Makes a package from the current directory');
+	console.log('help                      : List all total4 commands');
+	console.log('8000                      : Starts a server on port "8000"');
+	console.log('edit <url?id=project>     : Synchronizes the current directory with the Total.js Code Editor');
 	console.log('');
 }
 
@@ -199,9 +199,9 @@ function diff(a, b) {
 	Fs.writeFileSync(filename, '// Total.js diff file\n// Created: ' + new Date().format('yyyy-MM-dd HH:mm') + '\n' + clean_resource(output));
 	log_title('Translation differences:');
 	console.log('');
-	console.log(' Add      : ' + add);
-	console.log(' Rem      : ' + rem);
-	console.log(' Output   : ' + filename);
+	console.log('Add      : ' + add);
+	console.log('Rem      : ' + rem);
+	console.log('Output   : ' + filename);
 	console.log('');
 }
 
@@ -256,8 +256,8 @@ function merge(a, b) {
 	Fs.writeFileSync(filename, '// Total.js merged file\n// Created: ' + new Date().format('yyyy-MM-dd HH:mm') + '\n' + clean_resource(output.join('\n')));
 	log_title('Merged result:');
 	console.log('');
-	console.log(' Merged   : ' + upd);
-	console.log(' Output   : ' + filename);
+	console.log('Merged   : ' + upd);
+	console.log('Output   : ' + filename);
 	console.log('');
 }
 
@@ -345,7 +345,7 @@ function convert4(a) {
 	Fs.writeFileSync(filename, clean_resource(output.join('\n')));
 	log_title('Converted:');
 	console.log('');
-	console.log(' Output   : ' + filename);
+	console.log('Output   : ' + filename);
 	console.log('');
 }
 
@@ -499,7 +499,7 @@ function main() {
 			Fs.writeFileSync(tt, '// Total.js resource file\n// Created: ' + new Date().format('yyyy-MM-dd HH:mm') + '\n' + parse_csv(Fs.readFileSync(tmp).toString('utf8')));
 			log_title('Parsed CSV:');
 			console.log('');
-			console.log(' Output   : ' + tt);
+			console.log('Output   : ' + tt);
 			console.log('');
 			continue;
 		}
@@ -515,7 +515,7 @@ function main() {
 			Fs.writeFileSync(tt, '// Total.js cleaned file\n// Created: ' + new Date().format('yyyy-MM-dd HH:mm') + '\n' + clean_resource(Fs.readFileSync(tmp).toString('utf8')));
 			log_title('Cleaned result:');
 			console.log('');
-			console.log(' Output   : ' + tt);
+			console.log('Output   : ' + tt);
 			console.log('');
 			return;
 		}
@@ -601,7 +601,7 @@ function main() {
 		if (isDirectory) {
 			if (translateFile(dir))
 				return;
-			console.log(' T' + dir.hash(true).toString(36).padRight(17, ' ') + ': ' + dir);
+			console.log('T' + dir.hash(true).toString(36).padRight(17, ' ') + ': ' + dir);
 			return;
 		}
 
@@ -704,7 +704,7 @@ function main() {
 
 			Fs.writeFileSync('translate.resource', '// Total.js translation file\n// Created: ' + new Date().format('yyyy-MM-dd HH:mm') + '\n' + builder.join('\n'));
 
-			console.log(' Translation has been created successfully (' + count + ' texts)');
+			console.log('Translation has been created successfully (' + count + ' texts)');
 			console.log('');
 
 		}, (path, dir) => dir ? (path.endsWith('/node_modules') || path.endsWith('/tmp') || path.endsWith('/.git')) ? false : true : true);
@@ -753,7 +753,7 @@ function main() {
 			}
 
 			Fs.writeFileSync('translate.csv', output.join('\n'));
-			console.log(' Translation has been created successfully (' + count + ' texts).');
+			console.log('Translation has been created successfully (' + count + ' texts).');
 			console.log('');
 		}, (path, dir) => dir ? (path.endsWith('/node_modules') && path.endsWith('/tmp') && path.endsWith('/.git')) ? false : true : true);
 		return;
@@ -765,12 +765,12 @@ function main() {
 
 			for (var key in templates) {
 				var template = templates[key];
-				console.log(' ' + key.padRight(17, ' ') + ': ' + template.description);
+				console.log(key.padRight(17, ' ') + ': ' + template.description);
 			}
 
 			console.log('');
-			console.log(' Create template with "total4 create <template> <path>".');
-			console.log(' Default path is "./<template>".');
+			console.log('Create template with "total4 create <template> <path>".');
+			console.log('Default path is "./<template>".');
 			console.log('');
 
 		});
@@ -824,7 +824,7 @@ function main() {
 	if (cmd)
 		log_error('Command "{0}" is invalid. Use "total4 help" to list all commands.'.format(cmd));
 	else {
-		console.log(' Use "total4 help" to list all commands.');
+		console.log('Use "total4 help" to list all commands.');
 		console.log('');
 	}
 }
@@ -843,7 +843,7 @@ function templates(callback) {
 function git(dir, template) {
 
 	var done = function() {
-		console.log(' Template "{0}" was created successfully.'.format(template.name));
+		console.log('Template "{0}" was created successfully.'.format(template.name));
 		console.log('');
 	};
 
@@ -908,8 +908,8 @@ function makebundle(dir, filename) {
 
 	console.log('--- CREATE BUNDLE PACKAGE --');
 	console.log('');
-	console.log(' Directory    :', dir);
-	console.log(' Filename     :', filename);
+	console.log('Directory    :', dir);
+	console.log('Filename     :', filename);
 
 	BACKUP(filename, U.path(dir), function(err, path) {
 
@@ -954,15 +954,15 @@ function makepackage(dir, filename) {
 
 	console.log('--- CREATE PACKAGE --');
 	console.log('');
-	console.log(' Directory    :', dir);
-	console.log(' Filename     :', filename);
+	console.log('Directory    :', dir);
+	console.log('Filename     :', filename);
 
 	BACKUP(filename, U.path(dir), function(err, path) {
 
 		if (err)
 			throw err;
 
-		console.log(' Success      :', path.files.pluralize('# files', '# file', '# files', '# files') + ' (' + path.size.filesize() + ')');
+		console.log('Success      :', path.files.pluralize('# files', '# file', '# files', '# files') + ' (' + path.size.filesize() + ')');
 		console.log('');
 
 	}, function(path) {
