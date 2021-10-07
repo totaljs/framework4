@@ -5122,6 +5122,7 @@ F.$bundle = function(callback) {
 
 	try {
 		if (Fs.readFileSync('bundles.debug')) {
+			F.isBundle = true;
 			F.directory = HEADERS.workers.cwd = directory = PATH.root(CONF.directory_src);
 			callback();
 			return;
@@ -5158,11 +5159,12 @@ F.$bundle = function(callback) {
 	try {
 		Fs.statSync(bundledir);
 		if (F.$bundling) {
-			F.isBundle = true;
 			makebundle();
 			return;
-		} else
+		} else {
+			F.isBundle = true;
 			F.directory = HEADERS.workers.cwd = directory = PATH.root(CONF.directory_src);
+		}
 	} catch(e) {}
 	callback();
 };
