@@ -5150,6 +5150,7 @@ F.$bundle = function(callback) {
 			});
 		}, function() {
 			require('./bundles').make(function() {
+				F.isBundle = true;
 				F.directory = HEADERS.workers.cwd = directory = PATH.root(CONF.directory_src);
 				callback();
 			});
