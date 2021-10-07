@@ -5158,6 +5158,7 @@ F.$bundle = function(callback) {
 	try {
 		Fs.statSync(bundledir);
 		if (F.$bundling) {
+			F.isBundle = true;
 			makebundle();
 			return;
 		} else

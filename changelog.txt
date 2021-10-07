@@ -24,6 +24,7 @@
 - added a new command: `clear_owner` for removing all dependencies for the specific owner
 - replaced return from the `controller.sse()` method to `Boolean`
 - fixed API routing with `default_root` by [Martin Smola](https://github.com/molda)
+- added `F.isBundle` for determining bundles
 
 ========================
 0.0.49
