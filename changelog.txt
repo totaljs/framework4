@@ -2,7 +2,7 @@
 0.0.51
 ========================
 
-- remove useless spaces from the command-line utility
+- removed useless spaces from the command-line utility
 
 ========================
 0.0.50
