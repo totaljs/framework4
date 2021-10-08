@@ -3,6 +3,7 @@
 ========================
 
 - removed useless spaces from the command-line utility
+- added `instance.variables(str)` to the `FlowStream` instance
 
 ========================
 0.0.50

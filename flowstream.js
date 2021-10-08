@@ -277,6 +277,27 @@ MP.variables = function(str, data) {
 	return str;
 };
 
+function variables(str, data) {
+
+	if (str.indexOf('{') !== -1) {
+
+		if (this.main.variables) {
+			if (str.indexOf('{') !== -1)
+				str = str.args(this.main.variables);
+		}
+
+		if (this.main.variables2) {
+			if (!this.main.variables || str.indexOf('{') !== -1)
+				str = str.args(this.main.variables2);
+		}
+
+		if ((data && typeof(data) === 'object') && str.indexOf('{') !== -1)
+			str = str.args(data);
+	}
+
+	return str;
+}
+
 function timeouthandler(msg) {
 	msg.error = 408;
 	msg.$events.timeout && msg.emit('timeout', msg);
@@ -1181,6 +1202,7 @@ FP.initcomponent = function(key, component) {
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.newmessage = newmessage;
+	instance.variables = variables;
 
 	self.onconnect && self.onconnect(instance);
 
