@@ -6,6 +6,7 @@
 - added `instance.variables(str)` to the `FlowStream` instance
 - (critical) fixed compiling of builds
 - improved extensions
+- added TMS auto-sync for new or removed pub/sub/rpc
 
 ========================
 0.0.50

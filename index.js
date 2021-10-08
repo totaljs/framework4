@@ -193,6 +193,7 @@ global.NEWPUBLISH = function(name, value) {
 
 	if (!value) {
 		delete F.tms.publish_cache[name];
+		tmsrefresh_delay();
 		return;
 	}
 
@@ -201,9 +202,16 @@ global.NEWPUBLISH = function(name, value) {
 	if (!F.tms.publish_cache[name])
 		F.tms.publish_cache[name] = schemaid;
 
+	tmsrefresh_delay();
 };
 
 global.NEWCALL = function(name, schema, callback) {
+
+	if (schema == null) {
+		delete F.tms.calls[name];
+		tmsrefresh_delay();
+		return;
+	}
 
 	if (typeof(schema) === 'function') {
 		var tmp = callback;
@@ -228,20 +236,19 @@ global.NEWCALL = function(name, schema, callback) {
 	else
 		delete F.tms.calls[name];
 
+	tmsrefresh_delay();
 };
 
 global.NEWSUBSCRIBE = function(name, value) {
 
-	if (!value) {
+	if (value) {
+		var schemaid = registerjsonschema(name, value);
+		if (!F.tms.subscribe_cache[name])
+			F.tms.subscribe_cache[name] = schemaid;
+	} else
 		delete F.tms.subscribe_cache[name];
-		return;
-	}
 
-	var schemaid = registerjsonschema(name, value);
-
-	if (!F.tms.subscribe_cache[name])
-		F.tms.subscribe_cache[name] = schemaid;
-
+	tmsrefresh_delay();
 };
 
 global.PUBLISH = function(name, value) {
@@ -266,12 +273,13 @@ global.SUBSCRIBE = function(name, callback, client) {
 		else
 			tmssubscribers[name] = [callback];
 		F.tms.subscribers[name] = 1;
-		tmsrefresh();
+		tmsrefresh_delay();
 	}
 };
 
 global.UNSUBSCRIBE = function(name, callback) {
 	if (tmssubscribers[name]) {
+		tmsrefresh_delay();
 		if (callback) {
 			var index = tmssubscribers[name].indexOf(callback);
 			if (index !== -1)
@@ -282,12 +290,10 @@ global.UNSUBSCRIBE = function(name, callback) {
 				F.tms.subscribers[name] = 1;
 			else
 				delete F.tms.subscribers[name];
-			tmsrefresh();
 			return index !== -1;
 		} else {
 			delete tmssubscribers[name];
 			delete F.tms.subscribers[name];
-			tmsrefresh();
 			return true;
 		}
 	}
@@ -5170,7 +5176,11 @@ F.$bundle = function(callback) {
 	callback();
 };
 
-function tmsrefresh() {
+function tmsrefresh_delay() {
+	setTimeout2('tmsrefresh', tmsrefresh, 1000);
+}
+
+function tmsrefresh(client) {
 
 	if (F.tms.socket) {
 
@@ -5191,7 +5201,11 @@ function tmsrefresh() {
 		for (var key in F.tms.calls)
 			calls.push({ id: key, schema: F.jsonschemas[F.tms.calls[key].schema] });
 
-		F.tms.socket.send({ type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers), call: calls });
+		var msg = { type: 'meta', name: CONF.name, subscribe: subscribed, publish: published, subscribers: Object.keys(F.tms.subscribers), call: calls };
+		if (client)
+			client.send(msg);
+		else
+			F.tms.socket.send(msg);
 	}
 }
 
@@ -5227,7 +5241,7 @@ function tmscontroller() {
 		delete TMSBLOCKED[client.ip];
 		F.tms.publishers = {};
 		client.tmsready = true;
-		tmsrefresh();
+		tmsrefresh(client);
 	});
 
 	$.on('message', function(client, msg) {
