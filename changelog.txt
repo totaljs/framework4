@@ -5,6 +5,7 @@
 - removed useless spaces from the command-line utility
 - added `instance.variables(str)` to the `FlowStream` instance
 - (critical) fixed compiling of builds
+- improved extensions
 
 ========================
 0.0.50

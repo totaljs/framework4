@@ -19167,8 +19167,10 @@ global.NEWEXTENSION = function(code, callback) {
 
 	try {
 		new Function('exports', code)(obj);
-		var id = obj.name || code;
-		obj.id = HASH(id).toString(36);
+		if (!obj.id) {
+			var id = obj.name || code;
+			obj.id = HASH(id).toString(36);
+		}
 	} catch (e) {
 		callback && callback(new ErrorBuilder().push(e));
 		return;
