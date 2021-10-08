@@ -5868,7 +5868,7 @@ function install_build(name, filename, next) {
 
 		var code;
 
-		meta.id = build.id || HASH(build.name).toString(36);
+		meta.id = build.id || (build.name ? HASH(build.name).toString(36) : GUID(10));
 		meta.name = build.name;
 		meta.icon = build.icon;
 		meta.url = build.url;
