@@ -2881,6 +2881,8 @@ F.stop = F.kill = function(signal) {
 
 global.PROXY = function(url, target, copypath, before, after, timeout) {
 
+	url = url.toLowerCase();
+
 	if (target === null) {
 		F.routes.proxies = F.routes.proxies.remove('url', url);
 		F._request_check_proxy = F.routes.proxies.length;
@@ -3164,7 +3166,7 @@ global.CORS = function(url, flags, credentials) {
 	url = framework_internal.preparepath(framework_internal.encodeUnicodeURL(url.trim()));
 	route.hash = url.hash(true);
 	route.owner = CURRENT_OWNER;
-	route.url = framework_internal.routeSplitCreate(url);
+	route.url = framework_internal.routesplitcreate(url);
 	route.origin = origin.length ? origin : null;
 	route.methods = methods.length ? methods : null;
 	route.headers = headers.length ? headers : null;
@@ -3816,7 +3818,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var url2 = framework_internal.preparepath(url.trim());
 	var urlraw = U.path(url2) + (isWILDCARD ? '*/' : '');
 	var hash = url2.hash(true);
-	var routeURL = framework_internal.routeSplitCreate(url2);
+	var routeURL = framework_internal.routesplitcreate(url2);
 	var arr = [];
 	var params = [];
 	var dynamicidindex = -1;
@@ -4376,7 +4378,7 @@ global.USE = F.use = function(name, url, types, first) {
 	var route;
 
 	if (url)
-		url = framework_internal.routeSplitCreate(framework_internal.preparepath(url.trim())).join('/');
+		url = framework_internal.routesplitcreate(framework_internal.preparepath(url.trim())).join('/');
 
 	if (!types || customtypes.route || customtypes.web || customtypes.dynamic || customtypes.routes || customtypes.http || customtypes.https || customtypes.schema || customtypes.schemas || customtypes.api) {
 		if (url) {
@@ -4540,7 +4542,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 	}
 
 	var url2 = framework_internal.preparepath(url.trim());
-	var routeURL = framework_internal.routeSplitCreate(url2);
+	var routeURL = framework_internal.routesplitcreate(url2);
 	var arr = [];
 	var hash = url2.hash(true);
 	var urlraw = U.path(url2) + (isWILDCARD ? '*' : '');
@@ -4842,7 +4844,7 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 		if (fnValidation === '/')
 			fnValidation = '';
 
-		url = fnValidation ? framework_internal.routeSplitCreate(fnValidation) : EMPTYARRAY;
+		url = fnValidation ? framework_internal.routesplitcreate(fnValidation) : EMPTYARRAY;
 		fnValidation = undefined;
 		a = url.last();
 		if (a === '*.*') {
@@ -8341,9 +8343,10 @@ F.listener = function(req, res) {
 	req.uri = framework_internal.parseURI(req);
 
 	if (F._request_check_proxy) {
+		var url = req.url.toLowerCase();
 		for (var i = 0; i < F.routes.proxies.length; i++) {
 			var proxy = F.routes.proxies[i];
-			var u = req.url.substring(0, proxy.url.length);
+			var u = url.substring(0, proxy.url.length);
 
 			if (u[u.length - 1] !== '/')
 				u += '/';
@@ -8369,7 +8372,7 @@ F.listener = function(req, res) {
 		}
 	}
 
-	req.path = framework_internal.routeSplit(req.uri.pathname);
+	req.path = framework_internal.routesplit(req.uri.pathname);
 	req.processing = 0;
 	req.isAuthorized = true;
 	req.xhr = headers['x-requested-with'] === 'XMLHttpRequest';
@@ -8740,7 +8743,7 @@ F.$cors = function(req, res, fn, arg) {
 
 		for (var i = 0; i < F._length_cors; i++) {
 			cors = F.routes.cors[i];
-			if (framework_internal.routeCompare(req.path, cors.url, false, cors.isWILDCARD)) {
+			if (framework_internal.routecompare(req.path, cors.url, false, cors.isWILDCARD)) {
 				isAllowed = true;
 				break;
 			}
@@ -8959,7 +8962,7 @@ F.$upgrade = function(req, socket, head) {
 	req.$wspath = U.path(req.uri.pathname);
 	var websocket = new WebSocketClient(req, socket, head);
 
-	req.path = framework_internal.routeSplit(req.uri.pathname);
+	req.path = framework_internal.routesplit(req.uri.pathname);
 	req.websocket = websocket;
 
 	if (DEF.onLocale)
@@ -9070,7 +9073,7 @@ F.$websocketcontinue_process = function(route, req, path) {
 			return;
 		}
 
-		var params = framework_internal.routeParameters(route.param.length ? req.split : req.path, route);
+		var params = framework_internal.routeparams(route.param.length ? req.split : req.path, route);
 		if (params.error) {
 			socket.$close(4000, '400: invalid parameters');
 			return;
@@ -11664,7 +11667,9 @@ Controller.prototype = {
 	},
 
 	get url() {
-		return U.path(this.req.uri.pathname);
+		if (!this.$$url)
+			this.$$url = U.path(this.req.uri.pathname).toLowerCase();
+		return this.$$url;
 	},
 
 	get uri() {
@@ -12773,7 +12778,7 @@ ControllerProto.$place = function() {
 };
 
 ControllerProto.$url = function(host) {
-	return host ? this.req.hostname(this.url) : this.url;
+	return host ? this.req.hostname(this.req.url) : this.req.url;
 };
 
 // Argument: name
@@ -14895,7 +14900,7 @@ WebSocket.prototype = {
 	get params() {
 		if (this.$params)
 			return this.$params;
-		var split = framework_internal.routeSplit(this.url, true);
+		var split = framework_internal.routesplit(this.url, true);
 		var names = this.route ? this.route.paramnames : null;
 		if (names) {
 			var obj = {};
@@ -15255,6 +15260,12 @@ WebSocketClient.prototype = {
 
 	get query() {
 		return this.req.query;
+	},
+
+	get url() {
+		if (!this.$$url)
+			this.$$url = U.path(this.req.uri.pathname).toLowerCase();
+		return this.$$url;
 	},
 
 	get headers() {
@@ -16024,9 +16035,8 @@ function extend_request(PROTO) {
 
 	Object.defineProperty(PROTO, 'query', {
 		get: function() {
-			if (!this._querydata) {
+			if (!this._querydata)
 				this._querydata = this.uri && this.uri.query ? DEF.parsers.urlencoded(this.uri.query) : {};
-			}
 			return this._querydata;
 		},
 		set: function(value) {
@@ -16057,13 +16067,13 @@ function extend_request(PROTO) {
 
 	Object.defineProperty(PROTO, 'split', {
 		get: function() {
-			return this.$path ? this.$path : this.$path = framework_internal.routeSplit(this.uri.pathname, true);
+			return this.$path ? this.$path : this.$path = framework_internal.routesplit(this.uri.pathname, true);
 		}
 	});
 
 	Object.defineProperty(PROTO, 'split2', {
 		get: function() {
-			return this.$path2 ? this.$path2 : this.$path2 = framework_internal.routeSplit(this.uri.pathname);
+			return this.$path2 ? this.$path2 : this.$path2 = framework_internal.routesplit(this.uri.pathname);
 		}
 	});
 
@@ -16452,7 +16462,7 @@ function extend_request(PROTO) {
 				F.temporary.other[this.uri.pathname] = this.path;
 
 			if (this.$total_route.param.length) {
-				var params = framework_internal.routeParameters(this.split, this.$total_route);
+				var params = framework_internal.routeparams(this.split, this.$total_route);
 				controller.id = params.values[0];
 				if (params.error)
 					controller.throw400('Invalid parameters');
@@ -18906,7 +18916,7 @@ F.ilogger = function(name, req, ts) {
 
 function evalroutehandleraction(controller) {
 	if (controller.route.isPARAM) {
-		var params = framework_internal.routeParameters(controller.req.split, controller.route);
+		var params = framework_internal.routeparams(controller.req.split, controller.route);
 		if (params.error)
 			controller.throw400('Invalid parameters');
 		else
@@ -18989,9 +18999,9 @@ global.ACTION = function(url, data, callback) {
 	req.host = req.ip + ':' + (F.port || 8000);
 	req.headers = { 'user-agent': 'Total.js/v' + F.version_header, 'x-test': 1 };
 	req.uri = framework_internal.parseURI(req);
-	req.path = framework_internal.routeSplit(req.uri.pathname);
+	req.path = framework_internal.routesplit(req.uri.pathname);
 	req.method = method;
-	req.split = framework_internal.routeSplit(req.uri.pathname, true);
+	req.split = framework_internal.routesplit(req.uri.pathname, true);
 	req.isAuthorized = authorized === 1;
 
 	var route = F.lookup(req, authorized, true);

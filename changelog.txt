@@ -7,6 +7,8 @@
 - (critical) fixed compiling of builds
 - improved extensions
 - added TMS auto-sync for new or removed pub/sub/rpc
+- added transforming `controller.url` to lower-case
+- fixed comparing `url` with all registered proxies (`url` address compared as lower-case)
 
 ========================
 0.0.50

@@ -84,6 +84,10 @@ TaskBuilder.prototype = {
 		return this.controller ? this.controller.res : null;
 	},
 
+	get url() {
+		return this.controller ? this.controller.url : null;
+	},
+
 	get params() {
 		return this.controller ? this.controller.params : null;
 	},
@@ -171,7 +175,7 @@ SchemaOptions.prototype = {
 	},
 
 	get url() {
-		return (this.controller ? this.controller.req.url : '') || '';
+		return (this.controller ? this.controller.url : '') || '';
 	},
 
 	get path() {
@@ -5210,7 +5214,7 @@ OperationOptions.prototype = {
 	},
 
 	get url() {
-		return (this.controller ? this.controller.req.url : '') || '';
+		return (this.controller ? this.controller.url : '') || '';
 	},
 
 	get path() {
