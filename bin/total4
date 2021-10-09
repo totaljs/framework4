@@ -34,10 +34,10 @@ function display_help() {
 }
 
 function log_title(title) {
-	var line = ' ⬡ ' + title + ': ';
+	var line = title + ': ';
 
-	var underline = ' ';
-	for (var i = 0; i < line.length; i++)
+	var underline = '';
+	for (var i = 0; i < line.length - 1; i++)
 		underline += '╍';
 
 	console.log(line);
@@ -587,13 +587,6 @@ function main() {
 		return;
 	}
 
-	if ($type == 4) {
-		if (!Fs.existsSync(dir)) {
-			log_error('Directory does not exist');
-			return;
-		}
-	}
-
 	if ($type === 4) {
 
 		log_title('Creating of translation');
@@ -602,6 +595,12 @@ function main() {
 			if (translateFile(dir))
 				return;
 			console.log('T' + dir.hash(true).toString(36).padRight(17, ' ') + ': ' + dir);
+			console.log('');
+			return;
+		}
+
+		if (!Fs.existsSync(dir)) {
+			log_error('Directory does not exist');
 			return;
 		}
 
@@ -832,10 +831,10 @@ function main() {
 function templates(callback) {
 	RESTBuilder.GET('https://raw.githubusercontent.com/totaljs/framework4/master/templates.json').exec(function(err, res, out) {
 		if (err || out.status !== 200) {
-			log_error('Total.js templates are currently unavailable.');	
+			log_error('Total.js templates are currently unavailable.');
 			return;
 		}
-		
+
 		callback(res);
 	});
 }
