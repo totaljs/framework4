@@ -9547,7 +9547,7 @@ global.RESOURCE = function(name, key) {
 	var empty = false;
 	if (existsSync(filename))
 		body += (body ? '\n' : '') + Fs.readFileSync(filename).toString(ENCODING);
-	else
+	else if(!body)
 		empty = true;
 
 	var obj = body.parseConfig();

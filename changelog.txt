@@ -9,6 +9,8 @@
 - added TMS auto-sync for new or removed pub/sub/rpc
 - added transforming `controller.url` to lower-case
 - fixed comparing `url` with all registered proxies (`url` address compared as lower-case)
+- fixed loading resources via `LOADRESOURCE()`
+- fixed `translate` command in the command-line tool
 
 ========================
 0.0.50
