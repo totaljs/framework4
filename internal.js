@@ -61,11 +61,12 @@ const ALLOWEDMARKUP = { G: 1, M: 1, R: 1, repository: 1, model: 1, CONF: 1, conf
 global.$VIEWCACHE = [];
 global.$VIEWASYNC = 0;
 
-exports.routeSplit = function(url, noLower) {
+exports.routesplit = function(url, nolowercase) {
 
 	var arr;
 
-	if (!noLower) {
+	if (!nolowercase) {
+		url = url.toLowerCase();
 		arr = F.temporary.other[url];
 		if (arr)
 			return arr;
@@ -82,7 +83,7 @@ exports.routeSplit = function(url, noLower) {
 
 	arr = [];
 
-	for (var i = 0, length = url.length; i < length; i++) {
+	for (var i = 0; i < url.length; i++) {
 		var c = url[i];
 
 		if (c === '/') {
@@ -94,7 +95,7 @@ exports.routeSplit = function(url, noLower) {
 			continue;
 		}
 
-		key += noLower ? c : c.toLowerCase();
+		key += c;
 		prev = c === '/';
 	}
 
@@ -106,9 +107,9 @@ exports.routeSplit = function(url, noLower) {
 	return arr;
 };
 
-exports.routeSplitCreate = function(url, noLower) {
+exports.routesplitcreate = function(url, nolowercase) {
 
-	if (!noLower)
+	if (!nolowercase)
 		url = url.toLowerCase();
 
 	if (url[0] === '/')
@@ -148,15 +149,15 @@ exports.routeSplitCreate = function(url, noLower) {
 	return arr;
 };
 
-exports.routeCompare = function(url, route, isSystem, isWildcard) {
+exports.routecompare = function(url, route, isSystem, isWildcard) {
 
 	var length = url.length;
-	var lengthRoute = route.length;
+	var lengthroute = route.length;
 
-	if ((lengthRoute !== length && !isWildcard) || (isWildcard && length < lengthRoute))
+	if ((lengthroute !== length && !isWildcard) || (isWildcard && length < lengthroute))
 		return false;
 
-	if (isWildcard && lengthRoute === 1 && route[0] === '/')
+	if (isWildcard && lengthroute === 1 && route[0] === '/')
 		return true;
 
 	var skip = length === 1 && url[0] === '/';
@@ -165,29 +166,29 @@ exports.routeCompare = function(url, route, isSystem, isWildcard) {
 
 		var value = route[i];
 
-		if (!isSystem && isWildcard && value === undefined)
+		if (!isSystem && isWildcard && value == null)
 			return true;
 
 		if (!isSystem && (!skip && value[0] === '{'))
 			continue;
 
 		if (url[i] !== value)
-			return isSystem ? false : isWildcard ? i >= lengthRoute : false;
+			return isSystem ? false : isWildcard ? i >= lengthroute : false;
 	}
 
 	return true;
 };
 
-exports.routeParameters = function(routeUrl, route) {
+exports.routeparams = function(url, route) {
 
-	if (!route || !routeUrl || !route.param.length)
+	if (!route || !url || !route.param.length)
 		return EMPTYARRAY;
 
 	var arr = [];
 	var is = false;
 
 	for (var i = 0; i < route.param.length; i++) {
-		var value = routeUrl[route.param[i]];
+		var value = url[route.param[i]];
 		var name = route.paramnames[i];
 		switch (route.paramtypes[name]) {
 			case 'uid':
