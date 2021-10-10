@@ -11,6 +11,7 @@
 - fixed comparing `url` with all registered proxies (`url` address compared as lower-case)
 - fixed loading resources via `LOADRESOURCE()`
 - fixed `translate` command in the command-line tool
+- added `extend` method to the `NEWEXTENSION()`
 
 ========================
 0.0.50

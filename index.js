@@ -19172,7 +19172,7 @@ function newextension_make(obj, callback) {
 	}
 }
 
-global.NEWEXTENSION = function(code, callback) {
+global.NEWEXTENSION = function(code, callback, extend) {
 
 	if (code[0] === 'h' && code[6] === '/' && code.indexOf('\n') === -1) {
 		var opt = {};
@@ -19181,7 +19181,7 @@ global.NEWEXTENSION = function(code, callback) {
 			if (err) {
 				callback && callback(new ErrorBuilder().push(err));
 			} else
-				global.NEWEXTENSION(response.body, callback);
+				global.NEWEXTENSION(response.body, callback, extend);
 		};
 		REQUEST(opt);
 		return;
@@ -19191,6 +19191,7 @@ global.NEWEXTENSION = function(code, callback) {
 
 	try {
 		new Function('exports', code)(obj);
+		extend && extend(obj);
 		if (!obj.id) {
 			var id = obj.name || code;
 			obj.id = HASH(id).toString(36);
