@@ -775,7 +775,7 @@ FP.unregister = function(name, callback) {
 FP.clean = function() {
 	var self = this;
 	if (!self.loading)
-		setTimeout2(self.name, () => self.cleanforce(), 1000);
+		setTimeout2(self.name, () => self.cleanforce(), 3000);
 	return self;
 };
 
