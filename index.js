@@ -1211,6 +1211,10 @@ global.AUTH = function(fn) {
 		authbuiltin(fn);
 };
 
+global.OPENCLIENT = function(url, id) {
+	return require('./openclient').create(url, id);
+};
+
 global.TMSCLIENT = function(url, token, callback) {
 	return require('./tmsclient').create(url, token, callback);
 };
@@ -2178,6 +2182,7 @@ function Framework() {
 	self.workers = {};
 	self.sessions = {};
 	self.flows = {};
+	self.openclients = {};
 	self.ui = {};
 	self.jsonschemas = {};
 	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {}, publishers: {}, calls: {} };

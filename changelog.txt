@@ -12,6 +12,7 @@
 - fixed loading resources via `LOADRESOURCE()`
 - fixed `translate` command in the command-line tool
 - added `extend` method to the `NEWEXTENSION()`
+- added `OPENCLIENT()` method that simplifies work with Total.js Open products
 
 ========================
 0.0.50
