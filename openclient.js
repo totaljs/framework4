@@ -10,7 +10,7 @@ function openclientmessage(msg) {
 			client.type = msg.id;
 			if (client.onready) {
 				client.onready(msg);
-				delete client.ready;
+				delete client.onready;
 			}
 		}
 		return;
@@ -154,7 +154,7 @@ exports.create = function(url, id) {
 	} else if (!opt.ws.closed && opt.ws.$opensync) {
 		opt.meta = opt.ws.$opensync;
 		opt.type = opt.ws.$opensync.id;
-		opt.ready && opt.ready(opt.meta);
+		opt.onready && opt.onready(opt.meta);
 		opt.ononline && opt.ononline(true);
 	}
 
