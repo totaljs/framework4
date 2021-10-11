@@ -1424,7 +1424,7 @@ FP.send = function(path, body) {
 
 FP.add = function(name, body, callback) {
 	var self = this;
-	var meta = body.parseComponent({ settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', schema: '<schema>', template: '<template>', readme: '<readme>' });
+	var meta = body.parseComponent({ readme: '<readme>', settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', schema: '<schema>', template: '<template>' });
 	var node = (meta.be || meta.be2 || '');
 
 	meta.id = name;
