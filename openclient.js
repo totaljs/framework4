@@ -8,8 +8,8 @@ function openclientmessage(msg) {
 			var client = t.$clients[key];
 			client.meta = msg;
 			client.type = msg.id;
-			if (client.ready) {
-				client.ready(msg);
+			if (client.onready) {
+				client.onready(msg);
 				delete client.ready;
 			}
 		}
@@ -27,7 +27,7 @@ function openclientmessage(msg) {
 
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.message && client.message.call(t, msg);
+		client.onmessage && client.onmessage.call(t, msg);
 	}
 }
 
@@ -39,13 +39,13 @@ function openclienterror(e) {
 		var cb = t.$callbacks[key];
 		if (cb) {
 			delete t.$callbacks[key];
-			cb.fn(e.message);
+			cb.fn(e instanceof Error ? e.message : e);
 		}
 	}
 
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.error && client.error.call(e);
+		client.onerror && client.onerror.call(e);
 	}
 }
 
@@ -53,7 +53,7 @@ function openclientopen() {
 	var t = this;
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.online && client.online(true);
+		client.ononline && client.ononline(true);
 		client.connected = true;
 	}
 }
@@ -62,7 +62,7 @@ function openclientclose() {
 	var t = this;
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.online && client.online(false);
+		client.ononline && client.ononline(false);
 		client.connected = false;
 	}
 }
@@ -118,6 +118,26 @@ exports.create = function(url, id) {
 		}
 	};
 
+	opt.ready = function(fn) {
+		opt.onready = fn;
+		return opt;
+	};
+
+	opt.message = function(fn) {
+		opt.onmessage = fn;
+		return opt;
+	};
+
+	opt.error = function(fn) {
+		opt.onerror = fn;
+		return opt;
+	};
+
+	opt.online = function(fn) {
+		opt.ononline = fn;
+		return opt;
+	};
+
 	opt.ws = F.openclients[url];
 
 	if (!opt.ws) {
@@ -135,6 +155,7 @@ exports.create = function(url, id) {
 		opt.meta = opt.ws.$opensync;
 		opt.type = opt.ws.$opensync.id;
 		opt.ready && opt.ready(opt.meta);
+		opt.ononline && opt.ononline(true);
 	}
 
 	opt.ws.$clients[opt.id] = opt;
