@@ -138,7 +138,7 @@ exports.create = function(url, id) {
 		return opt;
 	};
 
-	opt.remove = function() {
+	opt.close = opt.remove = function() {
 		var t = this;
 		var client = t.ws.$clients[t.id];
 		client.destroy && client.destroy();
