@@ -8,7 +8,7 @@ function openclientmessage(msg) {
 			var client = t.$clients[key];
 			client.meta = msg;
 			client.type = msg.id;
-			client.onready && client.onready(msg);
+			client.ononline && client.ononline(msg);
 		}
 		return;
 	}
@@ -51,7 +51,6 @@ function openclientopen() {
 	var t = this;
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.ononline && client.ononline(true);
 		client.connected = true;
 	}
 }
@@ -60,7 +59,7 @@ function openclientclose() {
 	var t = this;
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.ononline && client.ononline(false);
+		client.ononline && client.ononline(null);
 		client.connected = false;
 	}
 }
@@ -152,11 +151,6 @@ exports.create = function(url, id) {
 		}
 	};
 
-	opt.ready = function(fn) {
-		opt.onready = fn;
-		return opt;
-	};
-
 	opt.message = function(fn) {
 		opt.onmessage = fn;
 		return opt;
@@ -188,8 +182,7 @@ exports.create = function(url, id) {
 	} else if (!opt.ws.closed && opt.ws.$opensync) {
 		opt.meta = opt.ws.$opensync;
 		opt.type = opt.ws.$opensync.id;
-		opt.onready && opt.onready(opt.meta);
-		opt.ononline && opt.ononline(true);
+		opt.ononline && opt.ononline(opt.meta);
 	}
 
 	opt.ws.$clients[opt.id] = opt;
