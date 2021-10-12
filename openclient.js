@@ -8,10 +8,7 @@ function openclientmessage(msg) {
 			var client = t.$clients[key];
 			client.meta = msg;
 			client.type = msg.id;
-			if (client.onready) {
-				client.onready(msg);
-				delete client.onready;
-			}
+			client.onready && client.onready(msg);
 		}
 		return;
 	}
