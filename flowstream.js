@@ -775,7 +775,7 @@ FP.unregister = function(name, callback) {
 FP.clean = function() {
 	var self = this;
 	if (!self.loading)
-		setTimeout2(self.name, () => self.cleanforce(), 3000);
+		setTimeout2(self.name, () => self.cleanforce(), 1000);
 	return self;
 };
 
@@ -997,6 +997,7 @@ FP.load = function(components, design, callback) {
 		return self;
 	}
 
+	self.loading = 10000;
 	self.unload(function() {
 
 		var keys = Object.keys(components);
@@ -1019,9 +1020,12 @@ FP.load = function(components, design, callback) {
 		}, function() {
 
 			// Loads design
+			self.loading = 0;
 			self.use(design, function(err) {
+				self.loading = 0;
 				err && error.push(err);
 				callback(err);
+				self.clean();
 			});
 
 		});
