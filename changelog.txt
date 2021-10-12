@@ -14,6 +14,7 @@
 - added `extend` method to the `NEWEXTENSION()`
 - added `OPENCLIENT()` method that simplifies work with Total.js Open products
 - increased clean-up timeout in the FlowStream
+- fixed `EXEC()` with `WebSocketClient` controller
 
 ========================
 0.0.50

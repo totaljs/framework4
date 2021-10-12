@@ -53,7 +53,7 @@ TaskBuilder.prototype = {
 	},
 
 	get user() {
-		return this.controller ? this.controller.req.user : null;
+		return this.controller ? this.controller.user : null;
 	},
 
 	get session() {
@@ -61,7 +61,7 @@ TaskBuilder.prototype = {
 	},
 
 	get sessionid() {
-		return this.controller && this.controller ? this.controller.req.sessionid : null;
+		return this.controller ? this.controller.sessionid : null;
 	},
 
 	get language() {
@@ -69,7 +69,7 @@ TaskBuilder.prototype = {
 	},
 
 	get ip() {
-		return this.controller ? this.controller.req.ip : null;
+		return this.controller ? this.controller.ip : null;
 	},
 
 	get id() {
@@ -93,19 +93,19 @@ TaskBuilder.prototype = {
 	},
 
 	get files() {
-		return this.controller ? this.controller.req.files : null;
+		return this.controller ? this.controller.files : null;
 	},
 
 	get body() {
-		return this.controller ? this.controller.req.body : null;
+		return this.controller ? this.controller.body : null;
 	},
 
 	get query() {
-		return this.controller ? this.controller.req.query : null;
+		return this.controller ? this.controller.query : null;
 	},
 
 	get mobile() {
-		return this.controller ? this.controller.req.mobile : null;
+		return this.controller ? this.controller.mobile : null;
 	},
 
 	get model() {
@@ -117,11 +117,11 @@ TaskBuilder.prototype = {
 	},
 
 	get headers() {
-		return this.controller ? this.controller.req.headers : null;
+		return this.controller ? this.controller.headers : null;
 	},
 
 	get ua() {
-		return this.controller ? this.controller.req.ua : null;
+		return this.controller ? this.controller.ua : null;
 	},
 
 	get filter() {
@@ -155,11 +155,11 @@ SchemaOptions.prototype = {
 	},
 
 	get user() {
-		return this.controller ? this.controller.req.user : null;
+		return this.controller ? this.controller.user : null;
 	},
 
 	get session() {
-		return this.controller ? this.controller.req.session : null;
+		return this.controller ? this.controller.session : null;
 	},
 
 	get repo() {
@@ -171,7 +171,7 @@ SchemaOptions.prototype = {
 	},
 
 	get sessionid() {
-		return this.controller && this.controller ? this.controller.req.sessionid : null;
+		return this.controller ? this.controller.sessionid : null;
 	},
 
 	get url() {
@@ -179,11 +179,11 @@ SchemaOptions.prototype = {
 	},
 
 	get path() {
-		return (this.controller ? this.controller.req.path : EMPTYARRAY);
+		return (this.controller ? this.controller.path : EMPTYARRAY);
 	},
 
 	get split() {
-		return (this.controller ? this.controller.req.split : EMPTYARRAY);
+		return (this.controller ? this.controller.split : EMPTYARRAY);
 	},
 
 	get language() {
@@ -191,7 +191,7 @@ SchemaOptions.prototype = {
 	},
 
 	get ip() {
-		return this.controller ? this.controller.req.ip : null;
+		return this.controller ? this.controller.ip : null;
 	},
 
 	get id() {
@@ -211,27 +211,27 @@ SchemaOptions.prototype = {
 	},
 
 	get files() {
-		return this.controller ? this.controller.req.files : null;
+		return this.controller ? this.controller.files : null;
 	},
 
 	get body() {
-		return this.controller ? this.controller.req.body : null;
+		return this.controller ? this.controller.body : null;
 	},
 
 	get query() {
-		return this.controller ? this.controller.req.query : null;
+		return this.controller ? this.controller.query : null;
 	},
 
 	get mobile() {
-		return this.controller ? this.controller.req.mobile : null;
+		return this.controller ? this.controller.mobile : null;
 	},
 
 	get headers() {
-		return this.controller ? this.controller.req.headers : null;
+		return this.controller ? this.controller.headers : null;
 	},
 
 	get ua() {
-		return this.controller ? this.controller.req.ua : null;
+		return this.controller ? this.controller.ua : null;
 	},
 
 	get filter() {
@@ -1699,7 +1699,7 @@ function SchemaOptionsVerify(controller, builder) {
 SchemaOptionsVerify.prototype = {
 
 	get user() {
-		return this.controller ? this.controller.req.user : null;
+		return this.controller ? this.controller.user : null;
 	},
 
 	get session() {
@@ -1707,19 +1707,19 @@ SchemaOptionsVerify.prototype = {
 	},
 
 	get sessionid() {
-		return this.controller && this.controller ? this.controller.req.sessionid : null;
+		return this.controller ? this.controller.sessionid : null;
 	},
 
 	get url() {
-		return (this.controller ? this.controller.req.url : '') || '';
+		return (this.controller ? this.controller.url : '') || '';
 	},
 
 	get path() {
-		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
+		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
 	},
 
 	get split() {
-		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
+		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
 	},
 
 	get language() {
@@ -1727,7 +1727,7 @@ SchemaOptionsVerify.prototype = {
 	},
 
 	get ip() {
-		return this.controller ? this.controller.req.ip : null;
+		return this.controller ? this.controller.ip : null;
 	},
 
 	get id() {
@@ -1747,27 +1747,27 @@ SchemaOptionsVerify.prototype = {
 	},
 
 	get files() {
-		return this.controller ? this.controller.req.files : null;
+		return this.controller ? this.controller.files : null;
 	},
 
 	get body() {
-		return this.controller ? this.controller.req.body : null;
+		return this.controller ? this.controller.body : null;
 	},
 
 	get query() {
-		return this.controller ? this.controller.req.query : null;
+		return this.controller ? this.controller.query : null;
 	},
 
 	get mobile() {
-		return this.controller ? this.controller.req.mobile : null;
+		return this.controller ? this.controller.mobile : null;
 	},
 
 	get headers() {
-		return this.controller ? this.controller.req.headers : null;
+		return this.controller ? this.controller.headers : null;
 	},
 
 	get ua() {
-		return this.controller ? this.controller.req.ua : null;
+		return this.controller ? this.controller.ua : null;
 	}
 };
 
@@ -5210,7 +5210,7 @@ OperationOptions.prototype = {
 	},
 
 	get sessionid() {
-		return this.controller && this.controller ? this.controller.req.sessionid : null;
+		return this.controller ? this.controller.sessionid : null;
 	},
 
 	get url() {
@@ -5218,11 +5218,11 @@ OperationOptions.prototype = {
 	},
 
 	get path() {
-		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
+		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
 	},
 
 	get split() {
-		return (this.controller ? this.controller.req.path : EMPTYARRAY) || EMPTYARRAY;
+		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
 	},
 
 	get language() {
@@ -5230,7 +5230,7 @@ OperationOptions.prototype = {
 	},
 
 	get ip() {
-		return this.controller ? this.controller.req.ip : null;
+		return this.controller ? this.controller.ip : null;
 	},
 
 	get id() {
@@ -5250,27 +5250,27 @@ OperationOptions.prototype = {
 	},
 
 	get files() {
-		return this.controller ? this.controller.req.files : null;
+		return this.controller ? this.controller.files : null;
 	},
 
 	get body() {
-		return this.controller ? this.controller.req.body : null;
+		return this.controller ? this.controller.body : null;
 	},
 
 	get query() {
-		return this.controller ? this.controller.req.query : null;
+		return this.controller ? this.controller.query : null;
 	},
 
 	get mobile() {
-		return this.controller ? this.controller.req.mobile : null;
+		return this.controller ? this.controller.mobile : null;
 	},
 
 	get headers() {
-		return this.controller ? this.controller.req.headers : null;
+		return this.controller ? this.controller.headers : null;
 	},
 
 	get ua() {
-		return this.controller ? this.controller.req.ua : null;
+		return this.controller ? this.controller.ua : null;
 	},
 
 	get filter() {
@@ -5448,7 +5448,7 @@ AuthOptions.prototype = {
 	},
 
 	get mobile() {
-		return this.controller ? this.controller.req.mobile : null;
+		return this.controller ? this.controller.mobile : null;
 	},
 
 	get headers() {

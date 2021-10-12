@@ -1599,7 +1599,7 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 	}
 
 	// Because "controller" can be SchemaOptions/OperationOptions/TaskOptions
-	if (controller && controller.controller)
+	if (controller && !(controller instanceof WebSocketClient) && controller.controller)
 		controller = controller.controller;
 
 	var method;
@@ -12314,15 +12314,6 @@ ControllerProto.header = function(name, value) {
 };
 
 /**
- * Gets a hostname
- * @param {String} path
- * @return {Controller}
- */
-ControllerProto.host = ControllerProto.hostname = function(path) {
-	return this.req.hostname(path);
-};
-
-/**
  * Error caller
  * @param {Error/String} err
  * @return {Controller/Function}
@@ -15313,6 +15304,15 @@ WebSocketClient.prototype = {
 const WebSocketClientProto = WebSocketClient.prototype;
 
 WebSocketClientProto.isWebSocket = true;
+
+/**
+ * Gets a hostname
+ * @param {String} path
+ * @return {Controller}
+ */
+WebSocketClientProto.host = WebSocketClientProto.hostname = ControllerProto.host = ControllerProto.hostname = function(path) {
+	return this.req.hostname(path);
+};
 
 WebSocketClientProto.$exec = function(url, msg, answer, callback) {
 	var self = this;
