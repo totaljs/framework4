@@ -77,10 +77,6 @@ function openclienttimeout(ws, key) {
 	}
 }
 
-function openclientsend(opt, msg, callback, filter, timeout) {
-
-}
-
 exports.create = function(url, id) {
 
 	url = url.replace(/^http/, 'ws');
