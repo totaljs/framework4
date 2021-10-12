@@ -20,6 +20,7 @@ function openclientmessage(msg) {
 		var cb = t.$callbacks[msg.callbackid];
 		if (cb) {
 			delete t.$callbacks[msg.callbackid];
+			cb.timeout && clearTimeout(cb.timeout);
 			cb.fn(msg.error, msg.response);
 		}
 		return;
@@ -67,6 +68,19 @@ function openclientclose() {
 	}
 }
 
+function openclienttimeout(ws, key) {
+	var cb = ws.$callbacks[key];
+	if (cb) {
+		cb.fn('timeout');
+		cb.timeout = null;
+		delete ws.$callbacks[key];
+	}
+}
+
+function openclientsend(opt, msg, callback, filter, timeout) {
+
+}
+
 exports.create = function(url, id) {
 
 	url = url.replace(/^http/, 'ws');
@@ -84,18 +98,44 @@ exports.create = function(url, id) {
 	opt.id = id;
 	opt.url = url;
 
-	opt.send = function(msg, callback, filter) {
+	opt.send2 = function(msg, callback, filter, timeout) {
+
+		if (typeof(filter) === 'number') {
+			timeout = filter;
+			filter = null;
+		}
+
 		var t = this;
 		if (!t.ws.closed) {
 			if (callback) {
 				var key = (t.ws.$callbackindexer++) + '';
 				t.ws.$callbacks[key] = { id: opt.id, fn: callback };
+				if (timeout)
+					t.ws.$callbacks[key].timeout = setTimeout(openclienttimeout, timeout, t.ws, key);
 				msg.callbackid = key;
 			}
 			t.ws.send(msg, filter);
 		} else if (callback)
 			callback('offline');
 		return !t.ws.closed;
+	};
+
+	opt.send = function(msg, callback, filter, timeout) {
+
+		if (!opt.ws) {
+			callback && callback('offline');
+			return;
+		}
+
+		if (opt.ws.closed) {
+			if (opt.ws && opt.ws.$clients[opt.id])
+				setTimeout(opt.send, 500, msg, callback, filter, timeout);
+			else if (callback)
+				callback('offline');
+		} else
+			opt.send2(msg, callback, filter, timeout);
+
+		return opt;
 	};
 
 	opt.remove = function() {
@@ -107,6 +147,7 @@ exports.create = function(url, id) {
 		for (var key in t.ws.$callbacks) {
 			var cb = t.ws.$callbacks[key];
 			if (cb.id === t.id) {
+				cb.timeout && clearTimeout(cb.timeout);
 				cb.fn('offline');
 				delete t.ws.$callbacks[key];
 			}
