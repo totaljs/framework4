@@ -118,7 +118,6 @@ function runwatching() {
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
 	const REG_RELOAD = /\.(js|ts|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
-	const REG_NESTED = /\\|\//;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
 	const ARGV = CLONE(process.argv);
