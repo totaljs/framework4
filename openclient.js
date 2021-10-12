@@ -120,16 +120,16 @@ exports.create = function(url, id) {
 		return !t.ws.closed;
 	};
 
-	opt.send = function(msg, callback, filter, timeout) {
+	opt.send = function(msg, callback, filter, timeout, count) {
 
-		if (!opt.ws) {
+		if (!opt.ws || count > 10) {
 			callback && callback('offline');
 			return;
 		}
 
 		if (opt.ws.closed) {
 			if (opt.ws && opt.ws.$clients[opt.id])
-				setTimeout(opt.send, 500, msg, callback, filter, timeout);
+				setTimeout(opt.send, 500, msg, callback, filter, timeout, (count || 0) + 1);
 			else if (callback)
 				callback('offline');
 		} else
