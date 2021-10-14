@@ -31,6 +31,7 @@ function openclientmessage(msg) {
 
 function openclienterror(e) {
 
+
 	var t = this;
 
 	for (var key in t.$callbacks) {
@@ -43,7 +44,7 @@ function openclienterror(e) {
 
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.onerror && client.onerror.call(e);
+		client.onerror && client.onerror.call(t, e);
 	}
 }
 
