@@ -43,7 +43,7 @@ function openclienterror(e) {
 
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
-		client.onerror && client.onerror.call(t, e);
+		client.onerror && client.onerror.call(t, e instanceof Error ? e.message : e);
 	}
 }
 
