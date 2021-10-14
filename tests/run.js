@@ -1100,6 +1100,12 @@ tests.push(function(next) {
 				next();
 			});
 
+			client.on('close', function(e) {
+				Assert.ok(true, subtest_name + ' error --> ' + e);
+				console.timeEnd(subtest_log);
+				next();
+			});
+
 		});
 
 	});
@@ -1122,9 +1128,11 @@ tests.push(function(next) {
 
 		WEBSOCKETCLIENT(function(client) {
 
+			var reconnect_timeout, message_timeout;
+
+			client.options.reconnect = 1000;
 			client.connect(url.replace('http', 'ws') + '/reconnect/');
 
-			var reconnect_timeout, message_timeout;
 			client.on('open', function() {
 				clearTimeout(reconnect_timeout);
 				message_timeout = setTimeout(message_fail, 2000);
