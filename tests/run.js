@@ -1090,6 +1090,7 @@ tests.push(function(next) {
 
 		WEBSOCKETCLIENT(function(client) {
 
+			client.options.reconnect = 0;
 			client.cookies['auth'] = 'correct-cookie';
 			client.connect(url.replace('http', 'ws') + '/unauthorized/');
 

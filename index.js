@@ -9030,9 +9030,9 @@ function websocketcontinue_authnew(isAuthorized, user, $) {
 		req.user = user;
 
 	var route = req.$total_route.MEMBER === membertype ? req.$total_route : F.lookup_websocket(req, membertype);
-	if (route) {
+	if (route)
 		F.$websocketcontinue_process(route, req, req.websocketpath);
-	} else
+	else
 		req.websocket.$close(4001, '401: unauthorized');
 }
 
@@ -15354,21 +15354,15 @@ WebSocketClientProto.$close = function(code, message) {
 
 	var self = this;
 
-	if ((self.req.headers['user-agent'] || '').indexOf('Total.js') !== -1) {
-		self.close();
-		return;
-	}
+	// if ((self.req.headers['user-agent'] || '').indexOf('Total.js') !== -1) {
+	// 	self.close();
+	// 	return;
+	// }
 
 	var header = SOCKET_RESPONSE.format(self.$websocket_key(self.req));
 	self.socket.write(Buffer.from(header, 'binary'));
 	self.ready = true;
 	self.close(message, code);
-
-	setTimeout(function(self) {
-		self.req = null;
-		self.socket = null;
-	}, 1000, self);
-
 	return self;
 };
 
@@ -15918,6 +15912,12 @@ WebSocketClientProto.ping = function(ts) {
 	return self;
 };
 
+function websocketclientdestroy(self) {
+	self.socket.destroy();
+	CLEANUP(self.socket);
+	CLEANUP(self.req);
+}
+
 /**
  * Close connection
  * @param {String} message Message.
@@ -15927,25 +15927,27 @@ WebSocketClientProto.ping = function(ts) {
 WebSocketClientProto.close = function(message, code) {
 	var self = this;
 
-	if (typeof(message) === 'number') {
-		var tmp = message;
-		message = code;
-		code = tmp;
-	}
-
 	if (!self.isClosed) {
+
+		if (typeof(message) === 'number') {
+			var tmp = message;
+			message = code;
+			code = tmp;
+		}
+
 		self.isClosed = true;
 		if (self.ready) {
 			if (message && self.container && self.container.encodedecode)
 				message = encodeURIComponent(message);
-			if (!self.closecode)
-				self.socket.end(U.getWebSocketFrame(code || 1000, message || '', 0x08, false, self.masking));
+			if (!self.closecode) {
+				self.closecode = code || 1000;
+				self.closemessage = message || '';
+				self.socket.end(U.getWebSocketFrame(self.closecode, self.closemessage, 0x08, false, self.masking));
+			}
 		} else if (!self.closecode)
 			self.socket.end();
 
-		self.req.connection.destroy();
-		CLEANUP(self.socket);
-		CLEANUP(self.req);
+		setImmediate(websocketclientdestroy, self);
 	}
 
 	return self;

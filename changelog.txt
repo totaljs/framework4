@@ -16,6 +16,7 @@
 - increased clean-up timeout in the FlowStream
 - fixed `EXEC()` with `WebSocketClient` controller
 - fixed clean-up of zombie FlowStream connections
+- fixed error handling in the WebSocket
 
 ========================
 0.0.50
