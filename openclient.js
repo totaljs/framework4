@@ -55,10 +55,12 @@ function openclientopen() {
 	}
 }
 
-function openclientclose() {
+function openclientclose(code, message) {
 	var t = this;
 	for (var key in t.$clients) {
 		var client = t.$clients[key];
+		if (code > 3999)
+			client.onerror && client.onerror(code, message);
 		client.ononline && client.ononline(null);
 		client.connected = false;
 	}

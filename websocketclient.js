@@ -250,17 +250,17 @@ function reconnect_client(client) {
 function reconnect_client_timer(client) {
 	if (client.options.reconnect) {
 		client.$reconnecting && clearTimeout(client.$reconnecting);
-		client.$reconnecting = setTimeout(reconnect_client,  client.options.reconnect, client);
+		client.$reconnecting = setTimeout(reconnect_client, client.options.reconnect, client);
 	}
 }
 
 function websocket_close_force(client) {
-	if (client.closed)
-		return;
-	client.$events.close && client.emit('close', client.closecode, client.closemessage);
-	client.closed = true;
-	client.$onclose();
-	reconnect_client_timer(client);
+	if (!client.closed) {
+		client.$events.close && client.emit('close', client.closecode, client.closemessage);
+		client.closed = true;
+		client.$onclose();
+		reconnect_client_timer(client);
+	}
 }
 
 WebSocketClientProto.emit = function(name, a, b, c, d, e, f, g) {
@@ -348,6 +348,7 @@ WebSocketClientProto.free = function() {
 WebSocketClientProto.$ondata = function(data) {
 
 	var self = this;
+
 	if (self.isClosed)
 		return;
 
@@ -406,14 +407,11 @@ WebSocketClientProto.$ondata = function(data) {
 			break;
 
 		case 0x08:
-
 			// close
 			self.closemessage = current.buffer.slice(4).toString(ENCODING);
 			self.closecode = current.buffer[2] << 8 | current.buffer[3];
-
 			if (self.closemessage && self.options.encodedecode)
 				self.closemessage = $decodeURIComponent(self.closemessage);
-
 			websocket_close_force(self);
 			break;
 
@@ -849,6 +847,8 @@ WebSocketClientProto.close = function(message, code) {
 
 	if (message !== true) {
 		self.options.reconnect = 0;
+		self.$reconnecting && clearTimeout(self.$reconnecting);
+		self.$reconnecting = null;
 	} else
 		message = undefined;
 

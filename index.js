@@ -15350,19 +15350,17 @@ WebSocketClientProto.cookie = function(name) {
 	return this.req.cookie(name);
 };
 
-WebSocketClientProto.$close = function(code, message) {
-
-	var self = this;
-
-	// if ((self.req.headers['user-agent'] || '').indexOf('Total.js') !== -1) {
-	// 	self.close();
-	// 	return;
-	// }
-
-	var header = SOCKET_RESPONSE.format(self.$websocket_key(self.req));
-	self.socket.write(Buffer.from(header, 'binary'));
+function websocketclientclose(self, code, message) {
 	self.ready = true;
 	self.close(message, code);
+}
+
+WebSocketClientProto.$close = function(code, message) {
+	var self = this;
+	var header = SOCKET_RESPONSE.format(self.$websocket_key(self.req));
+	self.socket.write(Buffer.from(header, 'binary'));
+	websocketclientclose(self, code, message);
+	setImmediate(websocketclientclose, self, code, message);
 	return self;
 };
 
@@ -15918,6 +15916,11 @@ function websocketclientdestroy(self) {
 	CLEANUP(self.req);
 }
 
+function websocketclientsendfin(self) {
+	self.socket.end(U.getWebSocketFrame(self.closecode, self.closemessage, 0x08, false, self.masking));
+	setImmediate(websocketclientdestroy, self);
+}
+
 /**
  * Close connection
  * @param {String} message Message.
@@ -15936,18 +15939,22 @@ WebSocketClientProto.close = function(message, code) {
 		}
 
 		self.isClosed = true;
+
 		if (self.ready) {
+
 			if (message && self.container && self.container.encodedecode)
 				message = encodeURIComponent(message);
+
 			if (!self.closecode) {
 				self.closecode = code || 1000;
 				self.closemessage = message || '';
-				self.socket.end(U.getWebSocketFrame(self.closecode, self.closemessage, 0x08, false, self.masking));
+				setTimeout(websocketclientsendfin, 1000, self);
 			}
-		} else if (!self.closecode)
-			self.socket.end();
 
-		setImmediate(websocketclientdestroy, self);
+		} else if (!self.closecode) {
+			self.socket.end();
+			setImmediate(websocketclientdestroy, self);
+		}
 	}
 
 	return self;
