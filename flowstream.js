@@ -515,6 +515,7 @@ MP.end = MP.destroy = function() {
 function Flow(name, errorhandler) {
 
 	var t = this;
+	t.strict = true;
 	t.loading = 0;
 	t.error = errorhandler || console.error;
 	t.id = t.name = name;
@@ -695,11 +696,13 @@ FP.cleanforce = function() {
 						if (target) {
 							var com = self.meta.components[target.component];
 							if (com) {
-								if (target.inputs) {
-									if (!target.inputs.findItem('id', conn.index))
+								if (self.strict) {
+									if (target.inputs) {
+										if (!target.inputs.findItem('id', conn.index))
+											rem[conn.id] = 1;
+									} else if (!com.inputs || !com.inputs.findItem('id', conn.index))
 										rem[conn.id] = 1;
-								} else if (!com.inputs || !com.inputs.findItem('id', conn.index))
-									rem[conn.id] = 1;
+								}
 							} else
 								rem[conn.id] = 1;
 						} else
@@ -1478,9 +1481,13 @@ FP.instances = function() {
 	return arr;
 };
 
-FP.export = function() {
+FP.export = function(type) {
 
 	var self = this;
+
+	if (type === 'components')
+		return self.components(true);
+
 	var output = {};
 
 	for (var key in self.meta.flow) {
