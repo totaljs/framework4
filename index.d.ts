@@ -1,7 +1,23 @@
+import { ChildProcess } from 'child_process';
+
 type Framework = {
 	is4: boolean;
 	version: string;
+	Child: any;
+	Crypto: any;
+	Fs: any;
+	Http: any;
+	Https: any;
+	isBundle: boolean;
+	OS: any;
+	Path: any;
+	Url: any;
+	Worker: any;
+	Zlib: any;
 	usage: (detailed: boolean) => any;
+	extendreq: (req: Request) => any;
+	extendres: (res: Response) => any;
+	serverless: (req: Request, res: Response, callback?: () => void, types?: string | string[], directory?: string) => any;
 }
 
 type ls = (path: string, callback: (files: any[], directories: any[]) => void, filter?: (path: string, isDirectory: boolean) => void) => void;
@@ -17,9 +33,11 @@ type FrameworkUtils = {
 	copy: (source: object, target?: object) => any;
 	decode: (value: string) => string;
 	decrpyt_crypto: (type: string, key: string, buffer: Buffer) => Buffer;
+	decrypt_data: (value: string, key: string, encode?: 'base64' | 'hex' | 'buffer') => string;
 	decrypt_uid: (value: string, key?: string) => number | string;
 	distance: (lat1: number, lon1: number, lat2: number, lon2: number) => number;
 	encode: (value: string) => string;
+	encrypt_data: (value: string, key: string, encode?: 'base64' | 'hex' | 'buffer') => string;
 	encrypt_crypto: (type: string, key: string, buffer: Buffer) => Buffer;
 	encrypt_uid: (value: number | string, key?: string) => string;
 	etag: (value: string, version?: string) => string;
@@ -133,6 +151,7 @@ type HttpFile = {
 }
 
 type FrameworkPath = {
+	fs: any;
 	ls: ls; 
 	ls2: ls2;
 	join: () => any;
@@ -931,6 +950,27 @@ type RESTBuilderStaticMethods = {
 
 declare const RESTBuilder: RESTBuilderStaticMethods;
 
+// OpenClient
+type OpenClientInstance = {
+	id: string;
+	url: string;
+	send: (msg: any, callback?: (status: string) => void, filter?: any, timeout?: number, count?: number) => OpenClientInstance;
+	send2: (msg: any, callback?: (status: string) => void, filter?: any, timeout?: number) => OpenClientInstance;
+	close: () => void;
+	remove: () => void;
+	message: (fn: (message: any) => void) => OpenClientInstance;
+	error: (fn: (error: any) => void) => OpenClientInstance;
+	open: (fn: () => void) => OpenClientInstance;
+	ws: WebSocket;
+}
+
+// TMSClient
+interface TMSClient extends FrameworkWebSocketClient {
+	subscribe: (name: string, callback: (data: any) => void) => FrameworkWebSocketClient;
+	publish: (name: string, data: any) => FrameworkWebSocketClient;
+	call: (name: string, data: any, callback: () => void, timeout?: number) => FrameworkWebSocketClient;
+}
+
 // Globals
 declare function SUCCESS();
 type SUCCESS = (success?: boolean, value?: any) => { success: boolean, error: any, value: any};
@@ -941,37 +981,6 @@ type DEF = {
 	onCompileView: (name: string, html: string) => void;
 	onPrefLoad: (next: (pref_obj: object) => void) => void;
 	onPrefSave: (PREF: object) => void;
-}
-
-type Path = {
-	fs: any,
-	configs: (filename?: string) => string;
-	controllers: (filename?: string) => string;
-	databases: (filename?: string) => string;
-	definitions: (filename?: string) => string;
-	exists: (filename?: string) => string;
-	join: (path1: string, path2: string, path3?: string, path4?: string, path5?: string) => string;
-	logs: (filename?: string) => string;
-	middleware: (filename?: string) => string;
-	mkdir: (path: string) => string;
-	models: (filename?: string) => string;
-	modules: (filename?: string) => string;
-	operations: (filename?: string) => string;
-	packages: (filename?: string) => string;
-	private: (filename?: string) => string;
-	public: (filename?: string) => string;
-	resources: (filename?: string) => string;
-	rmdir: (path: string, callback?: () => void) => string;
-	root: (filename?: string) => string;
-	schemas: (filename?: string) => string;
-	tasks: (filename?: string) => string;
-	temp: (filename?: string) => string;
-	tests: (filename?: string) => string;
-	themes: (filename?: string) => string;
-	unlink: (list: string[], callback?: () => void) => Framework;
-	updates: (filename?: string) => string;
-	views: (filename?: string) => string;
-	workers: (filename?: string) => string;
 }
 
 declare const Builders: any;
@@ -996,7 +1005,20 @@ declare const Thelpers;
 declare const THREAD: string;
 declare const U: FrameworkUtils;
 declare const Utils: FrameworkUtils;
-declare const PATH: Path
+declare const PATH: FrameworkPath;
+
+declare function ON(name: string, callback: () => void): Framework;
+declare function ON(name: 'controller', callback: (controller?: FrameworkController) => void): Framework;
+declare function ON(name: 'exit', callback: (signal?: number | string) => void): Framework;
+declare function ON(name: 'install', callback: (type?: string, name?: string, instance?: any) => void): Framework;
+declare function ON(name: 'ready', callback: () => void): Framework;
+declare function ON(name: 'request_begin', callback: (req?: Request, res?: Response) => void): Framework;
+declare function ON(name: 'request_end', callback: (req?: Request, res?: Response) => void): Framework;
+declare function ON(name: 'request', callback: (req?: Request, res?: Response) => void): Framework;
+declare function ON(name: 'service', callback: (count?: number) => void): Framework;
+declare function ON(name: 'watcher', callback: (child_process?: ChildProcess) => void): Framework;
+declare function ON(name: 'websocket_begin', callback: (controller?: FrameworkController, client?: FrameworkWebSocketClient) => void): Framework;
+declare function ON(name: 'websocket_end', callback: (controller?: FrameworkController, client?: FrameworkWebSocketClient) => void): Framework;
 
 declare function ACTION(url: string, body: object, fn: ErrorResponse): void;
 declare function AUDIT($: Dollar, message?: string, type?: string): void;
@@ -1055,8 +1077,6 @@ declare function NOOP(): () => void;
 declare function NOSQL(name: string): TextDB;
 declare function NPMINSTALL(name: string, callback: (err: any) => void): void;
 declare function OFF(name: string, callback?: () => void): Framework;
-declare function ON(name: string, callback: () => void): Framework;
-declare function ON(name: 'service', callback: (count?: number) => void): Framework;
 declare function ONCE(name: string, callback: () => void): Framework;
 declare function OPERATION(name: string, value: object, callback: ErrorResponse, options?: {}, controller?: FrameworkController);
 declare function PAUSE(pause: boolean): void;
@@ -1098,3 +1118,7 @@ declare function PUBLISH(name: string, value: string): void;
 declare function SUBSCRIBE(name: string, callback: Function, client?: any): void;
 declare function UNSUBSCRIBE(name: string, callback?: Function): void;
 declare function DBMS(): any; // Will be improved in future
+declare function NEWCALL(name: string, schema: string, callback?: (data: any, next: ErrorResponse) => void): void;
+declare function NEWEXTENSION(code: string, callback: (err: any | null, module: any | null) => void, extend?: (module: any) => void): void;
+declare function OPENCLIENT(url: string, id?: string): OpenClientInstance;
+declare function TMSCLIENT(url: string, token: string, callback: (err: Error | null, client: TMSClient, meta: any) => void): FrameworkWebSocketClient;
