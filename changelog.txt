@@ -3,6 +3,8 @@
 ========================
 
 - extended `index.d.ts` by @Helferino
+- fixed cleaning zombie connections in the FlowStrream
+- added a retry functionality `flowinstance.trigger()` when the FlowStream isn't loaded
 
 ========================
 0.0.51
