@@ -943,6 +943,37 @@ type DEF = {
 	onPrefSave: (PREF: object) => void;
 }
 
+type Path = {
+	fs: any,
+	configs: (filename?: string) => string;
+	controllers: (filename?: string) => string;
+	databases: (filename?: string) => string;
+	definitions: (filename?: string) => string;
+	exists: (filename?: string) => string;
+	join: (path1: string, path2: string, path3?: string, path4?: string, path5?: string) => string;
+	logs: (filename?: string) => string;
+	middleware: (filename?: string) => string;
+	mkdir: (path: string) => string;
+	models: (filename?: string) => string;
+	modules: (filename?: string) => string;
+	operations: (filename?: string) => string;
+	packages: (filename?: string) => string;
+	private: (filename?: string) => string;
+	public: (filename?: string) => string;
+	resources: (filename?: string) => string;
+	rmdir: (path: string, callback?: () => void) => string;
+	root: (filename?: string) => string;
+	schemas: (filename?: string) => string;
+	tasks: (filename?: string) => string;
+	temp: (filename?: string) => string;
+	tests: (filename?: string) => string;
+	themes: (filename?: string) => string;
+	unlink: (list: string[], callback?: () => void) => Framework;
+	updates: (filename?: string) => string;
+	views: (filename?: string) => string;
+	workers: (filename?: string) => string;
+}
+
 declare const Builders: any;
 declare const CONF: any;
 declare const Controller: FrameworkController;
@@ -965,6 +996,7 @@ declare const Thelpers;
 declare const THREAD: string;
 declare const U: FrameworkUtils;
 declare const Utils: FrameworkUtils;
+declare const PATH: Path
 
 declare function ACTION(url: string, body: object, fn: ErrorResponse): void;
 declare function AUDIT($: Dollar, message?: string, type?: string): void;
@@ -976,7 +1008,7 @@ declare function clearTimeout2(name: string): void;
 declare function CLONECLEANUP(source: object, skip?: object): any;
 declare function CMD(name: string, a?: object, b?: object, c?: object): void;
 declare function CONVERT(obj: object, name: string): object;
-declare function CORS(url: string, flags?: string[], credentials?: boolean): Framework;
+declare function CORS(url?: string, flags?: string[], credentials?: boolean): Framework;
 declare function COUNTER(name: string): Counter;
 declare function DECRYPTREQ(req: Request, val: object | string, key?: string): object | string;
 declare function DESTROY(stream: ReadableStream): void;
@@ -1024,6 +1056,7 @@ declare function NOSQL(name: string): TextDB;
 declare function NPMINSTALL(name: string, callback: (err: any) => void): void;
 declare function OFF(name: string, callback?: () => void): Framework;
 declare function ON(name: string, callback: () => void): Framework;
+declare function ON(name: 'service', callback: (count?: number) => void): Framework;
 declare function ONCE(name: string, callback: () => void): Framework;
 declare function OPERATION(name: string, value: object, callback: ErrorResponse, options?: {}, controller?: FrameworkController);
 declare function PAUSE(pause: boolean): void;
@@ -1064,3 +1097,4 @@ declare function NEWSUBSCRIBE(name: string, value?: string): void;
 declare function PUBLISH(name: string, value: string): void;
 declare function SUBSCRIBE(name: string, callback: Function, client?: any): void;
 declare function UNSUBSCRIBE(name: string, callback?: Function): void;
+declare function DBMS(): any; // Will be improved in future
