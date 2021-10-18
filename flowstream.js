@@ -695,8 +695,9 @@ FP.cleanforce = function() {
 						if (target) {
 							var com = self.meta.components[target.component];
 							if (com) {
-								if (target.inputs && !target.inputs.findItem('id', conn.index)) {
-									rem[conn.id] = 1;
+								if (target.inputs) {
+									if (!target.inputs.findItem('id', conn.index))
+										rem[conn.id] = 1;
 								} else if (!com.inputs || !com.inputs.findItem('id', conn.index))
 									rem[conn.id] = 1;
 							} else
@@ -1239,6 +1240,7 @@ FP.initcomponent = function(key, component) {
 
 function sendmessage(instance, message, event) {
 
+
 	if (instance.isdestroyed || message.isdestroyed || instance.main.paused) {
 		message.destroy();
 		return;
@@ -1284,17 +1286,16 @@ FP.$can = function(isinput, id, index) {
 		return true;
 };
 
-/*
 function trigger(self, path, data, controller, events) {
 	self.trigger(path, data, controller, events);
-}*/
+}
 
 // path = ID__INPUTINDEX
 FP.trigger = function(path, data, controller, events) {
 
 	var self = this;
 	if (self.loading) {
-		// setTimeout(trigger, 200, self, path, data, controller, events);
+		setTimeout(trigger, 200, self, path, data, controller, events);
 		return;
 	}
 
