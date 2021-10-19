@@ -16,3 +16,4 @@ test/
 changes.txt
 roadmap.txt
 templates.json
+jwt.js
