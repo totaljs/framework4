@@ -7,8 +7,9 @@
 - added a retry functionality `flowinstance.trigger()` when the FlowStream isn't loaded
 - added `flowstream.strict {Boolean}` property (default: `true`)
 - extended `flowstream.export([type])` by adding type argument
-- added support for promises in for the `OPENCLIENT()` method
-- added support for promises in for the `FileStorage`
+- added support for promises for the `OPENCLIENT()` method
+- added support for promises for the `FileStorage`
+- added support for promises for the `HttpFile`
 
 ========================
 0.0.51

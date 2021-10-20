@@ -251,6 +251,14 @@ var HFP = HttpFile.prototype;
 
 HFP.rename = HFP.move = function(filename, callback) {
 	var self = this;
+	if (callback)
+		return self._move(filename, callback);
+	else
+		return new Promise((resolve, reject) => self._move(filename, (err) => err ? reject(err) : resolve()));
+};
+
+HFP._move = function(filename, callback) {
+	var self = this;
 	Fs.rename(self.path, filename, function(err) {
 
 		if (!err) {
@@ -264,6 +272,14 @@ HFP.rename = HFP.move = function(filename, callback) {
 };
 
 HFP.copy = function(filename, callback) {
+	var self = this;
+	if (callback)
+		return self._copy(filename, callback);
+	else
+		return new Promise((resolve, reject) => self._copy(filename, (err) => err ? reject(err) : resolve()));
+};
+
+HFP._copy = function(filename, callback) {
 
 	var self = this;
 
@@ -282,11 +298,28 @@ HFP.copy = function(filename, callback) {
 
 HFP.read = function(callback) {
 	var self = this;
+	if (callback)
+		return self._read(callback);
+	else
+		return new Promise((resolve, reject) => self._read((err, res) => err ? reject(err) : resolve(res)));
+};
+
+HFP._read = function(callback) {
+	var self = this;
 	Fs.readFile(self.path, callback);
 	return self;
 };
 
+
 HFP.md5 = function(callback) {
+	var self = this;
+	if (callback)
+		return self._md5(callback);
+	else
+		return new Promise((resolve, reject) => self._md5((err, res) => err ? reject(err) : resolve(res)));
+};
+
+HFP._md5 = function(callback) {
 	var self = this;
 	var md5 = Crypto.createHash('md5');
 	var stream = Fs.createReadStream(self.path);
@@ -347,7 +380,7 @@ HFP.fs = function(storage, id, custom, expire, callback) {
 		expire = null;
 	}
 
-	FILESTORAGE(storage).save(id, this.filename, this.path, callback, custom, expire);
+	return FILESTORAGE(storage).save(id, this.filename, this.path, callback, custom, expire);
 };
 
 // *********************************************************************************
