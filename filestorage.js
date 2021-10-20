@@ -26,11 +26,11 @@ function FileDB(name, directory) {
 	});
 
 	t.retrysave = function(id, name, filename, callback, custom, expire, headers) {
-		t.save(id, name, filename, callback, custom, expire, headers);
+		t._save(id, name, filename, callback, custom, expire, headers);
 	};
 
 	t.retryread = function(id, callback, nostream) {
-		t.read(id, callback, nostream);
+		t._read(id, callback, nostream);
 	};
 
 	t.storage(directory);
@@ -103,6 +103,22 @@ FP.readjson = function(id, callback) {
 };
 
 FP.save = FP.insert = function(id, name, filename, callback, custom, expire, headers) {
+	var self = this;
+
+	if (callback && typeof(callback) !== 'function') {
+		headers = expire;
+		expire = custom;
+		custom = callback;
+		callback = null;
+	}
+
+	if (callback)
+		return self._save(id, name, filename, callback, custom, expire, headers);
+	else
+		return new Promise((resolve, reject) => self._save(id, name, filename, (err, res) => err ? reject(err) : resolve(res), custom, expire, headers));
+};
+
+FP._save = function(id, name, filename, callback, custom, expire, headers) {
 
 	var self = this;
 
@@ -280,6 +296,14 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom, expire
 };
 
 FP.read = function(id, callback, nostream) {
+	var self = this;
+	if (callback)
+		return self._read(id, callback, nostream);
+	else
+		return new Promise((resolve, reject) => self._read(id, (err, res) => err ? reject(err) : resolve(res), nostream));
+};
+
+FP._read = function(id, callback, nostream) {
 
 	var self = this;
 
@@ -347,11 +371,19 @@ FP.read = function(id, callback, nostream) {
 };
 
 FP.readbuffer = function(id, callback) {
+	var self = this;
+	if (callback)
+		return self._readbuffer(id, callback);
+	else
+		return new Promise((resolve, reject) => self._readbuffer(id, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._readbuffer = function(id, callback) {
 
 	var self = this;
 
 	if (self.pause) {
-		setTimeout(self.readbuffer, 500, id, callback);
+		setTimeout(self._readbuffer, 500, id, callback);
 		return self;
 	}
 
@@ -406,6 +438,14 @@ FP.browse = function(callback) {
 };
 
 FP.move = function(id, newid, callback) {
+	var self = this;
+	if (callback)
+		return self._move(id, newid, callback);
+	else
+		return new Promise((resolve, reject) => self._move(id, newid, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._move = function(id, newid, callback) {
 
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
@@ -443,6 +483,14 @@ FP.move = function(id, newid, callback) {
 };
 
 FP.rename = function(id, newname, callback) {
+	var self = this;
+	if (callback)
+		return self._rename(id, newname, callback);
+	else
+		return new Promise((resolve, reject) => self._rename(id, newname, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._rename = function(id, newname, callback) {
 
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
@@ -491,6 +539,14 @@ FP.rename = function(id, newname, callback) {
 
 FP.remove = function(id, callback) {
 	var self = this;
+	if (callback)
+		return self._remove(id, callback);
+	else
+		return new Promise((resolve, reject) => self._remove(id, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._remove = function(id, callback) {
+	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
 	Fs.unlink(filename, function(err) {
 		// NOSQL('~' + self.logger).remove().where('id', id);
@@ -501,6 +557,14 @@ FP.remove = function(id, callback) {
 };
 
 FP.clean = function(callback) {
+	var self = this;
+	if (callback)
+		return self._clean(callback);
+	else
+		return new Promise((resolve, reject) => self._clean((err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._clean = function(callback) {
 
 	var self = this;
 	var db = NOSQL('~' + self.logger);
@@ -532,6 +596,14 @@ FP.clean = function(callback) {
 };
 
 FP.backup = function(filename, callback) {
+	var self = this;
+	if (callback)
+		return self._backup(filename, callback);
+	else
+		return new Promise((resolve, reject) => self._backup(filename, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._backup = function(filename, callback) {
 
 	var self = this;
 	var writer = typeof(filename) === 'string' ? Fs.createWriteStream(filename) : filename;
@@ -610,6 +682,14 @@ FP.backup = function(filename, callback) {
 
 FP.restore = function(filename, callback) {
 	var self = this;
+	if (callback)
+		return self._restore(filename, callback);
+	else
+		return new Promise((resolve, reject) => self._restore(filename, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._restore = function(filename, callback) {
+	var self = this;
 	self.pause = true;
 	self.clear(function() {
 		self.pause = true;
@@ -621,7 +701,15 @@ FP.restore = function(filename, callback) {
 	});
 };
 
-FP.clear = function(callback) {
+FP.drop = FP.clear = function(callback) {
+	var self = this;
+	if (callback)
+		return self._clear(callback);
+	else
+		return new Promise((resolve, reject) => self._clear((err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._clear = function(callback) {
 
 	var self = this;
 	var count = 0;
@@ -701,6 +789,14 @@ FP.stream = function(onfile, callback, workers) {
 
 FP.browse2 = function(callback) {
 	var self = this;
+	if (callback)
+		return self._browse2(callback);
+	else
+		return new Promise((resolve, reject) => self._browse2((err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._browse2 = function(callback) {
+	var self = this;
 	var files = [];
 	self.stream(function(item, next) {
 		files.push(item);
@@ -710,6 +806,14 @@ FP.browse2 = function(callback) {
 };
 
 FP.rebuild = function(callback) {
+	var self = this;
+	if (callback)
+		return self._rebuild(callback);
+	else
+		return new Promise((resolve, reject) => self._rebuild((err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._rebuild = function(callback) {
 
 	var self = this;
 
@@ -742,6 +846,14 @@ FP.rebuild = function(callback) {
 
 FP.count2 = function(callback) {
 	var self = this;
+	if (callback)
+		return self._count2(callback);
+	else
+		return new Promise((resolve, reject) => self._count2((err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._count2 = function(callback) {
+	var self = this;
 	var count = 0;
 	Fs.readdir(self.directory, function(err, response) {
 		response.wait(function(item, next) {
@@ -760,6 +872,14 @@ function jsonparser(key, value) {
 }
 
 FP.readmeta = function(id, callback, keepfd) {
+	var self = this;
+	if (callback)
+		return self._readmeta(id, callback, keepfd);
+	else
+		return new Promise((resolve, reject) => self._readmeta(id, (err, res) => err ? reject(err) : resolve(res), keepfd));
+};
+
+FP._readmeta = function(id, callback, keepfd) {
 
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + self.ext);
@@ -805,6 +925,14 @@ FP.readmeta = function(id, callback, keepfd) {
 };
 
 FP.image = function(id, callback) {
+	var self = this;
+	if (callback)
+		return self._image(id, callback);
+	else
+		return new Promise((resolve, reject) => self._image(id, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._image = function(id, callback) {
 	var self = this;
 	self.readmeta(id, function(err, obj, filename, fd) {
 
@@ -899,14 +1027,17 @@ FP.res = function(res, options, checkcustom) {
 	}, true);
 };
 
-FP.readbase64 = function(id, callback, count) {
+FP.readbase64 = function(id, callback) {
+	var self = this;
+	if (callback)
+		return self._readbase64(id, callback);
+	else
+		return new Promise((resolve, reject) => self._readbase64(id, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._readbase64 = function(id, callback) {
 
 	var self = this;
-
-	if (count > 3) {
-		callback(new Error('File not found'));
-		return self;
-	}
 
 	self.readmeta(id, function(err, meta, filename, fd) {
 
@@ -923,10 +1054,6 @@ FP.readbase64 = function(id, callback, count) {
 	}, true);
 
 	return self;
-};
-
-FP.drop = function(callback) {
-	this.clear(callback);
 };
 
 exports.FileDB = function(name, directory) {

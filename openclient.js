@@ -114,6 +114,24 @@ exports.create = function(url, id) {
 		return !t.ws.closed;
 	};
 
+	opt.rpc = function(msg, callback, filter, timeout) {
+
+		if (callback && typeof(callback) !== 'function') {
+			timeout = filter;
+			filter = callback;
+			callback = null;
+		}
+
+		if (callback)
+			return opt.send(msg, callback, filter, timeout);
+		else
+			return new Promise((resolve, reject) => opt.send(msg, (err, res) => err ? reject(err) : resolve(res), filter, timeout));
+	};
+
+	opt.cmd = function(msg, filter, timeout) {
+		return opt.send(msg, null, filter, timeout);
+	};
+
 	opt.send = function(msg, callback, filter, timeout, count) {
 
 		if (!opt.ws || count > 10) {
