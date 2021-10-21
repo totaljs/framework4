@@ -3,7 +3,7 @@
 ========================
 
 - extended `index.d.ts` by @Helferino
-- fixed cleaning zombie connections in the FlowStrream
+- fixed cleaning zombie connections in the FlowStream
 - added a retry functionality `flowinstance.trigger()` when the FlowStream isn't loaded
 - added `flowstream.strict {Boolean}` property (default: `true`)
 - extended `flowstream.export([type])` by adding type argument
