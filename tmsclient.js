@@ -82,6 +82,13 @@ exports.create = function(url, token, callback) {
 		};
 
 		client.call = function(name, data, callback, timeout) {
+			if (callback)
+				client._call(name, data, callback, timeout);
+			else
+				return new Promise((resolve, reject) => client._call(name, data, (err, res) => err ? reject(err) : resolve(res), timeout));
+		};
+
+		client._call = function(name, data, callback, timeout) {
 			if (isopen) {
 				var key = (callbackid++) + '';
 				var obj = {};

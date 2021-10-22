@@ -446,10 +446,7 @@ function parseProxy(p) {
 	return F.temporary.other[key] = obj;
 }
 
-global.REQUEST = function(opt, callback) {
-
-	if (callback)
-		opt.callback = callback;
+function _request(opt, callback) {
 
 	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
@@ -636,6 +633,18 @@ global.REQUEST = function(opt, callback) {
 		exports.resolve(opt.url, request_resolve, options);
 	else
 		request_call(uri, options);
+}
+
+global.REQUEST = function(opt, callback) {
+
+	if (callback)
+		opt.callback = callback;
+
+	if (opt.callback)
+		_request(opt);
+	else
+		return new Promise((resolve, reject) => _request(opt, (err, res) => err ? reject(err) : resolve(res)));
+
 };
 
 function request_resolve(err, uri, options, origin) {

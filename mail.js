@@ -546,7 +546,11 @@ function writeattachment_data(chunk) {
 }
 
 Mailer.prototype.try = function(smtp, options, callback) {
-	return this.send(smtp, options, undefined, callback);
+	var self = this;
+	if (callback)
+		return self.send(smtp, options, undefined, callback);
+	else
+		return new Promise((resolve, reject) => self.send(smtp, options, undefined, err => err ? reject(err) : resolve()));
 };
 
 Mailer.prototype.send2 = function(messages, callback) {

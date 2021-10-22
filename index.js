@@ -362,7 +362,11 @@ var TMSBLOCKED = {};
 global.LDAP = function(opt, callback) {
 	if (!opt.ldap.port)
 		opt.ldap.port = 389;
-	require('./ldap').load(opt, callback);
+	var ldap = require('./ldap');
+	if (callback)
+		ldap.load(opt, callback);
+	else
+		return new Promise((resolve, reject) => ldap.load(opt, (err, res) => err ? reject(err) : resolve(res)));
 };
 
 global.UNAUTHORIZED = function($) {

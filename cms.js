@@ -459,6 +459,14 @@ CMSRender.prototype.importjs = function(val) {
 };
 
 CMSRender.prototype.render = function(meta, layout, callback) {
+	var self = this;
+	if (callback)
+		self._render(meta, layout, callback);
+	else
+		return new Promise((resolve, reject) => self._render(meta, layout, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+CMSRender.prototype._render = function(meta, layout, callback) {
 
 	// meta.controller {Object}
 	// meta.vars {Object}
