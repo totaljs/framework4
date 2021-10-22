@@ -14,6 +14,7 @@
 - added support for promises for the `Mail.try()` method
 - added support for promises for the `REQUEST()` method
 - added support for promises for the `EXEC()` method
+- added support for promises for the `JSONSCHEMA()` method
 
 ========================
 0.0.51

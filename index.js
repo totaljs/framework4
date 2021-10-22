@@ -729,12 +729,22 @@ global.JSONSCHEMA = function(id, value, callback, error) {
 	if (!error)
 		error = new ErrorBuilder();
 
-	if (id) {
-		var response = framework_jsonschema.transform(id, error, value);
-		callback(error.items.length ? error : null, response);
+	if (callback) {
+		if (id) {
+			var response = framework_jsonschema.transform(id, error, value);
+			callback(error.items.length ? error : null, response);
+		} else {
+			error.push(404);
+			callback(error);
+		}
 	} else {
-		error.push(404);
-		callback(error);
+		if (id) {
+			var response = framework_jsonschema.transform(id, error, value);
+			return new Promise((resolve, reject) => error.items.length ? reject(error) : resolve(response));
+		} else {
+			error.push(404);
+			return new Promise((resolve, reject) => reject(error));
+		}
 	}
 
 };
