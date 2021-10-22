@@ -1594,13 +1594,7 @@ global.WORKFLOW = function(declaration, tasks) {
 	return $;
 };
 
-global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
-
-	if (typeof(model) === 'function') {
-		controller = callback;
-		callback = model;
-		model = null;
-	}
+function _execforce(schema, model, callback, controller) {
 
 	// Because "controller" can be SchemaOptions/OperationOptions/TaskOptions
 	if (controller && !(controller instanceof WebSocketClient) && controller.controller)
@@ -1643,7 +1637,7 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 					meta.name = tmp[0];
 					meta.init = tmp[1];
 				} else {
-					callback('Invalid "{0}" type.'.format(schema));
+					callback(new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
 					return;
 				}
 
@@ -1654,7 +1648,7 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 					meta.name = tmp[0];
 					meta.type = 2;
 				} else {
-					callback('Invalid "{0}" type.'.format(schema));
+					callback(new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
 					return;
 				}
 			}
@@ -1667,7 +1661,7 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 			tmp = schema.substring(0, index).split(/\s|\t/).trim();
 
 			if (!method && tmp.length !== 2) {
-				callback('Invalid "{0}" type.'.format(schema));
+				callback(new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
 				return;
 			}
 
@@ -1746,7 +1740,7 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		if (controller.route.flags2.csrf || meta.schema.$csrf) {
 			controller.$checkcsrf = 2;
 			if (!DEF.onCSRFcheck(controller.req)) {
-				callback(new ErrorBuilder().add('csrf', 'Invalid CSRF token'));
+				callback(new ErrorBuilder().push('csrf', 'Invalid CSRF token'));
 				return;
 			}
 		} else
@@ -1794,6 +1788,20 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		setImmediate(performsschemaaction, meta, null, callback, controller);
 
 	return controller;
+}
+
+global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
+
+	if (typeof(model) === 'function') {
+		controller = callback;
+		callback = model;
+		model = null;
+	}
+
+	if (callback)
+		return _execforce(schema, model, callback, controller);
+	else
+		return new Promise((resolve, reject) => _execforce(schema, model, (err, res) => err ? reject(err) : resolve(res), controller));
 };
 
 function performsschemaaction_async(err, response, data) {

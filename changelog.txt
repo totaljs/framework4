@@ -13,6 +13,7 @@
 - added support for promises for the `TMSCLIENT().call()` method
 - added support for promises for the `Mail.try()` method
 - added support for promises for the `REQUEST()` method
+- added support for promises for the `EXEC()` method
 
 ========================
 0.0.51
