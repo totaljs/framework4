@@ -15,6 +15,7 @@
 - added support for promises for the `REQUEST()` method
 - added support for promises for the `EXEC()` method
 - added support for promises for the `JSONSCHEMA()` method
+- improved RegExp for validating URL addresses by [yetingli](https://github.com/yetingli)
 
 ========================
 0.0.51
