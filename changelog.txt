@@ -16,6 +16,10 @@
 - added support for promises for the `EXEC()` method
 - added support for promises for the `JSONSCHEMA()` method
 - improved RegExp for validating URL addresses by [yetingli](https://github.com/yetingli)
+- fixed FlowStream delegate `instance.variables()`
+- added FlowStream `instance.replace(str)` for applying variables
+- added FlowStream `message.replace(str)` for applying variables (alias for `message.variables()`)
+- added Flowstream `message.rewrite(data)` for rewriting message data
 
 ========================
 0.0.51

@@ -254,7 +254,7 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
-MP.variables = function(str, data) {
+MP.replace = MP.variables = function(str, data) {
 
 	if (str.indexOf('{') !== -1) {
 
@@ -430,7 +430,7 @@ MP.send = function(outputindex, data, clonedata) {
 	return count;
 };
 
-MP.replace = function(data) {
+MP.rewrite = function(data) {
 	this.data = data;
 	return this;
 };
@@ -1210,7 +1210,7 @@ FP.initcomponent = function(key, component) {
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.newmessage = newmessage;
-	instance.variables = variables;
+	instance.replace = variables;
 
 	self.onconnect && self.onconnect(instance);
 
