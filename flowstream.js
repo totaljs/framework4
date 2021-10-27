@@ -621,7 +621,6 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var done = function() {
 
 		self.loading--;
-
 		self.meta.components[name] = curr;
 		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
@@ -1102,10 +1101,8 @@ FP._use = function(schema, callback, reinit, tab) {
 		if (!tab) {
 			if (self.meta.flow.paused)
 				delete self.meta.flow.paused;
-
 			if (self.meta.flow.groups)
 				delete self.meta.flow.groups;
-
 			if (self.meta.flow.tabs)
 				delete self.meta.flow.tabs;
 		}
