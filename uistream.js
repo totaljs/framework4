@@ -2,6 +2,7 @@ if (!global.framework_utils)
 	global.framework_utils = require('./utils');
 
 const D = '__';
+const BLACKLISTID = { paused: 1, groups: 1, tabs: 1 };
 
 function Message() {
 	this.ismessage = true;
@@ -389,8 +390,20 @@ UI.load = function(components, design, callback) {
 	return self;
 };
 
+UI.tab = function(tab, schema, callback) {
+	return this.use(schema, callback, null, tab);
+};
 
-UI.use = function(schema, callback, reinit) {
+UI.use = function(schema, callback, reinit, tab) {
+	var self = this;
+	if (callback)
+		self._use(schema, callback, reinit, tab);
+	else
+		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit, tab));
+};
+
+UI._use = function(schema, callback, reinit, tab) {
+
 	var self = this;
 
 	if (typeof(schema) === 'string')
@@ -416,13 +429,19 @@ UI.use = function(schema, callback, reinit) {
 		var keys = Object.keys(schema);
 		var ts = Date.now();
 
-		if (self.meta.flow.paused)
-			delete self.meta.flow.paused;
+		if (!tab) {
+			if (self.meta.flow.paused)
+				delete self.meta.flow.paused;
+			if (self.meta.flow.groups)
+				delete self.meta.flow.groups;
+			if (self.meta.flow.tabs)
+				delete self.meta.flow.tabs;
+		}
 
 		keys.wait(function(key, next) {
 
-			if (key === 'paused') {
-				self.meta.flow.paused = schema.paused;
+			if (BLACKLISTID[key]) {
+				self.meta.flow[key] = schema[key];
 				next();
 				return;
 			}
@@ -468,10 +487,10 @@ UI.use = function(schema, callback, reinit) {
 			callback && callback(err.length ? err : null);
 
 			for (var key in self.meta.flow) {
-				if (key !== 'paused') {
+				if (!BLACKLISTID[key]) {
 					var instance = self.meta.flow[key];
-					var component = self.meta.components[instance.component];
-					if (instance.ts !== ts) {
+					if (instance.ts !== ts && (!tab || instance.tab === tab)) {
+						var component = self.meta.components[instance.component];
 						component.ready = false;
 						self.ondisconnect && self.ondisconnect(instance);
 						instance.close && instance.close.call(instance);
@@ -698,7 +717,7 @@ UI.export = function() {
 	for (var key in self.meta.flow) {
 
 		var instance = self.meta.flow[key];
-		if (key === 'paused') {
+		if (BLACKLISTID[key]) {
 			output[key] = CLONE(instance);
 			continue;
 		}
@@ -728,7 +747,7 @@ UI.instances = function() {
 	var arr = [];
 
 	for (var key in self.meta.flow) {
-		if (key !== 'paused') {
+		if (!BLACKLISTID[key]) {
 			var instance = self.meta.flow[key];
 			if (instance.ready)
 				arr.push(instance);
