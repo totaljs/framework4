@@ -719,6 +719,19 @@ FP.cleanforce = function() {
 		}
 	}
 
+	var paused = self.meta.flow.paused;
+	if (paused) {
+		for (var key in paused) {
+			var arr = key.split(D);
+			// arr[0] type
+			// arr[1] id
+			// arr[2] index
+			if (!self.meta.flow[arr[1]])
+				delete paused[key];
+			console.log(key);
+		}
+	}
+
 	return self;
 };
 
@@ -1038,16 +1051,28 @@ FP.load = function(components, design, callback) {
 	return self;
 };
 
-function use(self, schema, callback, reinit) {
-	self.use(schema, callback, reinit);
+function use(self, schema, callback, reinit, tab) {
+	self._use(schema, callback, reinit, tab);
 }
 
-FP.use = function(schema, callback, reinit) {
+FP.use = function(schema, callback, reinit, tab) {
+	var self = this;
+	if (callback)
+		self._use(schema, callback, reinit, tab);
+	else
+		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit, tab));
+};
+
+FP.tab = function(tab, schema, callback) {
+	return this.use(schema, callback, null, tab);
+};
+
+FP._use = function(schema, callback, reinit, tab) {
 
 	var self = this;
 
 	if (self.loading) {
-		setTimeout(use, 200, self, schema, callback, reinit);
+		setTimeout(use, 200, self, schema, callback, reinit, tab);
 		return self;
 	}
 
@@ -1074,14 +1099,16 @@ FP.use = function(schema, callback, reinit) {
 		var keys = Object.keys(schema);
 		var ts = Date.now();
 
-		if (self.meta.flow.paused)
-			delete self.meta.flow.paused;
+		if (!tab) {
+			if (self.meta.flow.paused)
+				delete self.meta.flow.paused;
 
-		if (self.meta.flow.groups)
-			delete self.meta.flow.groups;
+			if (self.meta.flow.groups)
+				delete self.meta.flow.groups;
 
-		if (self.meta.flow.tabs)
-			delete self.meta.flow.tabs;
+			if (self.meta.flow.tabs)
+				delete self.meta.flow.tabs;
+		}
 
 		self.loading++;
 		keys.wait(function(key, next) {
@@ -1138,8 +1165,8 @@ FP.use = function(schema, callback, reinit) {
 			for (var key in self.meta.flow) {
 				if (!BLACKLISTID[key]) {
 					var instance = self.meta.flow[key];
-					var component = self.meta.components[instance.component];
-					if (instance.ts !== ts) {
+					if (instance.ts !== ts && (!tab || instance.tab === tab)) {
+						var component = self.meta.components[instance.component];
 						component.ready = false;
 						instance.isdestroyed = true;
 						self.ondisconnect && self.ondisconnect(instance);

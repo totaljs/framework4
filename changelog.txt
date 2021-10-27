@@ -20,6 +20,8 @@
 - added FlowStream `instance.replace(str)` for applying variables
 - added FlowStream `message.replace(str)` for applying variables (alias for `message.variables()`)
 - added Flowstream `message.rewrite(data)` for rewriting message data
+- added support for promises for the `FLOWSTREAM().use()`
+- added `FLOWSTREAM().tab(tabname, schema, callback)`
 
 ========================
 0.0.51
