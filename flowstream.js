@@ -339,7 +339,15 @@ MP.send = function(outputindex, data, clonedata) {
 	if (self.processed === 0) {
 		self.processed = 1;
 		self.main.stats.pending--;
+
+		if (self.main.stats.pending < 0)
+			self.main.stats.pending = 0;
+
 		self.instance.stats.pending--;
+
+		if (self.instance.stats.pending < 0)
+			self.instance.stats.pending = 0;
+
 		self.instance.stats.output++;
 		self.instance.stats.duration = now - self.duration2;
 	}
@@ -422,9 +430,11 @@ MP.send = function(outputindex, data, clonedata) {
 		}
 	}
 
-	if (count)
+	if (count) {
 		self.refs.pending--;
-	else
+		if (self.refs.pending < 0)
+			self.refs.pending = 0;
+	} else
 		self.destroy();
 
 	return count;
@@ -468,7 +478,15 @@ MP.end = MP.destroy = function() {
 	if (self.processed === 0) {
 		self.processed = 1;
 		self.main.stats.pending--;
+
+		if (self.main.stats.pending < 0)
+			self.main.stats.pending = 0;
+
 		self.schema.stats.pending--;
+
+		if (self.schema.stats.pending < 0)
+			self.schema.stats.pending = 0;
+
 		self.schema.stats.duration = Date.now() - self.duration2;
 		self.schema.stats.destroyed++;
 	}
@@ -483,15 +501,18 @@ MP.end = MP.destroy = function() {
 		self.$timeoutidtotal = null;
 	}
 
-	if (self.refs.pending)
+	if (self.refs.pending) {
 		self.refs.pending--;
+		if (self.refs.pending < 0)
+			self.refs.pending = 0;
+	}
 
 	if (self.$events) {
 		self.$events.something && self.emit('something', self);
 		self.$events.terminate && self.emit('terminate', self);
 	}
 
-	if (!self.refs.pending || self.refs.pending < 0) {
+	if (!self.refs.pending) {
 		if (self.$events) {
 			self.$events.end && self.emit('end', self);
 			self.$events.destroy && self.emit('destroy', self);
@@ -892,9 +913,18 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 						if (data.processed === 0) {
 							data.processed = 1;
+
 							data.main.stats.pending--;
+
+							if (data.main.stats.pending < 0)
+								data.main.stats.pending = 0;
+
 							if (data.instance) {
 								data.instance.stats.pending--;
+
+								if (data.instance.stats.pending < 0)
+									data.instance.stats.pending = 0;
+
 								data.instance.stats.output++;
 								data.instance.stats.duration = ts - self.duration2;
 							}
@@ -1347,7 +1377,15 @@ FP.trigger = function(path, data, controller, events) {
 				if (data.processed === 0) {
 					data.processed = 1;
 					data.main.stats.pending--;
+
+					if (data.main.stats.pending < 0)
+						data.main.stats.pending = 0;
+
 					data.instance.stats.pending--;
+
+					if (data.instance.stats.pending < 0)
+						data.instance.stats.pending = 0;
+
 					data.instance.stats.output++;
 					data.instance.stats.duration = ts - self.duration2;
 				}
