@@ -464,7 +464,7 @@ WebSocketClientProto.$parse = function() {
 	if (!current.buffer || current.buffer.length <= 2)
 		return;
 
-	// webSocked - Opcode
+	// WebSocket - Opcode
 	current.type = current.buffer[0] & 0x0f;
 	current.compressed = (current.buffer[0] & 0x40) === 0x40;
 
