@@ -119,6 +119,7 @@ function UIStream(name, errorhandler) {
 	t.meta.cache = {};
 	t.stats = { messages: 0, mm: 0, minutes: 0 };
 	t.mm = 0;
+	t.loading = 0;
 	t.$events = {};
 
 	var counter = 1;
@@ -191,6 +192,7 @@ UI.register = function(name, declaration, config, callback, extend) {
 
 	var done = function() {
 
+		self.loading--;
 		self.meta.components[name] = curr;
 		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
@@ -207,6 +209,8 @@ UI.register = function(name, declaration, config, callback, extend) {
 
 		callback && callback(errors.length ? errors : null);
 	};
+
+	self.loading++;
 
 	if (curr.npm && curr.npm.length) {
 		curr.npm.wait(function(name, next) {
@@ -231,8 +235,9 @@ UI.destroy = function() {
 
 	clearInterval(self.$interval);
 	self.$interval = null;
-
+	self.loading++;
 	self.unload(function() {
+		self.loading--;
 		self.emit('destroy');
 		self.meta = null;
 		self.$events = null;
@@ -254,6 +259,7 @@ UI.unregister = function(name, callback) {
 
 	var curr = self.meta.components[name];
 	if (curr) {
+		self.loading++;
 		self.onunregister && self.onunregister(curr);
 		self.$events.unregister && self.emit('unregister', name, curr);
 		Object.keys(self.meta.flow).wait(function(key, next) {
@@ -270,6 +276,7 @@ UI.unregister = function(name, callback) {
 			}
 			next();
 		}, function() {
+			self.loading--;
 			curr.connected = false;
 			curr.disabled = true;
 			curr.uninstall && curr.uninstall.call(curr, curr);
@@ -355,8 +362,13 @@ UI.unload = function(callback) {
 
 UI.load = function(components, design, callback) {
 
-	// unload
 	var self = this;
+	if (self.loading) {
+		setTimeout(() => self.load(components, design, callback), 200);
+		return self;
+	}
+
+	self.loading = 10000;
 	self.unload(function() {
 
 		var keys = Object.keys(components);
@@ -379,6 +391,7 @@ UI.load = function(components, design, callback) {
 		}, function() {
 
 			// Loads design
+			self.loading = 0;
 			self.use(design, function(err) {
 				err && error.push(err);
 				callback(err);
@@ -390,21 +403,26 @@ UI.load = function(components, design, callback) {
 	return self;
 };
 
-UI.tab = function(tab, schema, callback) {
-	return this.use(schema, callback, null, tab);
-};
+function use(self, schema, callback, reinit) {
+	self._use(schema, callback, reinit);
+}
 
-UI.use = function(schema, callback, reinit, tab) {
+UI.use = function(schema, callback, reinit) {
 	var self = this;
 	if (callback)
-		self._use(schema, callback, reinit, tab);
+		self._use(schema, callback, reinit);
 	else
-		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit, tab));
+		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit));
 };
 
-UI._use = function(schema, callback, reinit, tab) {
+UI._use = function(schema, callback, reinit) {
 
 	var self = this;
+
+	if (self.loading) {
+		setTimeout(use, 200, self, schema, callback, reinit);
+		return self;
+	}
 
 	if (typeof(schema) === 'string')
 		schema = schema.parseJSON(true);
@@ -425,19 +443,19 @@ UI._use = function(schema, callback, reinit, tab) {
 
 	if (schema) {
 
-		// var keys = Object.keys(self.meta.flow);
 		var keys = Object.keys(schema);
 		var ts = Date.now();
 
-		if (!tab) {
-			if (self.meta.flow.paused)
-				delete self.meta.flow.paused;
-			if (self.meta.flow.groups)
-				delete self.meta.flow.groups;
-			if (self.meta.flow.tabs)
-				delete self.meta.flow.tabs;
-		}
+		if (self.meta.flow.paused)
+			delete self.meta.flow.paused;
 
+		if (self.meta.flow.groups)
+			delete self.meta.flow.groups;
+
+		if (self.meta.flow.tabs)
+			delete self.meta.flow.tabs;
+
+		self.loading++;
 		keys.wait(function(key, next) {
 
 			if (BLACKLISTID[key]) {
@@ -483,13 +501,10 @@ UI._use = function(schema, callback, reinit, tab) {
 
 		}, function() {
 
-			self.$events.schema && self.emit('schema', self.meta.flow);
-			callback && callback(err.length ? err : null);
-
 			for (var key in self.meta.flow) {
 				if (!BLACKLISTID[key]) {
 					var instance = self.meta.flow[key];
-					if (instance.ts !== ts && (!tab || instance.tab === tab)) {
+					if (instance.ts !== ts) {
 						var component = self.meta.components[instance.component];
 						component.ready = false;
 						self.ondisconnect && self.ondisconnect(instance);
@@ -499,10 +514,14 @@ UI._use = function(schema, callback, reinit, tab) {
 				}
 			}
 
+			self.loading--;
+			self.$events.schema && self.emit('schema', self.meta.flow);
+			callback && callback(err.length ? err : null);
+
 		});
 
 	} else {
-		err.push('schema', 'Flow schema is invalid.');
+		err.push('schema', 'UIStream schema is invalid.');
 		self.error(err, 'use');
 		callback && callback(err);
 	}
@@ -734,6 +753,7 @@ UI.export = function() {
 		tmp.component = instance.component;
 		tmp.connected = true;
 		tmp.note = instance.note;
+		tmp.tab = instance.tab;
 		tmp.reference = instance.reference;
 		output[tmp.id] = tmp;
 	}

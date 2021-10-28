@@ -1035,9 +1035,7 @@ FP.unload = function(callback) {
 
 FP.load = function(components, design, callback) {
 
-	// unload
 	var self = this;
-
 	if (self.loading) {
 		setTimeout(() => self.load(components, design, callback), 200);
 		return self;
@@ -1080,28 +1078,24 @@ FP.load = function(components, design, callback) {
 	return self;
 };
 
-function use(self, schema, callback, reinit, tab) {
-	self._use(schema, callback, reinit, tab);
+function use(self, schema, callback, reinit) {
+	self._use(schema, callback, reinit);
 }
 
-FP.use = function(schema, callback, reinit, tab) {
+FP.use = function(schema, callback, reinit) {
 	var self = this;
 	if (callback)
-		self._use(schema, callback, reinit, tab);
+		self._use(schema, callback, reinit);
 	else
-		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit, tab));
+		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit));
 };
 
-FP.tab = function(tab, schema, callback) {
-	return this.use(schema, callback, null, tab);
-};
-
-FP._use = function(schema, callback, reinit, tab) {
+FP._use = function(schema, callback, reinit) {
 
 	var self = this;
 
 	if (self.loading) {
-		setTimeout(use, 200, self, schema, callback, reinit, tab);
+		setTimeout(use, 200, self, schema, callback, reinit);
 		return self;
 	}
 
@@ -1124,18 +1118,17 @@ FP._use = function(schema, callback, reinit, tab) {
 
 	if (schema) {
 
-		// var keys = Object.keys(self.meta.flow);
 		var keys = Object.keys(schema);
 		var ts = Date.now();
 
-		if (!tab) {
-			if (self.meta.flow.paused)
-				delete self.meta.flow.paused;
-			if (self.meta.flow.groups)
-				delete self.meta.flow.groups;
-			if (self.meta.flow.tabs)
-				delete self.meta.flow.tabs;
-		}
+		if (self.meta.flow.paused)
+			delete self.meta.flow.paused;
+
+		if (self.meta.flow.groups)
+			delete self.meta.flow.groups;
+
+		if (self.meta.flow.tabs)
+			delete self.meta.flow.tabs;
 
 		self.loading++;
 		keys.wait(function(key, next) {
@@ -1192,7 +1185,7 @@ FP._use = function(schema, callback, reinit, tab) {
 			for (var key in self.meta.flow) {
 				if (!BLACKLISTID[key]) {
 					var instance = self.meta.flow[key];
-					if (instance.ts !== ts && (!tab || instance.tab === tab)) {
+					if (instance.ts !== ts) {
 						var component = self.meta.components[instance.component];
 						component.ready = false;
 						instance.isdestroyed = true;
@@ -1571,6 +1564,7 @@ FP.export = function(type) {
 		tmp.component = instance.component;
 		tmp.connected = true;
 		tmp.note = instance.note;
+		tmp.tab = instance.tab;
 		tmp.reference = instance.reference;
 
 		if (instance.outputs)
