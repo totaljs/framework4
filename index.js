@@ -15433,7 +15433,7 @@ WebSocketClientProto.prepare = function(flags, protocols, allow, length) {
 		self.inflatelock = false;
 		self.inflate = Zlib.createInflateRaw(WEBSOCKET_COMPRESS_OPTIONS);
 		self.inflate.$websocket = self;
-		self.inflate.on('error', function() {
+		self.inflate.on('error', function(e) {
 			if (!self.$uerror) {
 				self.$uerror = true;
 				self.close('Invalid data', 1003);
@@ -15539,13 +15539,16 @@ WebSocketClientProto.$ondata = function(data) {
 	if (!current.final && current.type !== 0x00)
 		current.type2 = current.type;
 
+	var decompress = current.compressed && self.inflate;
+
 	switch (current.type === 0x00 ? current.type2 : current.type) {
 		case 0x01:
 
 			// text
-			if (self.inflate) {
+			if (decompress) {
 				current.final && self.parseInflate();
 			} else {
+
 				if (current.body) {
 					CONCAT[0] = current.body;
 					CONCAT[1] = current.data;
@@ -15560,7 +15563,7 @@ WebSocketClientProto.$ondata = function(data) {
 		case 0x02:
 
 			// binary
-			if (self.inflate) {
+			if (decompress) {
 				current.final && self.parseInflate();
 			} else {
 				if (current.body) {
@@ -15632,6 +15635,7 @@ WebSocketClientProto.$parse = function() {
 
 	// webSocked - Opcode
 	current.type = current.buffer[0] & 0x0f;
+	current.compressed = (current.buffer[0] & 0x40) === 0x40;
 
 	// is final message?
 	current.final = ((current.buffer[0] & 0x80) >> 7) === 0x01;
@@ -15673,8 +15677,7 @@ WebSocketClientProto.$parse = function() {
 			current.buffer.copy(current.mask, 0, index - 4, index);
 		}
 
-
-		if (this.inflate) {
+		if (current.compressed && this.inflate) {
 
 			var buf = Buffer.alloc(length);
 			current.buffer.copy(buf, 0, index, mlength);
@@ -15707,6 +15710,7 @@ WebSocketClientProto.$parse = function() {
 WebSocketClientProto.$decode = function() {
 
 	var data = this.current.body;
+
 	F.stats.performance.message++;
 	F.stats.performance.download += data.length / 1024 / 1024;
 
@@ -15777,7 +15781,10 @@ WebSocketClientProto.parseInflate = function() {
 		self.inflatechunkslength = 0;
 		self.inflatelock = true;
 		self.inflate.write(buf);
-		!buf.$continue && self.inflate.write(Buffer.from(WEBSOCKET_COMPRESS));
+
+		if (!buf.$continue)
+			self.inflate.write(Buffer.from(WEBSOCKET_COMPRESS));
+
 		self.inflate.flush(function() {
 
 			if (!self.inflatechunks)
