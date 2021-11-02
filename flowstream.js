@@ -1170,6 +1170,7 @@ FP._use = function(schema, callback, reinit) {
 				fi.connections = instance.connections;
 				fi.x = instance.x;
 				fi.y = instance.y;
+				fi.tab = instance.tab;
 				fi.ts = ts;
 				if (JSON.stringify(fi.config) !== JSON.stringify(instance.config)) {
 					U.extend(fi.config, instance.config);
