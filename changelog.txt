@@ -8,6 +8,8 @@
 - updated `uistream.onreconfigure` by adding `init` argument
 - updated `uistreaminstance.configure` by adding `init` argument
 - fixed `U.queue()` by [Martin Smola](https://github.com/molda/)
+- added `@{input('type', 'name')}`
+- fixed `@{text()}`, `@{textarea()}`, `@{hidden()}`, `@{radio()}` and `@{checkbox()}` by removing `id` attribute
 
 ========================
 0.0.52

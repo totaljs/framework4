@@ -1414,6 +1414,7 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 
 		case 'radio':
 		case 'text':
+		case 'input':
 		case 'checkbox':
 		case 'hidden':
 		case 'textarea':

@@ -12959,13 +12959,14 @@ ControllerProto.$textarea = function(model, name, attr) {
 	if (typeof(attr) !== 'object')
 		attr = EMPTYOBJECT;
 
-	builder += ' name="' + name + '" id="' + (attr.id || name) + ATTR_END;
+	// builder += ' name="' + name + '" id="' + (attr.id || name) + ATTR_END;
+	builder += ' name="' + name + '"' + ATTR_END;
 
 	for (var key in attr) {
 		switch (key) {
 			case 'name':
-			case 'id':
 				break;
+			case 'id':
 			case 'required':
 			case 'disabled':
 			case 'readonly':
@@ -12991,11 +12992,10 @@ ControllerProto.$input = function(model, type, name, attr) {
 	var val = attr.value || '';
 
 	builder += ' type="' + type + ATTR_END;
+	builder += ' name="' + name + ATTR_END;
 
-	if (type === 'radio')
-		builder += ' name="' + name + ATTR_END;
-	else
-		builder += ' name="' + name + '" id="' + (attr.id || name) + ATTR_END;
+	// Why id="???, removed:
+	// builder += ' name="' + name + '" id="' + (attr.id || name) + ATTR_END;
 
 	if (attr.autocomplete) {
 		if (attr.autocomplete === true || attr.autocomplete === 'on')
@@ -13007,13 +13007,13 @@ ControllerProto.$input = function(model, type, name, attr) {
 	for (var key in attr) {
 		switch (key) {
 			case 'name':
-			case 'id':
 			case 'type':
 			case 'autocomplete':
 			case 'checked':
 			case 'value':
 			case 'label':
 				break;
+			case 'id':
 			case 'required':
 			case 'disabled':
 			case 'readonly':
@@ -13054,6 +13054,7 @@ ControllerProto.$input = function(model, type, name, attr) {
 		builder += ' value="' + (value || '').toString().encode() + ATTR_END;
 
 	builder += ' />';
+
 	return attr.label ? ('<label>' + builder + ' <span>' + attr.label + '</span></label>') : builder;
 };
 
