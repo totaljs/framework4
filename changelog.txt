@@ -7,6 +7,7 @@
 - updated `flowstreaminstance.configure` by adding `init` argument
 - updated `uistream.onreconfigure` by adding `init` argument
 - updated `uistreaminstance.configure` by adding `init` argument
+- fixed `U.queue()` by [Martin Smola](https://github.com/molda/)
 
 ========================
 0.0.52
