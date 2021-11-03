@@ -5458,7 +5458,7 @@ exports.queue = function(name, max, fn, param) {
 	var obj = { fn: fn, param: param };
 	var item = exports.queuecache[name];
 
-	if ((item.running + 1) >= item.limit) {
+	if ((item.running + 1) > item.limit) {
 		item.pending.push(obj);
 		return false;
 	}
