@@ -334,7 +334,7 @@ UI.ondisconnect = function(instance) {
 UI.onconnect = function(instance) {
 };
 
-UI.onreconfigure = function(instance) {
+UI.onreconfigure = function(instance, init) {
 };
 
 UI.onregister = function(component) {
@@ -492,8 +492,8 @@ UI._use = function(schema, callback, reinit) {
 				fi.ts = ts;
 				if (JSON.stringify(fi.config) !== JSON.stringify(instance.config)) {
 					U.extend(fi.config, instance.config);
-					fi.configure && fi.configure(fi.config);
-					self.onreconfigure && self.onreconfigure(fi);
+					fi.configure && fi.configure(fi.config, true);
+					self.onreconfigure && self.onreconfigure(fi, true);
 				}
 			}
 

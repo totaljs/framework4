@@ -3,6 +3,10 @@
 ========================
 
 - fixed wrong counting of week number in the `Date.format()`
+- updated `flowstream.onreconfigure` by adding `init` argument
+- updated `flowstreaminstance.configure` by adding `init` argument
+- updated `uistream.onreconfigure` by adding `init` argument
+- updated `uistreaminstance.configure` by adding `init` argument
 
 ========================
 0.0.52

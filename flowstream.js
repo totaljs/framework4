@@ -829,7 +829,7 @@ FP.onregister = function(component) {
 FP.onunregister = function(component) {
 };
 
-FP.onreconfigure = function(instance) {
+FP.onreconfigure = function(instance, init) {
 
 };
 */
@@ -1175,7 +1175,7 @@ FP._use = function(schema, callback, reinit) {
 				if (JSON.stringify(fi.config) !== JSON.stringify(instance.config)) {
 					U.extend(fi.config, instance.config);
 					fi.configure && fi.configure(fi.config);
-					self.onreconfigure && self.onreconfigure(fi);
+					self.onreconfigure && self.onreconfigure(fi, true);
 				}
 			}
 
