@@ -748,7 +748,6 @@ FP.cleanforce = function() {
 			// arr[2] index
 			if (!self.meta.flow[arr[1]])
 				delete paused[key];
-			console.log(key);
 		}
 	}
 
