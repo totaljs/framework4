@@ -859,6 +859,9 @@ function newmessage(data) {
 	msg.refs = { pending: 1 };
 	msg.repo = {};
 	msg.vars = {};
+	msg.to = msg.schema = self;
+	msg.toid = self.id;
+	msg.tocomponent = self.component;
 	msg.data = data instanceof Message ? data.data : data;
 	msg.cloned = 0;
 	msg.count = 0;

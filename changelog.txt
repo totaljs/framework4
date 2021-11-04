@@ -10,6 +10,7 @@
 - fixed `U.queue()` by [Martin Smola](https://github.com/molda/)
 - added `@{input('type', 'name')}` for creating `<input` element
 - fixed `@{text()}`, `@{textarea()}`, `@{hidden()}`, `@{radio()}` and `@{checkbox()}` by removing `id` attribute
+- fixed traffic indicator in the `flowstreaminstance.newmessage()`
 
 ========================
 0.0.52
