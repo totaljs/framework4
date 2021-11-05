@@ -1988,8 +1988,9 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 				var nestedschema = GETSCHEMA(TYPE.raw);
 				if (nestedschema)
 					exports.validate_builder(value, error, nestedschema, current + name, undefined, undefined, pluspath);
-				else
-					throw new Error('Nested schema "{0}" not found in "{1}".'.format(TYPE.raw, schema.parent.name));
+				else {
+					throw new Error(schema.parent ? 'Nested schema "{0}" not found in "{1}".'.format(TYPE.raw, schema.parent.name) : 'Bad type "{0} -> {1}" in the "{2}" schema'.format(name, TYPE.raw, schema.name));
+				}
 			} else {
 				type = typeof(result);
 				if (type === 'string') {
