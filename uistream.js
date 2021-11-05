@@ -699,7 +699,7 @@ UI.add = function(name, body, callback) {
 	var node = (meta.be || meta.be2 || '');
 
 	meta.id = name;
-	meta.checksum = node.md5();
+	meta.checksum = HASH(node).toString(36);
 
 	var component = self.meta.components[name];
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
@@ -721,7 +721,10 @@ UI.add = function(name, body, callback) {
 		delete meta.be;
 		delete meta.be2;
 		component = self.register(meta.id, fn, null, callback, true);
-		component.ui = meta;
+		if (component)
+			component.ui = meta;
+		else
+			return null;
 	}
 
 	component.ui.raw = body;

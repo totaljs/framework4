@@ -1489,14 +1489,15 @@ FP.send = function(path, body) {
 };
 
 FP.add = function(name, body, callback) {
+
 	var self = this;
 	var meta = body.parseComponent({ readme: '<readme>', settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', schema: '<schema>', template: '<template>' });
 	var node = (meta.be || meta.be2 || '');
 
 	meta.id = name;
-	meta.checksum = node.md5();
-	var component = self.meta.components[name];
+	meta.checksum = HASH(node).toString(36);
 
+	var component = self.meta.components[name];
 	if (component && component.ui && component.ui.checksum === meta.checksum) {
 		component.ui = meta;
 		component.ts = Date.now();
@@ -1516,7 +1517,10 @@ FP.add = function(name, body, callback) {
 		delete meta.be;
 		delete meta.be2;
 		component = self.register(meta.id, fn, null, callback, true);
-		component.ui = meta;
+		if (component)
+			component.ui = meta;
+		else
+			return null;
 	}
 
 	component.ui.raw = body;
