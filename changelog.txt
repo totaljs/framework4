@@ -11,6 +11,7 @@
 - added `@{input('type', 'name')}` for creating `<input` element
 - fixed `@{text()}`, `@{textarea()}`, `@{hidden()}`, `@{radio()}` and `@{checkbox()}` by removing `id` attribute
 - fixed traffic indicator in the `flowstreaminstance.newmessage()`
+- fixed `op` argument in the `schema.required()`
 
 ========================
 0.0.52

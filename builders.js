@@ -497,7 +497,8 @@ SchemaBuilderEntityProto.required = function(name, fn) {
 	if (!prop.required) {
 		prop.required = true;
 		if (self.properties) {
-			self.properties.indexOf(name) === -1 && self.properties.push(name);
+			if (self.properties.indexOf(name) === -1)
+				self.properties.push(name);
 		} else
 			self.properties = [name];
 	}
@@ -1556,7 +1557,7 @@ SchemaBuilderEntityProto.query = function(opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName, $, path, index) {
+SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName, $, path, index, operations) {
 
 	var self = this;
 	var builder = $ ? $.error : null;
@@ -1584,7 +1585,7 @@ SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName
 	else
 		path = '';
 
-	framework_utils.validate_builder.call(self, model, builder, self, '', index, $, path);
+	framework_utils.validate_builder.call(self, model, builder, self, '', index, $, path, operations);
 	return builder;
 };
 
@@ -1771,7 +1772,7 @@ SchemaOptionsVerify.prototype = {
 	}
 };
 
-SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $) {
+SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $, operations) {
 
 	var self = this;
 	var builder;
@@ -1810,7 +1811,8 @@ SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $) {
 		return output;
 	}
 
-	builder = self.validate(output, null, null, $);
+	builder = self.validate(output, null, null, $, null, null, operations);
+
 	if (builder.is) {
 		self.onError && self.onError(builder, model, 'make');
 		callback && callback(builder, null, arg);

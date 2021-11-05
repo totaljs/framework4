@@ -1692,6 +1692,8 @@ function _execforce(schema, model, callback, controller) {
 				return;
 			}
 
+			meta.operations = {};
+
 			for (var i = 0; i < op.length; i++) {
 
 				tmp = {};
@@ -1732,6 +1734,7 @@ function _execforce(schema, model, callback, controller) {
 					}
 				}
 
+				meta.operations[tmp.name] = 1;
 				meta.op.push(tmp);
 			}
 
@@ -1792,7 +1795,7 @@ function _execforce(schema, model, callback, controller) {
 		data.meta = meta;
 		data.callback = callback;
 		data.controller = controller;
-		meta.schema.make(model, performsschemaaction_async, data, null, $);
+		meta.schema.make(model, performsschemaaction_async, data, null, $, meta.operations);
 
 	} else
 		setImmediate(performsschemaaction, meta, null, callback, controller);
@@ -6466,7 +6469,7 @@ DEF.onSchema = function(req, route, callback) {
 	}
 
 	if (schema)
-		schema.make(req.body, onSchema_callback, callback, route.novalidate, $);
+		schema.make(req.body, onSchema_callback, callback, route.novalidate, $, route.workflow ? route.workflow.meta : EMPTYOBJECT);
 	else
 		callback('Schema "' + req.$schemaname + '" not found.');
 };
