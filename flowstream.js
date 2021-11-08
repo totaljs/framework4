@@ -1070,7 +1070,7 @@ FP.load = function(components, design, callback) {
 			self.use(design, function(err) {
 				self.loading = 0;
 				err && error.push(err);
-				callback(err);
+				callback && callback(err);
 				self.clean();
 			});
 

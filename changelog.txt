@@ -2,6 +2,9 @@
 0.0.54
 ========================
 
+- `callback` argument is optional in `UIStream.load()`
+- `callback` argument is optional in `FlowStream.load()`
+
 ========================
 0.0.53
 ========================

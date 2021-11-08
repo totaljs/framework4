@@ -394,7 +394,7 @@ UI.load = function(components, design, callback) {
 			self.loading = 0;
 			self.use(design, function(err) {
 				err && error.push(err);
-				callback(err);
+				callback && callback(err);
 			});
 
 		});
