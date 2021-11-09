@@ -19158,21 +19158,30 @@ F.$snapshot = function() {
 
 var lastusagedate;
 
-function measure_usage_response() {
+function measure_usage_response(checkedagain) {
+
 	var diff = (Date.now() - lastusagedate) - 60;
 	if (diff > 50)
 		diff = 50;
+
 	var val = diff < 0 ? 0 : (diff / 50) * 100;
 	if (F.temporary.service.usage < val)
 		F.temporary.service.usage = val;
+
 	F.stats.performance.usage = val;
-	if (val >= 100 && process.connected)
-		process.send('total:overload');
+
+	if (val >= 100) {
+		if (checkedagain) {
+			if (process.connected)
+				process.send('total:overload');
+		} else
+			measure_usage(true);
+	}
 }
 
-function measure_usage() {
+function measure_usage(param) {
 	lastusagedate = Date.now();
-	setTimeout(measure_usage_response, 50);
+	setTimeout(measure_usage_response, 50, param);
 }
 
 NEWCOMMAND('refresh_tms', function() {
