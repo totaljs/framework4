@@ -4,6 +4,7 @@
 
 - `callback` argument is optional in `UIStream.load()`
 - `callback` argument is optional in `FlowStream.load()`
+- improved measuring of CPU usage
 
 ========================
 0.0.53
