@@ -144,7 +144,7 @@ global.MEMORIZE = function(name, delay, skip) {
 	}
 
 	var save = function() {
-		F.Fs.writeFile(filename, replacer ? JSON.stringify(data, replacer) : JSON.stringify(data), ERROR('MEMORIZE(\'' + name + '\').save()'));
+		F.Fs.writeFile(filename, replacer ? JSON.stringify(data, replacer, '\t') : JSON.stringify(data, null, '\t'), ERROR('MEMORIZE(\'' + name + '\').save()'));
 	};
 
 	data.save = function() {
