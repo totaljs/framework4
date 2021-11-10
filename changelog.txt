@@ -5,6 +5,10 @@
 - `callback` argument is optional in `UIStream.load()`
 - `callback` argument is optional in `FlowStream.load()`
 - improved measuring of CPU usage
+- added `FlowStream.insert(schema, [callback])` method for inserting/modifying specific FlowStream instances
+- added `FlowStream.remove(keys, [callback])` method for removing specific FlowStream instances
+- added `UIStream.insert(schema, [callback])` method for inserting/modifying specific UIStream instances
+- added `UIStream.remove(keys, [callback])` method for removing specific UIStream instances
 
 ========================
 0.0.53

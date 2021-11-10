@@ -1080,8 +1080,50 @@ FP.load = function(components, design, callback) {
 	return self;
 };
 
-function use(self, schema, callback, reinit) {
-	self._use(schema, callback, reinit);
+FP.insert = function(schema, callback) {
+	var self = this;
+	if (callback)
+		self._use(schema, callback, null, true);
+	else
+		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), null, true));
+};
+
+FP.remove = function(keys, callback) {
+	var self = this;
+	if (callback)
+		self._remove(keys, callback);
+	else
+		return new Promise((resolve, reject) => self._remove(keys, (err, res) => err ? reject(err) : resolve(res), null, true));
+};
+
+FP._remove = function(keys, callback) {
+	var self = this;
+
+	if (!(keys instanceof Array))
+		keys = Object.keys(keys);
+
+	for (var key of keys) {
+
+		if (BLACKLISTID[key]) {
+			delete self.meta.flow[key];
+			continue;
+		}
+
+		var instance = self.meta.flow[key];
+		if (instance) {
+			instance.ready = false;
+			self.ondisconnect && self.ondisconnect(instance);
+			instance.close && instance.close.call(instance);
+			delete self.meta.flow[key];
+		}
+	}
+
+	self.clean();
+	callback && callback();
+};
+
+function use(self, schema, callback, reinit, insert) {
+	self._use(schema, callback, reinit, insert);
 }
 
 FP.use = function(schema, callback, reinit) {
@@ -1092,12 +1134,12 @@ FP.use = function(schema, callback, reinit) {
 		return new Promise((resolve, reject) => self._use(schema, (err, res) => err ? reject(err) : resolve(res), reinit));
 };
 
-FP._use = function(schema, callback, reinit) {
+FP._use = function(schema, callback, reinit, insert) {
 
 	var self = this;
 
 	if (self.loading) {
-		setTimeout(use, 200, self, schema, callback, reinit);
+		setTimeout(use, 200, self, schema, callback, reinit, insert);
 		return self;
 	}
 
@@ -1123,14 +1165,16 @@ FP._use = function(schema, callback, reinit) {
 		var keys = Object.keys(schema);
 		var ts = Date.now();
 
-		if (self.meta.flow.paused)
-			delete self.meta.flow.paused;
+		if (!insert) {
+			if (self.meta.flow.paused)
+				delete self.meta.flow.paused;
 
-		if (self.meta.flow.groups)
-			delete self.meta.flow.groups;
+			if (self.meta.flow.groups)
+				delete self.meta.flow.groups;
 
-		if (self.meta.flow.tabs)
-			delete self.meta.flow.tabs;
+			if (self.meta.flow.tabs)
+				delete self.meta.flow.tabs;
+		}
 
 		self.loading++;
 		keys.wait(function(key, next) {
@@ -1185,17 +1229,18 @@ FP._use = function(schema, callback, reinit) {
 
 		}, function() {
 
-			for (var key in self.meta.flow) {
-				if (!BLACKLISTID[key]) {
-					var instance = self.meta.flow[key];
-					if (instance.ts !== ts) {
-						var component = self.meta.components[instance.component];
-						component.ready = false;
-						instance.isdestroyed = true;
-						self.ondisconnect && self.ondisconnect(instance);
-						instance.close && instance.close.call(instance);
-						instance.destroy && instance.destroy.call(instance);
-						delete self.meta.flow[key];
+			if (!insert) {
+				for (var key in self.meta.flow) {
+					if (!BLACKLISTID[key]) {
+						var instance = self.meta.flow[key];
+						if (instance.ts !== ts) {
+							instance.ready = false;
+							instance.isdestroyed = true;
+							self.ondisconnect && self.ondisconnect(instance);
+							instance.close && instance.close.call(instance);
+							instance.destroy && instance.destroy.call(instance);
+							delete self.meta.flow[key];
+						}
 					}
 				}
 			}
