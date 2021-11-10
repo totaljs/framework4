@@ -1573,6 +1573,7 @@ FP.export = function(type) {
 		tmp.note = instance.note;
 		tmp.tab = instance.tab;
 		tmp.reference = instance.reference;
+		tmp.meta = instance.meta;
 
 		if (instance.outputs)
 			tmp.outputs = instance.outputs;
@@ -1594,11 +1595,11 @@ FP.components = function(prepare_export) {
 	for (var key in self.meta.components) {
 		var com = self.meta.components[key];
 		if (prepare_export) {
-
 			var obj = {};
 			obj.id = com.id;
 			obj.name = com.name;
 			obj.title = com.title;
+			obj.meta = com.meta;
 			obj.type = com.type;
 			obj.css = com.ui.css;
 			obj.js = com.ui.js;
@@ -1614,9 +1615,7 @@ FP.components = function(prepare_export) {
 			obj.version = com.version;
 			obj.author = com.author;
 			obj.permissions = com.permissions;
-
 			arr.push(obj);
-
 		} else
 			arr.push(com);
 	}

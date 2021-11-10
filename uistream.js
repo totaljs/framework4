@@ -747,6 +747,7 @@ UI.export = function() {
 		tmp.note = instance.note;
 		tmp.tab = instance.tab;
 		tmp.reference = instance.reference;
+		tmp.meta = instance.meta;
 		output[tmp.id] = tmp;
 	}
 
@@ -792,6 +793,7 @@ UI.components = function(prepare_export) {
 			obj.template = com.ui.template;
 			obj.settings = com.ui.settings;
 			obj.group = com.group;
+			obj.meta = com.meta;
 			obj.version = com.version;
 			obj.author = com.author;
 			arr.push(obj);
