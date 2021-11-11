@@ -1588,23 +1588,14 @@ FP.instances = function() {
 	return arr;
 };
 
-FP.export = function(type) {
+FP.export_instance = function(id) {
 
 	var self = this;
+	var instance = self.meta.flow[id];
+	if (instance) {
 
-	if (type === 'components')
-		return self.components(true);
-
-	var output = {};
-
-	for (var key in self.meta.flow) {
-
-		var instance = self.meta.flow[key];
-
-		if (BLACKLISTID[key]) {
-			output[key] = CLONE(instance);
-			continue;
-		}
+		if (BLACKLISTID[id])
+			return CLONE(instance);
 
 		var tmp = {};
 		tmp.x = instance.x;
@@ -1626,8 +1617,49 @@ FP.export = function(type) {
 		if (instance.inputs)
 			tmp.inputs = instance.inputs;
 
-		output[tmp.id] = tmp;
+		return tmp;
 	}
+};
+
+FP.export_component = function(id) {
+	var self = this;
+	var com = self.meta.components[id];
+	if (com) {
+		var obj = {};
+		obj.id = com.id;
+		obj.name = com.name;
+		obj.title = com.title;
+		obj.meta = com.meta;
+		obj.type = com.type;
+		obj.css = com.ui.css;
+		obj.js = com.ui.js;
+		obj.icon = com.icon;
+		obj.config = com.config;
+		obj.html = com.ui.html;
+		obj.readme = com.ui.readme;
+		obj.template = com.ui.template;
+		obj.settings = com.ui.settings;
+		obj.inputs = com.inputs;
+		obj.outputs = com.outputs;
+		obj.group = com.group;
+		obj.version = com.version;
+		obj.author = com.author;
+		obj.permissions = com.permissions;
+		return obj;
+	}
+};
+
+FP.export = function(type) {
+
+	var self = this;
+
+	if (type === 'components')
+		return self.components(true);
+
+	var output = {};
+
+	for (var key in self.meta.flow)
+		output[key] = self.export_instance(key);
 
 	return output;
 };
@@ -1638,31 +1670,10 @@ FP.components = function(prepare_export) {
 	var arr = [];
 
 	for (var key in self.meta.components) {
-		var com = self.meta.components[key];
-		if (prepare_export) {
-			var obj = {};
-			obj.id = com.id;
-			obj.name = com.name;
-			obj.title = com.title;
-			obj.meta = com.meta;
-			obj.type = com.type;
-			obj.css = com.ui.css;
-			obj.js = com.ui.js;
-			obj.icon = com.icon;
-			obj.config = com.config;
-			obj.html = com.ui.html;
-			obj.readme = com.ui.readme;
-			obj.template = com.ui.template;
-			obj.settings = com.ui.settings;
-			obj.inputs = com.inputs;
-			obj.outputs = com.outputs;
-			obj.group = com.group;
-			obj.version = com.version;
-			obj.author = com.author;
-			obj.permissions = com.permissions;
-			arr.push(obj);
-		} else
-			arr.push(com);
+		if (prepare_export)
+			arr.push(self.export_component(key));
+		else
+			arr.push(self.meta.components[key]);
 	}
 
 	return arr;

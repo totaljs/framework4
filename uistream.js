@@ -761,27 +761,22 @@ UI.add = function(name, body, callback) {
 	return component;
 };
 
-UI.export = function() {
+UI.export_instance = function(id) {
 
 	var self = this;
-	var output = {};
+	var instance = self.meta.flow[id];
+	if (instance) {
 
-	for (var key in self.meta.flow) {
-
-		var instance = self.meta.flow[key];
-		if (BLACKLISTID[key]) {
-			output[key] = CLONE(instance);
-			continue;
-		}
+		if (BLACKLISTID[id])
+			return CLONE(instance);
 
 		var tmp = {};
 		tmp.x = instance.x;
 		tmp.y = instance.y;
+		tmp.stats = CLONE(instance.stats);
+		tmp.id = instance.id;
 		tmp.offset = instance.offset;
 		tmp.size = instance.size;
-		tmp.stats = CLONE(instance.stats);
-		tmp.connections = CLONE(instance.connections);
-		tmp.id = instance.id;
 		tmp.config = CLONE(instance.config);
 		tmp.component = instance.component;
 		tmp.connected = true;
@@ -789,11 +784,52 @@ UI.export = function() {
 		tmp.tab = instance.tab;
 		tmp.reference = instance.reference;
 		tmp.meta = instance.meta;
-		output[tmp.id] = tmp;
+
+		return tmp;
 	}
+};
+
+UI.export_component = function(id) {
+	var self = this;
+	var com = self.meta.components[id];
+	if (com) {
+		var obj = {};
+		obj.id = com.id;
+		obj.name = com.name;
+		obj.title = com.title;
+		obj.meta = com.meta;
+		obj.type = com.type;
+		obj.css = com.ui.css;
+		obj.js = com.ui.js;
+		obj.icon = com.icon;
+		obj.config = com.config;
+		obj.html = com.ui.html;
+		obj.readme = com.ui.readme;
+		obj.template = com.ui.template;
+		obj.settings = com.ui.settings;
+		obj.group = com.group;
+		obj.version = com.version;
+		obj.author = com.author;
+		obj.permissions = com.permissions;
+		return obj;
+	}
+};
+
+UI.export = function(type) {
+
+	var self = this;
+
+	if (type === 'components')
+		return self.components(true);
+
+	var output = {};
+
+	for (var key in self.meta.flow)
+		output[key] = self.export_instance(key);
 
 	return output;
 };
+
 
 UI.instances = function() {
 
@@ -817,29 +853,10 @@ UI.components = function(prepare_export) {
 	var arr = [];
 
 	for (var key in self.meta.components) {
-		var com = self.meta.components[key];
-		if (prepare_export) {
-			var obj = {};
-			obj.id = com.id;
-			obj.type = com.type;
-			obj.name = com.name;
-			obj.title = com.title;
-			obj.offset = com.offset;
-			obj.size = com.size;
-			obj.css = com.ui.css;
-			obj.js = com.ui.js;
-			obj.icon = com.icon;
-			obj.config = com.config;
-			obj.html = com.ui.html;
-			obj.template = com.ui.template;
-			obj.settings = com.ui.settings;
-			obj.group = com.group;
-			obj.meta = com.meta;
-			obj.version = com.version;
-			obj.author = com.author;
-			arr.push(obj);
-		} else
-			arr.push(com);
+		if (prepare_export)
+			arr.push(self.export_component(key));
+		else
+			arr.push(self.meta.components[key]);
 	}
 
 	return arr;

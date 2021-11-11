@@ -9,6 +9,10 @@
 - added `FlowStream.remove(keys, [callback])` method for removing specific FlowStream instances
 - added `UIStream.insert(schema, [callback])` method for inserting/modifying specific UIStream instances
 - added `UIStream.remove(keys, [callback])` method for removing specific UIStream instances
+- added `FlowStream.export_instance(id)` method for exporting instance metadata
+- added `FlowStream.export_component(id)` method for exporting component metadata
+- added `UIStream.export_instance(id)` method for exporting instance metadata
+- added `UIStream.export_component(id)` method for exporting component metadata
 
 ========================
 0.0.53
