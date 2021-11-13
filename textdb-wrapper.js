@@ -1,6 +1,7 @@
 const SPECIAL = { clear: 1, clean: 1, drop: 1 };
 const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
 const Path = require('path');
+var CACHE = {};
 
 var INSTANCES = {};
 var LOADSTATS = function() {
@@ -1228,3 +1229,8 @@ exports.make = function(type, name, onetime, schema, fork) {
 exports.makebuilder = function() {
 	return new DatabaseBuilder();
 };
+
+ON('service', function(counter) {
+	if (counter % 10 === 0)
+		CACHE = {};
+});
