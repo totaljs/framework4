@@ -93,6 +93,19 @@ global.NOW = new Date();
 global.THREAD = '';
 global.isWORKER = false;
 
+function querybuilderwrapper(fn_name) {
+
+	var db = require('./querybuilder');
+
+	global.DB = function(conn) {
+		return db.make(conn);
+	};
+	global.NEWDB = function(name, callback) {
+		db.evaluate(name, callback);
+	};
+	return global[fn_name];
+}
+
 global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
@@ -2808,6 +2821,14 @@ global.NOSQL = function(name) {
 global.TEXTDB = function(name) {
 	global.TEXTDB = textdbwrapper;
 	return textdbwrapper(name);
+};
+
+global.DB = function() {
+	return querybuilderwrapper('DB').apply(this, arguments);
+};
+
+global.NEWDB = function() {
+	return querybuilderwrapper('NEWDB').apply(this, arguments);
 };
 
 function inmemorywrapper(name) {
