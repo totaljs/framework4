@@ -18,6 +18,7 @@ const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const REG_XSS = /<.*>/;
 const REG_SQLINJECTION = /'(''|[^'])*'|\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE|UNION( +ALL){0,1})\b/;
 const REG_GUID = (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+const REG_FIELD = /\./g;
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -5741,6 +5742,94 @@ CHP.destroy = function() {
 	clearTimeout(this.flushing_timeout);
 	this.stack = null;
 	return this;
+};
+
+exports.compilequeryfilter = function(data) {
+
+	var builder = [];
+	var filter = {};
+	var filterindex = 0;
+	var key, tmp;
+
+	for (var item of data.filter) {
+
+		key = 'doc.' + item.name.replace(REG_FIELD, '?.');
+
+		switch (item.type) {
+
+			case 'where':
+				switch (item.comparer) {
+					case '=':
+						tmp = '==';
+						break;
+					case '<>':
+						tmp = '!=';
+						break;
+					case '=>':
+						tmp = '>=';
+						break;
+					case '=<':
+						tmp = '<=';
+						break;
+					default:
+						tmp = item.comparer;
+				}
+				filter['arg' + filterindex] = item.value;
+				builder.push(key + tmp + 'arg' + filterindex);
+				filterindex++;
+				break;
+
+			case 'in':
+				filter['arg' + filterindex] = item.value instanceof Array ? item.value : [item.value];
+				filterindex++;
+				// builder.push('(' + key + ' instanceof Array?' + key + '==\'\')');
+				break;
+
+			case 'notin':
+				break;
+
+			case 'empty':
+				builder.push('(' + key + '==null||' + key + '==\'\')');
+				break;
+
+			case 'contains':
+				builder.push('(' + key + '!=null&&' + key + '!=\'\')');
+				break;
+
+			case 'between':
+				var aindex = filterindex;
+				filter['arg' + aindex] = item.a;
+				filterindex++;
+				var bindex = filterindex;
+				filter['arg' + bindex] = item.b;
+				filterindex++;
+				builder.push('(' + key + '>=arg' + aindex + '&&' + key + '<=arg' + bindex + ')');
+				break;
+
+			case 'or':
+
+				break;
+
+			case 'search':
+				break;
+
+			case 'year':
+				break;
+
+			case 'month':
+				break;
+
+			case 'day':
+				break;
+
+			case 'hour':
+				break;
+
+			case 'minute':
+				break;
+		}
+	}
+
 };
 
 exports.chunker = function(name, max) {
