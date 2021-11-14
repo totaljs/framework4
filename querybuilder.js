@@ -20,6 +20,8 @@ function Database(conn) {
 
 function exec(db) {
 	if (EVALUATOR[db.conn]) {
+		if (db.data.id)
+			db.data.id = HASH(db.data.id).toString(36);
 		EVALUATOR[db.conn](db, function(err, response) {
 			db.evaluate(err, response);
 		});
@@ -30,9 +32,10 @@ function exec(db) {
 function QueryBuilder(main, db, op) {
 	var t = this;
 	t.main = main;
-	t.filter = main.data.filter;
-	main.data.db = db;
-	main.data.op = op;
+	t.data = main.data;
+	t.data.db = db;
+	t.data.op = op;
+	t.filter = t.data.filter;
 	setImmediate(exec, main);
 }
 
@@ -192,29 +195,30 @@ QBP.where = function(name, comparer, value) {
 			break;
 	}
 
+	t.data.id += (t.data.id ? ' ' : '') + 'where' + comparer + name;
 	t.filter.push({ type: 'where', name: name, comparer: comparer, value: value });
 	return t;
 };
 
 QBP.take = function(count) {
-	this.main.data.take = count;
+	this.data.take = count;
 	return this;
 };
 
 QBP.first = function() {
-	this.main.data.take = this.main.data.first = 1;
+	this.data.take = this.data.first = 1;
 	return this;
 };
 
 QBP.limit = function(count) {
-	this.main.data.take = count;
+	this.data.take = count;
 	return this;
 };
 
 QBP.page = function(page, limit) {
 	if (limit)
-		this.main.data.take = limit;
-	this.main.data.skip = (page - 1) * this.main.data.take;
+		this.data.take = limit;
+	this.data.skip = (page - 1) * this.data.take;
 	return this;
 };
 
@@ -232,13 +236,13 @@ QBP.paginate = function(page, limit, maxlimit) {
 	if (!limit2)
 		limit2 = maxlimit;
 
-	this.main.data.skip = page2 * limit2;
-	this.main.data.take = limit2;
+	this.data.skip = page2 * limit2;
+	this.data.take = limit2;
 	return this;
 };
 
 QBP.skip = function(count) {
-	this.main.data.skip = count;
+	this.data.skip = count;
 	return this;
 };
 
@@ -255,6 +259,7 @@ QBP.in = function(name, value, id) {
 	if (!(value instanceof Array))
 		value = [value];
 
+	t.data.id += (t.data.id ? ' ' : '') + 'in=' + name;
 	t.filter.push({ type: 'in', name: name, value: value });
 	return t;
 };
@@ -272,12 +277,14 @@ QBP.notin = function(name, value, id) {
 	if (!(value instanceof Array))
 		value = [value];
 
+	t.data.id += (t.data.id ? ' ' : '') + 'notin=' + name;
 	t.filter.push({ type: 'notin', name: name, value: value });
 	return t;
 };
 
 QBP.between = function(name, a, b) {
 	var t = this;
+	t.data.id += (t.data.id ? ' ' : '') + 'between=' + name;
 	t.filter.push({ type: 'between', name: name, a: a, b: b });
 	return t;
 };
@@ -286,9 +293,12 @@ QBP.or = function(callback) {
 	var t = this;
 	var filter = t.filter;
 	t.filter = [];
+	t.data.id += (t.data.id ? ' ' : '') + 'or(';
 	callback.call(t, t);
-	if (t.filter.length)
+	if (t.filter.length) {
 		filter.push({ type: 'or', value: t.filter });
+	}
+	t.data.id += ')';
 	t.filter = filter;
 	return t;
 };
@@ -304,7 +314,7 @@ QBP.fields = function(fields) {
 		arr.push(field);
 	}
 
-	t.main.data.fields = arr;
+	t.data.fields = arr;
 	return t;
 };
 
@@ -316,6 +326,7 @@ QBP.month = function(name, comparer, value) {
 		comparer = '=';
 	}
 
+	t.data.id += (t.data.id ? ' ' : '') + 'month' + comparer + name;
 	t.filter.push({ type: 'month', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -328,6 +339,7 @@ QBP.day = function(name, comparer, value) {
 		comparer = '=';
 	}
 
+	t.data.id += (t.data.id ? ' ' : '') + 'day' + comparer + name;
 	t.filter.push({ type: 'day', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -340,6 +352,7 @@ QBP.year = function(name, comparer, value) {
 		comparer = '=';
 	}
 
+	t.data.id += (t.data.id ? ' ' : '') + 'year' + comparer + name;
 	t.filter.push({ type: 'year', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -352,6 +365,7 @@ QBP.hour = function(name, comparer, value) {
 		comparer = '=';
 	}
 
+	t.data.id += (t.data.id ? ' ' : '') + 'hour' + comparer + name;
 	t.filter.push({ type: 'hour', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -364,24 +378,28 @@ QBP.minute = function(name, comparer, value) {
 		comparer = '=';
 	}
 
+	t.data.id += (t.data.id ? ' ' : '') + 'minute' + comparer + name;
 	t.filter.push({ type: 'minute', name: name, comparer: comparer, value: value });
 	return t;
 };
 
 QBP.search = function(name, value, where) {
 	var t = this;
+	t.data.id += (t.data.id ? ' ' : '') + 'search=' + name + '=' + where;
 	t.filter.push({ type: 'search', name: name, comparer: where, value: value });
 	return t;
 };
 
 QBP.contains = function(name) {
 	var t = this;
+	t.data.id += (t.data.id ? ' ' : '') + 'contains=' + name;
 	t.filter.push({ type: 'contains', name: name });
 	return t;
 };
 
 QBP.empty = function(name) {
 	var t = this;
+	t.data.id += (t.data.id ? ' ' : '') + 'empty=' + name;
 	t.filter.push({ type: 'empty', name: name });
 	return t;
 };
@@ -460,7 +478,7 @@ QBP.gridfields = function(fields, allowed) {
 	}
 
 	if (!count)
-		t.main.data.fields = newfields.join(',');
+		t.data.fields = newfields.join(',');
 
 	return t;
 };
@@ -553,9 +571,9 @@ QBP.gridfilter = function(name, obj, type, key) {
 
 QBP.sort = function(sort, type) {
 	var t = this;
-	if (!t.main.data.sort)
-		t.main.data.sort = [];
-	t.main.data.sort.push(sort + '_' + (type === true || type === 'desc' ? 'desc' : 'asc'));
+	if (!t.data.sort)
+		t.data.sort = [];
+	t.data.sort.push(sort + '_' + (type === true || type === 'desc' ? 'desc' : 'asc'));
 	return t;
 };
 
@@ -563,14 +581,14 @@ QBP.gridsort = function(sort) {
 
 	var t = this;
 
-	if (!t.main.data.sort)
-		t.main.data.sort = [];
+	if (!t.data.sort)
+		t.data.sort = [];
 
 	var keys = sort.split(',');
 	for (var key of keys) {
 		key = key.trim();
 		var index = key.lastIndexOf('_');
-		t.main.data.sort.push(index === -1 ? (key + '_asc') : key);
+		t.data.sort.push(index === -1 ? (key + '_asc') : key);
 	}
 
 	return t;
@@ -743,14 +761,14 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 	var fields = query.fields;
 	var fieldscount = 0;
 
-	if (!t.main.data.fields)
-		t.main.data.fields = [];
+	if (!t.data.fields)
+		t.data.fields = [];
 
 	if (fields) {
 		fields = fields.replace(REG_FIELDS_CLEANER, '').split(',');
 		for (var field of fields) {
 			if (allowed && allowed.meta[field]) {
-				t.main.data.fields.push(field);
+				t.data.fields.push(field);
 				fieldscount++;
 			}
 		}
@@ -758,7 +776,7 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 
 	if (!fieldscount) {
 		for (var field of allowed.keys)
-			t.main.data.fields.push(field);
+			t.data.fields.push(field);
 	}
 
 	if (allowed && allowed.filter) {
