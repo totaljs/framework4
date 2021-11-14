@@ -6,13 +6,15 @@ function Database(conn) {
 	var t = this;
 	t.conn = conn;
 	t.data = {};
-	// t.data.db = '';
-	// t.data.op = '';
+	// t.data.db = String;                -- database/collection/table
+	// t.data.op = String;                -- operation name (find/insert/remove/etc..)
 	// t.data.payload = {};
-	// t.data.fields = '';
-	// t.data.sort = '';
-	// t.data.take = 0;
-	// t.data.skip = 0;
+	// t.data.upsert = Boolean;
+	// t.data.fields = String Array;
+	// t.data.sort = String Array;        -- in the form: field_asc, field_desc
+	// t.data.take = Number;
+	// t.data.skip = Number;
+	// t.data.filter = Object Array       -- types: where/in/notin/or/between/contains/empty
 	t.data.filter = [];
 }
 
@@ -122,6 +124,12 @@ DBP.command = function(name, db) {
 	return new QueryBuilder(t, db, 'command');
 };
 
+DBP.custom = function(type, db, data) {
+	var t = this;
+	t.data.payload = data;
+	return new QueryBuilder(t, db, type);
+};
+
 QBP.promise = function() {
 	var t = this;
 	var promise = new Promise(function(reject, resolve) {
@@ -137,6 +145,8 @@ QBP.promise = function() {
 
 QBP.callback = function(cb) {
 	var t = this;
+	if (cb == null)
+		return t.promise();
 	t.main.callback = cb;
 	return t;
 };
