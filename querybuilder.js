@@ -90,13 +90,13 @@ DBP.scalar = function(db, type, key, key2) {
 	return new QueryBuilder(t, db, 'scalar');
 };
 
-DBP.insert = function(db, data) {
+DBP.insert = DBP.ins = function(db, data) {
 	var t = this;
 	t.data.payload = data;
 	return new QueryBuilder(t, db, 'insert');
 };
 
-DBP.update = DBP.modify = DBP.mod = function(db, data, upsert) {
+DBP.update = DBP.modify = DBP.mod = DBP.upd = function(db, data, upsert) {
 	var t = this;
 	t.data.payload = data;
 	t.data.upsert = upsert;
