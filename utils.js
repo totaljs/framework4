@@ -5744,94 +5744,6 @@ CHP.destroy = function() {
 	return this;
 };
 
-exports.compilequeryfilter = function(data) {
-
-	var builder = [];
-	var filter = {};
-	var filterindex = 0;
-	var key, tmp;
-
-	for (var item of data.filter) {
-
-		key = 'doc.' + item.name.replace(REG_FIELD, '?.');
-
-		switch (item.type) {
-
-			case 'where':
-				switch (item.comparer) {
-					case '=':
-						tmp = '==';
-						break;
-					case '<>':
-						tmp = '!=';
-						break;
-					case '=>':
-						tmp = '>=';
-						break;
-					case '=<':
-						tmp = '<=';
-						break;
-					default:
-						tmp = item.comparer;
-				}
-				filter['arg' + filterindex] = item.value;
-				builder.push(key + tmp + 'arg' + filterindex);
-				filterindex++;
-				break;
-
-			case 'in':
-				filter['arg' + filterindex] = item.value instanceof Array ? item.value : [item.value];
-				filterindex++;
-				// builder.push('(' + key + ' instanceof Array?' + key + '==\'\')');
-				break;
-
-			case 'notin':
-				break;
-
-			case 'empty':
-				builder.push('(' + key + '==null||' + key + '==\'\')');
-				break;
-
-			case 'contains':
-				builder.push('(' + key + '!=null&&' + key + '!=\'\')');
-				break;
-
-			case 'between':
-				var aindex = filterindex;
-				filter['arg' + aindex] = item.a;
-				filterindex++;
-				var bindex = filterindex;
-				filter['arg' + bindex] = item.b;
-				filterindex++;
-				builder.push('(' + key + '>=arg' + aindex + '&&' + key + '<=arg' + bindex + ')');
-				break;
-
-			case 'or':
-
-				break;
-
-			case 'search':
-				break;
-
-			case 'year':
-				break;
-
-			case 'month':
-				break;
-
-			case 'day':
-				break;
-
-			case 'hour':
-				break;
-
-			case 'minute':
-				break;
-		}
-	}
-
-};
-
 exports.chunker = function(name, max) {
 	return new Chunker(name, max);
 };
@@ -5880,6 +5792,7 @@ exports.Callback = function(count, callback) {
 function Reader() {
 	var t = this;
 	// t.tmp;
+
 	t.$add = function(builder) {
 		var b = require('./textdb-builder').make();
 		builder.options.filter = builder.options.filter && builder.options.filter.length ? builder.options.filter.join('&&') : 'true';
@@ -5912,6 +5825,94 @@ function Reader() {
 }
 
 const RP = Reader.prototype;
+
+function assign_querybuilder(filter, item) {
+	switch (item.type) {
+		case 'between':
+			filter.between(item.name, item.a, item.b);
+			break;
+		case 'where':
+			filter.where(item.name, item.comparer, item.value);
+			break;
+		case 'in':
+			filter.in(item.name, item.value);
+			break;
+		case 'notin':
+			filter.notin(item.name, item.value);
+			break;
+		case 'search':
+			filter.search(item.name, item.value, item.comparer);
+			break;
+		case 'contains':
+			filter.contains(item.name);
+			break;
+		case 'empty':
+			filter.empty(item.name);
+			break;
+		case 'year':
+			filter.year(item.name, item.comparer, item.value);
+			break;
+		case 'month':
+			filter.month(item.name, item.comparer, item.value);
+			break;
+		case 'day':
+			filter.day(item.name, item.comparer, item.value);
+			break;
+		case 'hour':
+			filter.hour(item.name, item.comparer, item.value);
+			break;
+		case 'minute':
+			filter.minute(item.name, item.comparer, item.value);
+			break;
+		case 'or':
+			filter.or(function() {
+				for (var condition of item.value)
+					assign_querybuilder(filter, condition);
+			});
+			break;
+	}
+}
+
+RP.assign = function(data) {
+
+	var self = this;
+	var fn = self[data.op];
+
+	if (fn) {
+
+		var filter;
+
+		switch (data.op) {
+			case 'scalar':
+				filter = self[data.op](data.scalar.type, data.scalar.key, data.scalar.key2);
+				break;
+			default:
+				filter = self[data.op]();
+				break;
+		}
+
+		if (data.take)
+			filter.options.take = data.take;
+
+		if (data.skip)
+			filter.options.skip = data.skip;
+
+		if (data.first)
+			filter.options.first = data.first;
+
+		if (data.fields)
+			filter.options.fields = data.fields.join(',');
+
+		if (data.sort)
+			filter.options.sort = data.sort.join(',');
+
+		for (var i = 0; i < data.filter.length; i++)
+			assign_querybuilder(filter, data.filter[i]);
+
+		return filter;
+	}
+
+};
 
 RP.done = function() {
 	var self = this;

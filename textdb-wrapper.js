@@ -1,5 +1,6 @@
 const SPECIAL = { clear: 1, clean: 1, drop: 1 };
 const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
+const REG_NULLABLE = /\./g;
 const Path = require('path');
 var CACHE = {};
 
@@ -640,7 +641,7 @@ DB.where = function(name, operator, value) {
 			break;
 	}
 
-	self.options.filter.push('doc.' + name + operator + 'arg.params[' + self.param(value) + ']');
+	self.options.filter.push('doc.' + name.replace(REG_NULLABLE, '?.') + operator + 'arg.params[' + self.param(value) + ']');
 	return self;
 };
 
@@ -722,7 +723,7 @@ DB.in = function(name, value, id) {
 		value = arr;
 	}
 
-	self.options.filter.push('func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
+	self.options.filter.push('func.in(doc.' + name.replace(REG_NULLABLE, '?.') + ',arg.params[' + self.param(value) + '])');
 	return self;
 };
 
@@ -736,7 +737,7 @@ DB.notin = function(name, value, id) {
 		value = arr;
 	}
 
-	self.options.filter.push('!func.in(doc.' + name + ',arg.params[' + self.param(value) + '])');
+	self.options.filter.push('!func.in(doc.' + name.replace(REG_NULLABLE, '?.') + ',arg.params[' + self.param(value) + '])');
 	return self;
 };
 
@@ -744,7 +745,7 @@ DB.between = function(name, a, b) {
 	var self = this;
 	var ia = self.param(a);
 	var ib = self.param(b);
-	self.options.filter.push('(doc.' + name + '>=arg.params[' + ia + ']&&doc.' + name + '<=arg.params[' + ib + '])');
+	self.options.filter.push('(doc.' + name.replace(REG_NULLABLE, '?.') + '>=arg.params[' + ia + ']&&doc.' + name + '<=arg.params[' + ib + '])');
 	return self;
 };
 
@@ -817,19 +818,19 @@ DB.minute = function(name, operator, value) {
 DB.search = function(name, value, where) {
 	var self = this;
 	var paramindex = self.param(value);
-	self.options.filter.push('func.search(doc.' + name + ',arg.params[' + paramindex + ']' + (where == 'beg' ? ',1' : where == 'end' ? ',2' : '') + ')');
+	self.options.filter.push('func.search(doc.' + name.replace(REG_NULLABLE, '?.') + ',arg.params[' + paramindex + ']' + (where == 'beg' ? ',1' : where == 'end' ? ',2' : '') + ')');
 	return self;
 };
 
 DB.contains = function(name) {
 	var self = this;
-	self.options.filter.push('(doc.{0} instanceof Array?!!doc.{0}.length:!!doc.{0})'.format(name));
+	self.options.filter.push('(doc.{0} instanceof Array?!!doc.{0}.length:!!doc.{0})'.format(name.replace(REG_NULLABLE, '?.')));
 	return self;
 };
 
 DB.empty = function(name) {
 	var self = this;
-	self.options.filter.push('(doc.{0} instanceof Array?!doc.{0}.length:!doc.{0})'.format(name));
+	self.options.filter.push('(doc.{0} instanceof Array?!doc.{0}.length:!doc.{0})'.format(name.replace(REG_NULLABLE, '?.')));
 	return self;
 };
 
@@ -859,7 +860,7 @@ function compare_datetype(type, key, paramindex, operator) {
 			type = 'getMinute()';
 			break;
 	}
-	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key, paramindex, operator, type);
+	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key.replace(REG_NULLABLE, '?.'), paramindex, operator, type);
 }
 
 // Converting values

@@ -14,6 +14,7 @@
 - added `UIStream.export_instance(id)` method for exporting instance metadata
 - added `UIStream.export_component(id)` method for exporting component metadata
 - added a simple ORM - `DB([conn])` and `NEWDB([conn], callback(builder, next(err, response)))`
+- extended `U.reader()` by adding `.assign(ORMQueryBuilder)`
 
 ========================
 0.0.53
