@@ -100,6 +100,7 @@ function querybuilderwrapper(fn_name) {
 	global.DB = function(conn) {
 		return db.make(conn);
 	};
+
 	global.NEWDB = function(name, callback) {
 		db.evaluate(name, callback);
 	};

@@ -5876,18 +5876,18 @@ function assign_querybuilder(filter, item) {
 RP.assign = function(data) {
 
 	var self = this;
-	var fn = self[data.op];
+	var fn = self[data.exec];
 
 	if (fn) {
 
 		var filter;
 
-		switch (data.op) {
+		switch (data.exec) {
 			case 'scalar':
-				filter = self[data.op](data.scalar.type, data.scalar.key, data.scalar.key2);
+				filter = self[data.exec](data.scalar.type, data.scalar.key, data.scalar.key2);
 				break;
 			default:
-				filter = self[data.op]();
+				filter = self[data.exec]();
 				break;
 		}
 

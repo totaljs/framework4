@@ -5,38 +5,43 @@ var EVALUATOR = {};
 function Database(conn) {
 	var t = this;
 	t.conn = conn;
-	t.data = {};
-	// t.data.db = String;                -- database/collection/table
-	// t.data.op = String;                -- operation name (find/insert/remove/etc..)
-	// t.data.payload = {};
-	// t.data.upsert = Boolean;
-	// t.data.fields = String Array;
-	// t.data.sort = String Array;        -- in the form: field_asc, field_desc
-	// t.data.take = Number;
-	// t.data.skip = Number;
-	// t.data.filter = Object Array       -- types: where/in/notin/or/between/contains/empty
-	t.data.filter = [];
+	t.options = {};
+	// t.options.db = String;                -- database/collection/table
+	// t.options.exec = String;              -- operation name (find/insert/remove/etc..)
+	// t.options.payload = {};
+	// t.options.upsert = Boolean;
+	// t.options.fields = String Array;
+	// t.options.sort = String Array;        -- in the form: field_asc, field_desc
+	// t.options.take = Number;
+	// t.options.skip = Number;
+	// t.options.filter = Object Array       -- types: where/in/notin/or/between/contains/empty
+	t.options.filter = [];
 }
 
-function exec(db) {
+function execdb(db) {
 	if (EVALUATOR[db.conn]) {
-		if (db.data.id)
-			db.data.id = HASH(db.data.id).toString(36);
-		EVALUATOR[db.conn](db, function(err, response) {
+		if (db.options.id)
+			db.options.id = HASH(db.options.id).toString(36);
+		EVALUATOR[db.conn].call(db, db.options, function(err, response) {
 			db.evaluate(err, response);
 		});
 	} else
 		db.evaluate('Database is not initialized');
 }
 
-function QueryBuilder(main, db, op) {
+function QueryBuilder(main, table, exec, multiple) {
+
 	var t = this;
+
 	t.main = main;
-	t.data = main.data;
-	t.data.db = db;
-	t.data.op = op;
-	t.filter = t.data.filter;
-	setImmediate(exec, main);
+	t.options = main.options;
+	t.options.table = table;
+	t.options.exec = exec;
+	t.filter = t.options.filter;
+
+	if (!multiple)
+		setImmediate(execdb, main);
+
 }
 
 var DBP = Database.prototype;
@@ -45,36 +50,40 @@ var QBP = QueryBuilder.prototype;
 DBP.evaluate = function(err, response) {
 	var t = this;
 
-	if (!err && !response && t.error)
-		err = t.error;
-
-	if (t.data.first && response instanceof Array)
+	if (t.options.first && response instanceof Array)
 		response = response[0];
+
+	if (!err && t.error) {
+		if (!response)
+			err = t.error;
+		else if (!t.options.first && response instanceof Array && !response.length)
+			err = t.error;
+	}
 
 	t.callback && t.callback(err, response);
 };
 
-DBP.find = function(db) {
+DBP.find = DBP.all = function(table) {
 	var t = this;
-	return new QueryBuilder(t, db, 'find');
+	return new QueryBuilder(t, table, 'find');
 };
 
-DBP.list = function(db) {
+DBP.list = function(table) {
 	var t = this;
-	return new QueryBuilder(t, db, 'list');
+	return new QueryBuilder(t, table, 'list');
 };
 
-DBP.read = DBP.one = function(db) {
+DBP.read = DBP.one = function(table) {
 	var t = this;
-	return new QueryBuilder(t, db, 'read');
+	return new QueryBuilder(t, table, 'read');
 };
 
-DBP.count = function(db) {
+DBP.count = function(table) {
 	var t = this;
-	return new QueryBuilder(t, db, 'count');
+	return new QueryBuilder(t, table, 'count');
 };
 
-DBP.scalar = function(db, type, key, key2) {
+DBP.scalar = function(table, type, key, key2) {
 
 	var t = this;
 
@@ -83,63 +92,66 @@ DBP.scalar = function(db, type, key, key2) {
 		type = '*';
 	}
 
-	t.data.scalar = {};
-	t.data.scalar.type = type;
+	t.options.scalar = {};
+	t.options.scalar.type = type;
 
 	if (key)
-		t.data.scalar.key = key;
+		t.options.scalar.key = key;
 
 	if (key2)
-		t.data.scalar.key2 = key2;
+		t.options.scalar.key2 = key2;
 
-	return new QueryBuilder(t, db, 'scalar');
+	return new QueryBuilder(t, table, 'scalar');
 };
 
-DBP.insert = DBP.ins = function(db, data) {
+DBP.insert = DBP.ins = function(table, data) {
 	var t = this;
-	t.data.payload = data;
-	return new QueryBuilder(t, db, 'insert');
+	t.options.payload = data;
+	return new QueryBuilder(t, table, 'insert');
 };
 
-DBP.update = DBP.modify = DBP.mod = DBP.upd = function(db, data, upsert) {
+DBP.update = DBP.modify = DBP.mod = DBP.upd = function(table, data, upsert) {
 	var t = this;
-	t.data.payload = data;
-	t.data.upsert = upsert;
-	return new QueryBuilder(t, db, 'update');
+	t.options.payload = data;
+	t.options.upsert = upsert;
+	return new QueryBuilder(t, table, 'update');
 };
 
-DBP.remove = DBP.rem = function(db) {
+DBP.remove = DBP.rem = function(table) {
 	var t = this;
-	return new QueryBuilder(t, db, 'remove');
+	return new QueryBuilder(t, table, 'remove');
 };
 
-DBP.drop = function(db) {
-	return new QueryBuilder(this, db, 'drop');
+DBP.drop = function(table) {
+	return new QueryBuilder(this, table, 'drop');
 };
 
-DBP.truncate = DBP.clear = function(db) {
-	return new QueryBuilder(this, db, 'truncate');
+DBP.truncate = DBP.clear = function(table) {
+	return new QueryBuilder(this, table, 'truncate');
 };
 
-DBP.command = function(name, db) {
+DBP.command = function(name, table) {
 	var t = this;
-	t.data.command = name;
-	return new QueryBuilder(t, db, 'command');
+	t.options.command = name;
+	return new QueryBuilder(t, table, 'command');
 };
 
-DBP.custom = function(type, db, data) {
+DBP.custom = function(type, table, data) {
 	var t = this;
-	t.data.payload = data;
-	return new QueryBuilder(t, db, type);
+	t.options.payload = data;
+	return new QueryBuilder(t, table, type);
 };
 
-QBP.promise = function() {
+QBP.promise = function($) {
 	var t = this;
 	var promise = new Promise(function(reject, resolve) {
 		t.main.callback = function(err, response) {
-			if (err)
-				reject(err);
-			else
+			if (err) {
+				if ($ && $.invalid)
+					$.invalid(err);
+				else
+					reject(err);
+			} else
 				resolve(response);
 		};
 	});
@@ -148,9 +160,26 @@ QBP.promise = function() {
 
 QBP.callback = function(cb) {
 	var t = this;
-	if (cb == null)
-		return t.promise();
+	if (cb == null || typeof(cb) !== 'function')
+		return t.promise(cb);
 	t.main.callback = cb;
+	return t;
+};
+
+QBP.data = function(cb) {
+	var t = this;
+	t.main.callback = function(err, response) {
+		if (!err)
+			cb(response);
+	};
+	return t;
+};
+
+QBP.fail = function(cb) {
+	var t = this;
+	t.main.callback = function(err) {
+		err && cb(err);
+	};
 	return t;
 };
 
@@ -195,30 +224,30 @@ QBP.where = function(name, comparer, value) {
 			break;
 	}
 
-	t.data.id += (t.data.id ? ' ' : '') + 'where' + comparer + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'where' + comparer + name;
 	t.filter.push({ type: 'where', name: name, comparer: comparer, value: value });
 	return t;
 };
 
 QBP.take = function(count) {
-	this.data.take = count;
+	this.options.take = count;
 	return this;
 };
 
 QBP.first = function() {
-	this.data.take = this.data.first = 1;
+	this.options.take = this.options.first = 1;
 	return this;
 };
 
 QBP.limit = function(count) {
-	this.data.take = count;
+	this.options.take = count;
 	return this;
 };
 
 QBP.page = function(page, limit) {
 	if (limit)
-		this.data.take = limit;
-	this.data.skip = (page - 1) * this.data.take;
+		this.options.take = limit;
+	this.options.skip = (page - 1) * this.options.take;
 	return this;
 };
 
@@ -236,13 +265,13 @@ QBP.paginate = function(page, limit, maxlimit) {
 	if (!limit2)
 		limit2 = maxlimit;
 
-	this.data.skip = page2 * limit2;
-	this.data.take = limit2;
+	this.options.skip = page2 * limit2;
+	this.options.take = limit2;
 	return this;
 };
 
 QBP.skip = function(count) {
-	this.data.skip = count;
+	this.options.skip = count;
 	return this;
 };
 
@@ -259,7 +288,7 @@ QBP.in = function(name, value, id) {
 	if (!(value instanceof Array))
 		value = [value];
 
-	t.data.id += (t.data.id ? ' ' : '') + 'in=' + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'in=' + name;
 	t.filter.push({ type: 'in', name: name, value: value });
 	return t;
 };
@@ -277,14 +306,14 @@ QBP.notin = function(name, value, id) {
 	if (!(value instanceof Array))
 		value = [value];
 
-	t.data.id += (t.data.id ? ' ' : '') + 'notin=' + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'notin=' + name;
 	t.filter.push({ type: 'notin', name: name, value: value });
 	return t;
 };
 
 QBP.between = function(name, a, b) {
 	var t = this;
-	t.data.id += (t.data.id ? ' ' : '') + 'between=' + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'between=' + name;
 	t.filter.push({ type: 'between', name: name, a: a, b: b });
 	return t;
 };
@@ -293,12 +322,12 @@ QBP.or = function(callback) {
 	var t = this;
 	var filter = t.filter;
 	t.filter = [];
-	t.data.id += (t.data.id ? ' ' : '') + 'or(';
+	t.options.id += (t.options.id ? ' ' : '') + 'or(';
 	callback.call(t, t);
 	if (t.filter.length) {
 		filter.push({ type: 'or', value: t.filter });
 	}
-	t.data.id += ')';
+	t.options.id += ')';
 	t.filter = filter;
 	return t;
 };
@@ -314,7 +343,7 @@ QBP.fields = function(fields) {
 		arr.push(field);
 	}
 
-	t.data.fields = arr;
+	t.options.fields = arr;
 	return t;
 };
 
@@ -326,7 +355,7 @@ QBP.month = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.data.id += (t.data.id ? ' ' : '') + 'month' + comparer + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'month' + comparer + name;
 	t.filter.push({ type: 'month', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -339,7 +368,7 @@ QBP.day = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.data.id += (t.data.id ? ' ' : '') + 'day' + comparer + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'day' + comparer + name;
 	t.filter.push({ type: 'day', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -352,7 +381,7 @@ QBP.year = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.data.id += (t.data.id ? ' ' : '') + 'year' + comparer + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'year' + comparer + name;
 	t.filter.push({ type: 'year', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -365,7 +394,7 @@ QBP.hour = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.data.id += (t.data.id ? ' ' : '') + 'hour' + comparer + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'hour' + comparer + name;
 	t.filter.push({ type: 'hour', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -378,28 +407,28 @@ QBP.minute = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.data.id += (t.data.id ? ' ' : '') + 'minute' + comparer + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'minute' + comparer + name;
 	t.filter.push({ type: 'minute', name: name, comparer: comparer, value: value });
 	return t;
 };
 
 QBP.search = function(name, value, where) {
 	var t = this;
-	t.data.id += (t.data.id ? ' ' : '') + 'search=' + name + '=' + where;
+	t.options.id += (t.options.id ? ' ' : '') + 'search=' + name + '=' + where;
 	t.filter.push({ type: 'search', name: name, comparer: where, value: value });
 	return t;
 };
 
 QBP.contains = function(name) {
 	var t = this;
-	t.data.id += (t.data.id ? ' ' : '') + 'contains=' + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'contains=' + name;
 	t.filter.push({ type: 'contains', name: name });
 	return t;
 };
 
 QBP.empty = function(name) {
 	var t = this;
-	t.data.id += (t.data.id ? ' ' : '') + 'empty=' + name;
+	t.options.id += (t.options.id ? ' ' : '') + 'empty=' + name;
 	t.filter.push({ type: 'empty', name: name });
 	return t;
 };
@@ -478,7 +507,7 @@ QBP.gridfields = function(fields, allowed) {
 	}
 
 	if (!count)
-		t.data.fields = newfields.join(',');
+		t.options.fields = newfields.join(',');
 
 	return t;
 };
@@ -571,9 +600,9 @@ QBP.gridfilter = function(name, obj, type, key) {
 
 QBP.sort = function(sort, type) {
 	var t = this;
-	if (!t.data.sort)
-		t.data.sort = [];
-	t.data.sort.push(sort + '_' + (type === true || type === 'desc' ? 'desc' : 'asc'));
+	if (!t.options.sort)
+		t.options.sort = [];
+	t.options.sort.push(sort + '_' + (type === true || type === 'desc' ? 'desc' : 'asc'));
 	return t;
 };
 
@@ -581,14 +610,14 @@ QBP.gridsort = function(sort) {
 
 	var t = this;
 
-	if (!t.data.sort)
-		t.data.sort = [];
+	if (!t.options.sort)
+		t.options.sort = [];
 
 	var keys = sort.split(',');
 	for (var key of keys) {
 		key = key.trim();
 		var index = key.lastIndexOf('_');
-		t.data.sort.push(index === -1 ? (key + '_asc') : key);
+		t.options.sort.push(index === -1 ? (key + '_asc') : key);
 	}
 
 	return t;
@@ -761,14 +790,14 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 	var fields = query.fields;
 	var fieldscount = 0;
 
-	if (!t.data.fields)
-		t.data.fields = [];
+	if (!t.options.fields)
+		t.options.fields = [];
 
 	if (fields) {
 		fields = fields.replace(REG_FIELDS_CLEANER, '').split(',');
 		for (var field of fields) {
 			if (allowed && allowed.meta[field]) {
-				t.data.fields.push(field);
+				t.options.fields.push(field);
 				fieldscount++;
 			}
 		}
@@ -776,7 +805,7 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 
 	if (!fieldscount) {
 		for (var field of allowed.keys)
-			t.data.fields.push(field);
+			t.options.fields.push(field);
 	}
 
 	if (allowed && allowed.filter) {
@@ -807,13 +836,12 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 		t.gridsort(defsort);
 
 	maxlimit && t.paginate(query.page, query.limit, maxlimit);
-
 	return t;
 };
 
-QBP.join = function(name, db, jointype, a, b) {
+QBP.join = function(name, table, jointype, a, b) {
 	var t = this;
-	t.filter.push({ type: 'join', db: db, name: name, join: jointype, on: [a, b] });
+	t.filter.push({ type: 'join', table: table, name: name, join: jointype, on: [a, b] });
 	return t;
 };
 
@@ -823,12 +851,10 @@ ON('service', function(counter) {
 });
 
 exports.evaluate = function(type, callback) {
-
 	if (typeof(type) === 'function') {
 		callback = type;
 		type = 'default';
 	}
-
 	EVALUATOR[type] = callback;
 };
 
