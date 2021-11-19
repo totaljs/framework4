@@ -526,7 +526,6 @@ UI._use = function(schema, callback, reinit, insert) {
 				if (tmp)
 					tmp.ts = ts;
 			} else {
-				fi.connections = instance.connections;
 				fi.offset = instance.offset;
 				fi.size = instance.size;
 				fi.ts = ts;

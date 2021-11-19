@@ -1216,6 +1216,8 @@ FP._use = function(schema, callback, reinit, insert) {
 				fi.connections = instance.connections;
 				fi.x = instance.x;
 				fi.y = instance.y;
+				fi.offset = instance.offset;
+				fi.size = instance.size;
 				fi.tab = instance.tab;
 				fi.ts = ts;
 				if (JSON.stringify(fi.config) !== JSON.stringify(instance.config)) {
@@ -1600,6 +1602,8 @@ FP.export_instance = function(id) {
 		var tmp = {};
 		tmp.x = instance.x;
 		tmp.y = instance.y;
+		tmp.size = instance.size;
+		tmp.offset = instance.offset;
 		tmp.stats = CLONE(instance.stats);
 		tmp.connections = CLONE(instance.connections);
 		tmp.id = instance.id;
