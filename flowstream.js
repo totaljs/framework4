@@ -1614,6 +1614,7 @@ FP.export_instance = function(id) {
 		tmp.tab = instance.tab;
 		tmp.reference = instance.reference;
 		tmp.metadata = instance.metadata;
+		tmp.info = instance.info;
 
 		if (instance.outputs)
 			tmp.outputs = instance.outputs;
@@ -1637,6 +1638,7 @@ FP.export_component = function(id) {
 		obj.type = com.type;
 		obj.css = com.ui.css;
 		obj.js = com.ui.js;
+		obj.info = com.info;
 		obj.icon = com.icon;
 		obj.color = com.color;
 		obj.config = com.config;
