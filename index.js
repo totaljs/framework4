@@ -15157,24 +15157,27 @@ WebSocketProto.destroy = function() {
 	self.$events.destroy && self.emit('destroy');
 	delete F.connections[self.id];
 
-	setTimeout(function() {
+	setTimeout(function(keys) {
 
-		for (var i = 0; i < self.keys.length; i++) {
-			var key = self.keys[i];
-			var conn = self.connections[key];
-			if (conn) {
-				conn._isClosed = true;
-				conn.socket.removeAllListeners();
+		if (keys) {
+			for (var i = 0; i < keys.length; i++) {
+				var key = keys[i];
+				var conn = self.connections[key];
+				if (conn) {
+					conn._isClosed = true;
+					conn.socket.removeAllListeners();
+				}
 			}
 		}
 
 		self.connections = null;
-		self.keys = null;
 		self.route = null;
 		self.buffer = null;
 		self.removeAllListeners();
 
-	}, 1000);
+	}, 1000, self.keys);
+
+	self.keys = null;
 
 	return self;
 };
