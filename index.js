@@ -471,18 +471,6 @@ global.FLOWSTREAM = function(name, errorhandler) {
 	return flowwrapper(name, errorhandler);
 };
 
-function uiwrapper(name, errorhandler) {
-	if (!name)
-		name = 'default';
-	return F.ui[name] ? F.ui[name] : F.ui[name] = framework_ui.make(name, errorhandler);
-}
-
-global.UISTREAM = function(name, errorhandler) {
-	global.framework_ui = require('./uistream');
-	global.UISTREAM = flowwrapper;
-	return uiwrapper(name, errorhandler);
-};
-
 var DEF = global.DEF = {};
 
 DEF.currencies = {};
