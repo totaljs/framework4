@@ -15184,17 +15184,28 @@ function wsdestroy_open() {
 	}
 }
 
-function wsdestroy_close(self, callback) {
-	callback && callback.call(self);
+function wsdestroy_close(self) {
+	if (self.$autodestroy) {
+		for (var fn of self.$autodestroy)
+			fn.call(self);
+		self.$autodestroy = null;
+	}
 	self.destroy();
 }
 
 WebSocketProto.autodestroy = function(callback) {
 	var self = this;
+
+	if (self.$autodestroy) {
+		self.$autodestroy.push(callback);
+		return self;
+	}
+
+	self.$autodestroy = [];
 	self.on('open', wsdestroy_open);
 	self.on('close', function() {
 		if (!self.online)
-			self.$autocloseid = setTimeout(wsdestroy_close, 5000, self, callback);
+			self.$autocloseid = setTimeout(wsdestroy_close, 5000, self);
 	});
 	return self;
 };
@@ -15595,8 +15606,6 @@ WebSocketClientProto.$ondata = function(data) {
 			// close
 			self.closemessage = current.data.slice(2).toString(ENCODING);
 			self.closecode = current.data[0] << 8 | current.data[1];
-
-			console.log('0x08', self.closemessage, self.closecode);
 
 			if (self.closemessage && self.container.encodedecode)
 				self.closemessage = $decodeURIComponent(self.closemessage);

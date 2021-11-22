@@ -13,6 +13,7 @@
 - extended `U.reader()` by adding `.assign(ORMQueryBuilder)`
 - removed UIStream (replaced by the FlowStream)
 - fixed parsing `close` message in the WebSocket & WebSocketClient
+- fixed `.autodestroy()` in the WebSocket controller
 
 ========================
 0.0.53
