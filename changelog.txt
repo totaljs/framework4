@@ -12,7 +12,7 @@
 - added a simple ORM - `DB([conn])` and `NEWDB([conn], callback(builder, next(err, response)))`
 - extended `U.reader()` by adding `.assign(ORMQueryBuilder)`
 - removed UIStream (replaced by the FlowStream)
-- fixed parsing `close` message in the WebSocket
+- fixed parsing `close` message in the WebSocket & WebSocketClient
 
 ========================
 0.0.53
