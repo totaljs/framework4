@@ -15535,10 +15535,6 @@ function websocket_close() {
 WebSocketClientProto.$ondata = function(data) {
 
 	var self = this;
-
-	if (self.isClosed)
-		return;
-
 	var current = self.current;
 
 	if (data) {
@@ -15597,8 +15593,10 @@ WebSocketClientProto.$ondata = function(data) {
 		case 0x08:
 
 			// close
-			self.closemessage = current.buffer.slice(4).toString(ENCODING);
-			self.closecode = current.buffer[2] << 8 | current.buffer[3];
+			self.closemessage = current.data.slice(2).toString(ENCODING);
+			self.closecode = current.data[0] << 8 | current.data[1];
+
+			console.log('0x08', self.closemessage, self.closecode);
 
 			if (self.closemessage && self.container.encodedecode)
 				self.closemessage = $decodeURIComponent(self.closemessage);
@@ -15974,6 +15972,7 @@ function websocketclientsendfin(self) {
  * @return {WebSocketClient}
  */
 WebSocketClientProto.close = function(message, code) {
+
 	var self = this;
 
 	if (!self.isClosed) {
@@ -15991,7 +15990,9 @@ WebSocketClientProto.close = function(message, code) {
 			if (message && self.container && self.container.encodedecode)
 				message = encodeURIComponent(message);
 
-			if (!self.closecode) {
+			if (self.closecode) {
+				setImmediate(websocketclientdestroy, self);
+			} else {
 				self.closecode = code || 1000;
 				self.closemessage = message || '';
 				setTimeout(websocketclientsendfin, 1000, self);
