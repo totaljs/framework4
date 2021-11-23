@@ -277,7 +277,7 @@ QueryBuilder.prototype.filter = function(rule, arg) {
 		if (isdangerous(rule))
 			rule = 'false';
 		try {
-			FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', 'return ' + rule);
+			FUNCCACHE[rule] = self.filterrule = new Function('doc', 'arg', 'tmp', 'func', (rule.indexOf('return ') === 1 ? 'return ' : '') + rule);
 		} catch (e) {
 			self.$sort = null;
 			self.error = e + '';
