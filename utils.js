@@ -18,7 +18,6 @@ const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const REG_XSS = /<.*>/;
 const REG_SQLINJECTION = /'(''|[^'])*'|\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE|UNION( +ALL){0,1})\b/;
 const REG_GUID = (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-const REG_FIELD = /\./g;
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
