@@ -20,8 +20,8 @@ function Database(conn) {
 
 function execdb(db) {
 	if (EVALUATOR[db.conn]) {
-		if (db.options.id)
-			db.options.id = HASH(db.options.id).toString(36);
+		if (db.options.checksum)
+			db.options.checksum = HASH(db.options.checksum).toString(36);
 		EVALUATOR[db.conn].call(db, db.options, function(err, response) {
 			db.evaluate(err, response);
 		});
@@ -224,7 +224,7 @@ QBP.where = function(name, comparer, value) {
 			break;
 	}
 
-	t.options.id += (t.options.id ? ' ' : '') + 'where' + comparer + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'where' + comparer + name;
 	t.filter.push({ type: 'where', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -288,7 +288,7 @@ QBP.in = function(name, value, id) {
 	if (!(value instanceof Array))
 		value = [value];
 
-	t.options.id += (t.options.id ? ' ' : '') + 'in=' + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'in=' + name;
 	t.filter.push({ type: 'in', name: name, value: value });
 	return t;
 };
@@ -306,14 +306,14 @@ QBP.notin = function(name, value, id) {
 	if (!(value instanceof Array))
 		value = [value];
 
-	t.options.id += (t.options.id ? ' ' : '') + 'notin=' + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'notin=' + name;
 	t.filter.push({ type: 'notin', name: name, value: value });
 	return t;
 };
 
 QBP.between = function(name, a, b) {
 	var t = this;
-	t.options.id += (t.options.id ? ' ' : '') + 'between=' + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'between=' + name;
 	t.filter.push({ type: 'between', name: name, a: a, b: b });
 	return t;
 };
@@ -322,12 +322,12 @@ QBP.or = function(callback) {
 	var t = this;
 	var filter = t.filter;
 	t.filter = [];
-	t.options.id += (t.options.id ? ' ' : '') + 'or(';
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'or(';
 	callback.call(t, t);
 	if (t.filter.length) {
 		filter.push({ type: 'or', value: t.filter });
 	}
-	t.options.id += ')';
+	t.options.checksum += ')';
 	t.filter = filter;
 	return t;
 };
@@ -355,7 +355,7 @@ QBP.month = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.options.id += (t.options.id ? ' ' : '') + 'month' + comparer + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'month' + comparer + name;
 	t.filter.push({ type: 'month', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -368,7 +368,7 @@ QBP.day = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.options.id += (t.options.id ? ' ' : '') + 'day' + comparer + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'day' + comparer + name;
 	t.filter.push({ type: 'day', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -381,7 +381,7 @@ QBP.year = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.options.id += (t.options.id ? ' ' : '') + 'year' + comparer + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'year' + comparer + name;
 	t.filter.push({ type: 'year', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -394,7 +394,7 @@ QBP.hour = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.options.id += (t.options.id ? ' ' : '') + 'hour' + comparer + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'hour' + comparer + name;
 	t.filter.push({ type: 'hour', name: name, comparer: comparer, value: value });
 	return t;
 };
@@ -407,28 +407,28 @@ QBP.minute = function(name, comparer, value) {
 		comparer = '=';
 	}
 
-	t.options.id += (t.options.id ? ' ' : '') + 'minute' + comparer + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'minute' + comparer + name;
 	t.filter.push({ type: 'minute', name: name, comparer: comparer, value: value });
 	return t;
 };
 
 QBP.search = function(name, value, where) {
 	var t = this;
-	t.options.id += (t.options.id ? ' ' : '') + 'search=' + name + '=' + where;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'search=' + name + '=' + where;
 	t.filter.push({ type: 'search', name: name, comparer: where, value: value });
 	return t;
 };
 
 QBP.contains = function(name) {
 	var t = this;
-	t.options.id += (t.options.id ? ' ' : '') + 'contains=' + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'contains=' + name;
 	t.filter.push({ type: 'contains', name: name });
 	return t;
 };
 
 QBP.empty = function(name) {
 	var t = this;
-	t.options.id += (t.options.id ? ' ' : '') + 'empty=' + name;
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'empty=' + name;
 	t.filter.push({ type: 'empty', name: name });
 	return t;
 };

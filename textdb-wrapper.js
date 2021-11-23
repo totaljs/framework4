@@ -184,6 +184,92 @@ function Database(type, name, onetime, schema, fork) {
 
 var DP = Database.prototype;
 
+function assign_querybuilder(filter, item) {
+	switch (item.type) {
+		case 'between':
+			filter.between(item.name, item.a, item.b);
+			break;
+		case 'where':
+			filter.where(item.name, item.comparer, item.value);
+			break;
+		case 'in':
+			filter.in(item.name, item.value);
+			break;
+		case 'notin':
+			filter.notin(item.name, item.value);
+			break;
+		case 'search':
+			filter.search(item.name, item.value, item.comparer);
+			break;
+		case 'contains':
+			filter.contains(item.name);
+			break;
+		case 'empty':
+			filter.empty(item.name);
+			break;
+		case 'year':
+			filter.year(item.name, item.comparer, item.value);
+			break;
+		case 'month':
+			filter.month(item.name, item.comparer, item.value);
+			break;
+		case 'day':
+			filter.day(item.name, item.comparer, item.value);
+			break;
+		case 'hour':
+			filter.hour(item.name, item.comparer, item.value);
+			break;
+		case 'minute':
+			filter.minute(item.name, item.comparer, item.value);
+			break;
+		case 'or':
+			filter.or(function() {
+				for (var condition of item.value)
+					assign_querybuilder(filter, condition);
+			});
+			break;
+	}
+}
+
+DP.assign = function(data) {
+
+	var self = this;
+	var fn = self[data.exec];
+	if (fn) {
+
+		var filter;
+
+		switch (data.exec) {
+			case 'scalar':
+				filter = self[data.exec](data.scalar.type, data.scalar.key, data.scalar.key2);
+				break;
+			default:
+				filter = self[data.exec](data.payload, data.upsert);
+				break;
+		}
+
+		if (data.take)
+			filter.options.take = data.take;
+
+		if (data.skip)
+			filter.options.skip = data.skip;
+
+		if (data.first)
+			filter.options.first = data.first;
+
+		if (data.fields)
+			filter.options.fields = data.fields.join(',');
+
+		if (data.sort)
+			filter.options.sort = data.sort.join(',');
+
+		for (var i = 0; i < data.filter.length; i++)
+			assign_querybuilder(filter, data.filter[i]);
+
+		return filter;
+	}
+};
+
 DP.next = function(builder) {
 	setImmediate(this.exec, builder);
 	return this;
@@ -613,6 +699,30 @@ DB.callbackerror = function() {
 		} else if (self.$callback)
 			self.$callback(err, response);
 	};
+};
+
+DB.assign = function(data) {
+	var self = this;
+
+	if (data.take)
+		self.options.take = data.take;
+
+	if (data.skip)
+		self.options.skip = data.skip;
+
+	if (data.first)
+		self.options.first = data.first;
+
+	if (data.fields)
+		self.options.fields = data.fields.join(',');
+
+	if (data.sort)
+		self.options.sort = data.sort.join(',');
+
+	for (var i = 0; i < data.self.length; i++)
+		assign_querybuilder(self, data.self[i]);
+
+	return self;
 };
 
 DB.param = function(value) {
