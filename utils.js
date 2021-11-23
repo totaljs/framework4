@@ -448,7 +448,7 @@ function parseProxy(p) {
 
 function _request(opt, callback) {
 
-	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: opt.callback || NOOP, post: true, redirect: 0 };
+	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: callback || opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
 
 	if (global.F)
@@ -2228,11 +2228,6 @@ exports.ls = function(path, callback, filter) {
  */
 exports.ls2 = function(path, callback, filter) {
 	ls(path, callback, true, filter);
-};
-
-DP.uid = function() {
-UIDGENERATOR.index++
-	this.toString(36) + index.padLeft(3, '0') + UIDGENERATOR.instance + UIDGENERATOR.date36.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
 };
 
 DP.setTimeZone = function(timezone) {
