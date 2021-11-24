@@ -437,6 +437,23 @@ DP.insert = function(data, check, noeval) {
 	var self = this;
 	var bi = new DatabaseBuilder();
 	bi.command = 'insert';
+
+	for (var key in data) {
+		switch(key[0]) {
+			case '+':
+			case '*':
+			case '-':
+			case '/':
+			case '!':
+			case '=':
+			case '<':
+			case '>':
+				data[key.substring(1)] = data[key];
+				delete data[key];
+				break;
+		}
+	}
+
 	bi.options.payload = data;
 
 	if (check) {
