@@ -16,6 +16,7 @@
 - fixed `.autodestroy()` in the WebSocket controller
 - added `Database.assign(QueryBuilderData)` method
 - added `DatabaseBuilder.assign(QueryBuilderData)` method
+- fixed TextDB inserting with symbols for atomic operations
 
 ========================
 0.0.53
