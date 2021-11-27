@@ -134,7 +134,23 @@ function check_date(meta, error, value) {
 		return value;
 }
 
-function check_array(meta, error, value, stop) {
+function read_def(ref, definitions) {
+	if (ref[0] === '#') {
+		var tmp = ref.substring(2).split('/');
+		var def = definitions[tmp[0]];
+		if (def) {
+			var schema = tmp[1];
+			var obj = def[schema];
+			if (obj) {
+				if (!obj.$$ID)
+					obj.$$ID = schema;
+				return obj;
+			}
+		}
+	}
+}
+
+function check_array(meta, error, value, stop, definitions) {
 
 	if (!(value instanceof Array)) {
 		if (meta.$$REQUIRED)
@@ -161,6 +177,8 @@ function check_array(meta, error, value, stop) {
 
 			if (type) {
 				switch (type) {
+					case '$ref':
+						break;
 					case 'number':
 					case 'integer':
 					case 'float':
@@ -192,17 +210,8 @@ function check_array(meta, error, value, stop) {
 							error.push(meta.$$ID + '.type');
 							return;
 						}
-					case 'string':
-						tmp = check_string(type, error, val);
-						if (tmp != null) {
-							response.push(tmp);
-							break;
-						} else {
-							error.push(meta.$$ID + '.type');
-							return;
-						}
 					case 'object':
-						tmp = check_object(type, error, val, null, stop);
+						tmp = check_object(type, error, val, null, stop, definitions);
 						if (tmp != null) {
 							response.push(tmp);
 							break;
@@ -211,8 +220,18 @@ function check_array(meta, error, value, stop) {
 							return;
 						}
 					case 'array':
-						tmp = check_array(type, error, value);
+						tmp = check_array(type, error, value, null, definitions);
 						if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1)) {
+							response.push(tmp);
+							break;
+						} else {
+							error.push(meta.$$ID + '.type');
+							return;
+						}
+					case 'string':
+					default:
+						tmp = check_string(type, error, val);
+						if (tmp != null) {
 							response.push(tmp);
 							break;
 						} else {
@@ -231,6 +250,22 @@ function check_array(meta, error, value, stop) {
 
 		for (var i = 0; i < value.length; i++) {
 			var val = value[i];
+
+			if (meta.items.$ref) {
+				var ref = read_def(meta.items.$ref, definitions);
+				if (ref) {
+					var newerror = [];
+					tmp = transform(ref, newerror, val);
+					if (newerror.length) {
+						for (var err of newerror)
+							error.push(ref.$$ID + '.' + err, '@', null, i);
+					} else if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					continue;
+				} else
+					continue;
+			}
+
 			switch (meta.items.type) {
 				case 'number':
 				case 'integer':
@@ -249,18 +284,19 @@ function check_array(meta, error, value, stop) {
 					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
-				case 'string':
-					tmp = check_string(meta.items, error, val);
-					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
-						response.push(tmp);
-					break;
 				case 'object':
-					tmp = check_object(meta.items, error, val, null, stop);
+					tmp = check_object(meta.items, error, val, null, stop, definitions);
 					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
 				case 'array':
-					tmp = check_array(meta.items, error, value, stop);
+					tmp = check_array(meta.items, error, value, stop, definitions);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+						response.push(tmp);
+					break;
+				case 'string':
+				default:
+					tmp = check_string(meta.items, error, val);
 					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
@@ -268,6 +304,11 @@ function check_array(meta, error, value, stop) {
 		}
 	} else
 		response = meta.uniqueItems ? [...new Set(value)] : value;
+
+	if (!response.length && meta.$$REQUIRED) {
+		error.push(meta.$$ID +  '.required');
+		return;
+	}
 
 	if (meta.minItems && response.length < meta.minItems) {
 		error.push(meta.$$ID + '.minitems');
@@ -282,7 +323,7 @@ function check_array(meta, error, value, stop) {
 	return response;
 }
 
-function check_object(meta, error, value, response, stop) {
+function check_object(meta, error, value, response, stop, definitions) {
 
 	if (!value || typeof(value) !== 'object') {
 		if (meta.$$REQUIRED)
@@ -351,18 +392,35 @@ function check_object(meta, error, value, response, stop) {
 				break;
 			case 'object':
 				if (prop.properties) {
-					tmp = check_object(prop, error, val);
+					tmp = check_object(prop, error, val, null, null, definitions);
 					if (tmp != null) {
 						response[key] = tmp;
 						count++;
 					}
 				} else {
+
+					// check ref
+					if (prop.$ref) {
+						var ref = read_def(prop.$ref, definitions);
+						if (ref) {
+							var newerror = [];
+							tmp = transform(ref, newerror, val);
+							if (newerror.length) {
+								for (var err of newerror)
+									error.push(ref.$$ID + '.' + err, '@');
+							} else
+								response[key] = tmp;
+							continue;
+						} else
+							continue;
+					}
+
 					response[key] = val;
 					count++;
 				}
 				break;
 			case 'array':
-				tmp = check_array(prop, error, val);
+				tmp = check_array(prop, error, val, null, definitions);
 				if (tmp != null) {
 					response[key] = tmp;
 					count++;
@@ -372,7 +430,7 @@ function check_object(meta, error, value, response, stop) {
 				if (prop.$ref) {
 					var ref = F.jsonschemas[prop.$ref];
 					if (ref) {
-						tmp = check_object(ref, error, val);
+						tmp = check_object(ref, error, val, null, null, definitions);
 						if (tmp != null) {
 							response[key] = tmp;
 							count++;
@@ -380,6 +438,13 @@ function check_object(meta, error, value, response, stop) {
 							error.push(prop.ID + '.required');
 					} else
 						error.push(prop.ID + '.reference');
+				} else {
+					// String
+					tmp = check_string(prop, error, val);
+					if (tmp != null) {
+						response[key] = tmp;
+						count++;
+					}
 				}
 				break;
 		}
@@ -416,10 +481,10 @@ function transform(meta, error, value, stop) {
 			output = check_date(meta, error, value);
 			break;
 		case 'object':
-			output = check_object(meta, error, value, null, stop);
+			output = check_object(meta, error, value, null, stop, meta);
 			break;
 		case 'array':
-			output = check_array(meta, error, value, stop);
+			output = check_array(meta, error, value, stop, meta);
 			break;
 		default:
 			error.push('.type');

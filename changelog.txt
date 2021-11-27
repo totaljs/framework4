@@ -17,6 +17,7 @@
 - added `Database.assign(QueryBuilderData)` method
 - added `DatabaseBuilder.assign(QueryBuilderData)` method
 - fixed TextDB inserting with symbols for atomic operations
+- fixed `$def` in the JSON schemas
 
 ========================
 0.0.53
