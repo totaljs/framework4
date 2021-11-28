@@ -687,10 +687,20 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 
 				case 7:
 					// another schema
+					tmp = {};
+
 					var tmpschema = GETSCHEMA(field.raw);
-					tmp = CLONE(tmpschema.toJSONSchema());
-					delete tmp.$id;
-					delete tmp.$schema;
+					if (field.isArray) {
+						tmp.type = 'array';
+						tmp.items = CLONE(tmpschema.toJSONSchema());
+						delete tmp.items.$id;
+						delete tmp.items.$schema;
+					} else {
+						tmp.type = 'object';
+						delete tmp.$id;
+						delete tmp.$schema;
+					}
+
 					break;
 				case 8:
 					tmp = {};
