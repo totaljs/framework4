@@ -1,13 +1,16 @@
 require('./index');
 
-function check_string(meta, error, value) {
+function check_string(meta, error, value, errplus) {
 
 	var type = typeof(val);
 	if (type !== 'string')
 		value = value ? (value + '') : null;
 
+	if (errplus == null)
+		errplus = '';
+
 	if (meta.$$REQUIRED && !value) {
-		error.push(meta.$$ID + '.required');
+		error.push(errplus + meta.$$ID + '.required');
 		return;
 	}
 
@@ -17,18 +20,18 @@ function check_string(meta, error, value) {
 	var len = value.length;
 
 	if (meta.maxLength && len > meta.maxLength) {
-		error.push(meta.$$ID + '.maxlength');
+		error.push(errplus + meta.$$ID + '.maxlength');
 		return;
 	}
 
 	if (meta.minLength && len < meta.minLength) {
-		error.push(meta.$$ID + '.minlength');
+		error.push(errplus + meta.$$ID + '.minlength');
 		return;
 	}
 
 	if (meta.enum instanceof Array) {
 		if (meta.enum.indexOf(value) === -1) {
-			error.push(meta.$$ID + '.enum');
+			error.push(errplus + meta.$$ID + '.enum');
 			return;
 		}
 	}
@@ -38,9 +41,12 @@ function check_string(meta, error, value) {
 
 const REG_NUMBER = /[\d,\.]+/g;
 
-function check_number(meta, error, value) {
+function check_number(meta, error, value, errplus) {
 
 	var type = typeof(value);
+
+	if (errplus == null)
+		errplus = '';
 
 	if (type === 'string') {
 		if (REG_NUMBER.test(value))
@@ -52,7 +58,7 @@ function check_number(meta, error, value) {
 
 	if (meta.$$REQUIRED) {
 		if (value == null) {
-			error.push(meta.$$ID + '.required');
+			error.push(errplus + meta.$$ID + '.required');
 			return;
 		}
 	}
@@ -62,35 +68,35 @@ function check_number(meta, error, value) {
 
 	if (meta.multipleOf) {
 		if (value % meta.multipleOf !== 0) {
-			error.push(meta.$$ID + '.multipleof');
+			error.push(errplus + meta.$$ID + '.multipleof');
 			return;
 		}
 	}
 
 	if (meta.maximum) {
 		if (value > meta.maximum) {
-			error.push(meta.$$ID + '.maximum');
+			error.push(errplus + meta.$$ID + '.maximum');
 			return;
 		}
 	}
 
 	if (meta.exclusiveMaximum) {
 		if (value >= meta.exclusiveMaximum) {
-			error.push(meta.$$ID + '.exclusivemaximum');
+			error.push(errplus + meta.$$ID + '.exclusivemaximum');
 			return;
 		}
 	}
 
 	if (meta.minimum) {
 		if (value < meta.minimum) {
-			error.push(meta.$$ID + '.minimum');
+			error.push(errplus + meta.$$ID + '.minimum');
 			return;
 		}
 	}
 
 	if (meta.exclusiveMinimum) {
 		if (value <= meta.exclusiveMinimum) {
-			error.push(meta.$$ID + '.exclusiveminimum');
+			error.push(errplus + meta.$$ID + '.exclusiveminimum');
 			return;
 		}
 	}
@@ -98,15 +104,19 @@ function check_number(meta, error, value) {
 	return value;
 }
 
-function check_boolean(meta, error, value) {
+function check_boolean(meta, error, value, errplus) {
 
 	var type = typeof(value);
 	if (type !== 'boolean')
 		value = value ? (value + '').parseBoolean() : null;
 
 	if (meta.$$REQUIRED) {
+
+		if (errplus == null)
+			errplus = '';
+
 		if (value == null) {
-			error.push(meta.$$ID + '.required');
+			error.push(errplus + meta.$$ID + '.required');
 			return;
 		}
 	}
@@ -115,7 +125,7 @@ function check_boolean(meta, error, value) {
 		return value;
 }
 
-function check_date(meta, error, value) {
+function check_date(meta, error, value, errplus) {
 
 	if (!(value instanceof Date))
 		value = value ? (value + '').parseDate() : null;
@@ -124,6 +134,10 @@ function check_date(meta, error, value) {
 		value = null;
 
 	if (meta.$$REQUIRED) {
+
+		if (errplus == null)
+			errplus = '';
+
 		if (value == null) {
 			error.push(meta.$$ID + '.required');
 			return;
@@ -285,8 +299,12 @@ function check_array(meta, error, value, stop, definitions) {
 						response.push(tmp);
 					break;
 				case 'object':
-					tmp = check_object(meta.items, error, val, null, stop, definitions);
-					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+					var newerror = new ErrorBuilder();
+					tmp = check_object(meta.items, newerror, val, stop, definitions);
+					if (newerror.length) {
+						for (var err of newerror.items)
+							error.push(meta.$$ID + '.' + err.name, err.error, null, i);
+					} else if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
 				case 'array':
@@ -403,10 +421,10 @@ function check_object(meta, error, value, response, stop, definitions) {
 					if (prop.$ref) {
 						var ref = read_def(prop.$ref, definitions);
 						if (ref) {
-							var newerror = [];
+							var newerror = new ErrorBuilder();
 							tmp = transform(ref, newerror, val);
-							if (newerror.length) {
-								for (var err of newerror)
+							if (newerror.items.length) {
+								for (var err of newerror.items)
 									error.push(ref.$$ID + '.' + err, '@');
 							} else
 								response[key] = tmp;
