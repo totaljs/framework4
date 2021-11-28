@@ -18,6 +18,8 @@
 - added `DatabaseBuilder.assign(QueryBuilderData)` method
 - fixed TextDB inserting with symbols for atomic operations
 - fixed `$def` in the JSON schemas
+- fixed converting Total.js Schema to the JSON Schema
+- improved error handling in JSON schemas
 
 ========================
 0.0.53
