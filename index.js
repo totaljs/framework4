@@ -15604,8 +15604,10 @@ WebSocketClientProto.$ondata = function(data) {
 		case 0x08:
 
 			// close
-			self.closemessage = current.data.slice(2).toString(ENCODING);
-			self.closecode = current.data[0] << 8 | current.data[1];
+			if (current.data) {
+				self.closemessage = current.data.slice(2).toString(ENCODING);
+				self.closecode = current.data[0] << 8 | current.data[1];
+			}
 
 			if (self.closemessage && self.container.encodedecode)
 				self.closemessage = $decodeURIComponent(self.closemessage);
