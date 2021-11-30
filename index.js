@@ -15461,7 +15461,7 @@ WebSocketClientProto.prepare = function(flags, protocols, allow, length) {
 		self.inflatelock = false;
 		self.inflate = Zlib.createInflateRaw(WEBSOCKET_COMPRESS_OPTIONS);
 		self.inflate.$websocket = self;
-		self.inflate.on('error', function(e) {
+		self.inflate.on('error', function() {
 			if (!self.$uerror) {
 				self.$uerror = true;
 				self.close('Invalid data', 1003);
@@ -15632,7 +15632,7 @@ WebSocketClientProto.$ondata = function(data) {
 
 	if (current.buffer) {
 		current.buffer = current.buffer.slice(current.length, current.buffer.length);
-		current.buffer.length && self.$ondata();
+		current.buffer.length && setImmediate(self.$ondata);
 	}
 };
 
