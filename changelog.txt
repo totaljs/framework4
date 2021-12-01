@@ -3,6 +3,7 @@
 ========================
 
 - fixed `download` command for the CodeEditor
+- fixed parsing data in the WebSocket
 
 ========================
 0.0.54
