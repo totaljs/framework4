@@ -301,7 +301,7 @@ function download($, model) {
 			if (stats.size > (1024 * 1024 * 5))
 				$.invalid('Too large');
 			else
-				$.callback({ type: U.getContentType(ext), data: F.Zlib.deflateSync(Fs.readFileSync(filename)).toString('utf8') });
+				$.callback({ type: U.getContentType(ext), data: F.Zlib.deflateSync(Fs.readFileSync(filename)).toString('base64') });
 		}
 	});
 }
