@@ -17,16 +17,20 @@ var CALLBACKS = {};
 var CALLBACKSCOUNTER = 1;
 
 function WebSocketClient() {
-	this.current = {};
-	this.$events = {};
-	this.pending = [];
-	this.reconnect = 0;
-	this.closed = true;
+
+	var t = this;
+	t.current = {};
+	t.$events = {};
+	t.pending = [];
+	t.reconnect = 0;
+	t.closed = true;
 
 	// type: json, text, binary
-	this.options = { type: 'json', masking: false, compress: true, reconnect: 3000, encodedecode: false, rejectunauthorized: false }; // key: Buffer, cert: Buffer, dhparam: Buffer
-	this.cookies = {};
-	this.headers = {};
+	t.options = { type: 'json', masking: false, compress: true, reconnect: 3000, encodedecode: false, rejectunauthorized: false }; // key: Buffer, cert: Buffer, dhparam: Buffer
+	t.cookies = {};
+	t.headers = {};
+
+	t.$ondata2 = () => t.$ondata();
 }
 
 const WebSocketClientProto = WebSocketClient.prototype;
@@ -36,6 +40,17 @@ function timeoutapi(id) {
 	if (obj) {
 		obj.callback(408);
 		delete CALLBACKS[id];
+	}
+}
+
+function closecallbacks(client, e) {
+	for (var key in CALLBACKS) {
+		var obj = CALLBACKS[key];
+		if (obj.client === client) {
+			clearTimeout(obj.timeout);
+			obj.callback(e);
+			delete CALLBACKS[key];
+		}
 	}
 }
 
@@ -89,6 +104,7 @@ WebSocketClientProto.api = function(schema, data, callback, timeout) {
 			CALLBACKSCOUNTER = 1;
 
 		var obj = {};
+		obj.client = self;
 		obj.callback = callback;
 		obj.timeout = setTimeout(timeoutapi, timeout || 5000, msg.callbackid);
 		CALLBACKS[msg.callbackid] = obj;
@@ -171,6 +187,7 @@ WebSocketClientProto.connect = function(url, protocol, origin) {
 	self.req.on('error', function(e) {
 		self.$events.error && self.emit('error', e);
 		self.$onclose();
+		self.$api && closecallbacks(self, e);
 		self.options.reconnectserver && reconnect_client_timer(self);
 	});
 
@@ -414,6 +431,7 @@ WebSocketClientProto.$ondata = function(data) {
 			self.closecode = current.data[0] << 8 | current.data[1];
 			if (self.closemessage && self.options.encodedecode)
 				self.closemessage = $decodeURIComponent(self.closemessage);
+			self.$api && closecallbacks(self, self.closecode);
 			websocket_close_force(self);
 			break;
 
@@ -436,7 +454,7 @@ WebSocketClientProto.$ondata = function(data) {
 
 	if (current.buffer) {
 		current.buffer = current.buffer.slice(current.length, current.buffer.length);
-		current.buffer.length && self.$ondata();
+		current.buffer.length && setImmediate(self.$ondata2);
 	}
 
 };
@@ -645,6 +663,7 @@ WebSocketClientProto.parseInflate = function() {
 WebSocketClientProto.$onerror = function(err) {
 	this.$events.error && this.emit('error', err);
 	if (!this.isClosed) {
+		this.$api && closecallbacks(this, err);
 		this.isClosed = true;
 		this.$onclose();
 	}
