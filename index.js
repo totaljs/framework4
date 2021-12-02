@@ -9002,7 +9002,7 @@ F.$upgrade = function(req, socket, head) {
 	req.$wspath = U.path(req.uri.pathname);
 	var websocket = new WebSocketClient(req, socket, head);
 
-	websocket.$ondata2 = self => self.$ondata();
+	websocket.$ondata2 = () => websocket.$ondata();
 
 	req.path = framework_internal.routesplit(req.uri.pathname);
 	req.websocket = websocket;
@@ -15634,7 +15634,7 @@ WebSocketClientProto.$ondata = function(data) {
 
 	if (current.buffer) {
 		current.buffer = current.buffer.slice(current.length, current.buffer.length);
-		current.buffer.length && setImmediate(self.$ondata2, self);
+		current.buffer.length && setImmediate(self.$ondata2);
 	}
 };
 
