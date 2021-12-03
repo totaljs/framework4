@@ -3,6 +3,7 @@
 ========================
 
 - fixed `websocketclient.api()` error handling
+- updated file stats by adding `version.build`
 
 ========================
 0.0.55

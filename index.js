@@ -19108,6 +19108,7 @@ F.$snapshot = function() {
 	stats.version = {};
 	stats.version.node = process.version;
 	stats.version.total = F.version_header;
+	stats.version.build = F.version;
 	stats.version.app = CONF.version;
 	stats.pid = process.pid;
 	stats.thread = global.THREAD;
