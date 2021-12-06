@@ -4,6 +4,7 @@
 
 - fixed `websocketclient.api()` error handling
 - updated file stats by adding `version.build`
+- fixed `U.decrypt_data()`
 
 ========================
 0.0.55

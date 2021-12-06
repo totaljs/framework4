@@ -4129,11 +4129,15 @@ exports.decrypt_data = function(value, key, encode) {
 		return null;
 	}
 
+	var size = value.length - 4;
+	if (size < 1)
+		return null;
+
 	var index = 0;
 	var length = key.length;
 	var builder = [];
 	var mask = Buffer.alloc(4);
-	var buffer = Buffer.alloc(value.length - 4);
+	var buffer = Buffer.alloc(size);
 	mask.writeInt32BE(value.readInt32BE(0));
 
 	for (var i = 4; i < value.length; i++)
