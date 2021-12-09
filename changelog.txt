@@ -5,6 +5,7 @@
 - fixed `websocketclient.api()` error handling
 - updated file stats by adding `version.build`
 - fixed `U.decrypt_data()`
+- added `CONF.node_modules` that affects `NPMINSTALL()` method
 
 ========================
 0.0.55

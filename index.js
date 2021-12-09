@@ -316,7 +316,10 @@ global.UNSUBSCRIBE = function(name, callback) {
 
 global.NPMINSTALL = function(name, callback) {
 
-	var path = PATH.root('node_modules');
+	var path = CONF.node_modules[0] === '~' ? CONF.node_modules.substring(1) : Path.join(directory, CONF.node_modules);
+
+	console.log(path);
+	return;
 
 	PATH.mkdir(path);
 
@@ -2011,6 +2014,7 @@ function Framework() {
 		secret_encryption: null,
 		secret_csrf: null,
 		secret_tms: null,
+		node_modules: 'node_modules',
 
 		'security.txt': 'Contact: mailto:support@totaljs.com\nContact: https://www.totaljs.com/contact/',
 		etag_version: '',
