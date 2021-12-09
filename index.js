@@ -317,10 +317,6 @@ global.UNSUBSCRIBE = function(name, callback) {
 global.NPMINSTALL = function(name, callback) {
 
 	var path = CONF.node_modules[0] === '~' ? CONF.node_modules.substring(1) : Path.join(directory, CONF.node_modules);
-
-	console.log(path);
-	return;
-
 	PATH.mkdir(path);
 
 	var index = name.lastIndexOf('@');
