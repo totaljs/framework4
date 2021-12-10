@@ -290,7 +290,7 @@
 		for (var i = 0; i < variables.length; i++)
 			names.push('model.' + variables[i]);
 
-		var code = 'var tangular=function($helpers,$,model' + (variables.length ? (',' + variables.join(',')) : '') + '){' + builder.join('') + '};return function($helpers,model,$){try{return tangular(' + names.join(',') + ')}catch(e){console.error(\'Tangular error:\',e + \'\',$template)}}';
+		var code = 'var tangular=function($helpers,$,model' + (variables.length ? (',' + variables.join(',')) : '') + '){' + builder.join('') + '};return function(model,$,$helpers){try{return tangular(' + names.join(',') + ')}catch(e){console.error(\'Tangular error:\',e + \'\',$template)}}';
 		return (new Function('$text', '$template', code))(self.builder, self.template);
 	};
 
