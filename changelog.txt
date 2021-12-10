@@ -6,6 +6,7 @@
 - updated file stats by adding `version.build`
 - fixed `U.decrypt_data()`
 - added `CONF.node_modules` that affects `NPMINSTALL()` method
+- replaced `duration2` property with `ts` in the FlowStrem Message
 
 ========================
 0.0.55

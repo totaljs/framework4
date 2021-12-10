@@ -349,7 +349,7 @@ MP.send = function(outputindex, data, clonedata) {
 			self.instance.stats.pending = 0;
 
 		self.instance.stats.output++;
-		self.instance.stats.duration = now - self.duration2;
+		self.instance.stats.duration = now - self.ts;
 	}
 
 	if (!self.main.$can(false, self.instance.id, outputindex)) {
@@ -406,7 +406,7 @@ MP.send = function(outputindex, data, clonedata) {
 				message.tocomponent = schema.component;
 				message.cache = schema.cache;
 				message.options = message.config = schema.config;
-				message.duration2 = now;
+				message.ts = now;
 
 				if (self.$timeout)
 					message.$timeoutid = setTimeout(timeouthandler, self.$timeout, message);
@@ -487,7 +487,7 @@ MP.end = MP.destroy = function() {
 		if (self.schema.stats.pending < 0)
 			self.schema.stats.pending = 0;
 
-		self.schema.stats.duration = Date.now() - self.duration2;
+		self.schema.stats.duration = Date.now() - self.ts;
 		self.schema.stats.destroyed++;
 	}
 
@@ -529,7 +529,7 @@ MP.end = MP.destroy = function() {
 	self.data = null;
 	self.options = self.config = null;
 	self.duration = null;
-	self.duration2 = null;
+	self.ts = null;
 	self.$events = null;
 };
 
@@ -866,7 +866,7 @@ function newmessage(data) {
 	msg.cloned = 0;
 	msg.count = 0;
 	msg.instance = self;
-	msg.duration = msg.duration2 = Date.now();
+	msg.duration = msg.ts = Date.now();
 	msg.used = 1;
 	msg.main = self instanceof Flow ? self : self.main;
 	msg.processed = 1;
@@ -928,7 +928,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 									data.instance.stats.pending = 0;
 
 								data.instance.stats.output++;
-								data.instance.stats.duration = ts - self.duration2;
+								data.instance.stats.duration = ts - self.ts;
 							}
 						}
 					} else {
@@ -938,7 +938,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						message.repo = {};
 						message.vars = {};
 						message.data = data;
-						message.duration = message.duration2 = ts;
+						message.duration = message.ts = ts;
 						message.used = 1;
 					}
 
@@ -1430,14 +1430,14 @@ FP.trigger = function(path, data, controller, events) {
 						data.instance.stats.pending = 0;
 
 					data.instance.stats.output++;
-					data.instance.stats.duration = ts - self.duration2;
+					data.instance.stats.duration = ts - self.ts;
 				}
 			} else {
 				message.refs = { pending: 1 };
 				message.$events = events || {};
 				message.repo = {};
 				message.data = data;
-				message.duration = message.duration2 = ts;
+				message.duration = message.ts = ts;
 				message.used = 1;
 			}
 
