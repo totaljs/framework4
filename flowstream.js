@@ -397,15 +397,13 @@ MP.send = function(outputindex, data, clonedata) {
 				message.instance = schema;
 				message.from = self.to;
 				message.fromid = self.toid;
-				message.fromindex = outputindex;
 				message.fromcomponent = self.instance.component;
-				message.to = message.schema = schema;
+				message.to = schema;
 				message.toid = output.id;
-				message.toindex = inputindex;
+				message.output = outputindex;
 				message.input = message.index = inputindex;
 				message.tocomponent = schema.component;
 				message.cache = schema.cache;
-				message.options = message.config = schema.config;
 				message.ts = now;
 
 				if (self.$timeout)
@@ -482,13 +480,13 @@ MP.end = MP.destroy = function() {
 		if (self.main.stats.pending < 0)
 			self.main.stats.pending = 0;
 
-		self.schema.stats.pending--;
+		self.instance.stats.pending--;
 
-		if (self.schema.stats.pending < 0)
-			self.schema.stats.pending = 0;
+		if (self.instance.stats.pending < 0)
+			self.instance.stats.pending = 0;
 
-		self.schema.stats.duration = Date.now() - self.ts;
-		self.schema.stats.destroyed++;
+		self.instance.stats.duration = Date.now() - self.ts;
+		self.instance.stats.destroyed++;
 	}
 
 	if (self.$timeoutid) {
@@ -527,7 +525,7 @@ MP.end = MP.destroy = function() {
 	self.from = null;
 	self.to = null;
 	self.data = null;
-	self.options = self.config = null;
+	self.instance = null;
 	self.duration = null;
 	self.ts = null;
 	self.$events = null;
@@ -859,7 +857,7 @@ function newmessage(data) {
 	msg.refs = { pending: 1 };
 	msg.repo = {};
 	msg.vars = {};
-	msg.to = msg.schema = self;
+	msg.to = msg.instance = self;
 	msg.toid = self.id;
 	msg.tocomponent = self.component;
 	msg.data = data instanceof Message ? data.data : data;
@@ -948,16 +946,14 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					message.from = schema;
 					message.fromid = schema.id;
-					message.fromindex = outputindex;
 					message.fromcomponent = schema.component;
+					message.output = outputindex;
 
-					message.to = message.schema = target;
+					message.to = message.instance = target;
 					message.toid = m.id;
-					message.toindex = m.index;
 					message.input = message.index = m.index;
 					message.tocomponent = target.component;
 					message.cache = target.cache;
-					message.config = message.options = target.config;
 					message.processed = 0;
 
 					target.stats.pending++;
@@ -971,7 +967,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.count = message.main.stats.messages;
 
 					if (message.fromid && !count) {
-						var tid = message.fromid + D + message.fromindex;
+						var tid = message.fromid + D + message.output;
 						if (message.main.stats.traffic[tid])
 							message.main.stats.traffic[tid]++;
 						else {
@@ -1355,7 +1351,8 @@ function sendmessage(instance, message, event) {
 
 		var is = false;
 
-		var key = 'message_' + message.toindex;
+		var key = 'message_' + message.input;
+
 		if (instance[key]) {
 			is = true;
 			instance[key].call(message.instance, message);
@@ -1443,21 +1440,13 @@ FP.trigger = function(path, data, controller, events) {
 
 			message.controller = controller;
 			message.instance = schema;
-
 			message.main = self;
-			message.from = null;
-			message.fromid = null;
-			message.fromindex = null;
-			message.fromcomponent = null;
-
-			message.to = message.schema = schema;
+			message.to = schema;
 			message.toid = path[0];
-			message.toindex = inputindex;
 			message.input = message.index = inputindex;
 			message.tocomponent = instance.id;
 			message.cache = instance.cache;
 
-			message.config = message.options = schema.config;
 			message.processed = 0;
 
 			schema.stats.input++;
@@ -1471,13 +1460,18 @@ FP.trigger = function(path, data, controller, events) {
 			message.count = message.main.stats.messages;
 
 			if (message.fromid) {
-				var tid = message.fromid + D + message.fromindex;
+				var tid = message.fromid + D + message.output;
 				if (message.main.stats.traffic[tid])
 					message.main.stats.traffic[tid]++;
 				else {
 					message.main.stats.traffic[tid] = 1;
 					message.main.stats.traffic.priority.push(tid);
 				}
+			} else {
+				message.from = null;
+				message.fromid = null;
+				message.fromcomponent = null;
+				message.output = null;
 			}
 
 			setImmediate(sendmessage, schema, message, true);

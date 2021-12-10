@@ -7,6 +7,7 @@
 - fixed `U.decrypt_data()`
 - added `CONF.node_modules` that affects `NPMINSTALL()` method
 - replaced `duration2` property with `ts` in the FlowStrem Message
+- revitalized code in the `FlowStreamMessage` instance
 
 ========================
 0.0.55
