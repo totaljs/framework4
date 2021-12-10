@@ -5,9 +5,8 @@
 
 	var Tangular = {};
 	var Thelpers = Tangular.helpers = {};
-	Tangular.version = 'v4.0.0';
+	Tangular.version = 'v5.0.0';
 	Tangular.cache = {};
-	Tangular.debug = false;
 
 	W.Tangular = Tangular;
 	W.Thelpers = Thelpers;
@@ -82,6 +81,7 @@
 		var tmp;
 		var loops = [];
 
+		self.template = template;
 		self.variables = {};
 		self.commands = [];
 
@@ -182,9 +182,9 @@
 						var helper = helpers[i].trim();
 						index = helper.indexOf('(');
 						if (index === -1) {
-							helper = 'Thelpers.$execute(model,\'' + helper + '\',\7)';
+							helper = 'Thelpers.$execute($helpers,model,\'' + helper + '\',\7)';
 						} else
-							helper = 'Thelpers.$execute(model,\'' + helper.substring(0, index) + '\',\7,' + helper.substring(index + 1);
+							helper = 'Thelpers.$execute($helpers,model,\'' + helper.substring(0, index) + '\',\7,' + helper.substring(index + 1);
 						helpers[i] = helper;
 					}
 				} else
@@ -285,23 +285,25 @@
 		builder.push((length ? ('$output+=$text[' + length + '];') : '') + 'return $output.charAt(0) === \'\\n\'?$output.substring(1):$output;');
 		delete self.variables.$;
 		var variables = Object.keys(self.variables);
-		var names = ['$ || {}', 'model'];
+		var names = ['$helpers||EMPTYOBJECT', '$||EMPTYOBJECT', 'model'];
 
 		for (var i = 0; i < variables.length; i++)
 			names.push('model.' + variables[i]);
 
-		var code = 'var tangular=function($,model' + (variables.length ? (',' + variables.join(',')) : '') + '){' + builder.join('') + '};return function(model,$){return tangular(' + names.join(',') + ');}';
-		return (new Function('$text', code))(self.builder);
+		var code = 'var tangular=function($helpers,$,model' + (variables.length ? (',' + variables.join(',')) : '') + '){' + builder.join('') + '};return function($helpers,model,$){try{return tangular(' + names.join(',') + ')}catch(e){console.error(\'Tangular error:\',e + \'\',$template)}}';
+		return (new Function('$text', '$template', code))(self.builder, self.template);
 	};
 
-	Thelpers.$execute = function(model, name, a, b, c, d, e, f, g, h) {
+	Thelpers.$execute = function(helpers, model, name, a, b, c, d, e, f, g, h) {
 
-		if (Thelpers[name] == null) {
+		var fn = Thelpers[name] || helpers[name];
+
+		if (!fn) {
 			console && console.warn('Tangular: missing helper', '"' + name + '"');
 			return a;
 		}
 
-		return Thelpers[name].call(model, a, b, c, d, e, f, g, h);
+		return fn.call(model, a, b, c, d, e, f, g, h);
 	};
 
 	Thelpers.encode = function(value) {
@@ -320,12 +322,13 @@
 		return value;
 	};
 
-	Tangular.render = function(template, model, repository) {
-		return new Template().compile(template)(model == null ? {} : model, repository);
+	Tangular.render = function(template, model, repository, helpers) {
+		var template = new Template().compile(template, helpers);
+		return template(helpers, model == null ? {} : model, repository);
 	};
 
-	Tangular.compile = function(template) {
-		return new Template().compile(template);
+	Tangular.compile = function(template, helpers) {
+		return new Template().compile(template, helpers);
 	};
 
 	Tangular.register = function(name, fn) {
@@ -333,9 +336,10 @@
 		return Tangular;
 	};
 
-	Thelpers.pluralize = function(r,e,t,a,n){ return r||(r=0),'number'!=typeof r&&(r=parseFloat(r.toString().replace(/\s/g,'').replace(',','.'))),r.pluralize(e,t,a,n); };
+
+	Thelpers.pluralize=function(r,e,t,a,n){ return r||(r=0),'number'!=typeof r&&(r=parseFloat(r.toString().replace(/\s/g,'').replace(',','.'))),r.pluralize(e,t,a,n); };
 	Thelpers.format=function(r,e,t,a){var n=typeof r;if(r==0||r==null)return'';if('number'===n||r instanceof Date)return r.format(e==null?null:e,t,a);'string'!==n&&(r=r.toString()),r=r.trim();for(var i=!1,o=0,f=0,u=0,l=r.length;l>u;u++){var g=r.charCodeAt(u);if(58===g||32===g||84===g){i=!0;break;}if(45===g){if(o++,1===o)continue;i=!0;break;}if(46===g){if(f++,1===f)continue;i=!0;break;}}return i?r.parseDate().format(e||'dd.MM.yyyy'):r.parseFloat().format(e,t,a);};
-	Thelpers.def=function(e,n){return e?Thelpers.encode(e):n||'---';};
+	Thelpers.empty=Thelpers.def=function(e,n){return e?Thelpers.encode(e):n||'---';};
 	Thelpers.currency=function(e,t){switch(typeof e){case'number':return e.currency(t);case'string':return e.parseFloat().currency(t);default:return'';}};
 
 })(global);
