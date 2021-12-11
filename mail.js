@@ -868,7 +868,7 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 		obj.callback && obj.callback();
 		obj.callback = null;
 		if (obj.cached)
-			CONNECTIONS[obj.smtp] = null;
+			delete CONNECTIONS[obj.smtp];
 		line = null;
 	});
 
