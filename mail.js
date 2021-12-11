@@ -24,6 +24,7 @@ if (!global.framework_utils)
 const BUF_CRLF = Buffer.from(CRLF);
 const CONCAT = [null, null];
 
+var CONNECTIONS = {};
 var CONNECTION;
 
 function Mailer() {
@@ -358,13 +359,13 @@ Message.prototype.send2 = function(callback) {
 		return;
 	}
 
-
 	var opt = F.temporary.mail_settings;
 	if (!opt) {
 		var config = CONF.mail_smtp_options;
 		config && (opt = config);
 		F.temporary.mail_settings = opt || {};
-		CONNECTION && mailer.destroy(CONNECTION);
+		for (var key in CONNECTIONS)
+			mailer.destroy(CONNECTIONS[key]);
 	}
 
 	// Computes a hostname
@@ -383,9 +384,9 @@ Message.prototype.send2 = function(callback) {
 	return self;
 };
 
-Message.prototype.send = function(smtp, options, callback) {
+Message.prototype.send = function(smtp, options, callback, cache) {
 	this.$callback2 = callback;
-	mailer.send(smtp, options, this);
+	mailer.send(smtp, options, this, null, cache);
 	return this;
 };
 
@@ -441,8 +442,8 @@ Mailer.prototype.destroy = function(obj) {
 		obj.socket2 = null;
 	}
 
-	if (obj === CONNECTION)
-		CONNECTION = null;
+	if (obj === CONNECTIONS[obj.smtp])
+		delete CONNECTIONS[obj.smtp];
 
 	delete this.connections[obj.id];
 	return this;
@@ -578,27 +579,29 @@ Mailer.prototype.send2 = function(messages, callback) {
 Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 
 	if (options instanceof Array) {
+		cache = callback;
 		callback = messages;
 		messages = options;
 		options = {};
 	} else if (typeof(options) === 'function') {
+		cache = messages;
 		callback = options;
 		options = {};
 	}
 
-	if (cache && CONNECTION) {
+	if (cache && CONNECTIONS[smtp]) {
 
 		if (messages instanceof Array) {
 			var count = messages.length;
 			F.stats.performance.mail += count;
 			for (var i = 0; i < count; i++)
-				CONNECTION.messages.push(messages[i]);
+				CONNECTIONS[smtp].messages.push(messages[i]);
 		} else if (messages) {
 			F.stats.performance.mail++;
-			CONNECTION.messages.push(messages);
+			CONNECTIONS[smtp].messages.push(messages);
 		}
 
-		CONNECTION.trytosend();
+		CONNECTIONS[smtp].trytosend();
 		return self;
 	}
 
@@ -658,9 +661,10 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 			}
 		};
 		obj.TS = NOW.add(cache === true ? '10 minutes' : typeof(cache) === 'number' ? (cache + ' minutes') : cache);
-		CONNECTION = obj;
+		CONNECTIONS[smtp] = obj;
 	}
 
+	obj.smtp = smtp;
 	obj.cached = cache;
 	obj.smtpoptions = options;
 	obj.socket.$host = smtp;
@@ -673,8 +677,8 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 		if (obj.try || err.stack.indexOf('ECONNRESET') !== -1)
 			return;
 		!obj.try && !is && F.error(err, 'mail_smtp', smtp);
-		if (obj === CONNECTION)
-			CONNECTION = null;
+		if (obj === CONNECTIONS[smtp])
+			delete CONNECTIONS[smtp];
 		mailer.$events.error && mailer.emit('error', err, obj);
 	});
 
@@ -683,8 +687,8 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 		!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
 		obj.callback && obj.callback(err);
 		obj.callback = null;
-		if (obj === CONNECTION)
-			CONNECTION = null;
+		if (obj === CONNECTIONS[smtp])
+			delete CONNECTIONS[smtp];
 		mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
 	});
 
@@ -695,8 +699,8 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 			!obj.try && !obj.callback && F.error(err, 'mail_smtp', smtp);
 			obj.callback && obj.callback(err);
 			obj.callback = null;
-			if (obj === CONNECTION)
-				CONNECTION = null;
+			if (obj === CONNECTIONS[smtp])
+				delete CONNECTIONS[smtp];
 			mailer.$events.error && !obj.try && mailer.emit('error', err, obj);
 		});
 	}
@@ -865,7 +869,7 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 		obj.callback && obj.callback();
 		obj.callback = null;
 		if (obj.cached)
-			CONNECTION = null;
+			CONNECTIONS[obj.smtp] = null;
 		line = null;
 	});
 
@@ -899,7 +903,6 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 		mailer.debug && console.log('<---', line);
 
 		var code = +line.match(REG_STATE)[0];
-
 		if (code === 250 && !isAuthorization) {
 			if (REG_AUTH.test(line) && ((options.user && options.password) || options.xoauth2)) {
 				isAuthorization = true;
@@ -1065,9 +1068,14 @@ Mailer.prototype.restart = function() {
 };
 
 setImmediate(function() {
-	ON('service', function() {
-		if (CONNECTION && CONNECTION.TS < NOW && (!CONNECTION.messages || !CONNECTION.messages.length))
-			mailer.destroy(CONNECTION);
+	ON('service', function(counter) {
+		if (counter % 3 === 0) {
+			for (var key in CONNECTIONS) {
+				var conn = CONNECTIONS[key];
+				if (conn.TS < NOW && (!conn.messages || !conn.messages.length))
+					mailer.destroy(CONNECTIONS[key]);
+			}
+		}
 	});
 });
 
