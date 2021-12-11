@@ -323,19 +323,18 @@
 	};
 
 	Tangular.render = function(template, model, repository, helpers) {
-		var template = new Template().compile(template, helpers);
-		return template(helpers, model == null ? {} : model, repository);
+		var ttemplate = new Template().compile(template);
+		return ttemplate(model == null ? {} : model, repository, helpers);
 	};
 
-	Tangular.compile = function(template, helpers) {
-		return new Template().compile(template, helpers);
+	Tangular.compile = function(template) {
+		return new Template().compile(template);
 	};
 
 	Tangular.register = function(name, fn) {
 		Thelpers[name] = fn;
 		return Tangular;
 	};
-
 
 	Thelpers.pluralize=function(r,e,t,a,n){ return r||(r=0),'number'!=typeof r&&(r=parseFloat(r.toString().replace(/\s/g,'').replace(',','.'))),r.pluralize(e,t,a,n); };
 	Thelpers.format=function(r,e,t,a){var n=typeof r;if(r==0||r==null)return'';if('number'===n||r instanceof Date)return r.format(e==null?null:e,t,a);'string'!==n&&(r=r.toString()),r=r.trim();for(var i=!1,o=0,f=0,u=0,l=r.length;l>u;u++){var g=r.charCodeAt(u);if(58===g||32===g||84===g){i=!0;break;}if(45===g){if(o++,1===o)continue;i=!0;break;}if(46===g){if(f++,1===f)continue;i=!0;break;}}return i?r.parseDate().format(e||'dd.MM.yyyy'):r.parseFloat().format(e,t,a);};
