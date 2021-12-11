@@ -25,7 +25,6 @@ const BUF_CRLF = Buffer.from(CRLF);
 const CONCAT = [null, null];
 
 var CONNECTIONS = {};
-var CONNECTION;
 
 function Mailer() {
 	this.debug = false;
