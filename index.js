@@ -2190,7 +2190,7 @@ function Framework() {
 	self.modules = {};
 	self.models = {};
 	self.builds = {};
-	self.transform = {};
+	self.transformations = {};
 	self.extensions = [];
 	self.plugins = {};
 	self.sources = {};
@@ -19377,7 +19377,6 @@ NEWCOMMAND('clear_owner', function(owner) {
 			if (index !== -1)
 				F.modificators.splice(index, 1);
 		}
-
 	}
 
 	arr = [];
@@ -19385,6 +19384,19 @@ NEWCOMMAND('clear_owner', function(owner) {
 		var fn = F.routes.middleware[key];
 		if (fn.$owner === owner)
 			NEWMIDDLEWARE(key, null);
+	}
+
+	// Transformations
+	for (var key in F.transformations) {
+		arr = F.transformations[key];
+		while (true) {
+			var index = arr.findIndex('owner', owner);
+			if (index === -1)
+				break;
+			arr.splice(index, 1);
+		}
+		if (!arr.length)
+			delete F.transformations[key];
 	}
 
 	// WebSocket routes

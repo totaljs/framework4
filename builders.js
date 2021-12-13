@@ -4670,8 +4670,8 @@ function $decodeURIComponent(value) {
 
 global.NEWTRANSFORM = function(name, fn, id) {
 
-	if (!F.transform[name])
-		F.transform[name] = [];
+	if (!F.transformations[name])
+		F.transformations[name] = [];
 
 	if (typeof(fn) === 'string') {
 		var tmp = id;
@@ -4682,25 +4682,25 @@ global.NEWTRANSFORM = function(name, fn, id) {
 	if (!id)
 		id = GUID(10);
 
-	var items = F.transform[name];
+	var items = F.transformations[name];
 	var index = items.findIndex('id', id);
 
 	if (fn) {
 		if (index === -1)
-			items.push({ fn: fn, id: id });
+			items.push({ fn: fn, id: id, owner: F.$owner() });
 		else
 			items[index].fn = fn;
 	} else
 		items.splice(index, 1);
 
 	if (!items.length)
-		delete F.transform[name];
+		delete F.transformations[name];
 
 	return id;
 };
 
 function transform_async(name, data, callback, $) {
-	var items = F.transform[name];
+	var items = F.transformations[name];
 	if (items) {
 		var options = new TransformOptions(new ErrorBuilder(), data, $);
 		items.wait(function(item, next) {
@@ -4721,7 +4721,7 @@ global.TRANSFORM = function(name, data, callback, $) {
 	if (callback)
 		transform_async(name, data, callback, $);
 	else
-		return new Promise((resolve, reject) => transform_async(name, data, (err, value) => resolve(value), $));
+		return new Promise(resolve => transform_async(name, data, (err, value) => resolve(value), $));
 		// return new Promise((resolve, reject) => transform_async(name, data, (err, value) => err ? reject(err) : resolve(value), $));
 
 };
