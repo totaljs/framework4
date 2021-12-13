@@ -3101,7 +3101,7 @@ const ERRORBUILDERWHITE = { ' ': 1, ':': 1, ',': 1 };
  * @param {Number} index Array Index, optional.
  * @return {ErrorBuilder}
  */
-ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
+ErrorBuilder.prototype.push = function(name, err, path, index, prefix) {
 
 	this.isPrepared = false;
 
@@ -3120,26 +3120,26 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 		return this;
 	}
 
-	if (error instanceof Array) {
-		for (var i = 0; i < error.length; i++)
-			this.push(name, error[i], path, index, prefix);
+	if (err instanceof Array) {
+		for (var i = 0; i < err.length; i++)
+			this.push(name, err[i], path, index, prefix);
 		return this;
 	}
 
 
 	if (typeof(name) === 'object') {
-		path = error;
-		error = name;
+		path = err;
+		err = name;
 		name = '';
 	}
 
-	if (error === null || (!name && !error))
+	if (err === null || (!name && !err))
 		return this;
 
 	// Status code
-	if (error > 0) {
-		this.status = +error;
-		error = '@';
+	if (err > 0) {
+		this.status = +err;
+		err = '@';
 	} else if (path > 0) {
 		this.status = +path;
 		path = undefined;
@@ -3158,30 +3158,49 @@ ErrorBuilder.prototype.push = function(name, error, path, index, prefix) {
 			this.status = status;
 	}
 
-	if (!error && typeof(name) === 'string') {
+	if (!err && typeof(name) === 'string') {
 
 		var m = name.length;
 		if (m > 15)
 			m = 15;
 
-		error = '@';
+		err = '@';
 
 		for (var i = 0; i < m; i++) {
 			if (ERRORBUILDERWHITE[name[i]]) {
-				error = name;
+				err = name;
 				name = '';
 				break;
 			}
 		}
 	}
 
-	if (error instanceof Error) {
-		// Why? The answer is in controller.callback(); It's a reason for throwing 500 - internal server error
+	if (err instanceof Error) {
+		// Why? The answer is in controller.callback(); It's a reason for throwing 500 - internal server err
 		this.unexpected = true;
-		error = error.toString();
+		err = err.toString();
 	}
 
-	this.items.push({ name: name, error: typeof(error) === 'string' ? error : error.toString(), path: path, index: index, prefix: prefix, status: status });
+	var obj = {};
+
+	if (name)
+		obj.name = name;
+
+	obj.error = typeof(err) === 'string' ? err : err.toString();
+
+	if (path)
+		obj.path = path;
+
+	if (index != null)
+		obj.index = index;
+
+	if (prefix)
+		obj.prefix = prefix;
+
+	if (status)
+		obj.status = status;
+
+	this.items.push(obj);
 	this.count = this.items.length;
 	return this;
 };
