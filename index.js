@@ -2190,6 +2190,7 @@ function Framework() {
 	self.modules = {};
 	self.models = {};
 	self.builds = {};
+	self.transform = {};
 	self.extensions = [];
 	self.plugins = {};
 	self.sources = {};

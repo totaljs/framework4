@@ -10,6 +10,8 @@
 - revitalized code in the `FlowStreamMessage` instance
 - improved `Tangular` by adding private helpers per template
 - improved `SMTP sender`
+- added `NEWTRANSFORM(name, [id], function($, value) {})` registers a new transformation
+- added `TRANSFORM(name, value, function($) {})` executes all transformations
 
 ========================
 0.0.55

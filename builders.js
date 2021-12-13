@@ -4668,6 +4668,64 @@ function $decodeURIComponent(value) {
 	}
 }
 
+global.NEWTRANSFORM = function(name, fn, id) {
+
+	if (!F.transform[name])
+		F.transform[name] = [];
+
+	if (typeof(fn) === 'string') {
+		var tmp = id;
+		fn = id;
+		id = tmp;
+	}
+
+	if (!id)
+		id = GUID(10);
+
+	var items = F.transform[name];
+	var index = items.findIndex('id', id);
+
+	if (fn) {
+		if (index === -1)
+			items.push({ fn: fn, id: id });
+		else
+			items[index].fn = fn;
+	} else
+		items.splice(index, 1);
+
+	if (!items.length)
+		delete F.transform[name];
+
+	return id;
+};
+
+function transform_async(name, data, callback, $) {
+	var items = F.transform[name];
+	if (items) {
+		var options = new TransformOptions(new ErrorBuilder(), data, $);
+		items.wait(function(item, next) {
+			options.next = next;
+			item.fn(options, options.value);
+		}, () => callback(options.error.is ? options.error : null, options.value));
+	} else
+		callback(null, data);
+}
+
+global.TRANSFORM = function(name, data, callback, $) {
+
+	if (callback && typeof(callback) !== 'function') {
+		$ = callback;
+		callback = null;
+	}
+
+	if (callback)
+		transform_async(name, data, callback, $);
+	else
+		return new Promise((resolve, reject) => transform_async(name, data, (err, value) => resolve(value), $));
+		// return new Promise((resolve, reject) => transform_async(name, data, (err, value) => err ? reject(err) : resolve(value), $));
+
+};
+
 global.NEWTASK = function(name, fn, filter) {
 	if (fn == null) {
 		delete F.tasks[name];
@@ -5189,6 +5247,96 @@ global.RUN = function(name, value, callback, param, controller, result) {
 	}, () => callback(error.items.length ? error : null, result ? opt.output : opt.response, opt));
 };
 
+function TransformOptions(error, value, controller) {
+	this.controller = controller;
+	this.model = this.value = value;
+	this.error = error;
+}
+
+TransformOptions.prototype = {
+
+	get client() {
+		return this.controller;
+	},
+
+	get test() {
+		return this.controller ? this.controller.test : false;
+	},
+
+	get user() {
+		return this.controller ? this.controller.user : null;
+	},
+
+	get session() {
+		return this.controller ? this.controller.session : null;
+	},
+
+	get sessionid() {
+		return this.controller ? this.controller.sessionid : null;
+	},
+
+	get url() {
+		return (this.controller ? this.controller.url : '') || '';
+	},
+
+	get path() {
+		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
+	},
+
+	get split() {
+		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
+	},
+
+	get language() {
+		return (this.controller ? this.controller.language : '') || '';
+	},
+
+	get ip() {
+		return this.controller ? this.controller.ip : null;
+	},
+
+	get id() {
+		return this.controller ? this.controller.id : null;
+	},
+
+	get req() {
+		return this.controller ? this.controller.req : null;
+	},
+
+	get res() {
+		return this.controller ? this.controller.res : null;
+	},
+
+	get params() {
+		return this.controller ? this.controller.params : null;
+	},
+
+	get files() {
+		return this.controller ? this.controller.files : null;
+	},
+
+	get body() {
+		return this.controller ? this.controller.body : null;
+	},
+
+	get query() {
+		return this.controller ? this.controller.query : null;
+	},
+
+	get mobile() {
+		return this.controller ? this.controller.mobile : null;
+	},
+
+	get headers() {
+		return this.controller ? this.controller.headers : null;
+	},
+
+	get ua() {
+		return this.controller ? this.controller.ua : null;
+	}
+
+};
+
 function OperationOptions(error, value, options, controller) {
 
 	if (!controller && options instanceof global.Controller) {
@@ -5392,6 +5540,14 @@ OperationOptionsProto.success = function(a, b) {
 
 	this.callback(o);
 	return this;
+};
+
+TransformOptions.prototype.invalid = function(name, error, path, index) {
+	var self = this;
+	arguments.length && self.error.push(name, error, path, index);
+	self.next();
+	self.next = NOOP;
+	return self;
 };
 
 OperationOptionsProto.invalid = function(name, error, path, index) {
