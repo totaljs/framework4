@@ -13,6 +13,7 @@
 - added `NEWTRANSFORM(name, [id], function($, value) {})` registers a new transformation
 - added `TRANSFORM(name, value, function($) {})` executes all transformations
 - improved response from the ErrorBuilder (empty fields are removed from the response)
+- improved built-in sessions by added `return {Number}` to `.update()` and `.refresh()` method
 
 ========================
 0.0.55

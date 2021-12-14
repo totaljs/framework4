@@ -1038,19 +1038,27 @@ var authbuiltin = function(opt) {
 	};
 
 	opt.update = function(userid, fn) {
+		var count = 0;
 		for (var key in opt.sessions) {
 			var session = opt.sessions[key];
-			if (session.userid === userid)
+			if (session.userid === userid) {
+				count++;
 				fn(session.data, session);
+			}
 		}
+		return count;
 	};
 
 	opt.refresh = function(userid, exceptsessionid) {
+		var count = 0;
 		for (var key in opt.sessions) {
 			var session = opt.sessions[key];
-			if (session.userid === userid && session.sessionid !== exceptsessionid)
+			if (session.userid === userid && session.sessionid !== exceptsessionid) {
+				count++;
 				delete opt.sessions[key];
+			}
 		}
+		return count;
 	};
 
 	opt.sign = function(sessionid, userid) {
