@@ -8,7 +8,7 @@
 	Tangular.version = 'v5.0.0';
 	Tangular.cache = {};
 
-	W.Tangular = Tangular;
+	W.Ta = W.Tangular = Tangular;
 	W.Thelpers = Thelpers;
 
 	var SKIP = { 'null': true, 'undefined': true, 'true': true, 'false': true, 'Object': 1, 'String': 1, 'Number': 1, 'Boolean': 1, 'Date': 1, 'Array': 1, 'window': 1, 'global': 1, 'arguments': 1, 'eval': 1, 'Function': 1, 'function': 1, 'var': 1, 'let': 1, 'const': 1, 'delete': 1 };
@@ -160,8 +160,17 @@
 			} else if (cmd !== 'continue' && cmd !== 'break' && cmd !== 'else') {
 
 				variable = parseInlineVariables(cmd);
+
+				var ishelper = false;
+
 				for (var i = 0; i < variable.length; i++) {
 					var v = variable[i];
+
+					if (v + '(' === cmd.substring(0, v.length + 1)) {
+						ishelper = true;
+						continue;
+					}
+
 					if (self.variables[v])
 						self.variables[v]++;
 					else
@@ -171,20 +180,34 @@
 				if (!variable.length)
 					variable = null;
 
-				if (cmd.indexOf('|') === -1)
+				var hindex = cmd.indexOf('|');
+				var fnhelper = null;
+
+				if (ishelper) {
+					fnhelper = cmd.substring(0, hindex === -1 ? cmd.length : hindex);
+					if (hindex === -1)
+						cmd = '';
+					else
+						cmd = '' + cmd.substring(index);
+				} else if (!ishelper && hindex === -1)
 					cmd += ' | encode';
 
 				helpers = cmd.split('|');
 				cmd = helpers[0];
 				helpers = helpers.slice(1);
+
+				if (ishelper)
+					helpers.unshift(fnhelper);
+
 				if (helpers.length) {
 					for (var i = 0; i < helpers.length; i++) {
 						var helper = helpers[i].trim();
+						var ishelperfirst = ishelper && !i;
 						index = helper.indexOf('(');
 						if (index === -1) {
-							helper = 'Thelpers.$execute($helpers,model,\'' + helper + '\',\7)';
+							helper = 'Thelpers.$execute($helpers,model,\'' + helper + '\',' + (ishelperfirst ? '' : '\7)');
 						} else
-							helper = 'Thelpers.$execute($helpers,model,\'' + helper.substring(0, index) + '\',\7,' + helper.substring(index + 1);
+							helper = 'Thelpers.$execute($helpers,model,\'' + helper.substring(0, index) + '\',' + (ishelperfirst ? '' : '\7,') + helper.substring(index + 1);
 						helpers[i] = helper;
 					}
 				} else
@@ -285,7 +308,7 @@
 		builder.push((length ? ('$output+=$text[' + length + '];') : '') + 'return $output.charAt(0) === \'\\n\'?$output.substring(1):$output;');
 		delete self.variables.$;
 		var variables = Object.keys(self.variables);
-		var names = ['$helpers||EMPTYOBJECT', '$||EMPTYOBJECT', 'model'];
+		var names = ['$helpers||{}', '$||{}', 'model'];
 
 		for (var i = 0; i < variables.length; i++)
 			names.push('model.' + variables[i]);
@@ -323,8 +346,8 @@
 	};
 
 	Tangular.render = function(template, model, repository, helpers) {
-		var ttemplate = new Template().compile(template);
-		return ttemplate(model == null ? {} : model, repository, helpers);
+		var template = new Template().compile(template);
+		return template(model == null ? {} : model, repository, helpers);
 	};
 
 	Tangular.compile = function(template) {
@@ -335,10 +358,5 @@
 		Thelpers[name] = fn;
 		return Tangular;
 	};
-
-	Thelpers.pluralize=function(r,e,t,a,n){ return r||(r=0),'number'!=typeof r&&(r=parseFloat(r.toString().replace(/\s/g,'').replace(',','.'))),r.pluralize(e,t,a,n); };
-	Thelpers.format=function(r,e,t,a){var n=typeof r;if(r==0||r==null)return'';if('number'===n||r instanceof Date)return r.format(e==null?null:e,t,a);'string'!==n&&(r=r.toString()),r=r.trim();for(var i=!1,o=0,f=0,u=0,l=r.length;l>u;u++){var g=r.charCodeAt(u);if(58===g||32===g||84===g){i=!0;break;}if(45===g){if(o++,1===o)continue;i=!0;break;}if(46===g){if(f++,1===f)continue;i=!0;break;}}return i?r.parseDate().format(e||'dd.MM.yyyy'):r.parseFloat().format(e,t,a);};
-	Thelpers.empty=Thelpers.def=function(e,n){return e?Thelpers.encode(e):n||'---';};
-	Thelpers.currency=function(e,t){switch(typeof e){case'number':return e.currency(t);case'string':return e.parseFloat().currency(t);default:return'';}};
 
 })(global);

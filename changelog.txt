@@ -14,6 +14,7 @@
 - added `TRANSFORM(name, value, function($) {})` executes all transformations
 - improved response from the ErrorBuilder (empty fields are removed from the response)
 - improved built-in sessions by added `return {Number}` to `.update()` and `.refresh()` method
+- updated Tangular template engine to `v5`
 
 ========================
 0.0.55
