@@ -88,6 +88,10 @@ TaskBuilder.prototype = {
 		return this.controller ? this.controller.url : null;
 	},
 
+	get uri() {
+		return this.controller ? this.controller.uri : null;
+	},
+
 	get params() {
 		return this.controller ? this.controller.params : null;
 	},
@@ -176,6 +180,10 @@ SchemaOptions.prototype = {
 
 	get url() {
 		return (this.controller ? this.controller.url : '') || '';
+	},
+
+	get uri() {
+		return this.controller ? this.controller.uri : null;
 	},
 
 	get path() {
@@ -1723,6 +1731,10 @@ SchemaOptionsVerify.prototype = {
 
 	get url() {
 		return (this.controller ? this.controller.url : '') || '';
+	},
+
+	get uri() {
+		return this.controller ? this.controller.uri : null;
 	},
 
 	get path() {
@@ -5298,6 +5310,10 @@ TransformOptions.prototype = {
 		return (this.controller ? this.controller.url : '') || '';
 	},
 
+	get uri() {
+		return this.controller ? this.controller.uri : null;
+	},
+
 	get path() {
 		return (this.controller ? this.controller.path : EMPTYARRAY) || EMPTYARRAY;
 	},
@@ -5394,6 +5410,10 @@ OperationOptions.prototype = {
 
 	get url() {
 		return (this.controller ? this.controller.url : '') || '';
+	},
+
+	get uri() {
+		return this.controller ? this.controller.uri : null;
 	},
 
 	get path() {
@@ -5602,6 +5622,10 @@ AuthOptions.prototype = {
 		return this.req.url || '';
 	},
 
+	get uri() {
+		return this.req.uri || EMPTYOBJECT;
+	},
+
 	get path() {
 		return this.req.path;
 	},
@@ -5635,7 +5659,7 @@ AuthOptions.prototype = {
 	},
 
 	get mobile() {
-		return this.controller ? this.controller.mobile : null;
+		return this.req.mobile;
 	},
 
 	get headers() {
@@ -5643,7 +5667,7 @@ AuthOptions.prototype = {
 	},
 
 	get ua() {
-		return this.req ? this.req.ua : null;
+		return this.req.ua;
 	}
 };
 
