@@ -16,6 +16,7 @@
 - improved built-in sessions by added `return {Number}` to `.update()` and `.refresh()` method
 - updated Tangular template engine to `v5`
 - extended `$` by adding `uri` property linked with the `controller.req.uri`
+- added `WORKER_THREAD()` method
 
 ========================
 0.0.55

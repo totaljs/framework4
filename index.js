@@ -874,6 +874,7 @@ var TMPENV = framework_utils.copy(process.env);
 TMPENV.istotaljsworker = true;
 
 HEADERS.workers = { cwd: '', silent: false, env: TMPENV };
+HEADERS.worker_threads = { cwd: '' };
 HEADERS.workers2 = { cwd: '', silent: true, env: TMPENV };
 
 global.Builders = framework_builders;
@@ -2223,7 +2224,7 @@ function Framework() {
 	self.jsonschemas = {};
 	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {}, publishers: {}, calls: {} };
 	self.databases = {};
-	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = directory;
+	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = HEADERS.worker_threads.cwd = directory;
 	self.isLE = Os.endianness ? Os.endianness() === 'LE' : true;
 	self.isHTTPS = false;
 
@@ -2448,7 +2449,7 @@ F.require = function(path) {
 };
 
 F.dir = function(path) {
-	F.directory = path;
+	F.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = HEADERS.worker_threads.cwd = path;
 	directory = path;
 };
 
@@ -10738,6 +10739,11 @@ global.WORKER = function(name, timeout, args, special) {
 		fork.__timeout = setTimeout(killworker, timeout, fork);
 
 	return fork;
+};
+
+global.WORKER_THREAD = function(name, data) {
+	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
+	return new Worker.Worker(filename + '.js', { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: [F.directory] });
 };
 
 global.WORKER2 = function(name, args, callback, timeout) {
