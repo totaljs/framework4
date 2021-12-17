@@ -10741,7 +10741,7 @@ global.WORKER = function(name, timeout, args, special) {
 	return fork;
 };
 
-global.WORKER_THREAD = function(name, data) {
+global.NEWWORKER = function(name, data) {
 	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
 	return new Worker.Worker(filename + '.js', { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: [F.directory] });
 };
