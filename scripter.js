@@ -239,7 +239,7 @@ SP.compile = function(str) {
 var scripter = new Scripter();
 var meta = scripter.compile(`
 
-	IF (subject>="9") AND terms="TRUE" AND terms SEARCH "kokot"
+	IF (subject>="9") AND terms="TRUE" AND terms SEARCH "test"
 		age = age + "10"
 	FI
 
