@@ -17,6 +17,7 @@
 - updated Tangular template engine to `v5`
 - extended `$` by adding `uri` property linked with the `controller.req.uri`
 - added `NEWWORKER()` method
+- added `NEWMACRO(script)` method for compiling custom Total.js macros
 
 ========================
 0.0.55

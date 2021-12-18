@@ -3007,6 +3007,10 @@ global.REDIRECT = function(host, newHost, withPath, permanent) {
 	}
 };
 
+global.NEWMACRO = function(str) {
+	return require('./macros').compile(str);
+};
+
 /**
  * Schedule job
  * @param {Date or String} date
