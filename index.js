@@ -1084,7 +1084,7 @@ var authbuiltin = function(opt) {
 		}
 	};
 
-	DEF.onAuthorize = framework_builders.AuthOptions.wrap(function($) {
+	opt.auth = function($) {
 
 		if (opt.onauthorize && opt.onauthorize($))
 			return;
@@ -1185,7 +1185,9 @@ var authbuiltin = function(opt) {
 
 		}, $);
 
-	});
+	};
+
+	DEF.onAuthorize = framework_builders.AuthOptions.wrap(opt.auth);
 
 	ON('service', function(counter) {
 
