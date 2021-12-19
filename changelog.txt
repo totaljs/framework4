@@ -19,6 +19,7 @@
 - added `NEWWORKER()` method
 - added `NEWMACRO(script)` method for compiling custom Total.js macros
 - extended built-in Authorization by adding `opt.auth($)` method for additional authorization
+- added `COPY()` alias to `U.copy()`
 
 ========================
 0.0.55
