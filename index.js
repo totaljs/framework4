@@ -10804,11 +10804,6 @@ global.NEWTHREAD = function(name, data) {
 
 global.NEWTHREADPOOL = function(name, count) {
 
-	if (typeof(data) === 'function') {
-		callback = data;
-		data = null;
-	}
-
 	var pool = {};
 	pool.workers = [];
 	pool.pending = [];
