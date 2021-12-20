@@ -11,7 +11,7 @@
 - improved `Tangular` by adding private helpers per template
 - improved `SMTP sender`
 - added `NEWTRANSFORM(name, [id], function($, value) {})` registers a new transformation
-- added `TRANSFORM(name, value, function($) {})` executes all transformations
+- added `TRANSFORM(name, value, function(err, value) {})` executes all transformations
 - improved response from the ErrorBuilder (empty fields are removed from the response)
 - improved built-in sessions by added `return {Number}` to `.update()` and `.refresh()` method
 - updated Tangular template engine to `v5`
