@@ -3010,8 +3010,8 @@ global.REDIRECT = function(host, newHost, withPath, permanent) {
 	}
 };
 
-global.NEWMACRO = function(str) {
-	return require('./macros').compile(str);
+global.NEWMACRO = function(str, nocompile) {
+	return require('./macros').compile(str, nocompile);
 };
 
 /**

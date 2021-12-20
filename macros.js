@@ -11,7 +11,7 @@
 	FI
 */
 
-exports.compile = function(str) {
+exports.compile = function(str, nocompile) {
 
 	var indexer = 0;
 	var keywords = {};
@@ -132,12 +132,13 @@ exports.compile = function(str) {
 
 	for (var line of lines) {
 		if (line.trim()) {
-			line = line.replace(/model\.[a-z0-9.]+(>|<|=)./g, function(text) {
+			line = line.replace(/model\.[a-z0-9.]+(\s)?(>|<|=)+./g, function(text) {
+				console.log(text);
 				return text.replace(/\./g, '?.');
 			});
 			str += (str ? '\n' : '') + line;
 		}
 	}
 
-	return new Function('model', 'helpers', str);
+	return nocompile ? str : new Function('model', 'helpers', str);
 };
