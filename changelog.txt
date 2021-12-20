@@ -17,6 +17,7 @@
 - updated Tangular template engine to `v5`
 - extended `$` by adding `uri` property linked with the `controller.req.uri`
 - added `NEWTHREAD(name, [data])` method, runs the `/workers/{name}.js` as `worker_threads`
+- added `NEWTHREADPOOL(name, count)` method creates a pool for `worker_threads`
 - added `NEWFORK(name)` method (a better alternative to the `WORKER()` method), runs the `/workers/{name}.js` as `fork`
 - added `NEWMACRO(script)` method for compiling custom Total.js macros
 - extended built-in Authorization by adding `opt.auth($)` method for additional authorization

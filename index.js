@@ -2219,6 +2219,7 @@ function Framework() {
 	self.port = 0;
 	self.ip = '';
 	self.workers = {};
+	self.workerspool = {};
 	self.sessions = {};
 	self.flows = {};
 	self.openclients = {};
@@ -10796,9 +10797,75 @@ global.NEWTHREAD = function(name, data) {
 
 	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
 	var worker = new Worker.Worker(filename + '.js', { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
-	worker.kill = worker.exit = worker.terminate;
+	worker.kill = worker.exit = () => worker.terminate();
 
 	return worker;
+};
+
+global.NEWTHREADPOOL = function(name, count) {
+
+	if (typeof(data) === 'function') {
+		callback = data;
+		data = null;
+	}
+
+	var pool = {};
+	pool.workers = [];
+	pool.pending = [];
+	pool.count = pool;
+	pool.next = function() {
+		for (var worker of pool.workers) {
+			if (worker.$released) {
+				var fn = pool.pending.shift();
+				if (fn) {
+					worker.removeAllListeners('message');
+					worker.$released = false;
+					fn.call(worker, worker, worker.release);
+				} else
+					break;
+			}
+		}
+	};
+
+	F.workerspool[name] = pool;
+
+	var release = function(worker) {
+		worker.on('exit', function() {
+			var index = pool.workers.indexOf(worker);
+			pool.workers.splice(index, 1);
+			var worker = NEWTHREAD(name);
+			worker.$pool = pool;
+			worker.release = release(worker);
+		});
+
+		return function() {
+			worker.$released = true;
+			worker.$pool.next();
+		};
+
+	};
+
+	for (var i = 0; i < count; i++) {
+		var worker = NEWTHREAD(name);
+		worker.$pool = pool;
+		worker.$released = true;
+		worker.release = release(worker);
+		pool.workers.push(worker);
+	}
+
+	pool.exec = function(fn) {
+		if (fn) {
+			pool.pending.push(fn);
+			pool.next();
+		} else {
+			return new Promise(function(resolve) {
+				pool.pending.push(resolve);
+				pool.next();
+			});
+		}
+	};
+
+	return pool;
 };
 
 global.NEWFORK = function(name) {
@@ -10809,6 +10876,7 @@ global.NEWFORK = function(name) {
 	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
 	var fork = new Child.fork(filename + '.js', { cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
 	fork.postMessage = fork.send;
+	fork.terminate = code => fork.kill('SIGTERM');
 
 	return fork;
 }
