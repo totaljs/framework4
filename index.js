@@ -10802,7 +10802,7 @@ global.NEWTHREAD = function(name, data) {
 	return worker;
 };
 
-global.NEWTHREADPOOL = function(name, count) {
+global.NEWTHREADPOOL = function(name, count, isfork) {
 
 	var pool = {};
 	pool.workers = [];
@@ -10828,7 +10828,7 @@ global.NEWTHREADPOOL = function(name, count) {
 		worker.on('exit', function() {
 			var index = pool.workers.indexOf(worker);
 			pool.workers.splice(index, 1);
-			var worker = NEWTHREAD(name);
+			var worker = isfork ? NEWFORK(name) : NEWTHREAD(name);
 			worker.$pool = pool;
 			worker.release = release(worker);
 		});
@@ -10841,7 +10841,7 @@ global.NEWTHREADPOOL = function(name, count) {
 	};
 
 	for (var i = 0; i < count; i++) {
-		var worker = NEWTHREAD(name);
+		var worker = isfork ? NEWFORK(name) : NEWTHREAD(name);
 		worker.$pool = pool;
 		worker.$released = true;
 		worker.release = release(worker);
@@ -10871,10 +10871,10 @@ global.NEWFORK = function(name) {
 	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
 	var fork = new Child.fork(filename + '.js', { cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
 	fork.postMessage = fork.send;
-	fork.terminate = code => fork.kill('SIGTERM');
+	fork.terminate = () => fork.kill('SIGTERM');
 
 	return fork;
-}
+};
 
 global.WORKER2 = function(name, args, callback, timeout) {
 
