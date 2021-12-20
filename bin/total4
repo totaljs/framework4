@@ -3,6 +3,7 @@
 require('total4/utils');
 
 const Exec = require('child_process').exec;
+const ExecFile = require('child_process').execFile;
 const Fs = require('fs');
 const Path = require('path');
 const Os = require('os');
@@ -13,7 +14,7 @@ var isDirectory = false;
 function display_help() {
 	log_title('Help');
 
-	console.log('create <template> <path>  : Download template from "total4 templates" list. Default path is "./<template>"');
+	console.log('create <template> <path>  : Download template from "total4 templates" list. Default path is "./<template>". Requires git.');
 	console.log('templates                 : List of all Total.js templates');
 	console.log('translate                 : Creates a resource file with the localized text from views');
 	console.log('translate "TEXT"          : Creates an identificator for the resource');
@@ -845,24 +846,29 @@ function git(dir, template) {
 		console.log('Template "{0}" was created successfully.'.format(template.name));
 		console.log('');
 	};
-
-	U.ls(dir, function(fol, fil) {
-
-		if (fol.length || fil.length) {
-			log_error('Directory "{0}" is not empty.'.format(dir));
+	ExecFile('git', ['--version'], (error) => {
+		if (error) {
+			log_error('Git not found. Please, download the template from https://github.com/totaljs/{0}.git'.format(template.id));
 			return;
 		}
+		U.ls(dir, function(fol, fil) {
 
-		PATH.mkdir(dir);
-		Exec('git clone https://github.com/totaljs/{0}.git {1}'.format(template.id, dir), function() {
-			PATH.mkdir(Path.join(dir, '/node_modules/'));
-			PATH.rmdir(Path.join(dir, '.git'), function() {
-				PATH.unlink(Path.join(dir, '.gitignore'), function() {
-					PATH.exists(Path.join(dir, 'package.json'), function(e) {
-						if (e)
-							Exec('npm install total4 --save', done);
-						else
-							Exec('npm install', done);
+			if (fol.length || fil.length) {
+				log_error('Directory "{0}" is not empty.'.format(dir));
+				return;
+			}
+
+			PATH.mkdir(dir);
+			Exec('git clone https://github.com/totaljs/{0}.git {1}'.format(template.id, dir), function() {
+				PATH.mkdir(Path.join(dir, '/node_modules/'));
+				PATH.rmdir(Path.join(dir, '.git'), function() {
+					PATH.unlink(Path.join(dir, '.gitignore'), function() {
+						PATH.exists(Path.join(dir, 'package.json'), function(e) {
+							if (e)
+								Exec('npm install total4 --save', done);
+							else
+								Exec('npm install', done);
+						});
 					});
 				});
 			});
