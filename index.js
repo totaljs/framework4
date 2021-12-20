@@ -10747,10 +10747,71 @@ global.WORKER = function(name, timeout, args, special) {
 	return fork;
 };
 
-global.NEWWORKER = function(name, data) {
+function process_thread() {
+
+	if (F.worker)
+		return F.worker;
+
+	F.dir(process.cwd());
+
+	const Port = Worker.parentPort;
+
+	F.worker = {};
+	F.worker.data = Port ? Worker.workerData : {};
+	F.worker.message = NOOP;
+	F.worker.isfork = !!Port;
+	F.worker.is = process.argv.indexOf('--worker') !== -1;
+	F.worker.setTimeout = function(timeout) {
+		F.worker.$timeout && clearTimeout(F.worker.$timeout);
+		F.worker.$timeout = setTimeout(() => F.worker.exit(1), timeout);
+	};
+
+	F.worker.postMessage = F.worker.send = function() {
+		if (Port)
+			Port.postMessage.apply(Port, arguments);
+		else
+			process.send.apply(process, arguments);
+	};
+
+	F.worker.exit = F.worker.kill = F.worker.close = function(code) {
+		process.exit(code || 0);
+	};
+
+	var onmessage = function() {
+		F.worker.message && F.worker.message.apply(this, arguments);
+	};
+
+	if (Port)
+		Port.on('message', onmessage);
+	else
+		process.on('message', onmessage);
+
+	return F.worker;
+}
+
+global.NEWTHREAD = function(name, data) {
+
+	if (!name)
+		return process_thread();
+
 	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
-	return new Worker.Worker(filename + '.js', { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: [F.directory] });
+	var worker = new Worker.Worker(filename + '.js', { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
+	worker.kill = worker.exit = worker.terminate;
+
+	return worker;
 };
+
+global.NEWFORK = function(name) {
+
+	if (!name)
+		return process_thread();
+
+	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
+	var fork = new Child.fork(filename + '.js', { cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
+	fork.postMessage = fork.send;
+
+	return fork;
+}
 
 global.WORKER2 = function(name, args, callback, timeout) {
 
