@@ -25,7 +25,6 @@ Please support the framework on social networks.
 
 ## Contact
 
-- (c) 2012-2021 by Peter Širka - <petersirka@gmail.com>
 - Contact <https://www.totaljs.com/contact/>
 - [Chat support](https://platform.totaljs.com/?open=messenger)
 - [Join to __Total.js Telegram__](https://t.me/totalplatform)
