@@ -2217,7 +2217,10 @@ function ls(path, callback, advanced, filter) {
  * @param {Function(filename, isDirectory) or String or RegExp} filter Custom filter (optional).
  */
 exports.ls = function(path, callback, filter) {
-	ls(path, callback, false, filter);
+	if (callback)
+		ls(path, callback, false, filter);
+	else
+		return new Promise(resolve => ls(path, (files, dirs) => resolve({ directories: dirs, files: files }), false, filter));
 };
 
 /**
@@ -2227,7 +2230,10 @@ exports.ls = function(path, callback, filter) {
  * @param {Function(filename ,isDirectory) or String or RegExp} filter Custom filter (optional).
  */
 exports.ls2 = function(path, callback, filter) {
-	ls(path, callback, true, filter);
+	if (callback)
+		ls(path, callback, true, filter);
+	else
+		return new Promise(resolve => ls(path, (files, dirs) => resolve({ directories: dirs, files: files }), true, filter));
 };
 
 DP.setTimeZone = function(timezone) {

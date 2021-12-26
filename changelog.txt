@@ -22,6 +22,7 @@
 - added `NEWMACRO(script)` method for compiling custom Total.js macros
 - extended built-in Authorization by adding `opt.auth($)` method for additional authorization
 - added `COPY()` alias to `U.copy()`
+- added support for promises to `U.ls()` and `U.ls2()` method
 
 ========================
 0.0.55
