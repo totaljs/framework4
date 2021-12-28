@@ -507,7 +507,7 @@ QBP.gridfields = function(fields, allowed) {
 	}
 
 	if (!count)
-		t.options.fields = newfields.join(',');
+		t.options.fields = newfields;
 
 	return t;
 };
@@ -666,7 +666,7 @@ QBP.autoquery = function(query, schema, defsort, maxlimit, localized) {
 		for (var i = 0; i < fields.length; i++) {
 			var field = fields[i];
 			if (allowed && allowed.meta[field]) {
-				self.options.fields.push(self.options.dbname === 'pg' ? ('"' + fields[i] + '"') : fields[i]);
+				self.options.fields.push(fields[i]);
 				fieldscount++;
 			}
 		}

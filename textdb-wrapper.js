@@ -1240,6 +1240,8 @@ DB.autofill = function($, allowedfields, skipfilter, defsort, maxlimit) {
 		}
 	}
 
+	self.options.fields = newfields.join(',');
+
 	if (allowed && allowed.filter) {
 		for (var i = 0; i < allowed.filter.length; i++) {
 			tmp = allowed.filter[i];
@@ -1337,16 +1339,14 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 
 	var fields = query.fields;
 	var fieldscount = 0;
-
-	if (!self.options.fields)
-		self.options.fields = [];
+	var newfields = [];
 
 	if (fields) {
 		fields = fields.replace(REG_FIELDS_CLEANER, '').split(',');
 		for (var i = 0; i < fields.length; i++) {
 			var field = fields[i];
 			if (allowed && allowed.meta[field]) {
-				self.options.fields.push(self.options.dbname === 'pg' ? ('"' + fields[i] + '"') : fields[i]);
+				newfields.push(fields[i]);
 				fieldscount++;
 			}
 		}
@@ -1354,8 +1354,10 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 
 	if (!fieldscount) {
 		for (var i = 0; i < allowed.keys.length; i++)
-			self.options.fields.push(allowed.keys[i]);
+			newfields.push(allowed.keys[i]);
 	}
+
+	self.options.fields = newfields.join(',');
 
 	if (allowed && allowed.filter) {
 		for (var i = 0; i < allowed.filter.length; i++) {
