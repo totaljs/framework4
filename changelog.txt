@@ -23,6 +23,8 @@
 - extended built-in Authorization by adding `opt.auth($)` method for additional authorization
 - added `COPY()` alias to `U.copy()`
 - added support for promises to `U.ls()` and `U.ls2()` method
+- added `QueryBuilder.autoquery()` method
+- added `DatabaseBuilder.autoquery()` method
 
 ========================
 0.0.55
