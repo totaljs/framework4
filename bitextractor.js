@@ -52,7 +52,7 @@ class BitExtractor {
 		return ret;
 	};
 
-	shiftByte(bytes = 1) {
+	shiftBytes(bytes = 1) {
 		return this.bitShift(bytes * 8);
 	};
 }
