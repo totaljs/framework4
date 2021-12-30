@@ -106,9 +106,6 @@ class BitExtractor {
 		return ret;
 	};
 
-	shiftBytes(bytes = 1) {
-		return this.bitShift(bytes * 8);
-	};
 }
 
 exports.make = function(data, from = 16, to = 10) {
