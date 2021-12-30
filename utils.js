@@ -6706,4 +6706,8 @@ exports.get = function(obj, path) {
 	}
 };
 
+exports.extract = function(data, from = 16, to = 10) {
+	return require('./bitextractor').make(data, from || 16, to || 10);
+};
+
 !global.F && require('./index');

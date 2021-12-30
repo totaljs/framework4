@@ -25,6 +25,8 @@
 - added support for promises to `U.ls()` and `U.ls2()` method
 - added `QueryBuilder.autoquery()` method
 - added `DatabaseBuilder.autoquery()` method
+- added `BitExtractor` by [Peter Stolc](https://github.com/a50397)
+- added `U.extract(data, [from = 16], [to = 10])` returns `BitExtractor` instance
 
 ========================
 0.0.55
