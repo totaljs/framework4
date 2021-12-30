@@ -12,7 +12,6 @@ const REG_NEWLINE = /\n/g;
 const REG_AUTH = /(AUTH LOGIN|AUTH PLAIN|PLAIN LOGIN)/i;
 const REG_TLS = /TLS/;
 const REG_STARTTLS = /STARTTLS/;
-// const REG_PREVIEW = /<body>/i;
 const EMPTYARRAY = [];
 
 var INDEXSENDER = 0;
@@ -782,9 +781,6 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 		for (var i = 0; i < length; i++)
 			buffer.push('RCPT TO: <' + msg.address_bcc[i] + '>');
 	}
-
-	// if (msg.$preview)
-	// 	msg.body = msg.body.replace(REG_PREVIEW, '<body><div style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden">' + (msg.language == null ? msg.$preview : F.translator(msg.language, msg.$preview)) + '</div>');
 
 	buffer.push('DATA');
 	buffer.push('');
