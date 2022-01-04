@@ -144,6 +144,7 @@ tests.push(function(next) {
 		});
 	});
 
+	// Run
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -592,7 +593,7 @@ tests.push(function(next) {
 		// Patch Keys
 		tests.push(function(next) {
 			test_name = 'Patch keys';
-			test_log = log(test_name, 2, true);
+			test_log = log(test_name, 2);
 			console.time(test_log);
 
 			var data = { valid: 'valid', invalid: 'invalid' };
@@ -610,7 +611,7 @@ tests.push(function(next) {
 		// Patch Keys - Multioperation
 		tests.push(function(next) {
 			test_name = 'Patch keys (multioperation)';
-			test_log = log(test_name, 2);
+			test_log = log(test_name, 2, true);
 			console.time(test_log);
 
 			var data = { valid: 'valid', invalid: 'invalid' };
@@ -630,6 +631,7 @@ tests.push(function(next) {
 
 	});
 
+	// Run
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -1197,6 +1199,7 @@ tests.push(function(next) {
 
 	});
 
+	// Run
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
@@ -1383,7 +1386,7 @@ tests.push(function(next) {
 	// Multiple upload
 	subtests.push(function(next) {
 		subtest_name = 'Multiple';
-		subtest_log = log(subtest_name, 1, true);
+		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
 		var filenames = ['symbols.txt', 'important.txt'];
@@ -1413,12 +1416,294 @@ tests.push(function(next) {
 		});
 	});
 
+	// Run
 	subtests.wait(function(item, next) {
 		item(next);
 	}, next);
 
 });
 
+// Macros
+tests.push(function(next) {
+
+	var group_name = 'Macros';
+	var group_log = log(group_name, 0);
+	var subtests = [];
+
+	console.time(group_log);
+
+	// Return
+	subtests.push(function(next) {
+		subtest_name = 'Return';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		// Booleans
+		Assert.ok(NEWMACRO(`
+			RETURN true
+		`)() === true, 'Expecting - true');
+
+		Assert.ok(NEWMACRO(`
+			RETURN false
+		`)() === false, 'Expecting - false');
+
+		Assert.ok(NEWMACRO(`
+			RETURN "true"
+		`)() === true, 'Expecting - true');
+
+		Assert.ok(NEWMACRO(`
+			RETURN "false"
+		`)() === false, 'Expecting - false');
+
+		Assert.ok(NEWMACRO(`
+			RETURN "tRuE"
+		`)() === true, 'Expecting - true');
+
+		// Assert.ok(NEWMACRO(`
+		// 	RETURN 'true'
+		// `)() === null, 'Expecting syntax error');
+
+		// Assert.ok(NEWMACRO(`
+		// 	RETURN 'false'
+		// `)() === 'false', 'Expecting syntax error');
+
+		// Numbers
+		Assert.ok(NEWMACRO(`
+			RETURN 100
+		`)() === 100, 'Expecting - 100');
+
+		Assert.ok(NEWMACRO(`
+			RETURN 2 * "50" + 50 + 30 / (-2 * "-1")
+		`)() === 165, 'Expecting - 165');
+
+		Assert.ok(NEWMACRO(`
+			RETURN 12.3456789
+		`)() === 12.3456789, 'Expecting - 12.3456789');
+
+		Assert.ok(NEWMACRO(`
+			RETURN "12.3456789"
+		`)() === 12.3456789, 'Expecting - 12.3456789');
+
+		// Strings
+		// Assert.ok(NEWMACRO(`
+		// 	RETURN 'Invalid string'
+		// `)() === null, 'Expecting syntax error');
+
+		Assert.ok(NEWMACRO(`
+			RETURN "Hello" + " World!"
+		`)() === 'Hello World!', 'Expecting - "Hello World!"');
+
+		var special = '+ľščťžýáíň/,.-!@#$%^&*()_{}±§\`';
+		Assert.ok(NEWMACRO(`
+			RETURN "{0}"
+		`.format(special))() === special, 'Expecting - "{0}"'.format(special));
+		
+		Assert.ok(NEWMACRO(`
+			RETURN "Number " + 123
+		`)() === 'Number 123', 'Expecting - "Number 123"');
+
+		Assert.ok(NEWMACRO(`
+			RETURN "Number " + "456"
+		`)() === 'Number 456', 'Expecting - "Number 456"');
+
+		console.timeEnd(subtest_log);
+		next();
+	});
+
+	// Conditions
+	subtests.push(function(next) {
+		subtest_name = 'Conditions';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		var err = group_name + ' ' + subtest_name + ' - Expecting - true';
+ 
+		Assert.ok(NEWMACRO(`
+			IF true
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF false
+				RETURN true
+			FI
+		`)() === undefined, group_name + subtest_name + ' - Expecting - undefined');
+
+		Assert.ok(NEWMACRO(`
+			IF true
+				RETURN true
+			ELSE
+				RETURN false
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF false
+				RETURN false
+			ELSE
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF false
+				RETURN false
+			ELSE IF true
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF false
+				RETURN false
+			ELSE IF false
+				RETURN false
+			ELSE
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF 1 + 1 == "2"
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF 1 + "1" >= 1
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF 1 + "1" = 2
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF !false
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF 1 + 1 == 2 AND 1 < 2
+				RETURN true
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF 1 == 100 OR 1 == 1
+				RETURN true
+			FI
+		`)() === true, err);
+
+		console.timeEnd(subtest_log);
+		next();
+	});
+
+	// Arguments
+	subtests.push(function(next) {
+		subtest_name = 'Arguments';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		var err = group_name + ' ' + subtest_name + ' - Expecting - true';
+
+		Assert.ok(NEWMACRO(`
+			IF name = "Total" AND number ==  5 AND bool === true
+				RETURN true
+			FI
+		`)({ name: 'Total', number: 5, bool: true }) === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF name = "Total" AND number ==  5 AND bool === true
+				RETURN true
+			FI
+		`)({ name: 'Total', number: 5, bool: true }) === true, err);
+
+		console.timeEnd(subtest_log);
+		next();
+	});
+
+	// Helpers
+	subtests.push(function(next) {
+		subtest_name = 'Helpers';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		var err = group_name + ' ' + subtest_name + ' - Expecting - true';
+
+		var helpers = {}
+		helpers.includes = function(arr, value) {
+			return arr.includes(value);
+		}
+
+		Assert.ok(NEWMACRO(`
+			IF INCLUDES(arr, 2)
+				RETURN true
+			FI
+		`)({ arr: [1,2,3] }, helpers) === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF INCLUDES(arr, 5)
+				RETURN false
+			ELSE
+				RETURN true
+			FI
+		`)({ arr: [1,2,3] }, helpers) === true, err);
+
+		console.timeEnd(subtest_log);
+		next();
+	});
+
+	// Misc
+	subtests.push(function(next) {
+		subtest_name = 'Misc';
+		subtest_log = log(subtest_name, 1, true);
+		console.time(subtest_log);
+
+		var err = group_name + ' ' + subtest_name + ' - Expecting - true';
+
+		Assert.ok(NEWMACRO(`
+			RETURN CURRENCY(value, "EUR");
+		`)({ value: 100 }, { currency: (value, currency) => value + ' ' + currency }), '100 EUR', group_name + ' ' + subtest_name + ' - Expecting - "100 EUR"');
+
+		Assert.ok(NEWMACRO(`
+			IF true
+				IF true
+					RETURN true
+				FI
+				RETURN false
+			FI
+		`)() === true, err);
+
+		Assert.ok(NEWMACRO(`
+			IF true
+				IF true
+					IF true
+						IF false
+							RETURN false
+						ELSE
+							RETURN true
+						FI
+					FI
+				FI
+			FI
+		`)() === true, err);
+
+		console.timeEnd(subtest_log);
+		next()
+	});
+
+	// Run
+	subtests.wait(function(item, next) {
+		item(next);
+	}, next);
+
+});
 
 // Run
 ON('ready', function() {
