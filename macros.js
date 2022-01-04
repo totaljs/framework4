@@ -132,10 +132,7 @@ exports.compile = function(str, nocompile) {
 
 	for (var line of lines) {
 		if (line.trim()) {
-			line = line.replace(/model\.[a-z0-9.]+(\s)?(>|<|=)+./g, function(text) {
-				console.log(text);
-				return text.replace(/\./g, '?.');
-			});
+			line = line.replace(/model\.[a-z0-9.]+(\s)?(>|<|=)+./g, text => text.replace(/\./g, '?.'));
 			str += (str ? '\n' : '') + line;
 		}
 	}
