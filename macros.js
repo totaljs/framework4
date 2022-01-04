@@ -123,6 +123,9 @@ exports.compile = function(str, nocompile) {
 		return text;
 	});
 
+	if ((/'|`/).test(str))
+		return null;
+
 	str = str.replace(/@\d+@/gi, function(text) {
 		return keywords[text];
 	});
