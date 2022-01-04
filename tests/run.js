@@ -1701,6 +1701,69 @@ tests.push(function(next) {
 
 });
 
+// Transforms
+tests.push(function(next) {
+
+	var group = 'Transforms';
+	var group_log = log(group, 0, true);
+
+	var subtests = [];
+
+	console.log(group_log);
+
+	subtests.push(function(next) {
+		subtest_name = 'Basic';
+		subtest_log = log(subtest_name, 1);
+		console.time(subtest_log);
+
+		var output = 25;
+
+		NEWTRANSFORM('add', function($, value) {
+			$.value = value + 25;
+			$.next();
+		});
+
+		TRANSFORM('add', output, function(err, response) {
+			output = response;
+		});
+
+		setTimeout(function() {
+			Assert.ok(output === 50, group + ' - Expecting - 50');
+			console.timeEnd(subtest_log);
+			next();
+		}, 1000);
+
+	});
+
+	subtests.push(function(next) {
+		subtest_name = 'Error';
+		subtest_log = log(subtest_name, 1, true);
+		console.time(subtest_log);
+
+		var output = 25;
+
+		NEWTRANSFORM('error', function($, value) {
+			$.value = value;
+			$.invalid('ERROR');
+		});
+
+		TRANSFORM('error', output, function(err, response) {
+			Assert.ok(err && err.items[0].name === 'ERROR' && response, subtest_log + ' - Expecting error without response');
+		});
+
+		setTimeout(function() {
+			console.timeEnd(subtest_log);
+			next();
+		}, 1000);
+	});
+
+	// Run
+	subtests.wait(function(item, next) {
+		item(next);
+	}, next);
+
+});
+
 // Run
 ON('ready', function() {
 	console.time('	Finished');
