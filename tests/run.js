@@ -1459,13 +1459,9 @@ tests.push(function(next) {
 			RETURN "tRuE"
 		`)() === true, 'Expecting - true');
 
-		// Assert.ok(NEWMACRO(`
-		// 	RETURN 'true'
-		// `)() === null, 'Expecting syntax error');
-
-		// Assert.ok(NEWMACRO(`
-		// 	RETURN 'false'
-		// `)() === 'false', 'Expecting syntax error');
+		Assert.ok(NEWMACRO(`
+			RETURN 'true'
+		`) === null, 'Expecting syntax error');
 
 		// Numbers
 		Assert.ok(NEWMACRO(`
@@ -1485,9 +1481,9 @@ tests.push(function(next) {
 		`)() === 12.3456789, 'Expecting - 12.3456789');
 
 		// Strings
-		// Assert.ok(NEWMACRO(`
-		// 	RETURN 'Invalid string'
-		// `)() === null, 'Expecting syntax error');
+		Assert.ok(NEWMACRO(`
+			RETURN 'Invalid string'
+		`) === null, 'Expecting syntax error');
 
 		Assert.ok(NEWMACRO(`
 			RETURN "Hello" + " World!"
