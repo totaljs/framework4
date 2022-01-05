@@ -2,7 +2,7 @@
 0.0.57
 ========================
 
-- added `session.locale(userdata => userdata.language)` to built-in auth mechanism
+- added `session.locale = userdata => userdata.language` to built-in auth mechanism
 
 ========================
 0.0.56
