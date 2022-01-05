@@ -1066,6 +1066,10 @@ var authbuiltin = function(opt) {
 		return (sessionid + '-' + userid + '-' + Date.now().toString(36)).encrypt(opt.secret);
 	};
 
+	opt.locale = function(fn) {
+		opt.onlocale = fn;
+	};
+
 	opt.authcookie = function($, sessionid, userid, expiration, options) {
 		if (!options)
 			options = opt.options;
@@ -1161,6 +1165,9 @@ var authbuiltin = function(opt) {
 				$.req.session = opt.sessions[meta.sessionid] = { sessionid: meta.sessionid, userid: meta.userid, data: data, ua: $.ua, expire: NOW.add(opt.expire) };
 				$.req.sessionid = meta.sessionid;
 
+				if (opt.onlocale)
+					$.req.$language = opt.onlocale(data);
+
 				if (!opt.onsession || !opt.onsession($.req.session, $, true))
 					$.success(data);
 
@@ -1230,7 +1237,6 @@ var authbuiltin = function(opt) {
 };
 
 global.AUTH = function(fn) {
-
 	if (typeof(fn) === 'function')
 		DEF.onAuthorize = framework_builders.AuthOptions.wrap(fn);
 	else
