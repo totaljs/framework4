@@ -1697,7 +1697,10 @@ tests.push(function(next) {
 	// Run
 	subtests.wait(function(item, next) {
 		item(next);
-	}, next);
+	}, function() {
+		console.timeEnd(group_log);
+		next();
+	});
 
 });
 
@@ -1716,19 +1719,19 @@ tests.push(function(next) {
 		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
-		var output = 25;
+		var result = 25;
 
 		NEWTRANSFORM('add', function($, value) {
-			$.value = value + 25;
+			$.value = value;
 			$.next();
 		});
 
-		TRANSFORM('add', output, function(err, response) {
-			output = response;
+		TRANSFORM('add', 25, function(err, response) {
+			result += response;
 		});
 
 		setTimeout(function() {
-			Assert.ok(output === 50, group + ' - Expecting - 50');
+			Assert.ok(result === 50, group + ' - Expecting - 50');
 			console.timeEnd(subtest_log);
 			next();
 		}, 1000);
