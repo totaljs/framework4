@@ -3,6 +3,7 @@
 ========================
 
 - added `session.locale = userdata => userdata.language` to built-in auth mechanism
+- added `write` functionality to the `BitExtractor` class by [Peter Stolc](https://github.com/a50397)
 
 ========================
 0.0.56
