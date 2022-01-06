@@ -21,12 +21,13 @@ class BitExtractor {
 
 	invalid = false;
 
-	constructor(data = '', radix=10) {
+	constructor(data = '', radix = 10) {
 
+		/*
 		if (!this._verifyRadix(radix)) {
 			this.invalid = true;
 			return;
-		}
+		}*/
 
 		data = this._verify(data, radix);
 
@@ -35,12 +36,13 @@ class BitExtractor {
 			this.#length = this.#data.toString(2).length;
 		} else
 			this.invalid = true;
+
 	};
 
 
 	_verify(data, base) {
 		data = data.toString().toLowerCase();
-		for (let c of data)  {
+		for (let c of data) {
 			if (ALLOWED[c] == null || ALLOWED[c] > base)
 				return null;
 		}
@@ -48,10 +50,11 @@ class BitExtractor {
 	};
 
 	_verifyRadix(radix) {
-		return radix >=2 && radix <= 36;
+		return radix >= 2 && radix <= 36;
 	}
 
 	_toBigInt(value, radix) {
+
 		var val = BigInt(0);
 
 		if (value.length)
@@ -80,7 +83,7 @@ class BitExtractor {
 	 * Return a number binary consisting of 'length' of ones
 	 */
 	_ones(length) {
-		return length ? (this.#two ** BigInt(length) -  this.#one) : BigInt(0);
+		return length ? (this.#two ** BigInt(length) - this.#one) : BigInt(0);
 	};
 
 	/**
@@ -122,7 +125,7 @@ class BitExtractor {
 		return this.#data;
 	};
 
-	parse(start, length = 1, type = 'bits', radix=10) {
+	parse(start, length = 1, type = 'bits', radix = 10) {
 		return type === 'bits' ? this.parseBits(start, length, radix) : this.parseBytes(start, length, radix);
 	};
 
@@ -131,19 +134,17 @@ class BitExtractor {
 	};
 
 	/**
-	 * Read 'length' bits from the position 'start' from the data and represent it in radix base
+	 * Read "length" bits from the position 'start' from the data and represent it in radix base
 	 */
-	parseBits(start, length=1, radix=10) {
-		if (this.invalid || !length || typeof start === 'undefined' || radix < 2 || radix > 36)
+	parseBits(start, length = 1, radix = 10) {
+		if (this.invalid || !length || start == null || radix < 2 || radix > 36)
 			return 0;
 		var ret = ((this.#data >> BigInt(start))&this._ones(length));
 		return radix == 10 ? ret : ret.toString(radix);
 	};
 
-	parseBytes(start, length=1, radix=10) {
-		if (this.invalid)
-			return 0;
-		return this.parseBits(start*8, length*8, radix);
+	parseBytes(start, length = 1, radix = 10) {
+		return this.invalid ? 0 : this.parseBits(start * 8, length * 8, radix);
 	};
 
 	shiftBits(bits = 1, radix = 10) {
@@ -162,8 +163,8 @@ class BitExtractor {
 		if (this.invalid || this.#offsetRead >= this.#length)
 			return 0;
 
-		var ret = this.parseBits(this.#offsetRead, bytes*8, radix);
-		this.#offsetRead += bytes*8;
+		var ret = this.parseBits(this.#offsetRead, bytes * 8, radix);
+		this.#offsetRead += bytes * 8;
 
 		return ret;
 	};
@@ -172,14 +173,17 @@ class BitExtractor {
 	 * Write 'bits' of length 'length' at the position of 'position' to this.#data
 	 */
 	write(bits, length, position, radix = 10) {
+
 		if (this.invalid)
 			return 0;
+
 		bits = this._verify(bits, radix)
 		if (length && bits != null && Number.isInteger(position)) {
 			bits = this._toBigInt(bits, radix);
-			this.#data = (this.#data&this._mask(length, position, Math.max(this.#data.toString(2).length, position+length)))|(BigInt(bits)<<BigInt(position));
+			this.#data = (this.#data & this._mask(length, position, Math.max(this.#data.toString(2).length, position + length))) | (BigInt(bits) << BigInt(position));
 			this.#length = this.#data.toString(2).length;
 		}
+
 		return this.#data;
 	};
 
@@ -199,4 +203,3 @@ class BitExtractor {
 exports.make = function(data, from = 16, to = 10) {
 	return new BitExtractor(data, from, to);
 };
-
