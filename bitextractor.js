@@ -11,12 +11,14 @@ var ALLOWED = {};
 })();
 
 class BitExtractor {
-    #one = BigInt(1);
-    #two = BigInt(2);
+
+	#one = BigInt(1);
+	#two = BigInt(2);
 	#data = BigInt(0);
 	#offsetRead = 0;
 	#offsetWrite = 0;
 	#length = 0;
+
 	invalid = false;
 
 	constructor(data = '', radix=10) {
@@ -27,24 +29,20 @@ class BitExtractor {
 		}
 
 		data = this._verify(data, radix);
-		if (data === null) {
+
+		if (data) {
+			this.#data = this._toBigInt(data, radix);
+			this.#length = this.#data.toString(2).length;
+		} else
 			this.invalid = true;
-			return;
-		}
-
-
-		this.#data = this._toBigInt(data, radix);
-		this.#length = this.#data.toString(2).length;
-
 	};
 
-	
+
 	_verify(data, base) {
 		data = data.toString().toLowerCase();
 		for (let c of data)  {
-			if (ALLOWED[c] == null || ALLOWED[c] > base) {
+			if (ALLOWED[c] == null || ALLOWED[c] > base)
 				return null;
-			}
 		}
 		return data;
 	};
@@ -52,7 +50,6 @@ class BitExtractor {
 	_verifyRadix(radix) {
 		return radix >=2 && radix <= 36;
 	}
-
 
 	_toBigInt(value, radix) {
 		var val = BigInt(0);
@@ -76,63 +73,54 @@ class BitExtractor {
 				val = parts.reduce((r, v) => r * factor + BigInt(parseInt(v, radix)), 0n);
 			}
 
-		return val
+		return val;
 	};
 
 	/**
-     * Return a number binary consisting of 'length' of ones 
-     */
+	 * Return a number binary consisting of 'length' of ones
+	 */
 	_ones(length) {
-        if (!length) 
-			return BigInt(0)
-        return (this.#two ** BigInt(length) -  this.#one);
-    }
+		return length ? (this.#two ** BigInt(length) -  this.#one) : BigInt(0);
+	};
 
 	/**
-     * Create a mask of length 'total_length' consisting of ones 
-     * and with an array of 0s at the position of 'position' and 'length' length
+	 * Create a mask of length 'total_length' consisting of ones
+	 * and with an array of 0s at the position of 'position' and 'length' length
 	 * calling this._mask(5, 3, 20) would return '11111111111100000111'
-     */
+	 */
 	_mask(length, position, total_length) {
-        return (this.#two**BigInt(total_length)-this.#one)&(~(this._ones(length) << BigInt(position)));
-    }
-
+		return (this.#two ** BigInt(total_length) - this.#one) & (~(this._ones(length) << BigInt(position)));
+	};
 
 	get offsetRead() {
 		return this.#offsetRead;
-	}
+	};
 
 	set offsetRead(value) {
 		if (Number.isInteger(value) && value >= 0 && value < this.#length)
 			this.#offsetRead = value;
-	}
-
+	};
 
 	get offsetWrite() {
 		return this.#offsetWrite;
-	}
+	};
 
 	set offsetWrite(value) {
 		if (Number.isInteger(value) && value >= 0 && value < this.#length)
 			this.#offsetWrite = value;
-	}
-
+	};
 
 	get buffer() {
 		return Buffer.from(this.#data.toString(16), 'hex');
 	};
 
-
 	toString(radix = 10) {
-		if (!this._verifyRadix(radix)) {
-			return '';
-		}
-		return this.#data.toString(radix);
-	}
+		return this._verifyRadix(radix) ? this.#data.toString(radix) : '';
+	};
 
 	valueOf() {
 		return this.#data;
-	}
+	};
 
 	parse(start, length = 1, type = 'bits', radix=10) {
 		return type === 'bits' ? this.parseBits(start, length, radix) : this.parseBytes(start, length, radix);
@@ -146,17 +134,17 @@ class BitExtractor {
 	 * Read 'length' bits from the position 'start' from the data and represent it in radix base
 	 */
 	parseBits(start, length=1, radix=10) {
-		if (this.invalid || !length || typeof start === 'undefined' || radix < 2 || radix > 36)	
+		if (this.invalid || !length || typeof start === 'undefined' || radix < 2 || radix > 36)
 			return 0;
 		var ret = ((this.#data >> BigInt(start))&this._ones(length));
-		return radix == 10 ? ret : ret.toString(radix); 
-	}
+		return radix == 10 ? ret : ret.toString(radix);
+	};
 
 	parseBytes(start, length=1, radix=10) {
 		if (this.invalid)
 			return 0;
-        return this.parseBits(start*8, length*8, radix); 
-    }
+		return this.parseBits(start*8, length*8, radix);
+	};
 
 	shiftBits(bits = 1, radix = 10) {
 
@@ -181,8 +169,8 @@ class BitExtractor {
 	};
 
 	/**
-     * Write 'bits' of length 'length' at the position of 'position' to this.#data 
-     */
+	 * Write 'bits' of length 'length' at the position of 'position' to this.#data
+	 */
 	write(bits, length, position, radix = 10) {
 		if (this.invalid)
 			return 0;
@@ -193,10 +181,9 @@ class BitExtractor {
 			this.#length = this.#data.toString(2).length;
 		}
 		return this.#data;
-    }
+	};
 
-
-	/** 
+	/**
 	 * Write sequentially to the #data according to the #offsetWrite pointer
 	*/
 	shiftWrite(bits, length, radix = 10) {
@@ -205,7 +192,7 @@ class BitExtractor {
 		var ret = this.write(bits, length, this.#offsetWrite, radix);
 		this.#offsetWrite += length;
 		return ret;
-    }
+	};
 
 }
 
