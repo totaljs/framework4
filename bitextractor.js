@@ -50,7 +50,7 @@ class BitExtractor {
 
 	_verifyRadix(radix) {
 		return radix >= 2 && radix <= 36;
-	}
+	};
 
 	_toBigInt(value, radix) {
 
