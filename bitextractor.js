@@ -129,8 +129,8 @@ class BitExtractor {
 		return type === 'bits' ? this.parseBits(start, length, radix) : this.parseBytes(start, length, radix);
 	};
 
-	shift(start, length = 1, type = 'bits') {
-		return type === 'bits' ? this.shiftBits(start, length) : this.shiftBytes(start, length);
+	shift(length = 1, type = 'bits', radix = 10) {
+		return type === 'bits' ? this.shiftBits(length, radix) : this.shiftBytes(length, radix);
 	};
 
 	/**
