@@ -140,7 +140,7 @@ class BitExtractor {
 		if (this.invalid || !length || start == null || radix < 2 || radix > 36)
 			return 0;
 		var ret = ((this.#data >> BigInt(start))&this._ones(length));
-		return radix == 10 ? ret : ret.toString(radix);
+		return radix == 10 ? ret < Number.MAX_SAFE_INTEGER ? Number(ret) : ret : ret.toString(radix);
 	};
 
 	parseBytes(start, length = 1, radix = 10) {
