@@ -129,8 +129,8 @@ class BitExtractor {
 		return type === 'bits' ? this.parseBits(start, length, radix) : this.parseBytes(start, length, radix);
 	};
 
-	shift(start, length = 1, type = 'bits') {
-		return type === 'bits' ? this.shiftBits(start, length) : this.shiftBytes(start, length);
+	shift(length = 1, type = 'bits', radix = 10) {
+		return type === 'bits' ? this.shiftBits(length, radix) : this.shiftBytes(length, radix);
 	};
 
 	/**
@@ -140,7 +140,7 @@ class BitExtractor {
 		if (this.invalid || !length || start == null || radix < 2 || radix > 36)
 			return 0;
 		var ret = ((this.#data >> BigInt(start))&this._ones(length));
-		return radix == 10 ? ret : ret.toString(radix);
+		return radix == 10 ? ret < Number.MAX_SAFE_INTEGER ? Number(ret) : ret : ret.toString(radix);
 	};
 
 	parseBytes(start, length = 1, radix = 10) {
@@ -200,6 +200,6 @@ class BitExtractor {
 
 }
 
-exports.make = function(data, from = 16, to = 10) {
-	return new BitExtractor(data, from, to);
+exports.make = function(data, radix = 16) {
+	return new BitExtractor(data, radix);
 };
