@@ -200,6 +200,6 @@ class BitExtractor {
 
 }
 
-exports.make = function(data, from = 16, to = 10) {
-	return new BitExtractor(data, from, to);
+exports.make = function(data, radix = 16) {
+	return new BitExtractor(data, radix);
 };
