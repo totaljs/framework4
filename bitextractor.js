@@ -39,7 +39,6 @@ class BitExtractor {
 
 	};
 
-
 	_verify(data, base) {
 		data = data.toString().toLowerCase();
 		for (let c of data) {
