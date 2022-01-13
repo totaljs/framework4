@@ -33,12 +33,17 @@ class BitExtractor {
 
 		if (data) {
 			this.#data = this._toBigInt(data, radix);
-			this.#length = this.#data.toString(2).length;
+			this.#length = this._bin(this.#data).length;
 		} else
 			this.invalid = true;
 
 	};
 
+
+	_bin(data) {
+		var bin = data.toString(2)
+		return bin.padStart(Math.ceil(bin.length / 8) * 8, '0')
+	}
 
 	_verify(data, base) {
 		data = data.toString().toLowerCase();
@@ -139,7 +144,7 @@ class BitExtractor {
 	parseBits(start, length = 1, radix = 10) {
 		if (this.invalid || !length || start == null || radix < 2 || radix > 36)
 			return 0;
-		var ret = ((this.#data >> BigInt(start))&this._ones(length));
+		var ret = ((this.#data >> BigInt(this.#length - (start + length)))&this._ones(length));
 		return radix == 10 ? ret < Number.MAX_SAFE_INTEGER ? Number(ret) : ret : ret.toString(radix);
 	};
 
@@ -181,7 +186,7 @@ class BitExtractor {
 		if (length && bits != null && Number.isInteger(position)) {
 			bits = this._toBigInt(bits, radix);
 			this.#data = (this.#data & this._mask(length, position, Math.max(this.#data.toString(2).length, position + length))) | (BigInt(bits) << BigInt(position));
-			this.#length = this.#data.toString(2).length;
+			this.#length = this._bin(this.#data).length;
 		}
 
 		return this.#data;
