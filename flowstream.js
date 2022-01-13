@@ -780,7 +780,7 @@ FP.unregister = function(name, callback) {
 						curr.close && curr.close.call(instance);
 						curr.destroy && curr.destroy.call(instance);
 					} catch (e) {
-						self.onerror(e, 'instance_close', instance);
+						self.onerror.call(instance, e, 'instance_close', instance);
 					}
 					delete self.meta.flow[key];
 				}
@@ -1273,7 +1273,7 @@ FP.initcomponent = function(key, component) {
 			self.ondisconnect && self.ondisconnect(instance);
 			instance.close && instance.close.call(instance);
 		} catch (e) {
-			self.onerror(e, 'instance_close', instance);
+			self.onerror.call(instance, e, 'instance_close', instance);
 		}
 	}
 
