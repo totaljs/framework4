@@ -6,6 +6,7 @@
 - added `write` functionality to the `BitExtractor` class by [Peter Stolc](https://github.com/a50397)
 - fixed error handling in the FlowStream
 - fixed refreshing of `NOW` variable in the FlowStream
+- fixed calling end-response callback in the `res.$file()` method
 
 ========================
 0.0.56

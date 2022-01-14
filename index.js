@@ -17844,11 +17844,15 @@ function extend_response(PROTO) {
 		F.stats.response.stream++;
 		req.bodydata = null;
 
+		var finish = function() {
+			framework_internal.destroyStream(options.stream);
+			response_end(res);
+		};
+
 		if (req.method === 'HEAD') {
 			res.writeHead(options.code || 200, headers);
 			res.end();
-			options.stream && framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
-			response_end(res);
+			options.stream && framework_internal.onFinished(res, finish);
 			return res;
 		}
 
@@ -17856,14 +17860,13 @@ function extend_response(PROTO) {
 			res.writeHead(options.code || 200, headers);
 			res.on('error', () => options.stream.close());
 			options.stream.pipe(Zlib.createGzip(GZIPSTREAM)).pipe(res).on('data', countuploadstats);
-			framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
+			framework_internal.onFinished(res, finish);
 		} else {
 			res.writeHead(options.code || 200, headers);
-			framework_internal.onFinished(res, () => framework_internal.destroyStream(options.stream));
+			framework_internal.onFinished(res, finish);
 			options.stream.pipe(res).on('data', countuploadstats);
 		}
 
-		response_end(res);
 		return res;
 	};
 
@@ -18175,9 +18178,9 @@ function $file_nocompress(stream, next, res) {
 	framework_internal.onFinished(res, function() {
 		next();
 		framework_internal.destroyStream(stream);
+		response_end(res);
 	});
 
-	response_end(res);
 }
 
 function $file_range(name, range, headers, res) {
@@ -18226,10 +18229,10 @@ function $file_range(name, range, headers, res) {
 function $file_range_callback(stream, next, res) {
 	framework_internal.onFinished(res, function() {
 		framework_internal.destroyStream(stream);
+		response_end(res);
 		next();
 	});
 	stream.pipe(res).on('data', countuploadstats);
-	response_end(res);
 }
 
 function $image_nocache(res) {
@@ -18395,8 +18398,7 @@ function response_end(res) {
 	res.req.clear(true);
 	res.req.bodydata = null;
 
-	if (res.controller)
-		res.req.$total_success();
+	res.controller && res.req.$total_success();
 
 	if (res.options.callback) {
 		res.options.callback();
