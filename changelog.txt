@@ -7,6 +7,8 @@
 - fixed error handling in the FlowStream
 - fixed refreshing of `NOW` variable in the FlowStream
 - fixed calling end-response callback in the `res.$file()` method
+- fixed assigning values in Macros
+- added private variables to Macros `#variable="VALUE"`
 
 ========================
 0.0.56

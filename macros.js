@@ -99,10 +99,26 @@ exports.compile = function(str, nocompile) {
 		return key;
 	});
 
+	// Null
+	str = str.replace(/(\s)?(null)(\s)?/ig, function(text) {
+		var key = '@' + indexer + '@';
+		keywords[key] = text.replace(/null/i, 'null');
+		indexer++;
+		return key;
+	});
+
 	// Helpers
 	str = str.replace(/[a-z0-9_]+\(/ig, function(text) {
 		var key = '@' + indexer + '@';
 		keywords[key] = 'helpers.' + text.toLowerCase();
+		indexer++;
+		return key;
+	});
+
+	// Temporary variables
+	str = str.replace(/#[a-z0-9_.]+./ig, function(text) {
+		var key = '@' + indexer + '@';
+		keywords[key] = text.substring(1).toLowerCase().replace(/[a-z]/i, text => 'tmp.' + text);
 		indexer++;
 		return key;
 	});
@@ -135,10 +151,10 @@ exports.compile = function(str, nocompile) {
 
 	for (var line of lines) {
 		if (line.trim()) {
-			line = line.replace(/model\.[a-z0-9.]+(\s)?(>|<|=)+./g, text => text.replace(/\./g, '?.'));
+			// line = line.replace(/model\.[a-z0-9.]+(\s)?(>|<|=)+./g, text => text.replace(/\./g, '?.'));
 			str += (str ? '\n' : '') + line;
 		}
 	}
 
-	return nocompile ? str : new Function('model', 'helpers', str);
+	return nocompile ? str : new Function('model', 'helpers', 'var tmp={};' + str);
 };
