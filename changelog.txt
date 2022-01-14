@@ -5,6 +5,7 @@
 - added `session.locale = userdata => userdata.language` to built-in auth mechanism
 - added `write` functionality to the `BitExtractor` class by [Peter Stolc](https://github.com/a50397)
 - fixed error handling in the FlowStream
+- fixed refreshing of `NOW` variable in the FlowStream
 
 ========================
 0.0.56

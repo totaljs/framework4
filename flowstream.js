@@ -571,6 +571,9 @@ function Flow(name, errorhandler) {
 				} else
 					counter++;
 
+				if (counter % 10 === 0)
+					global.NOW = new Date();
+
 				t.onstats && t.onstats(t.stats);
 				t.$events.stats && t.emit('stats', t.stats);
 
