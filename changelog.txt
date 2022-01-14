@@ -8,7 +8,8 @@
 - fixed refreshing of `NOW` variable in the FlowStream
 - fixed calling end-response callback in the `res.$file()` method
 - fixed assigning values in Macros
-- added private variables to Macros `#variable="VALUE"`
+- added private variables to Macros in the form `#variable="VALUE"`
+- added comments to Macros in the form `// comment`
 
 ========================
 0.0.56

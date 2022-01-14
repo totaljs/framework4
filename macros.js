@@ -16,6 +16,9 @@ exports.compile = function(str, nocompile) {
 	var indexer = 0;
 	var keywords = {};
 
+	// Removes comments
+	str = str.split('\n').map(line => line.trim().substring(0, 2) === '//' ? '' : line).join('\n');
+
 	// User defined values
 	str = str.replace(/".*?"/g, function(text) {
 
