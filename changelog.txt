@@ -10,6 +10,7 @@
 - fixed assigning values in Macros
 - added private variables to Macros in the form `#variable="VALUE"`
 - added comments to Macros in the form `// comment`
+- fixed auto-closing of websocket
 
 ========================
 0.0.56
