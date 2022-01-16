@@ -3347,7 +3347,9 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	var r = F.routes.all[mypath];
 	if (r) {
-		if (r.isAPI) {
+		if (r.remove) {
+			r.remove(!isremoveonly);
+		} else {
 			if (F.routes.api[r.url])
 				delete F.routes.api[r.url][r.name];
 			if (Object.keys(F.routes.api[r.url]).length === 0) {
@@ -3360,8 +3362,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				}
 			}
 			delete F.routes.all[mypath];
-		} else
-			r.remove(!isremoveonly);
+		}
 	}
 
 	if (isremoveonly)
@@ -4091,7 +4092,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			F.routes.web.push(r);
 			// Appends cors route
 			isCORS && CORS(urlcache, corsflags);
-		}
+		} else
+			instance.isAPI = true;
 	}
 
 	F.routes.all[mypath] = instance;
@@ -11163,6 +11165,7 @@ FrameworkRouteProto.remove = function(nosort) {
 			index = F.routes.web.indexOf(self.route);
 
 		if (index !== -1) {
+
 			tmp = F.routes.web[index];
 			if (tmp.apiname) {
 				var api = F.routes.api[tmp.apiname];
@@ -11182,12 +11185,33 @@ FrameworkRouteProto.remove = function(nosort) {
 				}
 
 			} else {
+
 				delete F.routes.all[tmp.path];
 				F.routes.web.splice(index, 1);
 			}
 
 			if (!nosort)
 				F.routes_sort();
+
+		} else if (self.isAPI) {
+
+			for (var key in F.routes.api) {
+				tmp = F.routes.api[key];
+				for (var key2 in tmp) {
+					if (tmp[key2].path === self.route.path)
+						delete tmp[key2];
+				}
+			}
+
+			for (var key in F.routes.all) {
+				tmp = F.routes.all[key];
+				if (tmp === self)
+					delete F.routes.all[key];
+			}
+
+			if (!nosort)
+				F.routes_sort();
+
 		}
 	}
 };
