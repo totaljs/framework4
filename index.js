@@ -15324,7 +15324,6 @@ WebSocketProto.destroy = function() {
  * @param {Function} callback
  * @return {WebSocket]
  */
-
 function wsdestroy_open() {
 	var self = this;
 	if (self.$autocloseid) {
@@ -15334,6 +15333,13 @@ function wsdestroy_open() {
 }
 
 function wsdestroy_close(self) {
+
+	// Checks again online state
+	if (self.online) {
+		self.$autocloseid = null;
+		return;
+	}
+
 	if (self.$autodestroy) {
 		for (var fn of self.$autodestroy)
 			fn.call(self);
