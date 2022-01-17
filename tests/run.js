@@ -611,7 +611,7 @@ tests.push(function(next) {
 		// Patch Keys - Multioperation
 		tests.push(function(next) {
 			test_name = 'Patch keys (multioperation)';
-			test_log = log(test_name, 2, true);
+			test_log = log(test_name, 2);
 			console.time(test_log);
 
 			var data = { valid: 'valid', invalid: 'invalid' };
@@ -629,6 +629,82 @@ tests.push(function(next) {
 			item(next);
 		}, next);
 
+	});
+
+	// Removing routes
+	subtests.push(function(next) {
+		subtest_name = 'Removing routes';
+		subtest_log = log(subtest_name, 2, true);
+		console.time(subtest_log);
+
+		var route;
+		var check = function(type, route) {
+			return typeof(F.routes.all[route]) === 'undefined' && typeof(F.routes[type][route]) === 'undefined';
+		}
+
+		// Regular route
+		route = 'GET /normalremove/     *Remove --> exec';
+
+		ROUTE(route);
+		ROUTE(route, null);
+		Assert.ok(check('all', route), 'Regular route was not removed with "null"');
+
+		ROUTE(route).remove();
+		Assert.ok(check('all', route), 'Regular route was not removed with "remove()"');
+
+		// Dynamic
+		route = 'GET /dynamicremove/{userid}/q/{123}';
+
+		ROUTE(route);
+		ROUTE(route, null);
+		Assert.ok(check('all', route), 'Dynamic route was not removed with "null"'); 
+
+		ROUTE(route).remove();
+		Assert.ok(check('all', route), 'Dynamic route was not removed with "remove()"'); 
+
+		// File
+		route = 'FILE /fileremove/';
+
+		ROUTE(route, NOOP);
+		ROUTE(route, null);
+		Assert.ok(check('api', route), 'File route was not removed with "null"'); 
+
+		// Action
+		route = 'FILE /actionremove/';
+		ROUTE(route, NOOP);
+		ROUTE(route, null);
+		Assert.ok(check('all', route), 'Action route was not removed with "null"'); 
+
+		// API route
+		route = 'API /apiremove/ -api_remove *Remove --> exec';
+
+		ROUTE(route);
+		ROUTE(route, null);
+		Assert.ok(check('api', route), 'API route was not removed with "null"');
+
+		ROUTE(route).remove();
+		Assert.ok(check('api', route), 'API route was not removed with "remove()"');
+
+		// Websocket
+		route = 'SOCKET /socketremove/';
+
+		ROUTE(route, NOOP);
+		ROUTE(route, null);
+		Assert.ok(check('websockets', route), 'Websocket route was not removed with "null"'); 
+
+		// WAPI
+		var socket = 'SOCKET /wapiremove/ @wapi';
+		route = 'API @api -wapi_remove *Remove --> exec';
+
+		ROUTE(socket, NOOP);
+		ROUTE(route);
+		ROUTE(route, null);
+		Assert.ok(check('all', route), 'WAPI route was not removed with "null"'); 
+
+		ROUTE(socket, null);
+		
+		console.timeEnd(subtest_log);
+		next();
 	});
 
 	// Run
