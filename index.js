@@ -13796,7 +13796,6 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 	// Checks the HEAD method
 	if (self.req.method === 'HEAD') {
 		res.options.body = EMPTYBUFFER;
-		res.options.type = CT_JSON;
 		res.$text();
 		F.stats.response.json++;
 		return self;
@@ -13842,6 +13841,30 @@ ControllerProto.json = function(obj, headers, beautify, replacer) {
 	res.options.body = obj == null ? 'null' : obj;
 	res.$text();
 	self.precache && self.precache(obj, res.options.type, headers);
+	return self;
+};
+
+ControllerProto.jsonstring = function(str, headers) {
+
+	var self = this;
+	var res = self.res;
+
+	res.options.code = self.status || 200;
+	res.options.type = CT_JSON;
+	res.options.headers = headers;
+
+	F.stats.response.json++;
+
+	if (self.req.method === 'HEAD') {
+		res.options.body = EMPTYBUFFER;
+		res.$text();
+	} else {
+		res.options.compress = str.length > 4096;
+		res.options.body = str;
+		res.$text();
+		self.precache && self.precache(str, res.options.type, headers);
+	}
+
 	return self;
 };
 
