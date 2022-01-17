@@ -13,6 +13,7 @@
 - fixed auto-closing of WebSocket
 - fixed removing of API routes
 - added `controller.jsonstring(str, [headers])` method
+- added `res.jsonstring(str)` method
 
 ========================
 0.0.56
