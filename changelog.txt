@@ -14,6 +14,7 @@
 - fixed removing of API routes
 - added `controller.jsonstring(str, [headers])` method
 - added `res.jsonstring(str)` method
+- added new command `CMD('importbuild', 'URL address', [callback(err)])` method for importing Total.js Builds
 
 ========================
 0.0.56

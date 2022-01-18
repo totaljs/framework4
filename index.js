@@ -5939,36 +5939,44 @@ function install_build(name, filename, next) {
 		return;
 	}
 
-	var meta = F.builds[name] = { filename: filename };
 	var build = Fs.readFileSync(filename).toString('utf8').parseJSON();
 	if (build && build.compiled) {
-
-		var code;
-
-		meta.id = build.id || (build.name ? HASH(build.name).toString(36) : GUID(10));
-		meta.name = build.name;
-		meta.icon = build.icon;
-		meta.url = build.url;
-		meta.color = build.color;
-		meta.summary = build.summary;
-		meta.uninstall = uninstall_plugin;
-
-		if ((/^base64\s/i).test(build.compiled))
-			code = decodeURIComponent(Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64'));
-		else if ((/^hex\s/i).test(build.compiled))
-			code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
-		else
-			code = build.compiled.trim();
-
-		var tmp = PATH.temp(name + '.build.js');
-		Fs.writeFileSync(tmp, code);
-		meta.module = require(tmp);
-
-		if (!F.buildserrorhandling)
-			F.buildserrorhandling = code.indexOf('//@build') !== -1;
+		var meta = install_plugin_obj(name, build);
+		if (meta)
+			meta.filename = filename;
 	}
 
 	internal_next(next);
+}
+
+function install_plugin_obj(name, build) {
+
+	var code;
+	var meta = {};
+	meta.id = build.id || (build.name ? HASH(build.name).toString(36) : GUID(10));
+	meta.name = build.name;
+	meta.icon = build.icon;
+	meta.url = build.url;
+	meta.color = build.color;
+	meta.summary = build.summary;
+	meta.uninstall = uninstall_plugin;
+	F.builds[name] = meta;
+
+	if ((/^base64\s/i).test(build.compiled))
+		code = decodeURIComponent(Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'base64'));
+	else if ((/^hex\s/i).test(build.compiled))
+		code = Buffer.from(build.compiled.substring(build.compiled.indexOf(' ') + 1).trim(), 'hex');
+	else
+		code = build.compiled.trim();
+
+	var tmp = PATH.temp(name + '.build.js');
+	Fs.writeFileSync(tmp, code);
+	meta.module = require(tmp);
+
+	if (!F.buildserrorhandling)
+		F.buildserrorhandling = code.indexOf('//@build') !== -1;
+
+	return meta;
 }
 
 function uninstall_plugin() {
@@ -19650,6 +19658,27 @@ NEWCOMMAND('clear_owner', function(owner) {
 	}
 
 	F.routes_sort();
+});
+
+NEWCOMMAND('import_build', function(url, callback) {
+	RESTBuilder.GET(url).exec(function(err, response) {
+		if (err) {
+			callback && callback(err);
+			return;
+		}
+
+		if (!response.compiled) {
+			callback && callback('Invalid content');
+			return;
+		}
+
+		try {
+			install_plugin_obj(U.getName(url) || GUID(10), response);
+			callback && callback();
+		} catch (e) {
+			callback && callback(e);
+		}
+	});
 });
 
 // Because of controller prototypes
