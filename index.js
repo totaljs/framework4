@@ -6346,6 +6346,15 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 			var index = tmp.indexOf('/', 2);
 			var name = tmp.substring(2, index);
 			return F.plugins[name] ? PATH.root('/plugins/' + name + '/public/' + tmp.substring(index + 1)) : null;
+		case '-':
+			var index = tmp.indexOf('/', 2);
+			var name = tmp.substring(2, index);
+			var filename = tmp.substring(index + 1);
+			for (var ext of F.extensions) {
+				if (ext.id === name)
+					return ext.files[filename];
+			}
+			break;
 	}
 
 	if (F.routes.mapping[url])
@@ -19490,15 +19499,50 @@ global.NEWEXTENSION = function(code, callback, extend) {
 		return;
 	}
 
+	var files = {};
+
+	if (code.indexOf('<script total') !== -1) {
+
+		var index = 0;
+
+		while (true) {
+			index = code.indexOf('<file ', index);
+			if (index === -1) {
+				break;
+			} else {
+				var tmp = code.indexOf('>', index + 8);
+				var end = code.indexOf('</file>', tmp);
+				var name = code.substring(index + 8, tmp).trim();
+				var body = code.substring(tmp + 1, end).trim();
+				tmp = name.indexOf('"');
+				name = name.substring(tmp + 1, name.lastIndexOf('"'));
+				files[name] = body;
+				code = code.substring(0, index) + code.substring(end + 9);
+			}
+		}
+		var parsed = code.parseComponent({ be: '<script total>' });
+		code = parsed.be || '';
+	}
+
 	var obj = {};
 
 	try {
 		new Function('exports', code)(obj);
+		obj.files = files;
 		extend && extend(obj);
+
 		if (!obj.id) {
 			var id = obj.name || code;
 			obj.id = HASH(id).toString(36);
 		}
+
+		for (var key in obj.files) {
+			var path = PATH.tmp(obj.id.makeid() + '_' + key);
+			var body = obj.files[key];
+			obj.files[key] = path;
+			F.Fs.writeFile(path, body, ERROR('Extensions: ' + obj.id));
+		}
+
 	} catch (e) {
 		callback && callback(new ErrorBuilder().push(e));
 		return;
@@ -19516,6 +19560,10 @@ global.NEWEXTENSION = function(code, callback, extend) {
 	CURRENT_OWNER = 'extension' + obj.id;
 
 	obj.remove = function() {
+
+		for (var key in files)
+			F.Fs.unlink(files[key], NOOP);
+
 		obj.uninstall && obj.uninstall();
 		delete obj.remove;
 		delete obj.uninstall;
