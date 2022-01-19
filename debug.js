@@ -113,7 +113,7 @@ function runwatching() {
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
-	const REG_COMPONENTS = /components\/.*?\.html|\.package\/.*?$/i;
+	const REG_COMPONENTS = /(components|plugins|extensions)\/.*?\.html|\.package\/.*?$/i;
 	const REG_JSONSCHEMAS = /jsonschemas\/.*?\.json$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
@@ -325,6 +325,7 @@ function runwatching() {
 			LIVERELOADCHANGE = '';
 
 			Object.keys(files).wait(function(filename, next) {
+
 				Fs.stat(filename, function(err, stat) {
 					var stamp = makestamp();
 					if (err) {

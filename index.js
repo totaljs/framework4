@@ -5780,6 +5780,12 @@ F.$load = function(types, targetdirectory, callback) {
 
 				items.wait(function(plugin, next) {
 
+					if (plugin.indexOf('.html') !== -1) {
+						dependencies.push(next => install('plugin', plugin.replace(/\.html$/g, ''), Path.join(dir, plugin), next));
+						next();
+						return;
+					}
+
 					dependencies.push(next => install('plugin', plugin, Path.join(dir, plugin, 'index.js'), next));
 
 					var path = PATH.root('plugins/' + plugin + CONF.directory_definitions);
@@ -5941,7 +5947,7 @@ function install_build(name, filename, next) {
 
 	var build = Fs.readFileSync(filename).toString('utf8').parseJSON();
 	if (build && build.compiled) {
-		var meta = install_plugin_obj(name, build);
+		var meta = install_build_object(name, build);
 		if (meta)
 			meta.filename = filename;
 	}
@@ -5949,7 +5955,7 @@ function install_build(name, filename, next) {
 	internal_next(next);
 }
 
-function install_plugin_obj(name, build) {
+function install_build_object(name, build) {
 
 	var code;
 	var meta = {};
@@ -6089,6 +6095,37 @@ function install(type, name, filename, next) {
 	}
 
 	var key = type + '_' + name;
+	var files;
+
+	if (type === 'plugin' && filename.indexOf('.html') !== -1) {
+
+		var code = F.Fs.readFileSync(filename).toString('utf8');
+		var index = 0;
+		var fileid = filename.makeid();
+		files = {};
+
+		while (true) {
+			index = code.indexOf('<file ', index);
+			if (index === -1) {
+				break;
+			} else {
+				var tmp = code.indexOf('>', index + 8);
+				var end = code.indexOf('</file>', tmp);
+				var tmpfilename = code.substring(index + 8, tmp).trim();
+				var body = code.substring(tmp + 1, end).trim();
+				tmp = tmpfilename.indexOf('"');
+				tmpfilename = tmpfilename.substring(tmp + 1, tmpfilename.lastIndexOf('"'));
+				files[tmpfilename] = PATH.tmp('plugin_' + fileid + '_' + tmpfilename);
+				F.Fs.writeFileSync(files[tmpfilename], body);
+				code = code.substring(0, index) + code.substring(end + 9);
+			}
+		}
+
+		var parsed = code.parseComponent({ be: '<script total>' });
+		code = parsed.be || '';
+		filename = PATH.tmp('plugin_' + fileid + '.js');
+		F.Fs.writeFileSync(filename, cleancodetabs(code));
+	}
 
 	var m = require(filename);
 	var opt = CONF[key];
@@ -6105,6 +6142,7 @@ function install(type, name, filename, next) {
 		case 'plugin':
 			m.id = name;
 			F.plugins[name] = m;
+			m.files = files;
 			break;
 		case 'module':
 			m.id = name;
@@ -6345,7 +6383,10 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 		case '_':
 			var index = tmp.indexOf('/', 2);
 			var name = tmp.substring(2, index);
-			return F.plugins[name] ? PATH.root('/plugins/' + name + '/public/' + tmp.substring(index + 1)) : null;
+			var filename = tmp.substring(index + 1);
+			if (F.plugins[name])
+				return F.plugins[name].files ? F.plugins[name].files[filename] : PATH.root('/plugins/' + name + '/public/' + filename);
+			break;
 		case '-':
 			var index = tmp.indexOf('/', 2);
 			var name = tmp.substring(2, index);
@@ -19521,12 +19562,13 @@ global.NEWEXTENSION = function(code, callback, extend) {
 			}
 		}
 		var parsed = code.parseComponent({ be: '<script total>' });
-		code = parsed.be || '';
+		code = cleancodetabs(parsed.be || '');
 	}
 
 	var obj = {};
 
 	try {
+
 		new Function('exports', code)(obj);
 		obj.files = files;
 		extend && extend(obj);
@@ -19721,13 +19763,53 @@ NEWCOMMAND('import_build', function(url, callback) {
 		}
 
 		try {
-			install_plugin_obj(U.getName(url) || GUID(10), response);
+			install_build_object(U.getName(url) || GUID(10), response);
 			callback && callback();
 		} catch (e) {
 			callback && callback(e);
 		}
 	});
 });
+
+function cleancodetabs(val) {
+
+	var allowed = { '\n': 1, '\t': 1 };
+	var count = 0;
+
+	for (var i = 0; i < val.length; i++) {
+		var c = val[i];
+		if (allowed[c]) {
+			count = 0;
+			for (var j = i; j < val.length; j++) {
+				if (val[j] === '\t')
+					count++;
+				else
+					break;
+			}
+			if (count)
+				break;
+		} else
+			break;
+	}
+
+	if (!count)
+		return val;
+
+	var start = '';
+	for (var i = 0; i < count; i++)
+		start += '\t';
+
+	var lines = val.split('\n');
+	for (var i = 0; i < lines.length; i++) {
+		var line = lines[i];
+		if (line.substring(0, count) === start) {
+			line = line.substring(count);
+			lines[i] = line;
+		}
+	}
+
+	return lines.join('\n');
+};
 
 // Because of controller prototypes
 // It's used in VIEW() and VIEWCOMPILE()
