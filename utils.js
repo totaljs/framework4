@@ -96,8 +96,8 @@ const REG_URLEXT = /^(https|http|wss|ws|file):\/\/|\/\/[a-z0-9]|[a-z]:|javascrip
 const REG_TEXTAPPLICATION = /text|application/i;
 const REG_TIME = /am|pm/i;
 const REG_XMLKEY = /\[|\]|:|\.|_/g;
+const REG_HEADERPARSER = /(name|filename)=".*?"|content-type:\s[a-z0-9-./+]+/ig;
 const HEADEREND = Buffer.from('\r\n\r\n', 'ascii');
-const HEADERCHECK = 'Content-Disposition: form-data;'.toLowerCase();
 
 exports.MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 exports.DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -6099,6 +6099,7 @@ function MultipartParser(multipart, stream, callback) {
 }
 
 MultipartParser.prototype.free = function(err) {
+
 	var self = this;
 
 	if (!self.stream)
@@ -6141,7 +6142,6 @@ MultipartParser.prototype.parse_meta = function(type) {
 		fromindex = 0;
 
 	var index = type === 2 ? 0 : self.buffer.indexOf(self.header, fromindex);
-
 	if (index === -1)
 		return;
 
@@ -6153,7 +6153,6 @@ MultipartParser.prototype.parse_meta = function(type) {
 	}
 
 	self.sizes.parts++;
-
 	if (self.limits.parts && self.sizes.parts > self.limits.parts) {
 		self.kill('1: Count of parts is too large');
 		return;
@@ -6199,39 +6198,46 @@ MultipartParser.prototype.parse_head = function() {
 	if (index === -1)
 		return;
 
-	var header = self.buffer.slice(0, index).toString('utf8').trim();
-	if (header.substring(0, HEADERCHECK.length).toLowerCase() !== HEADERCHECK) {
+	var header = self.buffer.slice(0, index).toString('utf8');
+	var m = header.match(REG_HEADERPARSER);
+
+	if (!m) {
 		self.kill('7:');
 		return;
 	}
 
-	header = header.substring(HEADERCHECK.length).trim();
+	var isfile = false;
 
-	var beg = header.indexOf('filename="');
-	var isfile = beg !== -1;
+	self.current.filename = null;
+	self.current.type = null;
+	self.current.name = '';
 
-	self.current.filename = isfile ? header.substring(beg + 10, header.indexOf('"', beg + 10)).trim() : null;
+	for (var i = 0; i < m.length; i++) {
+		var str = m[i];
+		switch (str.substring(0, 4).toLowerCase()) {
+			case 'name':
+				self.current.name = str.substring(6, str.length - 1).replace(REG_EMPTYBUFFER_TEST, '');
+				break;
+			case 'file':
+				isfile = true;
+				self.current.filename = str.substring(10, str.length - 1).replace(REG_EMPTYBUFFER_TEST, '');
+				break;
+			case 'cont':
+				self.current.type = str.substring(14).trim().replace(REG_EMPTYBUFFER_TEST, '');
+				break;
+		}
+	}
 
-	if (isfile && !self.current.filename)
-		return;
-
-	beg = header.indexOf('name="');
-	if (beg === -1) {
+	if (!self.current.name || (isfile && (!self.current.filename || !self.current.type))) {
 		self.kill('2: Invalid part header');
 		return;
 	}
 
-	self.current.name = header.substring(beg + 6, header.indexOf('"', beg + 6));
 	self.current.size = 0;
 
 	if (isfile) {
 
-		if (REG_EMPTYBUFFER_TEST.test(self.current.filename))
-			self.current.filename = self.current.filename.replace(REG_EMPTYBUFFER, '');
-
-		var type = header.match(/content-type:\s.*?((\r\n)|$)/i);
-		if (type) {
-			self.current.type = type[0].substring(14);
+		if (self.current.type) {
 			self.current.width = 0;
 			self.current.height = 0;
 			switch (self.current.type) {
@@ -6260,11 +6266,6 @@ MultipartParser.prototype.parse_head = function() {
 			self.current.stream = null;
 		}
 
-		if (!type) {
-			self.kill('2: Invalid part header');
-			return;
-		}
-
 		self.current.path = self.tmp + (UPLOADINDEXER++) + '.bin';
 		self.current.stream = Fs.createWriteStream(self.current.path);
 		var file = { path: self.current.path, name: self.current.name, filename: self.current.filename, size: 0, type: self.current.type, width: 0, height: 0 };
@@ -6272,6 +6273,7 @@ MultipartParser.prototype.parse_head = function() {
 		self.current.stream.$mpfile = file;
 		self.current.stream.$mpinstance = self;
 		self.current.stream.on('close', multipartfileready);
+
 	} else
 		self.current.file = null;
 

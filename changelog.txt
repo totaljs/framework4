@@ -18,6 +18,7 @@
 - extended `NEWEXTENSION()` by adding support for `html` type in the form `<script total> ... <file name="index.html"> ...`
 - added auto-handling files in extensions in the form `/-extension_name/filename`
 - extended plugins by adding support for `html` type in the form `<script total> ... <file name="index.html"> ...`
+- improved Multipart parser
 
 ========================
 0.0.56
