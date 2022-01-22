@@ -20,6 +20,7 @@
 - extended plugins by adding support for `html` type in the form `<script total> ... <file name="index.html"> ...`
 - improved Multipart parser
 - updated Tangular version
+- fixed `--minify` argument in the Total4 command-line utility
 
 ========================
 0.0.56

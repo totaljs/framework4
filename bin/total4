@@ -563,6 +563,8 @@ function main() {
 
 	if ($type === 5) {
 
+		dir = Path.join(dir, process.argv.last());
+
 		if (!Fs.existsSync(dir)) {
 			log_error('File not found');
 			return;
