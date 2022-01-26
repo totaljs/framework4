@@ -48,6 +48,7 @@ var DBP = Database.prototype;
 var QBP = QueryBuilder.prototype;
 
 DBP.evaluate = function(err, response) {
+
 	var t = this;
 
 	if (t.options.first && response instanceof Array)
@@ -58,6 +59,12 @@ DBP.evaluate = function(err, response) {
 			err = t.error;
 		else if (!t.options.first && response instanceof Array && !response.length)
 			err = t.error;
+	}
+
+	if (err) {
+		t.callback_fail && t.callback_fail(err);
+	} else {
+		t.callback_data && t.callback_data(response);
 	}
 
 	t.callback && t.callback(err, response);
@@ -122,6 +129,12 @@ DBP.remove = DBP.rem = function(table) {
 	return new QueryBuilder(t, table, 'remove');
 };
 
+DBP.query = function(table, query) {
+	var t = this;
+	t.options.payload = query;
+	return new QueryBuilder(t, table, 'query');
+};
+
 DBP.drop = function(table) {
 	return new QueryBuilder(this, table, 'drop');
 };
@@ -168,7 +181,7 @@ QBP.callback = function(cb) {
 
 QBP.data = function(cb) {
 	var t = this;
-	t.main.callback = function(err, response) {
+	t.main.callback_data = function(err, response) {
 		if (!err)
 			cb(response);
 	};
@@ -177,7 +190,7 @@ QBP.data = function(cb) {
 
 QBP.fail = function(cb) {
 	var t = this;
-	t.main.callback = function(err) {
+	t.main.callback_fail = function(err) {
 		err && cb(err);
 	};
 	return t;
