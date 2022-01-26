@@ -234,6 +234,9 @@ QBP.userid = function(id) {
 
 QBP.where = function(name, comparer, value) {
 
+	if (comparer === undefined && value === undefined)
+		return t.query(name);
+
 	var t = this;
 
 	if (value === undefined) {
@@ -870,10 +873,14 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 	return t;
 };
 
+QBP.query = function(value) {
+	this.filter.push({ type: 'query', value: value });
+	return this;
+};
+
 QBP.join = function(name, table, jointype, a, b) {
-	var t = this;
-	t.filter.push({ type: 'join', table: table, name: name, join: jointype, on: [a, b] });
-	return t;
+	this.filter.push({ type: 'join', table: table, name: name, join: jointype, on: [a, b] });
+	return this;
 };
 
 ON('service', function(counter) {
