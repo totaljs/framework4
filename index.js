@@ -6708,7 +6708,7 @@ global.AUDIT = function(name, $, message, type) {
 		data.app = CONF.url || CONF.name;
 		TotalAPI('logger', data, ERROR('totalapi'));
 	} else
-		DEF.onAudit(name, data);
+		DEF.onAudit(name, data, $);
 };
 
 global.LOGGER = function() {

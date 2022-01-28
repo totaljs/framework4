@@ -21,6 +21,7 @@
 - improved Multipart parser
 - updated Tangular version
 - fixed `--minify` argument in the Total4 command-line utility
+- extended `DEF.onAudit(name, data, [$])` by adding `$` argument
 
 ========================
 0.0.56
