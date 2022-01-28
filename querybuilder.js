@@ -1,6 +1,4 @@
 const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
-const REG_PG_ESCAPE_1 = /'/g;
-const REG_PG_ESCAPE_2 = /\\/g;
 
 var CACHE = {};
 var EVALUATOR = {};
@@ -270,6 +268,11 @@ QBP.first = function() {
 
 QBP.limit = function(count) {
 	this.options.take = count;
+	return this;
+};
+
+QBP.debug = function() {
+	this.options.debug = true;
 	return this;
 };
 
