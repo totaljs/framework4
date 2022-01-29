@@ -13,12 +13,8 @@ function Controller() {
 	t.next = function() {
 
 		if (t.error) {
-			t.$callback && t.$callback(t.error, t.response);
-			t.commands = null;
-			t.$callback = null;
-			t.$fail = null;
-			t.$data = null;
-			t.response = null;
+			t.$callback && t.$callback(t.error);
+			t.free();
 			return;
 		}
 
@@ -329,9 +325,10 @@ QBP.promise = function($) {
 	var promise = new Promise(function(resolve, reject) {
 		t.main.callback = function(err, response) {
 			if (err) {
-				if ($ && $.invalid)
+				if ($ && $.invalid) {
 					$.invalid(err);
-				else
+					t.main.controller.free();
+				} else
 					reject(err);
 			} else
 				resolve(response);
