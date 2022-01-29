@@ -317,7 +317,7 @@ DBP.evaluate = function(err, response) {
 		t.callback_data && t.callback_data(response);
 
 	t.callback && t.callback(err, response);
-	t.controller.next();
+	setImmediate(t.controller.next);
 };
 
 QBP.promise = function($) {
