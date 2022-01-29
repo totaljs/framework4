@@ -91,22 +91,22 @@ function parsedb(table) {
 		return { db: 'default', table: table };
 }
 
-CTP.callback = CTP.promise = function($) {
+CTP.callback = function($) {
 	var t = this;
+	t.$callback = typeof($) === 'function' ? $ : $.callback;
+	return t;
+};
 
-	if (typeof($) === 'function') {
-		t.$callback = $;
-		return t;
-	}
-
+CTP.promise = function($) {
+	var t = this;
 	var promise = new Promise(function(resolve, reject) {
 		t.$callback = function(err, response) {
 			if (err) {
-				if ($ && $.invalid)
+				if ($ && $.invalid) {
 					$.invalid(err);
-				else
+					t.free();
+				} else
 					reject(err);
-				t.free();
 			} else
 				resolve(response);
 		};
@@ -342,11 +342,9 @@ QBP.set = function(name) {
 	return this;
 };
 
-QBP.callback = function(cb) {
+QBP.callback = function($) {
 	var t = this;
-	if (cb == null || typeof(cb) !== 'function')
-		return t.promise(cb);
-	t.main.callback = cb;
+	t.main.callback = typeof($) === 'function' ? $ : $.callback;
 	return t;
 };
 
@@ -765,7 +763,7 @@ QBP.gridfilter = function(name, obj, type, key) {
 		return builder.in(key, arr);
 	}
 
-	if (type === undefined || type === String)
+	if (type === undefined || type === String || type === 'string')
 		return builder.search(key, value);
 
 	if (type === Date) {
