@@ -5,7 +5,33 @@ var EVALUATOR = {};
 
 function QueryBuilderOptions() {}
 
-function Database(conn) {
+function Controller() {
+	var t = this;
+	t.commands = [];
+	t.response = {};
+	t.error = null;
+	t.next = function() {
+
+		if (t.error) {
+			t.$callback && t.$callback(t.error, t.response);
+			t.commands = null;
+			t.$callback = null;
+			t.$fail = null;
+			t.$data = null;
+			t.response = null;
+			return;
+		}
+
+		var item = t.commands.shift();
+		if (item)
+			setImmediate(execdb, item);
+		else
+			t.$callback && t.$callback(t.error, t.response);
+	};
+	setImmediate(t.next);
+}
+
+function DB(conn) {
 	var t = this;
 	t.conn = conn;
 	t.options = new QueryBuilderOptions();
@@ -32,7 +58,7 @@ function execdb(db) {
 		db.evaluate('Database is not initialized');
 }
 
-function QueryBuilder(main, table, exec, multiple) {
+function QueryBuilder(main, table, exec) {
 
 	var t = this;
 
@@ -53,12 +79,212 @@ function QueryBuilder(main, table, exec, multiple) {
 		t.options.first = true;
 	}
 
-	if (!multiple)
-		setImmediate(execdb, main);
+	if (main.controller.$debug)
+		t.options.debug = true;
 }
 
-var DBP = Database.prototype;
+var CTP = Controller.prototype;
+var DBP = DB.prototype;
 var QBP = QueryBuilder.prototype;
+
+function parsedb(table) {
+	var index = table.indexOf('/');
+	if (index !== -1)
+		return { db: table.substring(0, index), table: table.substring(index + 1) };
+	else
+		return { db: 'default', table: table };
+}
+
+CTP.callback = CTP.promise = function($) {
+	var t = this;
+
+	if (typeof($) === 'function') {
+		t.$callback = $;
+		return t;
+	}
+
+	var promise = new Promise(function(resolve, reject) {
+		t.$callback = function(err, response) {
+			if (err) {
+				if ($ && $.invalid)
+					$.invalid(err);
+				else
+					reject(err);
+				t.free();
+			} else
+				resolve(response);
+		};
+	});
+
+	return promise;
+};
+
+CTP.done = function($, callback) {
+	var t = this;
+	t.$callback = function(err, response) {
+		if (err)
+			$.invalid(err);
+		else
+			callback && callback(response);
+		t.free();
+	};
+	return t;
+};
+
+CTP.free = function() {
+	var t = this;
+	t.commands = t.$callback = t.$fail = t.$data = t.response = t.error = null;
+};
+
+CTP.find = CTP.all = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'find');
+};
+
+CTP.debug = function() {
+	this.$debug = true;
+	return this;
+};
+
+CTP.list = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var db = new DB(meta.db);
+	var t = this;
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'list');
+};
+
+CTP.read = CTP.one = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'read');
+};
+
+CTP.count = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'count');
+};
+
+CTP.scalar = function(table, type, key, key2) {
+
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+
+	if (key == null)
+		key = '*';
+
+	var db = new DB(meta.db);
+	db.controller = t;
+	db.options.scalar = {};
+	db.options.scalar.type = type;
+
+	if (key)
+		db.options.scalar.key = key;
+
+	if (key2)
+		db.options.scalar.key2 = key2;
+
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'scalar');
+};
+
+CTP.insert = CTP.ins = function(table, data) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	db.options.payload = data;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'insert');
+};
+
+CTP.update = CTP.modify = CTP.mod = CTP.upd = function(table, data, upsert) {
+
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+
+	db.controller = t;
+	db.options.payload = data;
+	db.options.upsert = upsert;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'update');
+};
+
+CTP.remove = CTP.rem = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'remove');
+};
+
+CTP.query = function(table, query) {
+
+	if (query == null) {
+		query = table;
+		table = 'default/';
+	} else
+		table += '/';
+
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, query, 'query');
+};
+
+CTP.drop = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'drop');
+};
+
+CTP.truncate = CTP.clear = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var db = new DB(meta.db);
+	var t = this;
+	db.controller = t;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'truncate');
+};
+
+CTP.command = function(name, table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var db = new DB(meta.db);
+	var t = this;
+	db.controller = t;
+	db.options.command = name;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, 'command');
+};
+
+CTP.custom = function(type, table, data) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var db = new DB(meta.db);
+	var t = this;
+	db.controller = t;
+	db.options.payload = data;
+	t.commands.push(db);
+	return new QueryBuilder(db, meta.table, type);
+};
 
 DBP.evaluate = function(err, response) {
 
@@ -80,95 +306,22 @@ DBP.evaluate = function(err, response) {
 			err = t.error;
 	}
 
-	if (err) {
-		t.callback_fail && t.callback_fail(err);
-	} else {
-		t.callback_data && t.callback_data(response);
+	t.controller.error = err;
+
+	if (!t.$nobind) {
+		if (t.output)
+			t.controller.response[t.output] = response;
+		else
+			t.controller.response = response;
 	}
 
+	if (err)
+		t.callback_fail && t.callback_fail(err);
+	else
+		t.callback_data && t.callback_data(response);
+
 	t.callback && t.callback(err, response);
-};
-
-DBP.find = DBP.all = function(table) {
-	var t = this;
-	return new QueryBuilder(t, table, 'find');
-};
-
-DBP.list = function(table) {
-	var t = this;
-	return new QueryBuilder(t, table, 'list');
-};
-
-DBP.read = DBP.one = function(table) {
-	var t = this;
-	return new QueryBuilder(t, table, 'read');
-};
-
-DBP.count = function(table) {
-	var t = this;
-	return new QueryBuilder(t, table, 'count');
-};
-
-DBP.scalar = function(table, type, key, key2) {
-
-	var t = this;
-
-	if (key == null)
-		key = '*';
-
-	t.options.scalar = {};
-	t.options.scalar.type = type;
-
-	if (key)
-		t.options.scalar.key = key;
-
-	if (key2)
-		t.options.scalar.key2 = key2;
-
-	return new QueryBuilder(t, table, 'scalar');
-};
-
-DBP.insert = DBP.ins = function(table, data) {
-	var t = this;
-	t.options.payload = data;
-	return new QueryBuilder(t, table, 'insert');
-};
-
-DBP.update = DBP.modify = DBP.mod = DBP.upd = function(table, data, upsert) {
-	var t = this;
-	t.options.payload = data;
-	t.options.upsert = upsert;
-	return new QueryBuilder(t, table, 'update');
-};
-
-DBP.remove = DBP.rem = function(table) {
-	var t = this;
-	return new QueryBuilder(t, table, 'remove');
-};
-
-DBP.query = function(query) {
-	var t = this;
-	return new QueryBuilder(t, query, 'query');
-};
-
-DBP.drop = function(table) {
-	return new QueryBuilder(this, table, 'drop');
-};
-
-DBP.truncate = DBP.clear = function(table) {
-	return new QueryBuilder(this, table, 'truncate');
-};
-
-DBP.command = function(name, table) {
-	var t = this;
-	t.options.command = name;
-	return new QueryBuilder(t, table, 'command');
-};
-
-DBP.custom = function(type, table, data) {
-	var t = this;
-	t.options.payload = data;
-	return new QueryBuilder(t, table, type);
+	t.controller.next();
 };
 
 QBP.promise = function($) {
@@ -187,6 +340,11 @@ QBP.promise = function($) {
 	return promise;
 };
 
+QBP.set = function(name) {
+	this.main.output = name;
+	return this;
+};
+
 QBP.callback = function(cb) {
 	var t = this;
 	if (cb == null || typeof(cb) !== 'function')
@@ -195,16 +353,19 @@ QBP.callback = function(cb) {
 	return t;
 };
 
+QBP.nobind = function() {
+	this.main.$nobind = true;
+	return this;
+};
+
 QBP.data = function(cb) {
-	var t = this;
-	t.main.callback_data = cb;
-	return t;
+	this.main.callback_data = cb;
+	return this;
 };
 
 QBP.fail = function(cb) {
-	var t = this;
-	t.main.callback_fail = cb;
-	return t;
+	this.main.callback_fail = cb;
+	return this;
 };
 
 QBP.error = QBP.err = function(err) {
@@ -899,6 +1060,4 @@ exports.evaluate = function(type, callback) {
 	EVALUATOR[type] = callback;
 };
 
-exports.make = function(conn) {
-	return new Database(conn || 'default');
-};
+exports.Controller = Controller;

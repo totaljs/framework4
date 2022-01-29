@@ -97,8 +97,8 @@ function querybuilderwrapper(fn_name) {
 
 	var db = require('./querybuilder');
 
-	global.DB = function(conn) {
-		return db.make(conn);
+	global.DB = function() {
+		return new db.Controller();
 	};
 
 	global.NEWDB = function(name, callback) {
