@@ -30,10 +30,11 @@ function DB(conn) {
 }
 
 function execdb(db) {
-	if (EVALUATOR[db.conn]) {
+	var conn = EVALUATOR[db.conn] || EVALUATOR['*'];
+	if (conn) {
 		if (db.options.checksum)
 			db.options.checksum = HASH(db.options.checksum).toString(36);
-		EVALUATOR[db.conn].call(db, db.options, function(err, response) {
+		conn.call(db, db.options, function(err, response) {
 			db.evaluate(err, response);
 		});
 	} else
@@ -73,6 +74,41 @@ function parsedb(table) {
 	var index = table.indexOf('/');
 	return index === -1 ? { db: 'default', table: table } : { db: table.substring(0, index), table: table.substring(index + 1) };
 }
+
+CTP.import = function(filter, callback) {
+
+	var t = this;
+	var builder;
+
+	switch (filter.exec) {
+		case 'find':
+		case 'list':
+		case 'read':
+		case 'count':
+		case 'truncate':
+		case 'drop':
+		case 'remove':
+		case 'insert':
+		case 'update':
+		case 'scalar':
+		case 'command':
+			builder = t[filter.exec](filter.table);
+			for (var key in filter) {
+				if (key !== 'table')
+					builder.options[key] = filter[key];
+			}
+			builder.callback(callback);
+			break;
+		case 'query':
+			builder = t[filter.exec](filter.table, filter.query);
+			for (var key in filter) {
+				if (key !== 'table' && key !== 'query')
+					builder.options[key] = filter[key];
+			}
+			builder.callback(callback);
+			break;
+	}
+};
 
 CTP.next = function(t) {
 
@@ -240,7 +276,8 @@ CTP.query = function(table, query) {
 	var db = new DB(meta.db);
 	db.controller = t;
 	t.commands.push(db);
-	return new QueryBuilder(db, query, 'query');
+	db.options.query = query;
+	return new QueryBuilder(db, '', 'query');
 };
 
 CTP.drop = function(table) {
@@ -261,7 +298,7 @@ CTP.truncate = CTP.clear = function(table) {
 	return new QueryBuilder(db, meta.table, 'truncate');
 };
 
-CTP.command = function(name, table) {
+CTP.command = function(table, name) {
 	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
 	var db = new DB(meta.db);
 	var t = this;
@@ -269,16 +306,6 @@ CTP.command = function(name, table) {
 	db.options.command = name;
 	t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'command');
-};
-
-CTP.custom = function(type, table, data) {
-	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
-	var db = new DB(meta.db);
-	var t = this;
-	db.controller = t;
-	db.options.payload = data;
-	t.commands.push(db);
-	return new QueryBuilder(db, meta.table, type);
 };
 
 DBP.evaluate = function(err, response) {
