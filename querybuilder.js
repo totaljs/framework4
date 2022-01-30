@@ -10,21 +10,7 @@ function Controller() {
 	t.commands = [];
 	t.response = {};
 	t.error = null;
-	t.next = function() {
-
-		if (t.error) {
-			t.$callback && t.$callback(t.error);
-			t.free();
-			return;
-		}
-
-		var item = t.commands.shift();
-		if (item)
-			setImmediate(execdb, item);
-		else
-			t.$callback && t.$callback(t.error, t.response);
-	};
-	setImmediate(t.next);
+	setImmediate(t.next, t);
 }
 
 function DB(conn) {
@@ -85,11 +71,24 @@ var QBP = QueryBuilder.prototype;
 
 function parsedb(table) {
 	var index = table.indexOf('/');
-	if (index !== -1)
-		return { db: table.substring(0, index), table: table.substring(index + 1) };
-	else
-		return { db: 'default', table: table };
+	return index === -1 ? { db: 'default', table: table } : { db: table.substring(0, index), table: table.substring(index + 1) };
 }
+
+CTP.next = function(t) {
+
+	if (t.error) {
+		t.$callback && t.$callback(t.error);
+		t.free();
+		return;
+	}
+
+	var item = t.commands.shift();
+	if (item)
+		setImmediate(execdb, item);
+	else
+		t.$callback && t.$callback(t.error, t.response);
+
+};
 
 CTP.callback = function($) {
 	var t = this;
@@ -317,7 +316,7 @@ DBP.evaluate = function(err, response) {
 		t.callback_data && t.callback_data(response);
 
 	t.callback && t.callback(err, response);
-	setImmediate(t.controller.next);
+	setImmediate(t.controller.next, t.controller);
 };
 
 QBP.promise = function($) {
