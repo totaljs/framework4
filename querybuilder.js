@@ -32,11 +32,14 @@ function DB(conn) {
 function execdb(db) {
 	var conn = EVALUATOR[db.conn] || EVALUATOR['*'];
 	if (conn) {
+
 		if (db.options.checksum)
 			db.options.checksum = HASH(db.options.checksum).toString(36);
+
 		conn.call(db, db.options, function(err, response) {
 			db.evaluate(err, response);
 		});
+
 	} else
 		db.evaluate('Database is not initialized');
 }
@@ -315,17 +318,26 @@ DBP.evaluate = function(err, response) {
 	if (t.options.first && response instanceof Array)
 		response = response[0];
 
-	if (t.options.exec === 'list') {
-		response.page = (t.options.skip / t.options.take) + 1;
-		response.limit = t.options.take;
-		response.pages = Math.ceil(response.count / t.options.take);
-	}
-
 	if (!err && t.error) {
 		if (!response)
 			err = t.error;
 		else if (!t.options.first && response instanceof Array && !response.length)
 			err = t.error;
+	}
+
+	// Upsert
+	if (!err && t.options.exec === 'update' && t.options.upsert && !response) {
+		t.$insert && t.$insert(t.options.payload, t.$insertparam);
+		t.options.exec = 'insert';
+		t.options.filter.length = 0;
+		execdb(t);
+		return;
+	}
+
+	if (!err && t.options.exec === 'list') {
+		response.page = (t.options.skip / t.options.take) + 1;
+		response.limit = t.options.take;
+		response.pages = Math.ceil(response.count / t.options.take);
 	}
 
 	t.controller.error = err;
@@ -361,6 +373,12 @@ QBP.promise = function($) {
 		};
 	});
 	return promise;
+};
+
+QBP.insert = function(callback, param) {
+	this.main.$insert = callback;
+	this.main.$insertparam = param;
+	return this;
 };
 
 QBP.set = function(name) {
