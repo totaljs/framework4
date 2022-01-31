@@ -75,7 +75,7 @@ function parsedb(table) {
 	return index === -1 ? { db: 'default', table: table } : { db: table.substring(0, index), table: table.substring(index + 1) };
 }
 
-CTP.import = function(filter, callback) {
+CTP.exec = function(filter, callback) {
 
 	var t = this;
 	var builder;
