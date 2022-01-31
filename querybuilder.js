@@ -432,10 +432,10 @@ QBP.userid = function(id) {
 
 QBP.where = function(name, comparer, value) {
 
+	var t = this;
+
 	if (comparer === undefined && value === undefined)
 		return t.query(name);
-
-	var t = this;
 
 	if (value === undefined) {
 		value = comparer;
