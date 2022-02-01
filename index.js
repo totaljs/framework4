@@ -403,10 +403,16 @@ global.UNAUTHORIZED = function($) {
 
 global.BLOCKED = function($, limit, expiration) {
 
+	var key = $.ip;
+
+	if (limit === -1 || limit === null) {
+		delete BLOCKEDB[key];
+		return;
+	}
+
 	if (!limit)
 		limit = 5;
 
-	var key = $.ip;
 	var item = BLOCKEDB[key];
 	if (item) {
 		if (item.count > limit)

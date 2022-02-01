@@ -22,6 +22,7 @@
 - updated Tangular version
 - fixed `--minify` argument in the Total4 command-line utility
 - extended `DEF.onAudit(name, data, [$])` by adding `$` argument
+- improved `BLOCKED()` method by adding support for clearing `limit` must be `null` or `-1`
 
 ========================
 0.0.56
