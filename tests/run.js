@@ -1843,6 +1843,66 @@ tests.push(function(next) {
 
 });
 
+// Extensions
+tests.push(function(next) {
+
+	var group = 'Extensions';
+	var group_log = log(group, 0, true);
+
+	var subtests = [];
+
+	console.time(group_log);
+
+	var path = '/ext-test/';
+	var extension = null;
+
+	subtests.push(function(next) {
+		extension = NEWEXTENSION(`
+			exports.name = 'Test extension';
+
+			exports.install = function(next) {
+				ROUTE('GET ${path}', function() {
+					this.json('OK');
+				});
+                setTimeout(next, 1000);
+			};
+
+			exports.uninstall = function() {
+				ROUTE('GET ${path}', null);
+			};
+		`, function(err, res) {
+			Assert.ok(err === null, 'Problem with registering extension');
+
+			extension = res;
+
+			RESTBuilder.GET(url + path).exec(function(err, res) {
+				Assert.ok(!err || res === 'OK', 'Route inside extension was not registred');	
+				next();
+			});
+		});
+	});
+
+	subtests.push(function(next) {
+		extension.remove();
+
+		setTimeout(function() {
+			RESTBuilder.GET(url + path).exec(function(err, res) {
+				Assert.ok(res !== 'OK', 'Route was not removed correctly');
+				next();
+			});
+		}, 1000);
+	});
+
+	// Run
+	subtests.wait(function(item, next) {
+		item(next);
+	}, function() {
+		console.timeEnd(group_log);
+		next();
+	});
+
+});
+
 // Run
 ON('ready', function() {
 	console.time('	Finished');
