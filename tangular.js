@@ -318,6 +318,9 @@
 		for (var i = 0; i < variables.length; i++)
 			names.push('model.' + variables[i]);
 
+		for (var i = 0; i < self.builder.length; i++)
+			self.builder[i] = self.builder[i].replace(/\1/g, '||');
+
 		var code = 'var tangular=function($helpers,$,model' + (variables.length ? (',' + variables.join(',')) : '') + '){' + builder.join('') + '};return function(model,$,$helpers){try{return tangular(' + names.join(',') + ')}catch(e){console.error(\'Tangular error:\',e + \'\',$template)}}';
 		return (new Function('$text', '$template', code.replace(/\1/g, '||')))(self.builder, self.template);
 	};
