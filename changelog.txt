@@ -5,6 +5,7 @@
 - added `TESTER()` method for creating rich unit-tests by [Jakub Urban](https://github.com/Helferino)
 - `LOAD()` supports promises (without callback argument)
 - added missing Tangular helpers (CRITICAL)
+- disabled snapshots for `LOAD()` method
 
 ========================
 0.0.58

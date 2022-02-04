@@ -7670,6 +7670,7 @@ function loadframework(types, cwd, ready) {
 	global.isWORKER = true;
 	global.DEBUG = isdebug;
 	global.RELEASE = !isdebug;
+	CONF.allow_stats_snapshot = false;
 
 	var isno = true;
 
