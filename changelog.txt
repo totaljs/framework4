@@ -2,7 +2,7 @@
 0.0.59
 ========================
 
-- added `TESTER()` method for creating rich unit-tests
+- added `TESTER()` method for creating rich unit-tests by [Jakub Urban](https://github.com/Helferino)
 - `LOAD()` supports promises (without callback argument)
 
 ========================
