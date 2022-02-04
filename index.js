@@ -7648,20 +7648,7 @@ F.restart = function() {
 	process.send && process.send('total:restart');
 };
 
-global.LOAD = F.load = function(types, cwd, ready) {
-
-	if (typeof(types) === 'function') {
-		ready = types;
-		types = null;
-	}
-
-	if (typeof(cwd) === 'function') {
-		ready = cwd;
-		cwd = null;
-	}
-
-	if (typeof(types) === 'string')
-		types = types.split(/\s|,/).trim();
+function loadframework(types, cwd, ready) {
 
 	var isdebug = types instanceof Array ? types.indexOf('debug') !== -1 : false;
 	if (isdebug)
@@ -7764,6 +7751,27 @@ global.LOAD = F.load = function(types, cwd, ready) {
 
 		});
 	}, can('bundles'));
+}
+
+global.LOAD = F.load = function(types, cwd, ready) {
+
+	if (typeof(types) === 'function') {
+		ready = types;
+		types = null;
+	}
+
+	if (typeof(cwd) === 'function') {
+		ready = cwd;
+		cwd = null;
+	}
+
+	if (typeof(types) === 'string')
+		types = types.split(/\s|,/).trim();
+
+	if (ready)
+		loadframework(types, cwd, ready);
+	else
+		return new Promise(resolve => loadframework(types, cwd, () => resolve()));
 };
 
 /**
@@ -19815,7 +19823,7 @@ function cleancodetabs(val) {
 	}
 
 	return lines.join('\n');
-};
+}
 
 // Because of controller prototypes
 // It's used in VIEW() and VIEWCOMPILE()
@@ -19828,6 +19836,10 @@ EMPTYCONTROLLER.req.query = EMPTYOBJECT;
 EMPTYCONTROLLER.req.body = EMPTYOBJECT;
 EMPTYCONTROLLER.req.files = EMPTYARRAY;
 global.EMPTYCONTROLLER = EMPTYCONTROLLER;
+
+global.TESTER = function(callback) {
+	require('./tester.js').make(callback);
+};
 
 process.connected && setTimeout(function() {
 	process.send('total:init');

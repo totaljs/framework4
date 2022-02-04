@@ -1,4 +1,11 @@
 ========================
+0.0.59
+========================
+
+- added `TESTER()` method for creating rich unit-tests
+- `LOAD()` supports promises (without callback argument)
+
+========================
 0.0.58
 ========================
 
