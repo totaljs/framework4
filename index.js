@@ -15498,7 +15498,8 @@ WebSocketProto.autodestroy = function(callback) {
 		return self;
 	}
 
-	self.$autodestroy = [callback];
+	self.$autodestroy = [];
+	callback && self.$autodestroy.push(callback);
 	self.on('open', wsdestroy_open);
 	self.on('close', function() {
 		if (!self.online)
