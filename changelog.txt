@@ -6,6 +6,7 @@
 - `LOAD()` supports promises (without callback argument)
 - added missing Tangular helpers (CRITICAL)
 - disabled snapshots for `LOAD()` method
+- fixed executing `callback` in the `controller.autodestroy()` method
 
 ========================
 0.0.58
