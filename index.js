@@ -2482,6 +2482,10 @@ F.runscript = function(filename) {
 	});
 };
 
+F.debugger = function() {
+	F.runscript(PATH.root('debugger.js'));
+};
+
 F.refresh = function() {
 
 	NOW = new Date();
