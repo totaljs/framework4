@@ -2468,16 +2468,17 @@ F.dir = function(path) {
 F.runscript = function(filename) {
 	F.Fs.readFile(filename, function(err, data) {
 		if (data) {
-			var scr = data.toString('utf8');
+			var scr = data.toString('utf8').trim();
 			var fn;
-			try {
-				fn = new Function(scr);
-			} catch (e) {
-				console.error(e);
+			if (data) {
+				try {
+					fn = new Function(scr);
+				} catch (e) {
+					console.error(e);
+				}
+				fn && fn();
 			}
-			fn && fn();
-		} else
-			console.error(err);
+		}
 	});
 };
 
