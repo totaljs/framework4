@@ -2090,6 +2090,7 @@ function Framework() {
 		// default 10 kB
 		default_request_maxlength: 10,
 		default_websocket_maxlength: 2,
+		default_websocket_maxlatency: 2000,
 		default_websocket_encodedecode: false,
 		default_maxopenfiles: 100,
 		default_timezone: 'utc',
@@ -2462,6 +2463,22 @@ F.require = function(path) {
 F.dir = function(path) {
 	F.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = HEADERS.worker_threads.cwd = path;
 	directory = path;
+};
+
+F.runscript = function(filename) {
+	F.Fs.readFile(filename, function(err, data) {
+		if (data) {
+			var scr = data.toString('utf8');
+			var fn;
+			try {
+				fn = new Function(scr);
+			} catch (e) {
+				console.error(e);
+			}
+			fn && fn();
+		} else
+			console.error(err);
+	});
 };
 
 F.refresh = function() {
@@ -8269,7 +8286,7 @@ function cleargc() {
 var websocketpingerenabled = false;
 
 function websocketpinger() {
-	if (!websocketpingerenabled) {
+	if (!websocketpingerenabled && CONF.default_websocket_maxlatency) {
 		websocketpingerenabled = true;
 		setInterval(function() {
 			for (var item in F.connections) {
@@ -15524,7 +15541,7 @@ WebSocketProto.check = function() {
 	if (self.$ping && self.keys) {
 		for (var i = 0; i < self.keys.length; i++) {
 			var client = self.connections[self.keys[i]];
-			if (client.$ping && (client.latency == null || client.latency > 2000)) {
+			if (client.$ping && (client.latency == null || client.latency > CONF.default_websocket_maxlatency)) {
 				client.close();
 				F.stats.other.websocketcleaner++;
 			}
