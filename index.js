@@ -15911,7 +15911,9 @@ WebSocketClientProto.$ondata = function(data) {
 				self.closemessage = $decodeURIComponent(self.closemessage);
 
 			self.close();
-			break;
+			current.buffer = null;
+			current.inflatedata = null;
+			return;
 
 		case 0x09:
 			// ping, response pong
