@@ -9,6 +9,7 @@
 - fixed executing `callback` in the `controller.autodestroy()` method
 - added `default_websocket_maxlatency: 2000` configuration item
 - added `F.runscript(filename)` for evaluating of JS scripts
+- improved streaming files
 
 ========================
 0.0.58
