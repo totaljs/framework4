@@ -8,6 +8,7 @@ const REGCLEAN = /^[\s]+|[\s]+$/g;
 const GZIPFILE = { memLevel: 9 };
 const ENCODING = 'utf8';
 const CONCAT = [null, null];
+const REG_RANGE = /bytes=/;
 
 function FileDB(name, directory) {
 	var t = this;
@@ -1018,7 +1019,40 @@ FP.res = function(res, options, checkcustom) {
 				res.options.persistent = false;
 				res.$image();
 			} else {
-				res.options.stream = Fs.createReadStream(filename, { start: HEADERSIZE });
+
+				var range = req.headers.range;
+				if (range) {
+
+					var arr = range.replace(REG_RANGE, '').split('-');
+					var beg = +arr[0] || 0;
+					var end = +arr[1] || 0;
+
+					if (end <= 0)
+						end = beg + ((1024 * 1024) * 5); // 5 MB
+
+					// if (end === 0)
+					// 	end = obj.size - 1;
+
+					if (beg > end) {
+						beg = 0;
+						end = obj.size - 1;
+					}
+
+					if (end > obj.size)
+						end = obj.size - 1;
+
+					var length = (end - beg) + 1;
+					res.options.code = 206;
+					res.options.headers = {};
+					res.options.headers['Cache-Control'] = DEBUG ? 'private, no-cache, no-store, max-age=0' : 'public, max-age=11111111';
+					res.options.headers['Accept-Ranges'] = 'bytes';
+					res.options.headers['Content-Length'] = length;
+					res.options.headers['Content-Range'] = 'bytes ' + beg + '-' + end + '/' + obj.size;
+					res.options.stream = Fs.createReadStream(filename, { flags: 'r', mode: '0666', autoClose: true, start: HEADERSIZE + beg, end: end + HEADERSIZE });
+
+				} else
+					res.options.stream = Fs.createReadStream(filename, { start: HEADERSIZE });
+
 				res.options.compress = options.nocompress ? false : true;
 				res.$stream();
 			}

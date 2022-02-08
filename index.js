@@ -18353,8 +18353,11 @@ function $file_range(name, range, headers, res) {
 		RELEASE && (F.temporary.range[name] = total);
 	}
 
-	if (end === 0)
-		end = total - 1;
+	if (end <= 0)
+		end = beg + ((1024 * 1024) * 5); // 5 MB
+
+	// if (end === 0)
+	// 	end = total - 1;
 
 	if (beg > end) {
 		beg = 0;
