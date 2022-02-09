@@ -20,6 +20,46 @@ function log(name, depth, is_last) {
 
 var subtest_name, subtest_log, test_name, test_log, others_name, others_log;
 
+// Tester
+tests.push(function(next) {
+
+	var test = 'Tester';
+	var test_log = log(test, 0, true);
+
+	console.time(test_log);
+
+	var timeout_handler = setTimeout(() => Assert.fail(test + ' handler'), 100);
+	var timeout_group = setTimeout(() => Assert.fail(test + ' group'), 100);
+	var timeout_test = setTimeout(() => Assert.fail(test + ' test'), 100);
+	var timeout_cleanup = setTimeout(() => Assert.fail(test + ' cleanup'), 100);
+	var timeout_callback = setTimeout(() => Assert.fail(test + ' callback'), 100);
+
+	TESTER(function(group, start) {
+		clearTimeout(timeout_handler);
+
+		group('Group example', function(test, cleanup) {
+			clearTimeout(timeout_group);
+
+			test('Test example', function(next) {
+				clearTimeout(timeout_test);
+				next();
+			});
+
+			cleanup(function() {
+				clearTimeout(timeout_cleanup);
+			});
+		});
+
+		start(function() {
+			clearTimeout(timeout_callback);
+			console.timeEnd(test_log);
+			next();
+		});
+
+	}, { rounds: 2, silent: true });
+
+});
+
 // RESTBuilder
 tests.push(function(next) {
 

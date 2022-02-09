@@ -1,11 +1,16 @@
 // Tester module v1
 
-exports.make = function(callback) {
+// Documentation: https://docs.totaljs.com/total4/40842001ok51c/
+// Example: https://github.com/totaljs/examples/blob/master/tester/tests/test.js
+
+exports.make = function(callback, options) {
 
 	var tester = {};
+	tester.options = options || {};
 	tester.dtbeg = new Date();
 	tester.dtend = null;
 	tester.groups = [];
+
 	tester.group = function(name, test) {
 		tester.groups.push({ name: name, callback: test, fallback: null, tests: [] });
 	};
@@ -25,40 +30,47 @@ exports.make = function(callback) {
 
 				group.tests.push({ name: test_name, callback: test_callback });
 
-			}, function(fallback) {
-				group.fallback = fallback;
+			}, function(cleanup) {
+				group.cleanup = cleanup;
 			});
 
 			// Start tests
 			group.tests.wait(function(test, next_test) {
+
 				// Evaluate test
 				test.callback(function(err) {
 
 					if (err) {
-						var obj = { group: group.name, test: test.name, err: err };
-						group.fallback(obj);
+						// Run group cleanup after failed test
+						if (group.cleanup) {
+							var obj = { group: group.name, test: test.name, err: err };
+							group.cleanup && group.cleanup(obj);
+						}
+
 						throw new Error(group.name + ' - ' + test.name + (err instanceof Error || typeof(err) === 'string' ? (' (' + err + ')') : ''));
 					}
 
 					if (test.name)
-						console.log('[OK]', group.name, '-',  test.name);
+						tester.options.silent || console.log('[OK]', group.name, '-',  test.name);
 
 					next_test();
 				});
 			}, function() {
-				// Run fallback and go to next group
-				group.fallback && group.fallback();
+				// Run group cleanup and go to next group
+				group.cleanup && group.cleanup();
 				next_group();
 			});
 
 		}, function() {
 			tester.dtend = new Date();
 			tester.duration = tester.dtend.getTime() - tester.dtbeg.getTime();
-			console.log('[DONE] in', tester.duration, 'ms');
+			tester.options.silent || console.log('[DONE] in', tester.duration, 'ms');
+
 			callback && callback();
 		});
 	};
 
 	callback && callback(tester.group, tester.start);
+
 	return tester;
 };
