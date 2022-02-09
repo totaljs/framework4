@@ -11,6 +11,7 @@
 - added `F.runscript(filename)` for evaluating of JS scripts
 - improved streaming files
 - fixed `close` message in WebSocket
+- extended `flowstreaminstance.close(removed)` delegate by adding `removed` argument
 
 ========================
 0.0.58

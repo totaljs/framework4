@@ -780,7 +780,7 @@ FP.unregister = function(name, callback) {
 					try {
 						instance.isdestroyed = true;
 						self.ondisconnect && self.ondisconnect(instance);
-						curr.close && curr.close.call(instance);
+						curr.close && curr.close.call(instance, true);
 						curr.destroy && curr.destroy.call(instance);
 					} catch (e) {
 						self.onerror.call(instance, e, 'instance_close', instance);
@@ -1022,7 +1022,7 @@ FP.unload = function(callback) {
 		if (current) {
 			current.isdestroyed = true;
 			self.ondisconnect && self.ondisconnect(current);
-			current.close && current.close.call(current);
+			current.close && current.close.call(current, true);
 			current.destroy && current.destroy.call(current);
 		}
 		delete self.meta.flow[key];
@@ -1112,7 +1112,8 @@ FP._remove = function(keys, callback) {
 		if (instance) {
 			instance.ready = false;
 			self.ondisconnect && self.ondisconnect(instance);
-			instance.close && instance.close.call(instance);
+			instance.close && instance.close.call(instance, true);
+			instance.destroy && instance.destroy.call(instance);
 			delete self.meta.flow[key];
 		}
 	}
@@ -1195,7 +1196,7 @@ FP._use = function(schema, callback, reinit, insert) {
 				if (current) {
 					current.isdestroyed = true;
 					self.ondisconnect && self.ondisconnect(current);
-					current.close && current.close.call(current);
+					current.close && current.close.call(current, true);
 					current.destroy && current.destroy.call(current);
 				}
 
@@ -1238,7 +1239,7 @@ FP._use = function(schema, callback, reinit, insert) {
 							instance.ready = false;
 							instance.isdestroyed = true;
 							self.ondisconnect && self.ondisconnect(instance);
-							instance.close && instance.close.call(instance);
+							instance.close && instance.close.call(instance, true);
 							instance.destroy && instance.destroy.call(instance);
 							delete self.meta.flow[key];
 						}
