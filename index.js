@@ -19866,8 +19866,8 @@ EMPTYCONTROLLER.req.body = EMPTYOBJECT;
 EMPTYCONTROLLER.req.files = EMPTYARRAY;
 global.EMPTYCONTROLLER = EMPTYCONTROLLER;
 
-global.TESTER = function(callback) {
-	require('./tester.js').make(callback);
+global.TESTER = function(callback, options) {
+	require('./tester.js').make(callback, options);
 };
 
 process.connected && setTimeout(function() {
