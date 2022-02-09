@@ -44,8 +44,8 @@ CP.flush = function() {
 		m.id = key.substring(1);
 
 		m['+sum'] = val.sum;
-		m['>min'] = val.min;
-		m['<max'] = val.max;
+		m['<min'] = val.min;
+		m['>max'] = val.max;
 
 		m.day = NOW.getDate();
 		m.month = NOW.getMonth() + 1;
