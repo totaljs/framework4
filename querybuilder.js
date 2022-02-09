@@ -121,11 +121,15 @@ CTP.next = function(t) {
 		return;
 	}
 
-	var item = t.commands.shift();
-	if (item)
-		setImmediate(execdb, item);
-	else
-		t.$callback && t.$callback(t.error, t.response);
+	if (t.commands) {
+		var item = t.commands.shift();
+		if (item) {
+			setImmediate(execdb, item);
+			return;
+		}
+	}
+
+	t.$callback && t.$callback(t.error, t.response);
 
 };
 
