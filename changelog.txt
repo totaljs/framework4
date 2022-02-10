@@ -13,6 +13,7 @@
 - fixed `close` message in WebSocket
 - extended `flowstreaminstance.close(removed)` delegate by adding `removed` argument
 - exchanged functionality between `>field` (it performs `MAX`) `<field` (it performs `MIN`) in TextDB
+- added `NOSQL/TABLe/TEXTDB().release()` method
 
 ========================
 0.0.58

@@ -103,6 +103,15 @@ TD.update = function() {
 	return builder;
 };
 
+TD.release = function() {
+	var self = this;
+	for (var key in F.databases) {
+		if (F.databases[key] === self)
+			delete F.databases[key];
+	}
+	return self;
+};
+
 TD.drop = function(callback) {
 	var self = this;
 	self.pending_drops = callback || NOOP;

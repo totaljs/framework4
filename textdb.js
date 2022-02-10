@@ -260,6 +260,19 @@ TD.backups = JD.backups = function(callback) {
 	return builder;
 };
 
+TD.release = JD.release = function() {
+
+	var self = this;
+
+	for (var key in F.databases) {
+		if (F.databases[key] === self)
+			delete F.databases[key];
+	}
+
+	delete CACHEITEMS[self.id];
+	return self;
+};
+
 TD.drop = JD.drop = function(callback) {
 	var self = this;
 	self.pending_drops = true;
