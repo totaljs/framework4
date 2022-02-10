@@ -14697,10 +14697,12 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 		// @   --> routed into the packages
 		// .   --> routed into the opened path
 		// =   --> routed into the theme
+		// #   --> routed into the plugin
 
 		var c = name[0];
-		var skip = c === '/' ? 1 : c === '~' && name[1] === '~' ? 4 : c === '~' ? 2 : c === '@' ? 3 : c === '.' ? 5 : c === '=' ? 6 : 0;
+		var skip = c === '/' ? 1 : c === '~' && name[1] === '~' ? 4 : c === '~' ? 2 : c === '@' ? 3 : c === '.' ? 5 : c === '=' ? 6 : c === '#' ? 8 : 0;
 		var isTheme = false;
+		var tmp;
 
 		if (REG_HTTPHTTPS.test(name))
 			skip = 7;
@@ -14718,6 +14720,9 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 			} else if (self.themeName && skip < 3) {
 				filename = '.' + PATH.root('/threads/' + THREAD + '/themes/' + self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
 				isTheme = true;
+			} else if (skip === 8) {
+				var tmp = name.substring(1).split('/');
+				filename = '.' + (F.plugins[tmp[0]] && F.plugins[tmp[0]].files ? (F.plugins[tmp[0]].files[tmp[1] + '.html'] || '').replace(/\.html$/, '') : PATH.root('/plugins/' + tmp[0] + '/' + tmp[1]));
 			} else if (skip === 2)
 				filename = '.' + PATH.root('/views/' + name.substring(1));
 			else
@@ -14741,9 +14746,7 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 			if (self.themeName && skip < 3) {
 				filename = '.' + PATH.themes(self.themeName + '/views/' + (isLayout || skip ? '' : self._currentView.substring(1)) + (skip ? name.substring(1) : name)).replace(REG_SANITIZE_BACKSLASH, '/');
 				isTheme = true;
-			}
-
-			if (skip === 4) {
+			} else if (skip === 4) {
 				filename = filename.substring(1);
 				name = name.substring(1);
 				skip = 2;
@@ -14757,8 +14760,10 @@ ControllerProto.view = function(name, model, headers, partial, noasync, cachekey
 
 			if (skip === 3)
 				filename = '.' + PATH.package(filename);
-
-			if (skip === 6) {
+			else if (skip === 8) {
+				tmp = name.substring(1).split('/');
+				filename = '.' + (F.plugins[tmp[0]] && F.plugins[tmp[0]].files ? (F.plugins[tmp[0]].files[tmp[1] + '.html'] || '').replace(/\.html$/, '') : PATH.root('/plugins/' + tmp[0] + '/' + tmp[1]));
+			} else if (skip === 6) {
 				c = U.parseTheme(filename);
 				name = name.substring(name.indexOf('/') + 1);
 				filename = '.' + PATH.themes(c + '/views/' + name).replace(REG_SANITIZE_BACKSLASH, '/');
