@@ -5877,6 +5877,45 @@ function assign_querybuilder(filter, item) {
 	}
 }
 
+RP.stream = function(stream) {
+
+	var self = this;
+	var REGDATE = /"\d{4}-\d{2}-\d{2}T[0-9.:]+Z"/g;
+	var FileStreamer = require('./textdb-stream');
+	var fs = new FileStreamer();
+	var destroyed = false;
+
+	fs.ondocuments = function() {
+
+		if (destroyed)
+			return;
+
+		try {
+			var docs = (new Function('return [' + fs.docs.replace(REGDATE, 'new Date($&)') + ']'))();
+			self.push(docs);
+		} catch (e) {
+			F.error('Reader.stream()', e);
+			return false;
+		}
+
+		if (self.reader.canceled === self.reader.builders.length) {
+			destroyed = true;
+			stream.destroy();
+			self.push(null);
+		}
+
+	};
+
+	fs.$callback = function() {
+		self.push(null);
+		// self.filesize = fs.stats.size;
+		fs = null;
+	};
+
+	fs.openstream(stream);
+	return self;
+};
+
 RP.assign = function(data) {
 
 	var self = this;
@@ -6015,8 +6054,19 @@ RP.stats = function(groupfield, datefield, key, type) {
 exports.reader = function(items) {
 	var instance = new Reader();
 	if (items) {
-		instance.push(items);
-		instance.push(null);
+		if (typeof(items) === 'string') {
+			setTimeout(function() {
+				REQUEST({ url: items, custom: true }, function(err, response) {
+					if (response.stream)
+						instance.stream(response.stream);
+					else
+						instance.push(null);
+				});
+			}, 2);
+		} else {
+			instance.push(items);
+			instance.push(null);
+		}
 	}
 	return instance;
 };
