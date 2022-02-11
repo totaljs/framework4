@@ -1583,6 +1583,11 @@ exports.streamer2 = function(beg, end, callback, skip, stream) {
 	return exports.streamer(beg, end, callback, skip, stream, true);
 };
 
+exports.filestreamer = function(filename) {
+	var Fs = require('./textdb-stream');
+	return new Fs(filename);
+};
+
 /**
  * HTML encode string
  * @param {String} str

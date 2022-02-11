@@ -462,6 +462,34 @@ TextStreamReaderProto.close = function() {
 	return self;
 };
 
+TextStreamReaderProto.replace = function(index, value, divider) {
+
+	var self = this;
+	var rec = self.docsbuffer[index];
+
+	if (rec.doc === value)
+		return;
+
+	var was = true;
+	var sep = (divider || self.divider);
+
+	if (rec.doc.length === value.length) {
+		var b = Buffer.byteLength(value);
+		if (rec.length === b) {
+			self.write(value + sep, rec.position);
+			was = false;
+		}
+	}
+
+	if (was) {
+		var tmp = self.remchar + rec.doc.substring(1) + sep;
+		self.write(tmp, rec.position);
+		self.write2(value + sep);
+	}
+
+	return self;
+};
+
 TextStreamReaderProto.write = function(doc, position) {
 	var self = this;
 	self.bufferstack.push({ position: position, data: doc });
