@@ -10,12 +10,15 @@ exports.make = function(callback, options) {
 	tester.dtbeg = new Date();
 	tester.dtend = null;
 	tester.groups = [];
+	tester.callback = null;
 
 	tester.group = function(name, test) {
 		tester.groups.push({ name: name, callback: test, fallback: null, tests: [] });
 	};
 
 	tester.start = function(callback) {
+
+		tester.callback = callback;
 
 		tester.groups.wait(function(group, next_group) {
 
@@ -41,11 +44,14 @@ exports.make = function(callback, options) {
 				test.callback(function(err) {
 
 					if (err) {
+
+						var obj = { group: group.name, test: test.name, err: err };
+
 						// Run group cleanup after failed test
-						if (group.cleanup) {
-							var obj = { group: group.name, test: test.name, err: err };
-							group.cleanup && group.cleanup(obj);
-						}
+						group.cleanup && group.cleanup(obj);
+
+						// Global cleanup (callback)
+						tester.callback && tester.callback(obj);
 
 						throw new Error(group.name + ' - ' + test.name + (err instanceof Error || typeof(err) === 'string' ? (' (' + err + ')') : ''));
 					}

@@ -56,7 +56,7 @@ tests.push(function(next) {
 			next();
 		});
 
-	}, { rounds: 2, silent: true });
+	}, { silent: true });
 
 });
 
