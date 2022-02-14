@@ -1024,14 +1024,16 @@ FP.res = function(res, options, checkcustom) {
 				if (range) {
 
 					var arr = range.replace(REG_RANGE, '').split('-');
-					var beg = +arr[0] || 0;
-					var end = +arr[1] || 0;
+					var beg = (arr[0] ? +arr[0] : 0);
+					var end = (arr[1] ? +arr[1] : 0);
+
+					if (isNaN(beg) || isNaN(end)) {
+						res.throw404();
+						return;
+					}
 
 					if (end <= 0)
 						end = beg + ((1024 * 1024) * 5); // 5 MB
-
-					// if (end === 0)
-					// 	end = obj.size - 1;
 
 					if (beg > end) {
 						beg = 0;
@@ -1040,6 +1042,11 @@ FP.res = function(res, options, checkcustom) {
 
 					if (end > obj.size)
 						end = obj.size - 1;
+
+					if (beg >= end || beg < 0) {
+						res.throw404();
+						return;
+					}
 
 					var length = (end - beg) + 1;
 					res.options.code = 206;
