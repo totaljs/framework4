@@ -340,7 +340,8 @@ global.NPMINSTALL = function(name, callback) {
 			if (process.getuid && process.getuid() === 33)
 				args.env = { NPM_CONFIG_CACHE: '/var/www/.npm' };
 
-			args.cwd = PATH.root();
+			// args.cwd = PATH.root();
+			args.cwd = path;
 
 			F.Child.exec('npm install ' + name, args, function(err, response, output) {
 				callback && callback(err ? (output || err) : null);

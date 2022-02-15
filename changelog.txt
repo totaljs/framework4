@@ -17,6 +17,7 @@
 - extended `controller.view()` by adding a support for rendering views from plugins (e.g. `#plugin_name/view_name`)
 - extended `U.reader([url/items])` by adding support for `URL` addresses (content must be TextDB)
 - added `U.filestreamer(filename)` for streaming text files
+- fixed a custom path for `NPMINSTALL()`
 
 ========================
 0.0.58
