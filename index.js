@@ -5873,8 +5873,8 @@ F.$load = function(types, targetdirectory, callback) {
 							});
 						});
 
-					}, resume);
-				});
+					});
+				}, resume);
 			});
 		});
 	}
