@@ -5815,55 +5815,66 @@ F.$load = function(types, targetdirectory, callback) {
 						return;
 					}
 
-					dependencies.push(next => install('plugin', plugin, Path.join(dir, plugin, 'index.js'), next));
+					var pluginfilename = Path.join(dir, plugin, 'index.js');
 
-					var path = PATH.root('plugins/' + plugin + CONF.directory_definitions);
-					U.ls(path, function(items) {
+					Fs.lstat(pluginfilename, function(err) {
 
-						if (items) {
-							items.forEach(function(item) {
-								if (item.substring(item.length - 3) === SCRIPTEXT)
-									dependencies.push(next => install('definition', U.getName(item).replace(/\.js$/i, ''), item, next));
-							});
+						// The plugin does not exist
+						if (err) {
+							next();
+							return;
 						}
 
-						path = PATH.root('plugins/' + plugin + CONF.directory_operations);
+						dependencies.push(next => install('plugin', plugin, pluginfilename, next));
+
+						var path = PATH.root('plugins/' + plugin + CONF.directory_definitions);
 						U.ls(path, function(items) {
 
 							if (items) {
 								items.forEach(function(item) {
 									if (item.substring(item.length - 3) === SCRIPTEXT)
-										dependencies.push(next => install('operation', U.getName(item).replace(/\.js$/i, ''), item, next));
+										dependencies.push(next => install('definition', U.getName(item).replace(/\.js$/i, ''), item, next));
 								});
 							}
 
-							path = PATH.root('plugins/' + plugin + CONF.directory_schemas);
+							path = PATH.root('plugins/' + plugin + CONF.directory_operations);
 							U.ls(path, function(items) {
 
 								if (items) {
 									items.forEach(function(item) {
 										if (item.substring(item.length - 3) === SCRIPTEXT)
-											dependencies.push(next => install('schema', U.getName(item).replace(/\.js$/i, ''), item, next));
+											dependencies.push(next => install('operation', U.getName(item).replace(/\.js$/i, ''), item, next));
 									});
 								}
 
-								path = PATH.root('plugins/' + plugin + CONF.directory_tasks);
+								path = PATH.root('plugins/' + plugin + CONF.directory_schemas);
 								U.ls(path, function(items) {
 
 									if (items) {
 										items.forEach(function(item) {
 											if (item.substring(item.length - 3) === SCRIPTEXT)
-												dependencies.push(next => install('task', U.getName(item).replace(/\.js$/i, ''), item, next));
+												dependencies.push(next => install('schema', U.getName(item).replace(/\.js$/i, ''), item, next));
 										});
 									}
 
-									next();
+									path = PATH.root('plugins/' + plugin + CONF.directory_tasks);
+									U.ls(path, function(items) {
+
+										if (items) {
+											items.forEach(function(item) {
+												if (item.substring(item.length - 3) === SCRIPTEXT)
+													dependencies.push(next => install('task', U.getName(item).replace(/\.js$/i, ''), item, next));
+											});
+										}
+
+										next();
+									});
 								});
 							});
 						});
-					});
 
-				}, resume);
+					}, resume);
+				});
 			});
 		});
 	}
@@ -10385,7 +10396,7 @@ function configure_configs(arr, rewrite) {
 
 	Object.keys(HEADERS).forEach(function(key) {
 		Object.keys(HEADERS[key]).forEach(function(subkey) {
-			if (RELEASE && subkey === 'Cache-Control')
+			if (RELEASE && subkey === 'Cache-Control' && HEADERS[key][subkey].indexOf('no-cache') == -1)
 				HEADERS[key][subkey] = HEADERS[key][subkey].replace(/max-age=\d+/, 'max-age=' + CONF.default_response_maxage);
 			if (subkey === 'X-Powered-By') {
 				if (xpowered)

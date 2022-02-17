@@ -19,6 +19,8 @@
 - added `U.filestreamer(filename)` for streaming text files
 - fixed a custom path for `NPMINSTALL()`
 - fixed linking `CONF.node_modules` path to the `F.require()` method
+- fixed `.nocache()` in the release mode
+- fixed loading apps if the plugin's `index.js` doesn't exist
 
 ========================
 0.0.58
