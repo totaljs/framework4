@@ -106,9 +106,9 @@ exports.make = function(callback) {
 							p = p.replace(REGAPPENDREPLACE, '/');
 						}
 
-						var exists = false;
+						var exists = null;
 						try {
-							exists = Fs.statSync(Path.join(target, p)) != null;
+							exists = Fs.statSync(Path.join(target, p));
 						} catch (e) {}
 
 						if ((dirname === pathupdate || dirname === pathstartup) && !exists) {
@@ -244,7 +244,6 @@ function normalize(path) {
 function cleanFiles(callback) {
 
 	var path = PATH.root(CONF.directory_src);
-	var length = path.length - 1;
 	var blacklist = {};
 
 	blacklist[CONF.directory_public] = 1;
@@ -268,7 +267,7 @@ function cleanFiles(callback) {
 	}
 
 	if (meta.files && meta.files.length) {
-		for (var i = 0, length = meta.files.length; i < length; i++) {
+		for (var i = 0; i < meta.files.length; i++) {
 			var filename = meta.files[i];
 			var dir = filename.substring(0, filename.indexOf('/', 1) + 1);
 			if (!blacklist[dir]) {
@@ -280,11 +279,33 @@ function cleanFiles(callback) {
 	}
 
 	if (meta.directories && meta.directories.length) {
-		meta.directories.quicksort('length');
-		for (var i = 0, length = meta.directories.length; i < length; i++) {
+		meta.directories.quicksort('length_desc');
+		for (var i = 0; i < meta.directories.length; i++) {
 			try {
-				if (!blacklist[meta.directories[i]])
-					Fs.rmdirSync(Path.join(path, meta.directories[i]));
+
+				var p = Path.join(path, meta.directories[i]);
+
+				if (blacklist[meta.directories[i]])
+					continue;
+
+				while (true) {
+
+					var files = Fs.readdirSync(p);
+					if (files.length)
+						break;
+
+					try {
+						Fs.rmdirSync(p);
+					} catch (e) {
+						break;
+					}
+
+					p = Path.join(path, '..');
+
+					if (p.length < path || p === path)
+						break;
+				}
+
 			} catch (e) {}
 		}
 	}
@@ -320,13 +341,18 @@ function copyFiles(files, callback) {
 			return next();
 
 		var filename = Path.join(path, file.name);
-		var exists = false;
 		var ext = U.getExtension(file.name);
 		var append = file.type === 3;
+		var exists = null;
 
 		try {
-			exists = Fs.statSync(filename) != null;
+			exists = Fs.statSync(filename);
 		} catch (e) {}
+
+		if (exists && (!exists.isFile() | exists.isSocket())) {
+			next();
+			return;
+		}
 
 		// DB file
 		if (file.type === 1 && exists) {
