@@ -2988,6 +2988,7 @@ exports.findschema = function(groupname) {
 };
 
 exports.newschema = function(name) {
+	exports.remove(name);
 	var o = new SchemaBuilderEntity(name);
 	o.owner = F.$owner();
 	schemasall[name.toLowerCase()] = schemasall[name] = schemas[name] = o;
@@ -3001,8 +3002,16 @@ exports.newschema = function(name) {
  */
 exports.remove = function(name) {
 	for (var key in schemasall) {
-		if (key === name)
+		if (key === name) {
+			delete schemasall[key.toLowerCase()];
 			delete schemasall[key];
+			delete schemas[name];
+			for (var key in F.temporary.exec) {
+				var meta = F.temporary.exec[key];
+				if (meta.schema.name === name)
+					delete F.temporary.exec[key];
+			}
+		}
 	}
 };
 

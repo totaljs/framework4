@@ -22,6 +22,7 @@
 - fixed `.nocache()` in the release mode
 - fixed loading apps if the plugin's `index.js` doesn't exist
 - fixed removing of empty directories in the bundled mode
+- fixed clearing cache for `EXEC()` method when updating/removing schema
 
 ========================
 0.0.58

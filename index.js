@@ -1648,7 +1648,7 @@ function _execforce(schema, model, callback, controller) {
 	if (method)
 		schema = schema.substring(1);
 
-	var meta = F.temporary.other[schema];
+	var meta = F.temporary.exec[schema];
 	var tmp, index;
 
 	if (!meta) {
@@ -1684,7 +1684,7 @@ function _execforce(schema, model, callback, controller) {
 				}
 			}
 
-			F.temporary.other[schema] = meta;
+			F.temporary.exec[schema] = meta;
 
 		} else {
 
@@ -1766,7 +1766,7 @@ function _execforce(schema, model, callback, controller) {
 			if (meta.method === 'DELETE' && (!model || model === EMPTYOBJECT))
 				meta.validate = false;
 
-			F.temporary.other[schema] = meta;
+			F.temporary.exec[schema] = meta;
 		}
 	}
 
@@ -2270,6 +2270,7 @@ function Framework() {
 		internal: {}, // controllers/modules names for the routing
 		ready: {},
 		ddos: {},
+		exec: {}, // a temporary cach for EXEC() method
 		service: { redirect: 0, request: 0, file: 0, usage: 0 }
 	};
 
@@ -2496,6 +2497,7 @@ F.refresh = function() {
 	F.temporary.range = {};
 	F.temporary.views = {};
 	F.temporary.other = {};
+	F.temporary.exec = {};
 	F.temporary.keys = {};
 	global.$VIEWCACHE && global.$VIEWCACHE.length && (global.$VIEWCACHE = []);
 
@@ -8346,6 +8348,7 @@ F.service = function(count) {
 		F.temporary.range = {};
 		F.temporary.views = {};
 		F.temporary.other = {};
+		F.temporary.exec = {};
 
 		global.TEMP = {};
 		global.$VIEWCACHE && global.$VIEWCACHE.length && (global.$VIEWCACHE = []);
