@@ -386,12 +386,22 @@ global.LDAP = function(opt, callback) {
 global.UNAUTHORIZED = function($) {
 	var user = $.user;
 	if (user) {
+
 		if (user.sa || user.su)
 			return false;
-		if (user.roles && user.roles.length) {
-			for (var i = 0; i < user.roles.length; i++) {
+
+		var compare = user.permissions || user.roles;
+		if (compare) {
+			if (compare instanceof Array) {
+				for (var i = 0; i < compare.length; i++) {
+					for (var j = 1; j < arguments.length; j++) {
+						if (arguments[j] === compare[i])
+							return false;
+					}
+				}
+			} else {
 				for (var j = 1; j < arguments.length; j++) {
-					if (arguments[j] === user.roles[i])
+					if (user.permisions[arguments[j]])
 						return false;
 				}
 			}

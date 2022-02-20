@@ -23,6 +23,7 @@
 - fixed loading apps if the plugin's `index.js` doesn't exist
 - fixed removing of empty directories in the bundled mode
 - fixed clearing cache for `EXEC()` method when updating/removing schema
+- improved `UNAUTHORIZED()` method
 
 ========================
 0.0.58
