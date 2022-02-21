@@ -1096,11 +1096,17 @@ ON('service', function(counter) {
 });
 
 exports.evaluate = function(type, callback) {
+
 	if (typeof(type) === 'function') {
 		callback = type;
 		type = 'default';
 	}
-	EVALUATOR[type] = callback;
+
+	if (callback)
+		EVALUATOR[type] = callback;
+	else
+		delete EVALUATOR[type];
+
 };
 
 exports.Controller = Controller;

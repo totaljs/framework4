@@ -24,6 +24,7 @@
 - fixed removing of empty directories in the bundled mode
 - fixed clearing cache for `EXEC()` method when updating/removing schema
 - improved `UNAUTHORIZED()` method
+- extended `NEWDB(name, [callback])` - nullable `callback` will remove the instance
 
 ========================
 0.0.58
