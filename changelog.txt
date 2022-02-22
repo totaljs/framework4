@@ -25,6 +25,7 @@
 - fixed clearing cache for `EXEC()` method when updating/removing schema
 - improved `UNAUTHORIZED()` method
 - extended `NEWDB(name, [callback])` - nullable `callback` will remove the instance
+- extended `next(content, replace, cache)` by adding `cache` argument to the `CMSRENDER()` method
 
 ========================
 0.0.58

@@ -243,6 +243,7 @@ exports.compile = function(html, widgets, used) {
 	response.css = [];
 	response.js = [];
 	response.widgets = [];
+	response.cache = {};
 
 	if (!used) {
 		for (var widget of widgets) {
@@ -506,8 +507,16 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 				render = w.render;
 		}
 
-		render(opt, function(response, replace) {
+		if (self.cache[opt.id]) {
+			widgets[item.indexer] = self.cache[opt.id];
+			next();
+			return;
+		}
+
+		render(opt, function(response, replace, cache) {
 			widgets[item.indexer] = replace === true ? response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '') : (item.beg + (response || '') + item.end);
+			if (cache)
+				self.cache[opt.id] = widgets[item.indexer];
 			next();
 		});
 
