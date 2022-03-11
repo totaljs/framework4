@@ -2,6 +2,8 @@
 0.0.60
 ========================
 
+- added a validation for `Byte`, `TinyInt` and `SmallInt` types in the schemas
+
 ========================
 0.0.59
 ========================

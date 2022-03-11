@@ -1212,7 +1212,21 @@ exports.parsetype = function(name, value, required, custom) {
 		return result;
 	}
 
-	if (['int', 'integer', 'byte'].indexOf(lower) !== -1) {
+	if (lower === 'byte' || lower === 'tinyint') {
+		result.type = 1;
+		result.min = 0;
+		result.max = 255;
+		return result;
+	}
+
+	if (lower === 'smallint') {
+		result.type = 1;
+		result.min = -32767;
+		result.max = 32767;
+		return result;
+	}
+
+	if (['int', 'integer'].indexOf(lower) !== -1) {
 		result.type = 1;
 		return result;
 	}
@@ -2017,6 +2031,8 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 				// number: integer
 				case 1:
 					item[property] = self.$onprepare(property, framework_utils.parseInt(val, def ? type.def() : type.def), undefined, model, $);
+					if (type.min != null && type.max != null && item[property] < type.min && item[property] > type.max)
+						item[property] = 0;
 					break;
 				// number: float
 				case 2:
@@ -2254,6 +2270,8 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 
 				case 1:
 					tmp = self.$onprepare(property, framework_utils.parseInt(tmp), j, model, $);
+					if (type.min !== null && type.max !== null && tmp < type.min && tmp > type.max)
+						tmp = 0;
 					break;
 
 				case 2:
