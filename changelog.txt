@@ -3,6 +3,7 @@
 ========================
 
 - added a validation for `Byte`, `TinyInt` and `SmallInt` types in the schemas
+- fixed `COPY()` method
 
 ========================
 0.0.59

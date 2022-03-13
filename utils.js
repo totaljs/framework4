@@ -1372,13 +1372,17 @@ global.CLONE = exports.clone = function(obj, skip, skipFunctions) {
 	return o;
 };
 
+global.COPY = function(source, target) {
+	return exports.copy(source, target, true);
+};
+
 /**
  * Copy values from object to object
  * @param {Object} source Object source
  * @param {Object} target Object target (optional)
  * @return {Object} Modified object.
  */
-global.COPY = exports.copy = function(source, target, all) {
+exports.copy = function(source, target, all) {
 
 	if (target === undefined)
 		return exports.extend({}, source, true);
