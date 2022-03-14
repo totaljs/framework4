@@ -6423,6 +6423,7 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 		url = '/' + url;
 
 	var tmp = url;
+
 	if (CONF.default_root)
 		tmp = tmp.substring(CONF.default_root.length - 1);
 
@@ -10453,11 +10454,11 @@ F.public = function(name, theme) {
 };
 
 F.$public = function(name, directory, theme) {
+
 	var key = name + directory + '$' + theme;
 	var val = F.temporary.other[key];
 	if (RELEASE && val)
 		return val;
-
 
 	if (name[0] === '~') {
 		name = name.substring(name[1] === '~' ? 2 : 1);
@@ -10487,7 +10488,12 @@ F.$public = function(name, directory, theme) {
 			filename = filename.substring(1);
 	}
 
-	return F.temporary.other[key] = F.$version(framework_internal.preparepath(filename), true);
+	var name = F.$version(framework_internal.preparepath(filename), true);
+
+	if (CONF.default_root && name[0] === '/' && name.substring(0, CONF.default_root.length) !== CONF.default_root)
+		name = U.join(CONF.default_root, name);
+
+	return F.temporary.other[key] = name;
 };
 
 F.$version = function(name, def) {
@@ -18912,8 +18918,9 @@ function prepare_staticurl(url, isDirectory) {
 	if (url[0] === '~') {
 		if (isDirectory)
 			return U.path(url.substring(1));
-	} else if (url.substring(0, 2) === '//' || url.substring(0, 6) === 'http:/' || url.substring(0, 7) === 'https:/')
-		return url;
+	}
+	// } else if (url.substring(0, 2) === '//' || url.substring(0, 6) === 'http:/' || url.substring(0, 7) === 'https:/')
+	// 	return url;
 	return url;
 }
 
