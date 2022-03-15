@@ -9980,9 +9980,9 @@ F.sitemap_add = function (obj) {
 	configure_sitemap(obj instanceof Array ? obj : [obj]);
 };
 
-function automap(key, filename) {
+function automap(key, url, filename) {
 	ON('ready', function() {
-		makehash(key, function(hash) {
+		makehash(url, function(hash) {
 			if (hash) {
 
 				var index = key.lastIndexOf('.');
@@ -10063,14 +10063,16 @@ function configure_versions(arr, clean) {
 		var key = str.substring(0, index).trim();
 		var filename = str.substring(index + len).trim();
 
+		var url = key;
+
 		if (CONF.default_root)
-			key = U.join(CONF.default_root, key);
+		 	url = U.join(CONF.default_root, url);
 
 		if (filename === 'auto') {
 			if (ismap)
 				throw new Error('/versions: "auto" value can\'t be used with the mapping');
 			F.versions[key] = filename;
-			automap(key, filename);
+			automap(key, url, filename);
 		} else {
 			F.versions[key] = filename;
 			ismap && MAP(filename, PATH.public(key));

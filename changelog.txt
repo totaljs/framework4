@@ -5,6 +5,7 @@
 - added a validation for `Byte`, `TinyInt` and `SmallInt` types in the schemas
 - fixed `COPY()` method
 - fixed `default_root` config option for static files
+- fixed `/versions` file with applied `default_root`
 
 ========================
 0.0.59
