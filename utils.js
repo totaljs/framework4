@@ -18,6 +18,7 @@ const REG_EMPTYBUFFER_TEST = /\0|%00|\\u0000/;
 const REG_XSS = /<.*>/;
 const REG_SQLINJECTION = /'(''|[^'])*'|\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE){0,1}|INSERT( +INTO){0,1}|MERGE|SELECT|UPDATE|UNION( +ALL){0,1})\b/;
 const REG_GUID = (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+const CT_OCTET = 'application/octet-stream';
 
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
@@ -120,7 +121,7 @@ var CONTENTTYPES = {
 	ai: 'application/postscript',
 	appcache: 'text/cache-manifest',
 	avi: 'video/avi',
-	bin: 'application/octet-stream',
+	bin: CT_OCTET,
 	bmp: 'image/bmp',
 	coffee: 'text/coffeescript',
 	css: 'text/css',
@@ -129,7 +130,7 @@ var CONTENTTYPES = {
 	docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 	dtd: 'application/xml-dtd',
 	eps: 'application/postscript',
-	exe: 'application/octet-stream',
+	exe: CT_OCTET,
 	flac: 'audio/x-flac',
 	geojson: 'application/json',
 	gif: 'image/gif',
@@ -508,7 +509,7 @@ function _request(opt, callback) {
 				opt.headers[CT] = 'text/html';
 				break;
 			case 'raw':
-				opt.headers[CT] = 'application/octet-stream';
+				opt.headers[CT] = CT_OCTET;
 				break;
 			case 'json':
 				opt.headers[CT] = 'application/json';
@@ -1684,9 +1685,11 @@ exports.isDate = function(obj) {
  * @return {String}
  */
 exports.getContentType = function(ext) {
+	if (!ext)
+		return CT_OCTET;
 	if (ext[0] === '.')
 		ext = ext.substring(1);
-	return CONTENTTYPES[ext] || 'application/octet-stream';
+	return CONTENTTYPES[ext] || CT_OCTET;
 };
 
 /**
