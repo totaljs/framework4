@@ -980,7 +980,7 @@ FP.res = function(res, options, checkcustom) {
 
 		if (!options.download && req.headers['if-modified-since'] === utc) {
 			Fs.close(fd, NOOP);
-			res.extention = framework_utils.getExtension(obj.name);
+			res.extension = obj.ext || framework_utils.getExtension(obj.name);
 			F.$file_notmodified(res, utc);
 		} else {
 
