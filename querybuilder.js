@@ -197,6 +197,17 @@ CTP.list = function(table) {
 	return new QueryBuilder(db, meta.table, 'list');
 };
 
+CTP.check = function(table) {
+	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
+	var t = this;
+	var db = new DB(meta.db);
+	db.controller = t;
+	t.commands.push(db);
+	var builder = new QueryBuilder(db, meta.table, 'check');
+	builder.options.take = builder.options.first = 1;
+	return builder;
+};
+
 CTP.read = CTP.one = function(table) {
 	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
 	var t = this;

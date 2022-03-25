@@ -8,6 +8,7 @@
 - fixed `/versions` file with applied `default_root`
 - fixed a nullable argument in `U.getContentType()`
 - fixed HTTP cache in `FileStorage`
+- added `QueryBuilder.check()` for checking existence of record
 
 ========================
 0.0.59
