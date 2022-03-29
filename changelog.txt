@@ -9,6 +9,7 @@
 - fixed a nullable argument in `U.getContentType()`
 - fixed HTTP cache in `FileStorage`
 - added `QueryBuilder.check()` for checking existence of record
+- fixed decompression bigger messages in the WebSocket
 
 ========================
 0.0.59

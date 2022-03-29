@@ -15999,7 +15999,11 @@ WebSocketClientProto.$parse = function() {
 
 	// WebSocket - Opcode
 	current.type = current.buffer[0] & 0x0f;
-	current.compressed = (current.buffer[0] & 0x40) === 0x40;
+
+	// Compression
+	// Type must be greater than 0
+	if (current.type)
+		current.compressed = (current.buffer[0] & 0x40) === 0x40;
 
 	// is final message?
 	current.final = ((current.buffer[0] & 0x80) >> 7) === 0x01;
@@ -16021,8 +16025,8 @@ WebSocketClientProto.$parse = function() {
 	// total message length (data + header)
 	var mlength = index + length;
 
-	if (mlength > this.length) {
-		this.close('Frame is too large', 1009);
+	if (mlength > self.length) {
+		self.close('Frame is too large', 1009);
 		return;
 	}
 
@@ -16041,7 +16045,7 @@ WebSocketClientProto.$parse = function() {
 			current.buffer.copy(current.mask, 0, index - 4, index);
 		}
 
-		if (current.compressed && this.inflate) {
+		if (current.compressed && self.inflate) {
 
 			var buf = Buffer.alloc(length);
 			current.buffer.copy(buf, 0, index, mlength);
@@ -16054,7 +16058,7 @@ WebSocketClientProto.$parse = function() {
 
 			// Does the buffer continue?
 			buf.$continue = current.final === false;
-			this.inflatepending.push(buf);
+			self.inflatepending.push(buf);
 
 		} else {
 
