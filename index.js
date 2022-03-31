@@ -1792,7 +1792,7 @@ function _execforce(schema, model, callback, controller) {
 	}
 
 	if (!controller) {
-		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY });
+		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY, headers: EMPTYOBJECT });
 		controller.isConnected = false;
 	}
 
