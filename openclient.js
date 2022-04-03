@@ -190,7 +190,7 @@ exports.create = function(url, id) {
 
 	if (!opt.ws) {
 		opt.ws = require('./websocketclient').create();
-		opt.ws.connect(url);
+		setImmediate(() => opt.ws.connect(url));
 		F.openclients[url] = opt.ws;
 		opt.ws.$clients = {};
 		opt.ws.$callbacks = {};
