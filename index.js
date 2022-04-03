@@ -104,6 +104,8 @@ function querybuilderwrapper(fn_name) {
 	global.NEWDB = function(name, callback) {
 		db.evaluate(name, callback);
 	};
+
+	require('./textdb-querybuilder');
 	return global[fn_name];
 }
 
