@@ -602,55 +602,6 @@ function isdangerous(rule) {
 	return (/require|global/).test(rule);
 }
 
-/*
-function prepare_filter(value) {
-
-	var skip = '';
-	var last = '';
-	var builder = [];
-	var command = '';
-
-	for (var i = 0; i < value.length; i++) {
-
-		var c = value[i];
-
-		if (skip && value[i - 1] !== '\\' && skip !== c) {
-			builder.push(c);
-			continue;
-		}
-
-		if (c === '\'') {
-			skip = '\'';
-			command = '';
-		} else if (c === '"') {
-			skip = '"';
-			command = '';
-		}
-
-		if (c === ' ' || c === '\n')
-			continue;
-
-		if ((last === '+' || last === '-' || last === '*') && c === '=') {
-			builder.pop();
-			builder.push(c);
-		}
-
-		if (last === '=' && c !== '=')
-			builder.push('=');
-
-		//if ((/delete)\s/).test(command)) {
-		//	replace.push(command);
-		//	continue;
-		//}
-
-		builder.push(c);
-		command += c;
-		last = c;
-	}
-
-	return builder.join('');
-}*/
-
 exports.QueryBuilder = QueryBuilder;
 exports.make = function() {
 	return new QueryBuilder();

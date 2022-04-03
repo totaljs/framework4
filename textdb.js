@@ -55,9 +55,7 @@ function TableDB(filename, schema, onetime) {
 	t.$allocations = true;
 	t.total = 0;
 
-	t.next2 = function() {
-		t.next(0);
-	};
+	t.next2 = () => t.next(0);
 
 	Fs.createReadStream(t.filename, { end: 2048 }).once('data', function(chunk) {
 		t.parseSchema(t, chunk.toString('utf8').split('\n', 1)[0].split(DELIMITER));
@@ -104,10 +102,7 @@ function JsonDB(filename, onetime) {
 	t.$reading = 0;
 	t.total = 0;
 	t.inmemory = false;
-
-	t.next2 = function() {
-		t.next(0);
-	};
+	t.next2 = () => t.next(0);
 }
 
 const TD = TableDB.prototype;
