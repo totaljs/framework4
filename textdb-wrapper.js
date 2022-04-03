@@ -530,7 +530,7 @@ DP.update = DP.modify = DP.mod = function(data, upsert, noeval) {
 				break;
 			case '=':
 				key = key.substring(1);
-				cmd = 'doc.{0}=' + data[key];
+				cmd = 'doc.{0}=' + val;
 				break;
 			case '>':
 				key = key.substring(1);
