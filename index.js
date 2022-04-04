@@ -10068,7 +10068,7 @@ function configure_versions(arr, clean) {
 		var url = key;
 
 		if (CONF.default_root)
-		 	url = U.join(CONF.default_root, url);
+			url = U.join(CONF.default_root, url);
 
 		if (filename === 'auto') {
 			if (ismap)
@@ -18387,16 +18387,28 @@ function $file_nocompress(stream, next, res) {
 
 }
 
-function $file_range(name, range, headers, res) {
+function $file_range(name, range, headers, res, total) {
 
 	var arr = range.replace(REG_RANGE, '').split('-');
 	var beg = +arr[0] || 0;
 	var end = +arr[1] || 0;
-	var total = F.temporary.range[name];
+
+	if (!total)
+		total = F.temporary.range[name];
 
 	if (!total) {
-		total = Fs.statSync(name).size;
-		RELEASE && (F.temporary.range[name] = total);
+		Fs.lstat(name, function(err, stats) {
+			if (err) {
+				// File not found
+				if (!F.routes.filesfallback || !F.routes.filesfallback(res.req, res))
+					res.throw404();
+			} else {
+				if (RELEASE)
+					F.temporary.range[name] = stats.size;
+				$file_range(name, range, headers, res, stats.total);
+			}
+		});
+		return;
 	}
 
 	if (end <= 0)
