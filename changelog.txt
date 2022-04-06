@@ -16,6 +16,7 @@
 - fixed HTTP cache in `FileStorage`
 - added `QueryBuilder.check()` for checking existence of record
 - fixed decompression bigger messages in the WebSocket
+- updated `NEWFORK()` and `NEWTHREAD()` by adding support for `~absolute/path/to/worker.js` in `name` argument
 
 ========================
 0.0.59

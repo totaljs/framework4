@@ -10929,8 +10929,8 @@ global.NEWTHREAD = function(name, data) {
 	if (!name)
 		return process_thread();
 
-	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
-	var worker = new Worker.Worker(filename + '.js', { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
+	var filename = name[0] === '@' ? (PATH.package(name.substring(1)) + '.js') : name[0] === '~' ? name.substring(1) : (U.combine(CONF.directory_workers, name) + '.js');
+	var worker = new Worker.Worker(filename, { workerData: data, cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
 	worker.kill = worker.exit = () => worker.terminate();
 
 	return worker;
@@ -11002,8 +11002,8 @@ global.NEWFORK = function(name) {
 	if (!name)
 		return process_thread();
 
-	var filename = name[0] === '@' ? PATH.package(name.substring(1)) : U.combine(CONF.directory_workers, name);
-	var fork = new Child.fork(filename + '.js', { cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
+	var filename = name[0] === '@' ? (PATH.package(name.substring(1)) + '.js') : name[0] === '~' ? name.substring(1) : (U.combine(CONF.directory_workers, name) + '.js');
+	var fork = new Child.fork(filename, { cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
 	fork.postMessage = fork.send;
 	fork.terminate = () => fork.kill('SIGTERM');
 
