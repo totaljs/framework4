@@ -157,7 +157,7 @@ function makefilter(db, opt, callback) {
 	}
 
 	if (FILTER[exec]) {
-		builder.filter = where.join('&&') || 'true';
+		builder.filter = where.join('') || 'true';
 		builder.filterarg = { params: args };
 		builder.take = opt.take;
 		builder.skip = opt.skip;
