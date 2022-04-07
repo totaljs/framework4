@@ -225,7 +225,7 @@ function makefilter(db, opt, callback) {
 					db.find().assign(builder).$callback = function(err, response) {
 						var output = {};
 						if (response)
-							output[opt.scalar.type] = opt.scalar.type === 'avg' ? ((response.min + response.max) / 2) : response[opt.scalar.type];
+							output.value = opt.scalar.type === 'avg' ? ((response.min + response.max) / 2) : response[opt.scalar.type];
 						callback(err, output);
 					};
 					break;
