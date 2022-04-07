@@ -628,7 +628,9 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {}, ui: {}, iscomponent: true };
 	if (extend) {
 		try {
+			var cacheid = name;
 			declaration(curr, F.require);
+			curr.id = cacheid;
 		} catch (e) {
 			self.error(e, 'register', name);
 			callback && callback(e);

@@ -3,6 +3,7 @@
 ========================
 
 - added NoSQL support for QueryBuilder
+- fixed FlowStream identifiers when registering component
 
 ========================
 0.0.60
