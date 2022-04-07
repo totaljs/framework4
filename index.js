@@ -97,7 +97,7 @@ function querybuilderwrapper(fn_name) {
 
 	var db = require('./querybuilder');
 
-	global.DB = function() {
+	global.DB = global.DATABASE = function() {
 		return new db.Controller();
 	};
 
@@ -2870,7 +2870,7 @@ global.TEXTDB = function(name) {
 	return textdbwrapper(name);
 };
 
-global.DB = function() {
+global.DB = global.DATABASE = function() {
 	return querybuilderwrapper('DB').apply(this, arguments);
 };
 

@@ -222,7 +222,12 @@ function makefilter(db, opt, callback) {
 						builder.scalar = 'if (doc.{0}!=null){tmp.val=doc.{0};arg.count+=1;arg.min=arg.min==null?tmp.val:arg.min>tmp.val?tmp.val:arg.min;arg.max=arg.max==null?tmp.val:arg.max<tmp.val?tmp.val:arg.max;if(!(tmp.val instanceof Date))arg.sum+=tmp.val}'.format(opt.scalar.key);
 						builder.scalararg = { count: 0, sum: 0 };
 					}
-					db.find().assign(builder).$callback = (err, response) => callback(err, { count: opt.scalar.type === 'avg' ? ((response.min + response.max) / 2) : response[opt.scalar.type] });
+					db.find().assign(builder).$callback = function(err, response) {
+						var output = {};
+						if (response)
+							output[opt.scalar.type] = opt.scalar.type === 'avg' ? ((response.min + response.max) / 2) : response[opt.scalar.type];
+						callback(err, output);
+					};
 					break;
 				case 'group':
 					builder.scalar = opt.scalar.key2 ? 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+(doc.{1}||0)}'.format(opt.scalar.key, opt.scalar.key2) : 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(opt.scalar.key);
