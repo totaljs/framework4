@@ -4,6 +4,7 @@
 
 - added NoSQL support for QueryBuilder
 - fixed FlowStream identifiers when registering component
+- fixed schema name in the logs when `CONF.logger` is enabled
 
 ========================
 0.0.60

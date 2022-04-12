@@ -2759,7 +2759,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 };
 
 SchemaBuilderEntityProto.getLoggerName = function(type, name) {
-	return this.id + '.' + type + (name ? ('(\'' + name + '\')') : '()');
+	return this.name + '.' + type + (name ? ('(\'' + name + '\')') : '()');
 };
 
 /**
