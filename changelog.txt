@@ -6,6 +6,7 @@
 - fixed FlowStream identifiers when registering component
 - fixed schema name in the logs when `CONF.logger` is enabled
 - extended `download` argument in the `$.controller.file(filename, [download])` by adding support for `Boolean`
+- extended `CONVERT()` by adding support for advanced arrays e.g. `key: [name: String, price: 30]`
 
 ========================
 0.0.60

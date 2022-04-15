@@ -5769,13 +5769,19 @@ global.CONVERT = function(value, schema) {
 };
 
 function convertorcompile(schema, data, key) {
-	var prop = schema.split(',');
+
+	var arrays = [];
+
+	schema = schema.replace(/\[.*?\]/g, text => '[' + (arrays.push(text.substring(1, text.length - 1)) - 1) + ']');
+
+	var prop = schema.split(/,|;/);
 	var cache = [];
+
 	for (var i = 0; i < prop.length; i++) {
-		var arr = prop[i].split(':');
+		var arr = prop[i].split(':').trim();
 		var obj = {};
 
-		var type = arr[1].toLowerCase().trim();
+		var type = arr[1].toLowerCase();
 		var size = 0;
 		var isarr = type[0] === '[';
 		if (isarr)
@@ -5792,7 +5798,18 @@ function convertorcompile(schema, data, key) {
 		obj.type = type;
 		obj.array = isarr;
 
+		if (isarr) {
+			type = arrays[+type];
+			if ((/,|;/).test(type)) {
+				// nested
+				obj.fn = convertorcompile(type, null, null);
+				obj.type = type = 'custom';
+			}
+		}
+
 		switch (type) {
+			case 'custom':
+				break;
 			case 'string':
 				obj.fn = $convertstring;
 				break;
@@ -5891,11 +5908,17 @@ function convertorcompile(schema, data, key) {
 		if (isarr) {
 			obj.fn2 = obj.fn;
 			obj.fn = function(val, obj) {
+
 				if (!(val instanceof Array))
 					val = val == null || val == '' ? [] : [val];
+
 				var output = [];
-				for (var i = 0, length = val.length; i < length; i++) {
-					var o = obj.fn2(val[i], obj);
+				for (var m of val) {
+
+					if (!m && obj.type === 'custom')
+						continue;
+
+					var o = obj.fn2(m, obj);
 					switch (obj.type) {
 						case 'email':
 						case 'phone':
@@ -5927,8 +5950,10 @@ function convertorcompile(schema, data, key) {
 		return output;
 	};
 
-	F.convertors[key] = fn;
-	return fn(data);
+	if (key)
+		F.convertors[key] = fn;
+
+	return key === null ? fn : fn(data);
 }
 
 function $convertstring(value, obj, xss) {
