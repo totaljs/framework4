@@ -17861,7 +17861,7 @@ function extend_response(PROTO) {
 			headers = U.extend_headers(headers, res.options.headers);
 
 		if (res.options.download) {
-			var encoded = encodeURIComponent(res.options.download);
+			var encoded = encodeURIComponent(res.options.download === true ? U.getName(res.options.filename) : res.options.download);
 			headers['Content-Disposition'] = 'attachment; filename*=utf-8\'\'' + encoded;
 		} else if (headers['Content-Disposition'])
 			delete headers['Content-Disposition'];
