@@ -5760,10 +5760,14 @@ AuthOptions.wrap = function(fn) {
 	};
 };
 
-global.CONVERT = function(value, schema) {
-	var key = schema;
+global.CONVERT = function(value, schema, key) {
+
+	if (!key)
+		key = schema;
+
 	if (key.length > 50)
-		key = key.hash();
+		key = key.hash().toString(36);
+
 	var fn = F.convertors[key];
 	return fn ? fn(value) : convertorcompile(schema, value, key);
 };

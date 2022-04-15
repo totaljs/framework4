@@ -10,6 +10,7 @@
 - added `F.frameworkless(debug, options, [callback])` that executes HTTP server without Total.js dependencies
 - updated `PROXY()` method by adding `check` argument
 - fixed `copypath` functionality in the `PROXY()` method
+- added auto clearing cache for the `CONVERT()` method
 
 ========================
 0.0.60
