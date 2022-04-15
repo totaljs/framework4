@@ -2395,7 +2395,7 @@ function Framework() {
 	self._request_check_POST = false;
 	self._request_check_robot = false;
 	self._request_check_mobile = false;
-	self._request_check_proxy = false;
+	self._request_check_proxy = 0;
 	self._length_request_middleware = 0;
 	self._length_request_middleware_dynamic = 0;
 	self._length_request_middleware_static = 0;
@@ -2977,7 +2977,12 @@ F.stop = F.kill = function(signal) {
 	setTimeout(() => process.exit(signal), 300);
 };
 
-global.PROXY = function(url, target, copypath, before, after, timeout) {
+global.PROXY = function(url, target, copypath, before, after, check, timeout) {
+
+	if (typeof(check) === 'number') {
+		timeout = check;
+		check = null;
+	}
 
 	url = url.toLowerCase();
 
@@ -2998,9 +3003,8 @@ global.PROXY = function(url, target, copypath, before, after, timeout) {
 	else
 		target = { socketPath: target };
 
-	var obj = { url: url, uri: target, before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
-	F.routes.proxies.push(obj);
-	F._request_check_proxy = true;
+	var obj = { url: url, uri: target, before: before, after: after, check: check, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
+	F._request_check_proxy = F.routes.proxies.push(obj);
 };
 
 global.REDIRECT = function(host, newHost, withPath, permanent) {
@@ -5230,7 +5234,12 @@ global.MODIFY = function(filename, fn) {
 	fn.$owner = CURRENT_OWNER;
 };
 
-F.$bundle = function(callback) {
+F.$bundle = function(callback, skip) {
+
+	if (skip) {
+		callback();
+		return;
+	}
 
 	try {
 		if (Fs.readFileSync('bundles.debug')) {
@@ -7997,6 +8006,135 @@ F.initialize = function(http, debug, options, callback) {
 	});
 };
 
+/**
+ * Initialize framework
+ * @param  {Object} http
+ * @param  {Boolean} debug
+ * @param  {Object} options
+ * @return {Framework}
+ */
+F.frameworkless = function(debug, options, callback) {
+
+	extend_request(Http.IncomingMessage.prototype);
+	extend_response(Http.ServerResponse.prototype);
+
+	if (typeof(debug) === 'string')
+		debug = debug !== 'release';
+
+	if (!options)
+		options = {};
+
+	var port = options.port;
+	var ip = options.ip;
+	var unixsocket = options.unixsocket;
+
+	options.config && U.extend_headers2(CONF, options.config);
+	F.isHTTPS = false;
+
+	if (isNaN(port) && typeof(port) !== 'string')
+		port = null;
+
+	if (options.id)
+		F.id = options.id;
+
+	global.DEBUG = debug;
+	global.RELEASE = !debug;
+
+	if (isTYPESCRIPT)
+		SCRIPTEXT = '.ts';
+
+	F.cache.init();
+	EMIT('init');
+
+	if (!port) {
+		if (CONF.default_port === 'auto') {
+			var envPort = +(process.env.PORT || '');
+			if (!isNaN(envPort))
+				port = envPort;
+		} else
+			port = CONF.default_port;
+	}
+
+	F.port = port || 8000;
+
+	if (ip !== null) {
+		F.ip = ip || CONF.default_ip || '0.0.0.0';
+		if (F.ip === 'null' || F.ip === 'undefined' || F.ip === 'auto')
+			F.ip = null;
+	} else
+		F.ip = undefined;
+
+	if (F.ip == null)
+		F.ip = '0.0.0.0';
+
+	!unixsocket && (unixsocket = CONF.default_unixsocket);
+	F.unixsocket = unixsocket;
+
+	if (F.server) {
+		F.server.removeAllListeners();
+		for (var key in F.connections) {
+			var item = F.connections[key];
+			if (item) {
+				item.removeAllListeners();
+				item.close();
+			}
+		}
+		F.server.close();
+	}
+
+	var listen = function() {
+		F.server = Http.createServer(F.listener);
+		CONF.allow_performance && F.server.on('connection', connection_tunning);
+		F.initwebsocket && F.initwebsocket();
+		setInterval(clear_pending_requests, 5000);
+		if (F.server) {
+			if (unixsocket) {
+				F.server.listen(unixsocket, function() {
+					if (options.unixsocket777)
+						Fs.chmodSync(unixsocket, 0o777);
+				});
+			} else
+				F.server.listen(F.port, F.ip);
+		}
+	};
+
+	// clears static files
+	F.isLoaded = true;
+
+	if (options.middleware)
+		options.middleware(listen);
+	else
+		listen();
+
+	if (!process.connected)
+		F.console();
+
+	setTimeout(function() {
+
+		if (F.pending) {
+			for (var fn of F.pending)
+				fn();
+			delete F.pending;
+		}
+
+		callback && callback();
+
+		try {
+			EMIT('load');
+			EMIT('ready');
+		} catch (err) {
+			F.error(err, 'ON("load/ready")');
+		}
+
+		F.removeAllListeners('load');
+		F.removeAllListeners('ready');
+
+		F.$snapshot && F.$snapshot();
+
+	}, 500);
+
+};
+
 function loadthreads(options) {
 
 	if (options.threads === true)
@@ -8535,7 +8673,7 @@ F.listener = function(req, res) {
 			if (u[u.length - 1] !== '/')
 				u += '/';
 
-			if (u === proxy.url) {
+			if (u === proxy.url && (!proxy.check || proxy.check(req, res))) {
 				F.stats.response.proxy++;
 				makeproxy(proxy, req, res);
 				return;
@@ -8616,12 +8754,10 @@ function makeproxy(proxy, req, res) {
 	uri.method = req.method;
 	uri.headers = req.headers;
 
-	if (proxy.copypath) {
-		if (proxy.copypath === 'replace')
-			uri.path = req.url.substring(proxy.url.length - 1);
-		else
-			uri.path = req.url;
-	}
+	if (proxy.copypath == false || proxy.copypath === 'replace')
+		uri.path = req.url.substring(proxy.url.length - 1);
+	else
+		uri.path = req.url;
 
 	if (uri.headers.connection)
 		delete uri.headers.connection;
@@ -8685,6 +8821,7 @@ function makeproxyerror(err) {
 }
 
 function makeproxycallback(response) {
+
 	this.$proxy.after && this.$proxy.after(response);
 	this.$res.writeHead(response.statusCode, response.headers);
 	response.pipe(this.$res, PROXYOPTIONS);

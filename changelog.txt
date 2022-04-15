@@ -7,6 +7,9 @@
 - fixed schema name in the logs when `CONF.logger` is enabled
 - extended `download` argument in the `$.controller.file(filename, [download])` by adding support for `Boolean`
 - extended `CONVERT()` by adding support for advanced arrays e.g. `key: [name: String, price: 30]`
+- added `F.frameworkless(debug, options, [callback])` that executes HTTP server without Total.js dependencies
+- updated `PROXY()` method by adding `check` argument
+- fixed `copypath` functionality in the `PROXY()` method
 
 ========================
 0.0.60
