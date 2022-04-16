@@ -3182,10 +3182,19 @@ global.RESIZE = function(url, fn, flags) {
  */
 global.CORS = function(url, flags, credentials) {
 
+	var route = {};
+
 	if (!arguments.length) {
 		F.routes.corsall = true;
 		PERF.OPTIONS = true;
-		return;
+		route.url = '*';
+		route.hash = 1;
+		route.remove = function() {
+			F.routes.corsall = false;
+			if (!F._length_cors)
+				delete PERF.OPTIONS;
+		};
+		return route;
 	}
 
 	if (flags === true) {
@@ -3193,7 +3202,6 @@ global.CORS = function(url, flags, credentials) {
 		flags = null;
 	}
 
-	var route = {};
 	var origin = [];
 	var methods = [];
 	var headers = [];
@@ -3313,6 +3321,18 @@ global.CORS = function(url, flags, credentials) {
 	});
 
 	PERF.OPTIONS = true;
+
+	route.remove = function() {
+		var index = F.routes.cors.indexOf(this);
+		if (index !== -1) {
+			F.routes.cors.splice(index, 1);
+			F._length_cors = F.routes.cors.length;
+			if (!F._length_cors && !F.routes.corsall)
+				delete PERF.OPTIONS;
+		}
+	};
+
+	return route;
 };
 
 function corsextend(a, b) {

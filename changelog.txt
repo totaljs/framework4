@@ -11,6 +11,7 @@
 - updated `PROXY()` method by adding `check` argument
 - fixed `copypath` functionality in the `PROXY()` method
 - added auto clearing cache for the `CONVERT()` method
+- extended `CORS()` method by returning instance of the route (that can be dynamically removed)
 
 ========================
 0.0.60
