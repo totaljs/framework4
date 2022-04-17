@@ -201,6 +201,7 @@ MP.clone = function() {
 	obj.controller = self.controller;
 	obj.cloned = self.cloned + 1;
 	obj.$timeoutidtotal = self.$timeoutidtotal;
+	obj.color = self.color;
 
 	if (obj.refs.pending)
 		obj.refs.pending++;
@@ -357,7 +358,7 @@ MP.send = function(outputindex, data, clonedata) {
 		return count;
 	}
 
-	var tid = self.toid + D + outputindex;
+	var tid = self.toid + D + outputindex + (self.color || '');
 
 	if (self.main.stats.traffic[tid]) {
 		self.main.stats.traffic[tid]++;
@@ -377,6 +378,9 @@ MP.send = function(outputindex, data, clonedata) {
 			var next = meta.components[schema.component];
 			// if (next && next.connected && !next.isdestroyed && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
 			if (next && next.connected && !next.isdestroyed && !next.disabled) {
+
+				if (self.color && self.color !== output.color)
+					continue;
 
 				var inputindex = output.index;
 				var message = self.clone();
@@ -405,6 +409,7 @@ MP.send = function(outputindex, data, clonedata) {
 				message.tocomponent = schema.component;
 				message.cache = schema.cache;
 				message.ts = now;
+				message.color = output.color;
 
 				if (self.$timeout)
 					message.$timeoutid = setTimeout(timeouthandler, self.$timeout, message);
@@ -898,6 +903,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 
 					var m = conn[i];
 					var target = self.meta.flow[m.id];
+
 					if (!target || (!target.message && !target['message_' + m.index]) || !self.$can(true, m.id, m.index))
 						continue;
 
@@ -909,6 +915,9 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						continue;
 
 					var ismessage = data instanceof Message;
+					if (ismessage && data.color && data.color !== m.color)
+						continue;
+
 					var message = ismessage ? data.clone() : new Message();
 
 					if (ismessage) {
@@ -935,7 +944,6 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 							}
 						}
 					} else {
-
 						message.refs = { pending: 1 };
 						message.$events = events || {};
 						message.repo = {};
@@ -948,6 +956,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.main = self;
 					message.controller = controller;
 					message.instance = target;
+					message.color = m.color;
 
 					message.from = schema;
 					message.fromid = schema.id;
@@ -972,7 +981,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 					message.count = message.main.stats.messages;
 
 					if (message.fromid && !count) {
-						var tid = message.fromid + D + message.output;
+						var tid = message.fromid + D + message.output + (message.color || '');
 						if (message.main.stats.traffic[tid])
 							message.main.stats.traffic[tid]++;
 						else {
@@ -1415,8 +1424,8 @@ FP.trigger = function(path, data, controller, events) {
 		var instance = self.meta.components[schema.component];
 		if (instance && instance.connected && !instance.disabled && self.$can(true, path[0], path[1])) {
 
-			var ts = Date.now();
 			var ismessage = data instanceof Message;
+			var ts = Date.now();
 			var message = ismessage ? data.clone() : new Message();
 
 			if (ismessage) {
@@ -1452,7 +1461,6 @@ FP.trigger = function(path, data, controller, events) {
 			message.input = message.index = inputindex;
 			message.tocomponent = instance.id;
 			message.cache = instance.cache;
-
 			message.processed = 0;
 
 			schema.stats.input++;
@@ -1466,7 +1474,7 @@ FP.trigger = function(path, data, controller, events) {
 			message.count = message.main.stats.messages;
 
 			if (message.fromid) {
-				var tid = message.fromid + D + message.output;
+				var tid = message.fromid + D + message.output + (message.color || '');
 				if (message.main.stats.traffic[tid])
 					message.main.stats.traffic[tid]++;
 				else {
