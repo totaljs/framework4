@@ -13,6 +13,8 @@
 - added auto clearing cache for the `CONVERT()` method
 - extended `CORS()` method by returning instance of the route (that can be dynamically removed)
 - extended `FlowStream` connections by adding the `color` attribute
+- added method `U.set()`
+- added method `U.get()`
 
 ========================
 0.0.60

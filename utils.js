@@ -23,6 +23,8 @@ const CT_OCTET = 'application/octet-stream';
 const COMPRESS = { gzip: 1, deflate: 1 };
 const CONCAT = [null, null];
 const SKIPPORTS = { '80': 1, '443': 1 };
+const REGISARR = /\[\d+\]|\[\]$/;
+const REGREPLACEARR = /\[\]/g;
 
 const COMPARER = function(a, b) {
 	if (!a && b)
@@ -6731,43 +6733,90 @@ String.prototype.toJSONSchema = function(name, url) {
 	return obj;
 };
 
+exports.set = function(obj, path, value) {
+	var cachekey = 'uset' + path;
+
+	if (F.temporary.other[cachekey])
+		return F.temporary.other[cachekey](obj, value);
+
+	if ((/__proto__|constructor|prototype|eval|function|\*|\+|;|\s|\(|\)|!/).test(path))
+		return value;
+
+	var arr = parsepath(path);
+	var builder = [];
+
+	for (var i = 0; i < arr.length - 1; i++) {
+		var type = arr[i + 1] ? (REGISARR.test(arr[i + 1]) ? '[]' : '{}') : '{}';
+		var p = 'w' + (arr[i][0] === '[' ? '' : '.') + arr[i];
+		builder.push('if(typeof(' + p + ')!==\'object\'||' + p + '==null)' + p + '=' + type + ';');
+	}
+
+	var v = arr[arr.length - 1];
+	var ispush = v.lastIndexOf('[]') !== -1;
+	var a = builder.join(';') + ';var v=typeof(a)===\'function\'?a(U.get(b)):a;w' + (v[0] === '[' ? '' : '.') + (ispush ? v.replace(REGREPLACEARR, '.push(v)') : (v + '=v')) + ';return v';
+
+	var fn = new Function('w', 'a', 'b', a);
+	F.temporary.other[cachekey] = fn;
+	return fn(obj, value, path);
+};
+
 exports.get = function(obj, path) {
 
-	var arr = path.split('.');
-	var length = arr.length;
-	var index;
+	var cachekey = 'uget' + path;
 
-	for (var i = 0; i < length; i++) {
+	if (F.temporary.other[cachekey])
+		return F.temporary.other[cachekey](obj);
 
-		var key = arr[i];
-		var isarr = key[key.length - 1] === ']';
+	if ((/__proto__|constructor|prototype|eval|function|\*|\+|;|\s|\(|\)|!/).test(path))
+		return;
 
-		if (isarr) {
-			index = key.lastIndexOf('[', key.length - 1);
-			if (index === -1)
-				break;
-			key = key.substring(0, index);
-			index = +arr[i].substring(index + 1, arr[i].length - 1);
-		}
+	var arr = parsepath(path);
+	var builder = [];
 
-		var val = obj[key];
+	for (var i = 0, length = arr.length - 1; i < length; i++)
+		builder.push('if(!w' + (!arr[i] || arr[i][0] === '[' ? '' : '.') + arr[i] + ')return');
 
-		if (val == null)
-			return val;
-
-		if (isarr) {
-			val = val[index];
-			if (val == null)
-				return val;
-		}
-
-		if ((i + 1) === length)
-			return val;
-		else if (typeof(val) === 'object')
-			obj = val;
-		else
-			break;
-	}
+	var v = arr[arr.length - 1];
+	var fn = (new Function('w', builder.join(';') + ';return w' + (v[0] === '[' ? '' : '.') + v));
+	F.temporary.other[cachekey] = fn;
+	return fn(obj);
 };
+
+function parsepath(path) {
+
+	var arr = path.split('.');
+	var builder = [];
+	var all = [];
+
+	for (var i = 0; i < arr.length; i++) {
+		var p = arr[i];
+		var index = p.indexOf('[');
+		if (index === -1) {
+			if (p.indexOf('-') === -1) {
+				all.push(p);
+				builder.push(all.join('.'));
+			} else {
+				var a = all.splice(all.length - 1);
+				all.push(a + '[\'' + p + '\']');
+				builder.push(all.join('.'));
+			}
+		} else {
+			if (p.indexOf('-') === -1) {
+				all.push(p.substring(0, index));
+				builder.push(all.join('.'));
+				all.splice(all.length - 1);
+				all.push(p);
+				builder.push(all.join('.'));
+			} else {
+				all.push('[\'' + p.substring(0, index) + '\']');
+				builder.push(all.join(''));
+				all.push(p.substring(index));
+				builder.push(all.join(''));
+			}
+		}
+	}
+
+	return builder;
+}
 
 !global.F && require('./index');
