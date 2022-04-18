@@ -376,10 +376,9 @@ MP.send = function(outputindex, data, clonedata) {
 		var schema = meta.flow[output.id];
 		if (schema && (schema.message || schema['message_' + output.index]) && schema.component && schema.ready && self.main.$can(true, output.id, output.index)) {
 			var next = meta.components[schema.component];
-			// if (next && next.connected && !next.isdestroyed && !next.disabled && (!next.$inputs || next.$inputs[output.index])) {
 			if (next && next.connected && !next.isdestroyed && !next.disabled) {
 
-				if (self.color && self.color !== output.color)
+				if (output.color && self.color && self.color !== output.color)
 					continue;
 
 				var inputindex = output.index;
@@ -915,7 +914,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						continue;
 
 					var ismessage = data instanceof Message;
-					if (ismessage && data.color && data.color !== m.color)
+					if (ismessage && m.color && data.color && data.color !== m.color)
 						continue;
 
 					var message = ismessage ? data.clone() : new Message();
