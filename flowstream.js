@@ -719,24 +719,26 @@ FP.cleanforce = function() {
 					var rem = {};
 
 					for (var conn of conns) {
-						var target = self.meta.flow[conn.id];
-						if (target) {
-							var com = self.meta.components[target.component];
-							if (com) {
-								if (self.strict) {
-									if (target.inputs) {
-										if (!target.inputs.findItem('id', conn.index))
+						if (conn) {
+							var target = self.meta.flow[conn.id];
+							if (target) {
+								var com = self.meta.components[target.component];
+								if (com) {
+									if (self.strict) {
+										if (target.inputs) {
+											if (!target.inputs.findItem('id', conn.index))
+												rem[conn.id] = 1;
+										} else if (!com.inputs || !com.inputs.findItem('id', conn.index))
 											rem[conn.id] = 1;
-									} else if (!com.inputs || !com.inputs.findItem('id', conn.index))
-										rem[conn.id] = 1;
-								}
+									}
+								} else
+									rem[conn.id] = 1;
 							} else
 								rem[conn.id] = 1;
-						} else
-							rem[conn.id] = 1;
+						}
 					}
 
-					var arr = conns.remove(c => rem[c.id] === 1);
+					var arr = conns.remove(c => c == null || rem[c.id] === 1);
 					if (arr.length)
 						instance.connections[key2] = arr;
 					else
