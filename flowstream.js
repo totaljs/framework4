@@ -791,7 +791,7 @@ FP.unregister = function(name, callback) {
 						curr.close && curr.close.call(instance, true);
 						curr.destroy && curr.destroy.call(instance);
 					} catch (e) {
-						self.onerror.call(instance, e, 'instance_close', instance);
+						self.onerror.call(instance, e, 'instance_close', key);
 					}
 					delete self.meta.flow[key];
 				}
@@ -1034,8 +1034,12 @@ FP.unload = function(callback) {
 		if (current) {
 			current.isdestroyed = true;
 			self.ondisconnect && self.ondisconnect(current);
-			current.close && current.close.call(current, true);
-			current.destroy && current.destroy.call(current);
+			try {
+				current.close && current.close.call(current, true);
+				current.destroy && current.destroy.call(current);
+			} catch(e) {
+				self.onerror.call(current, e, 'instance_close', key);
+			}
 		}
 		delete self.meta.flow[key];
 		next();
@@ -1124,8 +1128,12 @@ FP._remove = function(keys, callback) {
 		if (instance) {
 			instance.ready = false;
 			self.ondisconnect && self.ondisconnect(instance);
-			instance.close && instance.close.call(instance, true);
-			instance.destroy && instance.destroy.call(instance);
+			try {
+				instance.close && instance.close.call(instance, true);
+				instance.destroy && instance.destroy.call(instance);
+			} catch (e) {
+				self.onerror.call(instance, e, 'instance_close', key);
+			}
 			delete self.meta.flow[key];
 		}
 	}
@@ -1208,8 +1216,12 @@ FP._use = function(schema, callback, reinit, insert) {
 				if (current) {
 					current.isdestroyed = true;
 					self.ondisconnect && self.ondisconnect(current);
-					current.close && current.close.call(current, true);
-					current.destroy && current.destroy.call(current);
+					try {
+						current.close && current.close.call(current, true);
+						current.destroy && current.destroy.call(current);
+					} catch (e) {
+						self.onerror.call(current, e, 'instance_close', key);
+					}
 				}
 
 				delete self.meta.flow[key];
@@ -1251,8 +1263,12 @@ FP._use = function(schema, callback, reinit, insert) {
 							instance.ready = false;
 							instance.isdestroyed = true;
 							self.ondisconnect && self.ondisconnect(instance);
-							instance.close && instance.close.call(instance, true);
-							instance.destroy && instance.destroy.call(instance);
+							try {
+								instance.close && instance.close.call(instance, true);
+								instance.destroy && instance.destroy.call(instance);
+							} catch (e) {
+								self.onerror.call(instance, e, 'instance_close', key);
+							}
 							delete self.meta.flow[key];
 						}
 					}
@@ -1289,7 +1305,7 @@ FP.initcomponent = function(key, component) {
 			self.ondisconnect && self.ondisconnect(instance);
 			instance.close && instance.close.call(instance);
 		} catch (e) {
-			self.onerror.call(instance, e, 'instance_close', instance);
+			self.onerror.call(instance, e, 'instance_close', key);
 		}
 	}
 
