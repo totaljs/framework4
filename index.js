@@ -316,6 +316,21 @@ global.UNSUBSCRIBE = function(name, callback) {
 	return false;
 };
 
+global.SHELL = function(cmd, callback, cwd) {
+
+	var args = {};
+
+	args.cwd = cwd || F.directory;
+
+	if (CONF.default_shell)
+		args.shell = CONF.default_shell;
+
+	if (callback)
+		F.Child.exec(cmd, args, callback);
+	else
+		return new Promise((resolve, reject) => F.Child.exec(cmd, args, (err, response) => err ? reject(err) : resolve(response)));
+};
+
 global.NPMINSTALL = function(name, callback) {
 
 	var path = CONF.node_modules[0] === '~' ? CONF.node_modules.substring(1) : Path.join(directory, CONF.node_modules);
