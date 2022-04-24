@@ -320,6 +320,11 @@ global.SHELL = function(cmd, callback, cwd) {
 
 	var args = {};
 
+	if (typeof(callback) === 'string') {
+		cwd = callback;
+		callback = null;
+	}
+
 	args.cwd = cwd || F.directory;
 
 	if (CONF.default_shell)
