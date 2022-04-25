@@ -9298,7 +9298,7 @@ const REGWS = /websocket/i;
 
 F.$upgrade = function(req, socket, head) {
 
-	if (!REGWS.test(req.headers.upgrade || '') || F._length_wait)
+	if (F._length_wait || !req.headers.upgrade || !REGWS.test(req.headers.upgrade))
 		return;
 
 	// disables timeout
