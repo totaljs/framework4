@@ -4,7 +4,7 @@
 // - user defined values: "1" (number), "TEXT" (text), "TRUE" (boolean), "FALSE" boolean, "YES" boolean, "NO" boolean
 // - returning via return keyword
 // - supports lower/upper case (but properties in the model/helpers must be in the lower case)
-
+// - #temporary
 /*
 	IF something >= 10
 		RETURN something * 10;
@@ -120,20 +120,28 @@ exports.compile = function(str, nocompile) {
 
 	// Temporary variables
 	str = str.replace(/#[a-z0-9_.]+./ig, function(text) {
+
+		var last = text[text.length - 1];
+		if (last === '@')
+			text = text.substring(0, text.length - 1);
+		else
+			last = '';
+
 		var key = '@' + indexer + '@';
 		keywords[key] = text.substring(1).toLowerCase().replace(/[a-z]/i, text => 'tmp.' + text);
 		indexer++;
-		return key;
+		return key + last;
 	});
 
 	// Properties & fixed values
 	str = str.replace(/.[a-z0-9_.]+./ig, function(text) {
 
-		if ((/@|true|false/).test(text))
+		if ((/@[0-9]+@|true|false/).test(text))
 			return text;
 
-		if ((/^[0-9.]+$/i).test(text))
+		if ((/^[0-9.]+$/i).test(text)) {
 			return text;
+		}
 
 		text = text.toLowerCase().replace(/[a-z]/i, function(text) {
 			return 'model.' + text;
