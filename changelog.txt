@@ -3,8 +3,8 @@
 ========================
 
 - fixed `NEWMACRO()` compiler
-- improved FlowStream variables
-- added a support for `flowstream.secrets {Object}` (something like as variables)
+- added `flowstream.secrets` (something similar like variables)
+- improved applying of `flowstream.variables`
 
 ========================
 0.0.61
