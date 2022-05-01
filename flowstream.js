@@ -2,6 +2,7 @@ if (!global.framework_utils)
 	global.framework_utils = require('./utils');
 
 const BLACKLISTID = { paused: 1, groups: 1, tabs: 1 };
+const REG_ARGS = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
 const D = '__';
 
 function Message() {
@@ -255,49 +256,48 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
-MP.replace = MP.variables = function(str, data) {
-
-	if (str.indexOf('{') !== -1) {
-
-		str = str.args(this.vars);
-
-		if (this.instance.main.variables) {
-			if (str.indexOf('{') !== -1)
-				str = str.args(this.instance.main.variables);
-		}
-
-		if (this.instance.main.variables2) {
-			if (!this.instance.main.variables || str.indexOf('{') !== -1)
-				str = str.args(this.instance.main.variables2);
-		}
-
-		if ((data == true || (data && typeof(data) === 'object')) && str.indexOf('{') !== -1)
-			str = str.args(data == true ? this.data : data);
-	}
-
-	return str;
-};
-
 function variables(str, data) {
 
-	if (str.indexOf('{') !== -1) {
-
-		if (this.main.variables) {
-			if (str.indexOf('{') !== -1)
-				str = str.args(this.main.variables);
+	if (typeof(str) === 'object') {
+		for (var key in str) {
+			if (typeof(str[key]) === 'string')
+				str[key] = variables.call(this, str[key], data);
 		}
-
-		if (this.main.variables2) {
-			if (!this.main.variables || str.indexOf('{') !== -1)
-				str = str.args(this.main.variables2);
-		}
-
-		if ((data && typeof(data) === 'object') && str.indexOf('{') !== -1)
-			str = str.args(data);
+		return str;
 	}
 
-	return str;
+	if (str.indexOf('{') === -1)
+		return str;
+
+	var main = this.main;
+
+	if (data == true)
+		data = this.data;
+
+	return str.replace(REG_ARGS, function(text) {
+		var l = text[1] === '{' ? 2 : 1;
+		var key = text.substring(l, text.length - l).trim();
+		var val = null;
+
+		if (main.variables)
+			val = main.variables[key];
+
+		if (!val && main.variables2)
+			val = main.variables2[key];
+
+		if (!val && main.secrets)
+			val = main.secrets[key];
+
+		if (!val && data && typeof(data) === 'object')
+			val = data[key];
+
+		return val == null ? text : val;
+	});
 }
+
+MP.replace = MP.variables = function(str, data) {
+	return variables.call(this, str, data);
+};
 
 function timeouthandler(msg) {
 	msg.error = 408;
