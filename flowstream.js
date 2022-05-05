@@ -259,11 +259,12 @@ MP.throw = function(a, b, c, d) {
 function variables(str, data) {
 
 	if (typeof(str) === 'object') {
+		var obj = {};
 		for (var key in str) {
 			if (typeof(str[key]) === 'string')
-				str[key] = variables.call(this, str[key], data);
+				obj[key] = variables.call(this, str[key], data);
 		}
-		return str;
+		return obj;
 	}
 
 	if (str.indexOf('{') === -1)
