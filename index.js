@@ -5205,6 +5205,7 @@ F.$filelocalize = function(req, res, nominify) {
 			res.options.type = U.getContentType(req.extension);
 			res.options.headers = HEADERS.responseLocalize;
 			res.$text();
+
 		});
 	});
 };
@@ -7962,7 +7963,9 @@ F.initialize = function(http, debug, options, callback) {
 			F.server.close();
 		}
 
-		var listen = function() {
+		var listen = function(count) {
+
+			F.server && F.server.close(NOOP);
 
 			if (options.https) {
 
@@ -7990,34 +7993,32 @@ F.initialize = function(http, debug, options, callback) {
 
 			CONF.allow_performance && F.server.on('connection', connection_tunning);
 			F.initwebsocket && F.initwebsocket();
-			setInterval(clear_pending_requests, 5000);
 
 			if (F.server) {
 				if (unixsocket) {
-					var initsocket = function(count) {
-						F.server.listen(unixsocket, function() {
+					F.server.listen(unixsocket, function() {
 
-							// Check if the socket exists
-							if (!F.isWindows) {
-								Fs.lstat(unixsocket, function(err) {
+						// Check if the socket exists
+						if (!F.isWindows) {
+							Fs.lstat(unixsocket, function(err) {
 
-									if (count > 9)
-										throw new Error('HTTP server can not listen the path "{0}"'.format(unixsocket));
+								if (count > 9)
+									throw new Error('HTTP server can not listen the path "{0}"'.format(unixsocket));
 
-									if (err)
-										setTimeout(initsocket, 500, (count || 1) + 1);
-									else if (options.unixsocket777)
-										Fs.chmodSync(unixsocket, 0o777);
-								});
-							}
+								if (err)
+									setTimeout(listen, 500, (count || 1) + 1);
+								else if (options.unixsocket777)
+									Fs.chmodSync(unixsocket, 0o777);
+							});
+						}
 
-						});
-					};
-					initsocket(0);
+					});
 				} else
 					F.server.listen(F.port, F.ip);
 			}
 		};
+
+		setInterval(clear_pending_requests, 5000);
 
 		// clears static files
 		F.clear(function() {
@@ -8147,37 +8148,32 @@ F.frameworkless = function(debug, options, callback) {
 		F.server.close();
 	}
 
-	var listen = function() {
+	var listen = function(count) {
+		F.server && F.server.close();
 		F.server = Http.createServer(F.listener);
 		CONF.allow_performance && F.server.on('connection', connection_tunning);
 		F.initwebsocket && F.initwebsocket();
-		setInterval(clear_pending_requests, 5000);
 		if (F.server) {
 			if (unixsocket) {
-				var initsocket = function(count) {
-					F.server.listen(unixsocket, function() {
-
-						// Check if the socket exists
-						if (!F.isWindows) {
-							Fs.lstat(unixsocket, function(err) {
-
-								if (count > 9)
-									throw new Error('HTTP server can not listen the path "{0}"'.format(unixsocket));
-
-								if (err)
-									setTimeout(initsocket, 500, (count || 1) + 1);
-								else if (options.unixsocket777)
-									Fs.chmodSync(unixsocket, 0o777);
-							});
-						}
-
-					});
-				};
-				initsocket(0);
+				F.server.listen(unixsocket, function() {
+					// Check if the socket exists
+					if (!F.isWindows) {
+						Fs.lstat(unixsocket, function(err) {
+							if (count > 9)
+								throw new Error('HTTP server can not listen the path "{0}"'.format(unixsocket));
+							if (err)
+								setTimeout(listen, 500, (count || 1) + 1);
+							else if (options.unixsocket777)
+								Fs.chmodSync(unixsocket, 0o777);
+						});
+					}
+				});
 			} else
 				F.server.listen(F.port, F.ip);
 		}
 	};
+
+	setInterval(clear_pending_requests, 5000);
 
 	// clears static files
 	F.isLoaded = true;
@@ -18877,7 +18873,6 @@ process.on('unhandledRejection', function(e) {
 process.on('uncaughtException', function(e) {
 
 	var err = e + '';
-
 	if (err.indexOf('listen EADDRINUSE') !== -1) {
 		process.send && process.send('total:eaddrinuse');
 		console.log('\nThe IP address and the PORT is already in use.\nYou must change the PORT\'s number or IP address.\n');
