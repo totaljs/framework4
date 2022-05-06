@@ -8234,7 +8234,7 @@ function loadthreads(options) {
 			var url = ('/' + options.threads + '/' + item + '/').replace(/\/{2,}/g, '/');
 
 			if (F.isWindows)
-				socket = Path.join(SOCKETWINDOWS, socket);
+				socket = SOCKETWINDOWS + 'totalpipe' + socket.makeid();
 
 			PROXY(url, socket, 'replace', null, null, options.timeout);
 
