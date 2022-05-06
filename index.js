@@ -74,6 +74,7 @@ const PROXYKEEPALIVEHTTPS = new Https.Agent({ keepAlive: true, timeout: 60000 })
 const JSFILES = { js: 1, mjs: 1 };
 const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1, pin: 1 };
 const isTYPESCRIPT = (/\.ts$/).test(process.argv[1]);
+const SOCKETWINDOWS = '\\\\?\\pipe';
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -7943,6 +7944,10 @@ F.initialize = function(http, debug, options, callback) {
 			F.ip = '0.0.0.0';
 
 		!unixsocket && (unixsocket = CONF.default_unixsocket);
+
+		if (F.isWindows && unixsocket.indexOf(SOCKETWINDOWS) === -1)
+			unixsocket = F.Path.join(SOCKETWINDOWS, unixsocket);
+
 		F.unixsocket = unixsocket;
 
 		if (F.server) {
@@ -7989,10 +7994,6 @@ F.initialize = function(http, debug, options, callback) {
 
 			if (F.server) {
 				if (unixsocket) {
-
-					if (F.isWindows && unixsocket.indexOf('\\pipe') === -1)
-						unixsocket = F.Path.join('\\\\?\\pipe', unixsocket);
-
 					var initsocket = function(count) {
 						F.server.listen(unixsocket, function() {
 
@@ -8128,6 +8129,10 @@ F.frameworkless = function(debug, options, callback) {
 		F.ip = '0.0.0.0';
 
 	!unixsocket && (unixsocket = CONF.default_unixsocket);
+
+	if (F.isWindows && unixsocket.indexOf(SOCKETWINDOWS) === -1)
+		unixsocket = F.Path.join(SOCKETWINDOWS, unixsocket);
+
 	F.unixsocket = unixsocket;
 
 	if (F.server) {
@@ -8149,10 +8154,6 @@ F.frameworkless = function(debug, options, callback) {
 		setInterval(clear_pending_requests, 5000);
 		if (F.server) {
 			if (unixsocket) {
-
-				if (F.isWindows && unixsocket.indexOf('\\pipe') === -1)
-					unixsocket = F.Path.join('\\\\?\\pipe', unixsocket);
-
 				var initsocket = function(count) {
 					F.server.listen(unixsocket, function() {
 
@@ -8235,6 +8236,9 @@ function loadthreads(options) {
 
 			var socket = Path.join(tmp, F.directory.makeid() + '_' + item.makeid() + '_' + id);
 			var url = ('/' + options.threads + '/' + item + '/').replace(/\/{2,}/g, '/');
+
+			if (F.isWindows)
+				socket = Path.join(SOCKETWINDOWS, socket);
 
 			PROXY(url, socket, 'replace', null, null, options.timeout);
 
