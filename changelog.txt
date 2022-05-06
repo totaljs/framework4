@@ -5,6 +5,8 @@
 - fixed `NEWMACRO()` compiler
 - added `flowstream.secrets` (something similar like variables)
 - improved applying of `flowstream.variables`
+- fixed initializing of HTTP server with unix-socket
+- added support for unix-socket in Windows
 
 ========================
 0.0.61

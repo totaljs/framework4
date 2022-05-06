@@ -7989,10 +7989,30 @@ F.initialize = function(http, debug, options, callback) {
 
 			if (F.server) {
 				if (unixsocket) {
-					F.server.listen(unixsocket, function() {
-						if (options.unixsocket777)
-							Fs.chmodSync(unixsocket, 0o777);
-					});
+
+					if (F.isWindows && unixsocket.indexOf('\\pipe') === -1)
+						unixsocket = F.Path.join('\\\\?\\pipe', unixsocket);
+
+					var initsocket = function(count) {
+						F.server.listen(unixsocket, function() {
+
+							// Check if the socket exists
+							if (!F.isWindows) {
+								Fs.lstat(unixsocket, function(err) {
+
+									if (count > 9)
+										throw new Error('HTTP server can not listen the path "{0}"'.format(unixsocket));
+
+									if (err)
+										setTimeout(initsocket, 500, (count || 1) + 1);
+									else if (options.unixsocket777)
+										Fs.chmodSync(unixsocket, 0o777);
+								});
+							}
+
+						});
+					};
+					initsocket(0);
 				} else
 					F.server.listen(F.port, F.ip);
 			}
@@ -8129,10 +8149,30 @@ F.frameworkless = function(debug, options, callback) {
 		setInterval(clear_pending_requests, 5000);
 		if (F.server) {
 			if (unixsocket) {
-				F.server.listen(unixsocket, function() {
-					if (options.unixsocket777)
-						Fs.chmodSync(unixsocket, 0o777);
-				});
+
+				if (F.isWindows && unixsocket.indexOf('\\pipe') === -1)
+					unixsocket = F.Path.join('\\\\?\\pipe', unixsocket);
+
+				var initsocket = function(count) {
+					F.server.listen(unixsocket, function() {
+
+						// Check if the socket exists
+						if (!F.isWindows) {
+							Fs.lstat(unixsocket, function(err) {
+
+								if (count > 9)
+									throw new Error('HTTP server can not listen the path "{0}"'.format(unixsocket));
+
+								if (err)
+									setTimeout(initsocket, 500, (count || 1) + 1);
+								else if (options.unixsocket777)
+									Fs.chmodSync(unixsocket, 0o777);
+							});
+						}
+
+					});
+				};
+				initsocket(0);
 			} else
 				F.server.listen(F.port, F.ip);
 		}
