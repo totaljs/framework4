@@ -6,7 +6,7 @@
 - added `flowstream.secrets` (something similar like variables)
 - improved applying of `flowstream.variables`
 - fixed initializing of HTTP server with unix-socket
-- added support for unix-socket in Windows
+- added support for Windows named pipe
 
 ========================
 0.0.61

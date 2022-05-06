@@ -8234,7 +8234,7 @@ function loadthreads(options) {
 			var url = ('/' + options.threads + '/' + item + '/').replace(/\/{2,}/g, '/');
 
 			if (F.isWindows)
-				socket = SOCKETWINDOWS + 'totalpipe' + socket.makeid();
+				socket = (SOCKETWINDOWS + '\\totalpipe') + socket.md5();
 
 			PROXY(url, socket, 'replace', null, null, options.timeout);
 
@@ -8243,7 +8243,7 @@ function loadthreads(options) {
 options.cluster = {3};
 options.thread = '{2}';
 options.unixsocket = '{0}';
-require('total4/{1}')(options);`.format(socket, DEBUG ? 'debug' : 'release', item, (options.cluster === 'auto' ? '\'auto\'' : options.cluster) || 0);
+require('total4/{1}')(options);`.format(socket.replace(/\\/g, '\\\\'), DEBUG ? 'debug' : 'release', item, (options.cluster === 'auto' ? '\'auto\'' : options.cluster) || 0);
 
 			var filename = PATH.root(runscript + '_' + item + SCRIPTEXT);
 			var logdir = PATH.root('/threads/' + item + '/logs/');
