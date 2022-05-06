@@ -7945,7 +7945,7 @@ F.initialize = function(http, debug, options, callback) {
 
 		!unixsocket && (unixsocket = CONF.default_unixsocket);
 
-		if (F.isWindows && unixsocket.indexOf(SOCKETWINDOWS) === -1)
+		if (F.isWindows && unixsocket && unixsocket.indexOf(SOCKETWINDOWS) === -1)
 			unixsocket = F.Path.join(SOCKETWINDOWS, unixsocket);
 
 		F.unixsocket = unixsocket;
@@ -8130,7 +8130,7 @@ F.frameworkless = function(debug, options, callback) {
 
 	!unixsocket && (unixsocket = CONF.default_unixsocket);
 
-	if (F.isWindows && unixsocket.indexOf(SOCKETWINDOWS) === -1)
+	if (F.isWindows && unixsocket && unixsocket.indexOf(SOCKETWINDOWS) === -1)
 		unixsocket = F.Path.join(SOCKETWINDOWS, unixsocket);
 
 	F.unixsocket = unixsocket;
