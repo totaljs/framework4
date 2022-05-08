@@ -252,6 +252,7 @@ MP.debug = function(a, b, c, d) {
 };
 
 MP.throw = function(a, b, c, d) {
+	this.error = a;
 	this.instance.throw(a, b, c, d);
 	return this;
 };
@@ -367,6 +368,9 @@ MP.send = function(outputindex, data, clonedata) {
 		self.main.stats.traffic[tid] = 1;
 		self.main.stats.traffic.priority.push(tid);
 	}
+
+	if (self.transformation === '1')
+		self.transformation = '_' + tid;
 
 	for (var i = 0; i < outputs.length; i++) {
 		var output = outputs[i];
@@ -883,6 +887,40 @@ function newmessage(data) {
 	return msg;
 }
 
+// New transform message
+function newtransform(data, callback) {
+
+	if (typeof(data) === 'function') {
+		callback = data;
+		data = undefined;
+	}
+
+	var self = this;
+	var msg = newmessage.call(self, data);
+
+	msg.on('destroy', function($) {
+
+		if (callback) {
+			var tmp = msg.transformation;
+			if (tmp && tmp !== '1') {
+				if (self.main.stats.traffic[tmp]) {
+					self.main.stats.traffic[tmp]++;
+				} else {
+					self.main.stats.traffic[tmp] = 1;
+					self.main.stats.traffic.priority.push(tmp);
+				}
+			}
+
+			callback($);
+			callback = null;
+		}
+
+	});
+
+	msg.transformation = '1';
+	return msg;
+}
+
 FP.ontrigger = function(outputindex, data, controller, events) {
 
 	// this == instance
@@ -1336,6 +1374,7 @@ FP.initcomponent = function(key, component) {
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.newmessage = newmessage;
+	instance.transform = newtransform;
 	instance.replace = variables;
 
 	self.onconnect && self.onconnect(instance);

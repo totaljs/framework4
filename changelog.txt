@@ -7,6 +7,7 @@
 - improved applying of `flowstream.variables`
 - fixed initializing of HTTP server with unix-socket
 - added support for Windows named pipe
+- extended FlowStream by adding `instance.transform([data], callback)` method
 
 ========================
 0.0.61
