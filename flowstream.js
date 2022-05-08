@@ -888,7 +888,7 @@ function newmessage(data) {
 }
 
 // New transform message
-function newtransform(data, callback) {
+function newtransform(output, data, callback) {
 
 	if (typeof(data) === 'function') {
 		callback = data;
