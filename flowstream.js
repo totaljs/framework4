@@ -918,7 +918,9 @@ function newtransform(output, data, callback) {
 	});
 
 	msg.transformation = '1';
-	return msg;
+	msg.send(output);
+	//setImmediate(() => msg.send(output));
+	//return msg;
 }
 
 FP.ontrigger = function(outputindex, data, controller, events) {
