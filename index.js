@@ -2507,11 +2507,11 @@ F.runscript = function(filename) {
 			var fn;
 			if (data) {
 				try {
-					fn = new Function(scr);
+					fn = new Function('require', scr);
 				} catch (e) {
 					console.error(e);
 				}
-				fn && fn();
+				fn && fn(require);
 			}
 		}
 	});
