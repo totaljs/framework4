@@ -8831,7 +8831,10 @@ function onrequesterror() {
 function makeproxy(proxy, req, res) {
 
 	var secured = proxy.uri.protocol === 'https:';
-	var uri = proxy.uri;
+	var uri = {};
+
+	for (var key in proxy.uri)
+		uri[key] = proxy.uri[key];
 
 	uri.method = req.method;
 	uri.headers = req.headers;

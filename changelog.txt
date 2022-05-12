@@ -3,6 +3,7 @@
 ========================
 
 - updated `F.runscript()` by adding `require` argument
+- improved internal proxy functionality
 
 ========================
 0.0.62
