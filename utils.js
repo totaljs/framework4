@@ -1437,11 +1437,6 @@ exports.reduce = function(source, prop, reverse) {
 	return output;
 };
 
-/**
- * Checks if is relative url
- * @param {String} url
- * @return {Boolean}
- */
 exports.isrelative = function(url) {
 	return !(url.substring(0, 2) === '//' || url.indexOf('http://') !== -1 || url.indexOf('https://') !== -1);
 };
@@ -1595,11 +1590,6 @@ exports.filestreamer = function(filename) {
 	return new Fs(filename);
 };
 
-/**
- * HTML encode string
- * @param {String} str
- * @return {String}
- */
 exports.encode = function(str) {
 
 	if (str == null)
@@ -1612,11 +1602,6 @@ exports.encode = function(str) {
 	return str.encode();
 };
 
-/**
- * HTML decode string
- * @param {String} str
- * @return {String}
- */
 exports.decode = function(str) {
 
 	if (str == null)
@@ -1629,22 +1614,11 @@ exports.decode = function(str) {
 	return str.decode();
 };
 
-/**
- * Checks if URL contains file extension.
- * @param {String} url
- * @return {Boolean}
- */
 exports.isStaticFile = function(url) {
 	var index = url.indexOf('.', url.length - 8);
 	return index !== -1;
 };
 
-/**
- * Converts Value to number
- * @param {Object} obj Value to convert.
- * @param {Number} def Default value (default: 0).
- * @return {Number}
- */
 exports.parseInt = function(obj, def) {
 	if (obj == null || obj === '')
 		return def === undefined ? 0 : def;
@@ -1659,12 +1633,6 @@ exports.parseBoolean = function(obj, def) {
 	return type === 'boolean' ? obj : type === 'number' ? obj > 0 : (type !== 'string' ? obj.toString() : obj).parseBoolean(def);
 };
 
-/**
- * Converts Value to float number
- * @param {Object} obj Value to convert.
- * @param {Number} def Default value (default: 0).
- * @return {Number}
- */
 exports.parseFloat = function(obj, def) {
 	if (obj == null || obj === '')
 		return def === undefined ? 0 : def;
@@ -1672,20 +1640,10 @@ exports.parseFloat = function(obj, def) {
 	return type === 'number' ? obj : (type !== 'string' ? obj.toString() : obj).parseFloat(def);
 };
 
-/**
- * Check if the object is Date
- * @param {Object} obj
- * @return {Boolean}
- */
 exports.isDate = function(obj) {
 	return obj instanceof Date && !isNaN(obj.getTime()) ? true : false;
 };
 
-/**
- * Get ContentType from file extension.
- * @param {String} ext File extension.
- * @return {String}
- */
 exports.getContentType = function(ext) {
 	if (!ext)
 		return CT_OCTET;
@@ -1694,11 +1652,13 @@ exports.getContentType = function(ext) {
 	return CONTENTTYPES[ext] || CT_OCTET;
 };
 
-/**
- * Get extension from filename
- * @param {String} filename
- * @return {String}
- */
+exports.getExtensionFromContentType = function(value) {
+	for (var key in CONTENTTYPES) {
+		if (CONTENTTYPES[key] === value)
+			return key;
+	}
+};
+
 exports.getExtension = function(filename, raw) {
 	var end = filename.length;
 	for (var i = filename.length - 1; i > 0; i--) {
@@ -1715,11 +1675,6 @@ exports.getExtension = function(filename, raw) {
 	return '';
 };
 
-/**
- * Get base name from path
- * @param {String} path
- * @return {String}
- */
 exports.getName = function(path) {
 	var l = path.length - 1;
 	var c = path[l];
@@ -1732,11 +1687,6 @@ exports.getName = function(path) {
 	return index === -1 ? path : path.substring(index + 1);
 };
 
-/**
- * Add a new content type to content types
- * @param {String} ext File extension.
- * @param {String} type Content type (example: application/json).
- */
 exports.setContentType = function(ext, type) {
 	if (ext[0] === '.')
 		ext = ext.substring(1);
@@ -6272,6 +6222,7 @@ MultipartParser.prototype.parse_head = function() {
 
 	var isfile = false;
 
+	self.current.ext = null;
 	self.current.filename = null;
 	self.current.type = null;
 	self.current.name = '';
@@ -6285,6 +6236,9 @@ MultipartParser.prototype.parse_head = function() {
 			case 'file':
 				isfile = true;
 				self.current.filename = str.substring(10, str.length - 1).replace(REG_EMPTYBUFFER_TEST, '');
+				var tmp = self.current.filename.lastIndexOf('.');
+				if (tmp !== -1)
+					self.current.ext = self.current.filename.substring(tmp + 1);
 				break;
 			case 'cont':
 				self.current.type = str.substring(14).trim().replace(REG_EMPTYBUFFER_TEST, '');
@@ -6302,6 +6256,15 @@ MultipartParser.prototype.parse_head = function() {
 	if (isfile) {
 
 		if (self.current.type) {
+
+			/*
+			if (self.current.ext) {
+				if (self.current.type !== CONTENTTYPES[self.current.ext]) {
+					self.kill('2: Invalid file type');
+					return;
+				}
+			}*/
+
 			self.current.width = 0;
 			self.current.height = 0;
 			switch (self.current.type) {
