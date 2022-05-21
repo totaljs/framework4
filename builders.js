@@ -1474,7 +1474,7 @@ SchemaBuilderEntityProto.addWorkflow = SchemaBuilderEntityProto.add = function(n
 	return this;
 };
 
-SchemaBuilderEntityProto.addExtension = function(name, fn) {
+SchemaBuilderEntityProto.addWorkflowExtension = SchemaBuilderEntityProto.addExtension = function(name, fn) {
 
 	name = name.trim();
 
