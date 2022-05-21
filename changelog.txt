@@ -7,6 +7,11 @@
 - added `U.getExtensionFromContentType(value)`
 - fixed `flow.unregister()` method
 - added `MAKE(schema, model, [callback/$/controller], [novalidate], [controller])` method for validating data according to the schema
+- added `$.on()` and `$.emit()` methods into the `SchemaOptions`
+	- `$.on('end', function(err, response, [op_name]))` catches end of data processing
+	- `$.on('data', function(response, [op_name]))` catches a response from a Schema operation
+	- `$.on('error', function(err, [op_name]))` catches error
+	- `$.on('response', function(response, [op_name]))`
 
 ========================
 0.0.62

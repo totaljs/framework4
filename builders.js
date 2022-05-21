@@ -24,6 +24,7 @@ function SchemaOptions(error, model, options, callback, controller, name, schema
 	this.name = name;
 	this.schema = schema;
 	this.responses = {};
+	// this.events;
 }
 
 function TaskBuilder($) {
@@ -251,6 +252,29 @@ SchemaOptions.prototype = {
 };
 
 var SchemaOptionsProto = SchemaOptions.prototype;
+
+SchemaOptionsProto.on = function(name, fn) {
+	var self = this;
+	if (!self.events)
+		self.events = {};
+	if (!self.events[name])
+		self.events[name] = [];
+	self.events[name].push(fn);
+	return self;
+};
+
+SchemaOptionsProto.emit = function(name, a, b, c, d) {
+
+	var self = this;
+
+	if (!self.events || !self.events[name])
+		return false;
+
+	for (var evt of self.events[name])
+		evt.call(self, a, b, c, d);
+
+	return true;
+};
 
 SchemaOptionsProto.cancel = function() {
 	var self = this;
@@ -1439,7 +1463,7 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 	return self;
 };
 
-SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
+SchemaBuilderEntityProto.addWorkflow = SchemaBuilderEntityProto.add = function(name, fn, filter) {
 
 	name = name.trim();
 
@@ -1450,7 +1474,7 @@ SchemaBuilderEntityProto.addWorkflow = function(name, fn, filter) {
 	return this;
 };
 
-SchemaBuilderEntityProto.addWorkflowExtension = function(name, fn) {
+SchemaBuilderEntityProto.addExtension = function(name, fn) {
 
 	name = name.trim();
 
@@ -1459,6 +1483,7 @@ SchemaBuilderEntityProto.addWorkflowExtension = function(name, fn) {
 		this.extensions[key].push(fn);
 	else
 		this.extensions[key] = [fn];
+
 	return this;
 };
 
@@ -2421,7 +2446,7 @@ function parseNumber(str) {
 	return isNaN(num) ? null : num;
 }
 
-SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, response, callback) {
+SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, response, callback, $) {
 
 	var self = this;
 
@@ -2439,6 +2464,14 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 			callback(has ? builder : null, response === undefined ? model : response, model);
 		else
 			callback = null;
+	}
+
+	if ($ && !$.$async && $.events) {
+		if ($.events.error && has)
+			$.emit('error', builder);
+		else if ($.events.response && !has)
+			$.emit('response', response === undefined ? model : response);
+		$.events.end && $.emit('end', has ? builder : null, response === undefined ? model : response);
 	}
 
 	return self;
@@ -2520,7 +2553,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	var $ = new SchemaOptions(error, model, options, function(response) {
 		CONF.logger && F.ilogger(self.getLoggerName(type, name), $.controller, now);
-		self.$process(arguments, $.model, type, name, error, response, callback);
+		self.$process(arguments, $.model, type, name, error, response, callback, $);
 	}, controller, key, self);
 
 	$.ID = self.name + '.' + (name ? name : type);
@@ -2650,25 +2683,35 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 		if (!$.initialized)
 			$.initialized = true;
 		CONF.logger && F.ilogger(self.getLoggerName(a.type, a.name), $.controller, a.now);
-		self.$process(arguments, $.model, a.type, a.name, error, response, process);
+		self.$process(arguments, $.model, a.type, a.name, error, response, proc, $);
 	}, controller, null, self);
 
 	// Multiple responses
 	$.$multiple = true;
 	$.$async = a;
 
-	var process = function(err, response) {
+	var proc = function(err, response) {
+
 		a.pending--;
+
+		var key = a.type + (a.name ? ('_' + a.name) : '');
 		if (err) {
+
+			if ($.events) {
+				$.events.error && $.emit('error', err, key);
+				$.events.end && $.emit('end', err, undefined, key);
+			}
+
 			// STOP ERROR
 			callback(err);
+
 			a.tasks = null;
 			a.op = null;
 			a.controller = null;
 			a = null;
 		} else {
-			var key = a.type + (a.name ? ('_' + a.name) : '');
 			$.responses[key] = $.responses[a.indexer] = response;
+			$.events && $.events.data && $.emit('data', response, key);
 			a.next();
 		}
 	};
@@ -2728,9 +2771,22 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 				var max = a.indexer + 1;
 				for (var i = 0; i < max; i++)
 					tmp.push($.responses[i]);
+
+				if ($.events) {
+					$.events.error && $.emit('response', tmp);
+					$.events.end && $.emit('end', null, tmp);
+				}
+
 				callback(null, tmp);
-			} else
-				callback(null, $.responses[a.index]);
+
+			} else {
+				var res = $.responses[a.index];
+				if ($.events) {
+					$.events.error && $.emit('response', res);
+					$.events.end && $.emit('end', null, res);
+				}
+				callback(null, res);
+			}
 		}
 	};
 
