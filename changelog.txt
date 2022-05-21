@@ -5,6 +5,7 @@
 - updated `F.runscript()` by adding `require` argument
 - improved internal proxy functionality
 - added `U.getExtensionFromContentType(value)`
+- fixed `flow.unregister()` method
 
 ========================
 0.0.62
