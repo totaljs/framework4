@@ -1403,6 +1403,16 @@ SchemaBuilderEntityProto.setRemoveExtension = function(fn) {
 	return this;
 };
 
+SchemaBuilderEntityProto.setDestroy = function(fn) {
+	this.onDestroy = fn;
+	return this;
+};
+
+SchemaBuilderEntityProto.setService = SchemaBuilderEntityProto.setTimer = function(fn) {
+	this.$service = fn;
+	return this;
+};
+
 SchemaBuilderEntityProto.addTask = function(name, task, filter, callback) {
 
 	var self = this;
@@ -1479,24 +1489,33 @@ SchemaBuilderEntityProto.find = function(name) {
 };
 
 SchemaBuilderEntityProto.destroy = function() {
-	delete this.properties;
-	delete this.schema;
-	delete this.onSave;
-	delete this.onInsert;
-	delete this.onUpdate;
-	delete this.onRead;
-	delete this.onRead;
-	delete this.onRemove;
-	delete this.onQuery;
-	delete this.workflows;
-	delete this.operations;
-	delete this.tasks;
-	delete this.meta;
-	delete this.properties;
-	delete this.onError;
-	delete this.dependencies;
-	delete this.fields;
-	delete this.fields_allow;
+
+	var self = this;
+	var key = self.name;
+
+	delete schemasall[key.toLowerCase()];
+	delete schemasall[key];
+	delete schemas[key];
+
+	self.onDestroy && self.onDestroy();
+	delete self.properties;
+	delete self.schema;
+	delete self.onSave;
+	delete self.onInsert;
+	delete self.onUpdate;
+	delete self.onRead;
+	delete self.onRead;
+	delete self.onRemove;
+	delete self.onQuery;
+	delete self.workflows;
+	delete self.operations;
+	delete self.tasks;
+	delete self.meta;
+	delete self.properties;
+	delete self.onError;
+	delete self.dependencies;
+	delete self.fields;
+	delete self.fields_allow;
 };
 
 SchemaBuilderEntityProto.save = function(model, opt, callback, controller, noprepare) {
@@ -3045,13 +3064,11 @@ exports.newschema = function(name) {
 exports.remove = function(name) {
 	for (var key in schemasall) {
 		if (key === name) {
-			delete schemasall[key.toLowerCase()];
-			delete schemasall[key];
-			delete schemas[name];
-			for (var key in F.temporary.exec) {
-				var meta = F.temporary.exec[key];
-				if (meta.schema.name === name)
-					delete F.temporary.exec[key];
+			schemasall[key].destroy();
+			for (var subkey in F.temporary.exec) {
+				var meta = F.temporary.exec[subkey];
+				if (meta && meta.schema && meta.schema.name === name)
+					delete F.temporary.exec[subkey];
 			}
 		}
 	}
@@ -6202,3 +6219,12 @@ TaskBuilderProto.exec = function(name, callback) {
 	self.next(name);
 	return self;
 };
+
+setImmediate(function() {
+	ON('service', function(counter) {
+		for (var key in schemasall) {
+			var schema = schemasall[key];
+			schema && schema.$service && schema.$service(counter);
+		}
+	});
+});

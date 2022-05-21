@@ -1967,6 +1967,11 @@ global.OFF = function() {
 
 global.NEWSCHEMA = function(name, make) {
 
+	if (typeof(name) === 'function') {
+		make = name;
+		name = 'Schema' + U.random_string(5);
+	}
+
 	// Remove schema
 	if (make === null) {
 		framework_builders.remove(name);

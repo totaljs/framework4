@@ -20,6 +20,9 @@
 - added `schema.array()` that allows you to receive data as Array
 - removed `schema.before()` due to performance
 - improved schemas
+- added `schema.setDestroy(callback)` executed when the schema is removed
+- added `schema.setTimer(callback)` executed every minute
+- added supports for dynamic schemas in the form `NEWSCHEMA(function(schema))`
 
 ========================
 0.0.62
