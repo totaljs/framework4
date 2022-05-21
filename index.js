@@ -1298,6 +1298,40 @@ global.$CREATE = function(schema) {
 	return o ? o.default() : null;
 };
 
+global.MAKE = function(schema, model, callback, novalidate, controller) {
+
+	if (callback && typeof(callback) !== 'function') {
+		controller = callback;
+		callback = null;
+	}
+
+	var o = framework_builders.getschema(schema);
+	if (callback) {
+		o.make(model, callback, null, novalidate, controller);
+	} else {
+		var promise = new Promise(function(resolve, reject) {
+			if (o) {
+				o.make(model, function(err, res) {
+					if (err) {
+						if (controller)
+							controller.invalid(err);
+						else
+							reject(err);
+					} else
+						resolve(res);
+				}, null, novalidate, controller);
+			} else {
+				var err = 'Schema "' + schema + '" not found';
+				if (controller)
+					controller.invalid(err);
+				else
+					reject(err);
+			}
+		});
+		return promise;
+	}
+};
+
 global.$MAKE = function(schema, model, callback, novalidate, arg, controller) {
 	var o = framework_builders.getschema(schema);
 	return o ? o.make(model, callback, arg, novalidate, controller) : undefined;

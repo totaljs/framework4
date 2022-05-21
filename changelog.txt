@@ -6,6 +6,7 @@
 - improved internal proxy functionality
 - added `U.getExtensionFromContentType(value)`
 - fixed `flow.unregister()` method
+- added `MAKE(schema, model, [callback/$/controller], [novalidate], [controller])` method for validating data according to the schema
 
 ========================
 0.0.62
