@@ -793,8 +793,8 @@ FP.unregister = function(name, callback) {
 					try {
 						instance.isdestroyed = true;
 						self.ondisconnect && self.ondisconnect(instance);
-						curr.close && curr.close.call(instance, true);
-						curr.destroy && curr.destroy.call(instance);
+						instance.close && instance.close.call(instance, true);
+						instance.destroy && instance.destroy.call(instance);
 					} catch (e) {
 						self.onerror.call(instance, e, 'instance_close', key);
 					}
