@@ -1892,14 +1892,13 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 	if (model == null)
 		model = {};
 
-	for (var i = 0; i < properties.length; i++) {
+	for (var name of properties) {
 
-		var name = properties[i];
 		var TYPE = schema.schema[name];
 		if (!TYPE)
 			continue;
 
-		if (TYPE.can && !TYPE.can(model, operations || EMPTYOBJECT))
+		if (TYPE.can && !TYPE.can(model, operations))
 			continue;
 
 		var value = model[name];
@@ -1917,7 +1916,7 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 				var nestedschema = GETSCHEMA(TYPE.raw);
 				if (nestedschema) {
 					for (var j = 0, jl = value.length; j < jl; j++)
-						exports.validate_builder(value[j], error, nestedschema, current + name + '[' + j + ']', j, undefined, pluspath, operations);
+						exports.validate_builder(value[j], error, nestedschema, current + name + '[' + j + ']', j, $, pluspath, operations);
 				} else
 					throw new Error('Nested schema "{0}" not found in "{1}".'.format(TYPE.raw, schema.parent.name));
 			} else {
@@ -1955,7 +1954,7 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 			if (result == null) {
 				var nestedschema = GETSCHEMA(TYPE.raw);
 				if (nestedschema)
-					exports.validate_builder(value, error, nestedschema, current + name, index, undefined, pluspath, operations);
+					exports.validate_builder(value, error, nestedschema, current + name, index, $, pluspath, operations);
 				else {
 					throw new Error(schema.parent ? 'Nested schema "{0}" not found in "{1}".'.format(TYPE.raw, schema.parent.name) : 'Bad type "{0} -> {1}" in the "{2}" schema'.format(name, TYPE.raw, schema.name));
 				}

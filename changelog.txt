@@ -18,6 +18,8 @@
 	- `meta.data {Object}`
 	- `meta.id {String}`
 - added `schema.array()` that allows you to receive data as Array
+- removed `schema.before()` due to performance
+- improved schemas
 
 ========================
 0.0.62

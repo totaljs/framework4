@@ -493,14 +493,6 @@ SchemaBuilderEntityProto.allow = function() {
 	return self;
 };
 
-SchemaBuilderEntityProto.before = function(name, fn) {
-	var self = this;
-	if (!self.preparation)
-		self.preparation = {};
-	self.preparation[name] = fn;
-	return self;
-};
-
 SchemaBuilderEntityProto.required = function(name, fn) {
 
 	var self = this;
@@ -545,9 +537,6 @@ SchemaBuilderEntityProto.clear = function() {
 	self.properties = [];
 	self.fields = [];
 	self.verifications = null;
-
-	if (self.preparation)
-		self.preparation = null;
 
 	if (self.dependencies)
 		self.dependencies = null;
@@ -920,13 +909,6 @@ SchemaBuilderEntityProto.inherit = function(name) {
 			if (self.properties.indexOf(item) === -1)
 				self.properties.push(item);
 		});
-
-		if (schema.preparation) {
-			self.preparation = {};
-			Object.keys(schema.preparation).forEach(function(key) {
-				self.preparation[key] = schema.preparation[key];
-			});
-		}
 
 		if (!self.onSave && schema.onSave)
 			self.onSave = schema.onSave;
@@ -1619,7 +1601,7 @@ SchemaBuilderEntityProto.query = function(opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName, $, path, index, operations) {
+SchemaBuilderEntityProto.validate = function(model, $, operations) {
 
 	var self = this;
 	var builder = $ ? $.error : null;
@@ -1636,22 +1618,11 @@ SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName
 	if (self.resourceName)
 		builder.resourceName = self.resourceName;
 
-	if (resourceName)
-		builder.resourceName = resourceName;
-
-	if (resourcePrefix)
-		builder.resourcePrefix = resourcePrefix;
-
-	if (path)
-		path += '.';
-	else
-		path = '';
-
 	if (self.$array) {
 		for (var i = 0; i < model.length; i++)
-			framework_utils.validate_builder.call(self, model[i], builder, self, '', i, $, path, operations);
+			framework_utils.validate_builder.call(self, model[i], builder, self, '', i, $, null, operations);
 	} else
-		framework_utils.validate_builder.call(self, model, builder, self, '', index, $, path, operations);
+		framework_utils.validate_builder.call(self, model, builder, self, '', null, $, null, operations);
 
 	return builder;
 };
@@ -1882,7 +1853,7 @@ SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $, op
 		return output;
 	}
 
-	builder = self.validate(output, null, null, $, null, null, operations);
+	builder = self.validate(output, $, operations);
 
 	if (builder.is) {
 		self.onError && self.onError(builder, model, 'make');
@@ -1954,13 +1925,6 @@ SchemaBuilderEntityProto.load = SchemaBuilderEntityProto.make; // Because JSDoc 
 function autotrim(context, value) {
 	return context.trim ? value.trim() : value;
 }
-
-SchemaBuilderEntityProto.$onprepare = function(name, value, index, model, $) {
-	var val = value;
-	if (this.preparation && this.preparation[name])
-		val = this.preparation[name](val, model, index, $);
-	return val === undefined ? value : val;
-};
 
 function toName(val) {
 
@@ -2078,13 +2042,13 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					break;
 				// number: integer
 				case 1:
-					item[property] = self.$onprepare(property, framework_utils.parseInt(val, def ? type.def() : type.def), undefined, model, $);
+					item[property] = framework_utils.parseInt(val, def ? type.def() : type.def);
 					if (type.min != null && type.max != null && item[property] < type.min && item[property] > type.max)
 						item[property] = 0;
 					break;
 				// number: float
 				case 2:
-					item[property] = self.$onprepare(property, framework_utils.parseFloat(val, def ? type.def() : type.def), undefined, model, $);
+					item[property] = framework_utils.parseFloat(val, def ? type.def() : type.def);
 					break;
 				// string
 				case 3:
@@ -2102,7 +2066,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 						tmp = '';
 						if (type.def !== undefined)
 							tmp = def ? type.def() : type.def;
-						item[property] = self.$onprepare(property, tmp, undefined, model, $);
+						item[property] = tmp;
 						break;
 					}
 
@@ -2183,7 +2147,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					if (!tmp && type.def !== undefined)
 						tmp = def ? type.def() : type.def;
 
-					item[property] = self.$onprepare(property, tmp, undefined, model, $);
+					item[property] = tmp;
 					break;
 
 				// boolean
@@ -2191,7 +2155,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					tmp = val ? val.toString().toLowerCase() : null;
 					if (type.def && (tmp == null || tmp === ''))
 						tmp = def ? type.def() : type.def;
-					item[property] = self.$onprepare(property, typeof(tmp) === 'string' ? !!BOOL[tmp] : tmp == null ? false : tmp, undefined, model, $);
+					item[property] = typeof(tmp) === 'string' ? !!BOOL[tmp] : tmp == null ? false : tmp;
 					break;
 
 				// date
@@ -2207,9 +2171,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					else
 						tmp = val;
 
-					if (tmp instanceof Date && !isNaN(tmp.getTime()))
-						tmp = self.$onprepare(property, tmp, undefined, model, $);
-					else {
+					if (!(tmp instanceof Date && !isNaN(tmp.getTime()))) {
 						if (type.def !== undefined)
 							tmp = def ? type.def() : type.def;
 						else
@@ -2221,14 +2183,14 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 
 				// object
 				case 6:
-					item[property] = self.$onprepare(property, val, undefined, model, $);
+					item[property] = val;
 					if (item[property] === undefined)
 						item[property] = null;
 					break;
 
 				// enum
 				case 8:
-					tmp = self.$onprepare(property, val, undefined, model, $);
+					tmp = val;
 					if (type.subtype === 'number' && typeof(tmp) === 'string')
 						tmp = tmp.parseFloat(null);
 					item[property] = tmp != null && type.raw.indexOf(tmp) !== -1 ? tmp : undefined;
@@ -2238,7 +2200,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 
 				// keyvalue
 				case 9:
-					tmp = self.$onprepare(property, val, undefined, model, $);
+					tmp = val;
 					item[property] = tmp != null ? type.raw[tmp] : undefined;
 					if (item[property] == null && type.def)
 						item[property] = type.def;
@@ -2268,7 +2230,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 						item[property] = entity.prepare(val, undefined, $, verifications);
 						if (entity.verifications)
 							verifications.push({ model: item[property], entity: entity });
-						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, item[property], undefined, model, $) });
+						dependencies && dependencies.push({ name: type.raw, value: item[property] });
 					} else
 						item[property] = null;
 
@@ -2276,19 +2238,19 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 
 				// Custom function
 				case 10:
-					item[property] = self.$onprepare(property, type.raw(val), undefined, model, $);
+					item[property] = type.raw(val);
 					if (item[property] === undefined)
 						item[property] = null;
 					break;
 
 				// number: nullable
 				case 11:
-					item[property] = self.$onprepare(property, typeval === 'number' ? val : typeval === 'string' ? parseNumber(val) : null, undefined, model, $);
+					item[property] = typeval === 'number' ? val : typeval === 'string' ? parseNumber(val) : null;
 					break;
 
 				// object: convertor
 				case 12:
-					item[property] = self.$onprepare(property, val && typeval === 'object' && !(val instanceof Array) ? CONVERT(val, type.raw) : null, undefined, model, $);
+					item[property] = val && typeval === 'object' && !(val instanceof Array) ? CONVERT(val, type.raw) : null;
 					break;
 
 			}
@@ -2309,18 +2271,14 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 			typeval = typeof(tmp);
 
 			switch (type.type) {
-				case 0:
-					tmp = self.$onprepare(property, tmp, j, model, $);
-					break;
-
 				case 1:
-					tmp = self.$onprepare(property, framework_utils.parseInt(tmp), j, model, $);
+					tmp = framework_utils.parseInt(tmp);
 					if (type.min !== null && type.max !== null && tmp < type.min && tmp > type.max)
 						tmp = 0;
 					break;
 
 				case 2:
-					tmp = self.$onprepare(property, framework_utils.parseFloat(tmp), j, model, $);
+					tmp = framework_utils.parseFloat(tmp);
 					break;
 
 				case 3:
@@ -2377,13 +2335,12 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 							break;
 					}
 
-					tmp = self.$onprepare(property, tmp, j, model, $);
 					break;
 
 				case 4:
 					if (tmp)
 						tmp = tmp.toString().toLowerCase();
-					tmp = self.$onprepare(property, BOOL[tmp], j, model, $);
+					tmp = BOOL[tmp];
 					break;
 
 				case 5:
@@ -2394,15 +2351,9 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					} else if (typeval === 'number')
 						tmp = new Date(tmp);
 
-					if (tmp instanceof Date && tmp.getTime() > 0)
-						tmp = self.$onprepare(property, tmp, j, model, $);
-					else
+					if (!(tmp instanceof Date && tmp.getTime() > 0))
 						tmp = undefined;
 
-					break;
-
-				case 6:
-					tmp = self.$onprepare(property, tmp, j, model, $);
 					break;
 
 				case 7:
@@ -2411,11 +2362,9 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 
 					if (entity) {
 						tmp = entity.prepare(tmp, dependencies, $, verifications);
-						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, tmp, j, model, $) });
+						dependencies && dependencies.push({ name: type.raw, value: tmp });
 					} else
 						throw new Error('Schema "{0}" not found'.format(type.raw));
-
-					tmp = self.$onprepare(property, tmp, j, model, $);
 
 					if (entity.verifications && tmp)
 						verifications.push({ model: tmp, entity: entity });
@@ -2423,13 +2372,13 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					break;
 
 				case 11:
-					tmp = self.$onprepare(property, typeval === 'number' ? tmp : typeval === 'string' ? parseNumber(tmp) : null, j, model, $);
+					tmp = typeval === 'number' ? tmp : typeval === 'string' ? parseNumber(tmp) : null;
 					if (tmp == null)
 						continue;
 					break;
 
 				case 12:
-					tmp = self.$onprepare(property, tmp ? CONVERT(tmp, type.raw) : null, j, model, $);
+					tmp = tmp ? CONVERT(tmp, type.raw) : null;
 					if (tmp == null)
 						continue;
 					break;
