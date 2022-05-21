@@ -17,6 +17,7 @@
 	- `meta.date {Date}` last modified date
 	- `meta.data {Object}`
 	- `meta.id {String}`
+- added `schema.array()` that allows you to receive data as Array
 
 ========================
 0.0.62

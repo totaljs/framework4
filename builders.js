@@ -803,6 +803,11 @@ SchemaBuilderEntityProto.undefine = function(name) {
 	return self;
 };
 
+SchemaBuilderEntityProto.array = function() {
+	this.$array = true;
+	return this;
+};
+
 SchemaBuilderEntityProto.define = function(name, type, required, invalid, xss) {
 
 	var self = this;
@@ -1642,7 +1647,12 @@ SchemaBuilderEntityProto.validate = function(model, resourcePrefix, resourceName
 	else
 		path = '';
 
-	framework_utils.validate_builder.call(self, model, builder, self, '', index, $, path, operations);
+	if (self.$array) {
+		for (var i = 0; i < model.length; i++)
+			framework_utils.validate_builder.call(self, model[i], builder, self, '', i, $, path, operations);
+	} else
+		framework_utils.validate_builder.call(self, model, builder, self, '', index, $, path, operations);
+
 	return builder;
 };
 
@@ -2000,13 +2010,26 @@ function toName(val) {
  * @param {String|Array} [dependencies] INTERNAL.
  * @return {SchemaValue}
  */
-SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verifications) {
+SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verifications, singleitem) {
 
 	var self = this;
 	var obj = self.schema;
 
 	if (obj === null)
 		return null;
+
+	if (!singleitem && self.$array) {
+
+		if (!(model instanceof Array))
+			return EMPTYARRAY;
+
+		var output = [];
+
+		for (var m of model)
+			output.push(self.prepare(m, dependencies, $, verifications, true));
+
+		return output;
+	}
 
 	if (model == null || model === EMPTYOBJECT)
 		return self.default();
@@ -2242,21 +2265,18 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 
 					entity = GETSCHEMA(type.raw);
 					if (entity) {
-
 						item[property] = entity.prepare(val, undefined, $, verifications);
-
 						if (entity.verifications)
 							verifications.push({ model: item[property], entity: entity });
-
 						dependencies && dependencies.push({ name: type.raw, value: self.$onprepare(property, item[property], undefined, model, $) });
-
 					} else
 						item[property] = null;
 
 					break;
 
+				// Custom function
 				case 10:
-					item[property] = type.raw(val == null ? '' : val.toString());
+					item[property] = self.$onprepare(property, type.raw(val), undefined, model, $);
 					if (item[property] === undefined)
 						item[property] = null;
 					break;
@@ -2421,8 +2441,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 	}
 
 	if (self.fields_allow) {
-		for (var i = 0, length = self.fields_allow.length; i < length; i++) {
-			var name = self.fields_allow[i];
+		for (var name of self.fields_allow) {
 			var val = model[name];
 			if (val !== undefined) {
 				item[name] = val;

@@ -1835,6 +1835,10 @@ function validate_builder_default(name, value, entity) {
 	if (entity.type === 11)
 		return type === 'number';
 
+	// A custom type
+	if (entity.type === 10)
+		return value != null;
+
 	// Enum + KeyValue + Custom (8+9+10)
 	if (entity.type > 7)
 		return value !== undefined;
@@ -1903,7 +1907,7 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 		var prefix = schema.resourcePrefix ? (schema.resourcePrefix + name) : name;
 
 		if (value === undefined) {
-			error.push(pluspath + name, '@', current + name, undefined, prefix);
+			error.push(pluspath + name, '@', current + name, index, prefix);
 			continue;
 		} else if (type === 'function')
 			value = model[name]();
@@ -1951,7 +1955,7 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 			if (result == null) {
 				var nestedschema = GETSCHEMA(TYPE.raw);
 				if (nestedschema)
-					exports.validate_builder(value, error, nestedschema, current + name, undefined, undefined, pluspath, operations);
+					exports.validate_builder(value, error, nestedschema, current + name, index, undefined, pluspath, operations);
 				else {
 					throw new Error(schema.parent ? 'Nested schema "{0}" not found in "{1}".'.format(TYPE.raw, schema.parent.name) : 'Bad type "{0} -> {1}" in the "{2}" schema'.format(name, TYPE.raw, schema.name));
 				}
