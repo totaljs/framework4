@@ -110,6 +110,34 @@ function querybuilderwrapper(fn_name) {
 	return global[fn_name];
 }
 
+function updatestatus(meta) {
+	meta.timeout = undefined;
+	meta.date = NOW = new Date();
+	DEF.onStatus && DEF.onStatus(meta);
+}
+
+global.STATUS = function(id, data, timeout) {
+
+	if (typeof(id) === 'object')
+		id = id.ID || id.name;
+
+	if (id) {
+
+		var meta = F.status[id];
+		if (!meta)
+			meta = F.status[id] = { id: id };
+
+		meta.data = data;
+
+		if (timeout) {
+			if (!meta.timeout)
+				meta.timeout = setTimeout(updatestatus, timeout, meta);
+		} else
+			updatestatus(meta);
+	}
+
+};
+
 global.REQUIRE = function(path) {
 	return require(F.directory + '/' + path);
 };
@@ -2299,6 +2327,7 @@ function Framework() {
 	self.workerspool = {};
 	self.sessions = {};
 	self.flows = {};
+	self.status = {};
 	self.openclients = {};
 	self.ui = {};
 	self.jsonschemas = {};

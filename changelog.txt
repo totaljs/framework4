@@ -12,6 +12,11 @@
 	- `$.on('data', function(response, [op_name]))` catches a response from a Schema operation
 	- `$.on('error', function(err, [op_name]))` catches error
 	- `$.on('response', function(response, [op_name]))`
+- added `STATUS(id/$, data, [timeout])` for capturing of universal status (executes `DEF.onStatus(meta)`)
+- added `DEF.onStatus(meta)` for capturing of universal status
+	- `meta.date {Date}` last modified date
+	- `meta.data {Object}`
+	- `meta.id {String}`
 
 ========================
 0.0.62
