@@ -89,7 +89,7 @@ tests.push(function(next) {
 		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
-		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err, res) {
+		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err) {
 			Assert.ok(err instanceof ErrorBuilder, group + ' - Expecting ErrorBuilder');
 			console.timeEnd(subtest_log);
 			next();
@@ -680,7 +680,7 @@ tests.push(function(next) {
 		var route;
 		var check = function(type, route) {
 			return typeof(F.routes.all[route]) === 'undefined' && typeof(F.routes[type][route]) === 'undefined';
-		}
+		};
 
 		// Regular route
 		route = 'GET /normalremove/     *Remove --> exec';
@@ -1440,7 +1440,7 @@ tests.push(function(next) {
 	// Default (English)
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/en/').exec(function(err, res, output) {
-			Assert.ok(output.response.match(regex)[1] === 'Hello world!', `Expecting 'Hello world!'`);
+			Assert.ok(output.response.match(regex)[1] === 'Hello world!', 'Expecting \'Hello world!\'');
 			next();
 		});
 	});
@@ -1448,7 +1448,7 @@ tests.push(function(next) {
 	// Translated (Slovak)
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/sk/').exec(function(err, res, output) {
-			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
+			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', 'Expecting \'Ahoj svet!\'');
 			next();
 		});
 	});
@@ -1456,7 +1456,7 @@ tests.push(function(next) {
 	// Query string language
 	subtests.push(function(next) {
 		RESTBuilder.GET(url + '/localization/?lang=sk').exec(function(err, res, output) {
-			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', `Expecting 'Ahoj svet!'`);
+			Assert.ok(output.response.match(regex)[1] === 'Ahoj svet!', 'Expecting \'Ahoj svet!\'');
 			next();
 		});
 	});
@@ -1490,7 +1490,7 @@ tests.push(function(next) {
 		Fs.readFile(filename, function(err, buffer) {
 			if (err) throw err;
 
-			RESTBuilder.POST(url + '/upload/', { value: 'value' }).file(filename.split('.')[0], PATH.root(filename)).exec(function(err, res, output) {
+			RESTBuilder.POST(url + '/upload/', { value: 'value' }).file(filename.split('.')[0], PATH.root(filename)).exec(function(err, res) {
 				Assert.ok(err === null && res.success && res.value.files[0] === buffer.toString() && res.value.value === 'value', subtest_name + ' - Recieved file content is not the same');
 				console.timeEnd(subtest_log);
 				next();
@@ -1605,7 +1605,7 @@ tests.push(function(next) {
 			RETURN "Hello" + " World!"
 		`)() === 'Hello World!', 'Expecting - "Hello World!"');
 
-		var special = '+ľščťžýáíň/,.-!@#$%^&*()_{}±§\`';
+		var special = '+ľščťžýáíň/,.-!@#$%^&*()_{}±§`';
 		Assert.ok(NEWMACRO(`
 			RETURN "{0}"
 		`.format(special))() === special, 'Expecting - "{0}"'.format(special));
@@ -1748,10 +1748,10 @@ tests.push(function(next) {
 
 		var err = group_name + ' ' + subtest_name + ' - Expecting - true';
 
-		var helpers = {}
+		var helpers = {};
 		helpers.includes = function(arr, value) {
 			return arr.includes(value);
-		}
+		};
 
 		Assert.ok(NEWMACRO(`
 			IF INCLUDES(arr, 2)
@@ -1807,7 +1807,7 @@ tests.push(function(next) {
 		`)() === true, err);
 
 		console.timeEnd(subtest_log);
-		next()
+		next();
 	});
 
 	// Run
