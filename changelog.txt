@@ -27,6 +27,7 @@
 - updated `schema.addWorkflow()` by adding inheriting of other workflows
 	- example: `schema.addWorkflow('check', 'Common --> check')`
 - fixed decompression of colors in CSS
+- fixed `error404` internal stats
 
 ========================
 0.0.62

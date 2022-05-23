@@ -17076,6 +17076,7 @@ function extend_request(PROTO) {
 		var res = this.res;
 
 		if (isError || !route) {
+
 			var key = 'error' + status;
 			F.stats.response[key]++;
 
@@ -17277,6 +17278,7 @@ function extend_request(PROTO) {
 			route = F.lookup_system(status);
 
 		this.$total_route = route;
+
 		if (this.$total_route && this.$total_schema)
 			this.$total_validate(this.$total_route, subscribe_validate_callback, code);
 		else
@@ -17468,13 +17470,17 @@ function extend_request(PROTO) {
 		if (DEF.onAuthorize) {
 			DEF.onAuthorize(req, req.res, req_authorizetotal);
 		} else {
+
 			if (!req.$total_route)
 				req.$total_route = req.bodyexceeded ? F.lookup_system(431) : F.lookup(req);
+
 			if (!req.$total_route)
 				req.$total_route = F.lookup_system(404);
+
 			var code = req.bodyexceeded ? 431 : 404;
+
 			if (!req.$total_schema || !req.$total_route)
-				req.$total_execute(code, code);
+				req.$total_execute(code, !req.$total_route);
 			else
 				req.$total_validate(req.$total_route, subscribe_validate_callback, code);
 		}
