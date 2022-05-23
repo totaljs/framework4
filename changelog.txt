@@ -26,6 +26,7 @@
 - fixed functionality in the `PROXY()` method
 - updated `schema.addWorkflow()` by adding inheriting of other workflows
 	- example: `schema.addWorkflow('check', 'Common --> check')`
+- fixed decompression of colors in CSS
 
 ========================
 0.0.62
