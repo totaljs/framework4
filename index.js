@@ -19837,7 +19837,7 @@ F.$snapshot = function() {
 		if (CONF.allow_stats_status) {
 			stats.status = [];
 			for (var id in F.status) {
-				var tmp = stats.status[id];
+				var tmp = F.status[id];
 				stats.status.push({ id: id, data: tmp.data, date: tmp.date });
 			}
 		}
