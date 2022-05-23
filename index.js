@@ -2233,6 +2233,7 @@ function Framework() {
 		allow_compile_html: true,
 		allow_localize: true,
 		allow_stats_snapshot: true,
+		allow_stats_status: true,
 		allow_performance: false,
 		allow_custom_titles: false,
 		allow_cache_snapshot: false,
@@ -19832,6 +19833,14 @@ F.$snapshot = function() {
 
 		stats.lasterror = err ? (err.date.toJSON() + ' '  + (err.name ? (err.name + ' - ') : '') + err.error) : undefined;
 		stats.lasttimeout = timeout;
+
+		if (CONF.allow_stats_status) {
+			stats.status = [];
+			for (var id in F.status) {
+				var tmp = stats.status[id];
+				stats.status.push({ id: id, data: tmp.data, date: tmp.date });
+			}
+		}
 
 		if ((stats.usage > 80 || stats.memory > 600 || stats.pending > 1000) && lastwarning !== NOW.getHours()) {
 			lastwarning = NOW.getHours();

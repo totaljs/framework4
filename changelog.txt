@@ -28,6 +28,8 @@
 	- example: `schema.addWorkflow('check', 'Common --> check')`
 - fixed decompression of colors in CSS
 - fixed `error404` internal stats
+- added `CONF.allow_stats_status` that stores all status objects
+- updated making of snapshots
 
 ========================
 0.0.62
