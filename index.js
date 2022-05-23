@@ -3084,7 +3084,7 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 	if (typeof(copypath) == 'function') {
 		after = before;
 		before = copypath;
-		copypath = false;
+		copypath = null;
 	}
 
 	if ((/^(https|http):\/\//).test(target))
@@ -3093,6 +3093,14 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 		target = { socketPath: target };
 
 	var obj = { url: url, uri: target, before: before, after: after, check: check, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
+
+	if (target.href) {
+		var index = target.href.indexOf('?');
+		if (index !== -1)
+			obj.query = target.href.substring(index + 1);
+		obj.path = target.pathname.substring(0, target.pathname.length - 1);
+	}
+
 	F._request_check_proxy = F.routes.proxies.push(obj);
 };
 
@@ -8298,7 +8306,7 @@ function loadthreads(options) {
 
 		items.wait(function(item, next) {
 
-			var socket = Path.join(tmp, F.directory.makeid() + '_' + item.makeid() + '_' + id);
+			var socket = Path.join(tmp, F.directory.makeid() + '_' + item.makeid() + GUID(5) + '_' + id);
 			var url = ('/' + options.threads + '/' + item + '/').replace(/\/{2,}/g, '/');
 
 			if (F.isWindows)
@@ -8311,6 +8319,7 @@ function loadthreads(options) {
 options.cluster = {3};
 options.thread = '{2}';
 options.unixsocket = '{0}';
+options.unixsocket777 = true;
 require('total4/{1}')(options);`.format(socket.replace(/\\/g, '\\\\'), DEBUG ? 'debug' : 'release', item, (options.cluster === 'auto' ? '\'auto\'' : options.cluster) || 0);
 
 			var filename = PATH.root(runscript + '_' + item + SCRIPTEXT);
@@ -8901,16 +8910,25 @@ function makeproxy(proxy, req, res) {
 	var secured = proxy.uri.protocol === 'https:';
 	var uri = {};
 
-	for (var key in proxy.uri)
-		uri[key] = proxy.uri[key];
+	if (proxy.uri.host) {
+		uri.host = proxy.uri.host;
+		uri.hostname = proxy.uri.hostname;
+	} else
+		uri.socketPath = proxy.uri.socketPath;
 
 	uri.method = req.method;
 	uri.headers = req.headers;
 
-	if (proxy.copypath == false || proxy.copypath === 'replace')
-		uri.path = req.url.substring(proxy.url.length - 1);
-	else
-		uri.path = req.url;
+	if (uri.socketPath) {
+		uri.path = proxy.copypath == false || proxy.copypath === 'replace' ? req.url.substring(proxy.url.length - 1) : req.uri.path;
+	} else {
+		if (proxy.copypath === false)
+			uri.path = proxy.uri.href;
+		else if (proxy.copypath === 'replace')
+			uri.path = req.url.substring(proxy.url.length - 1);
+		else
+			uri.path = proxy.path + req.uri.path + (proxy.query ? (req.uri.query ? ('&' + proxy.query) : proxy.query) : '');
+	}
 
 	if (uri.headers.connection)
 		delete uri.headers.connection;
@@ -8931,17 +8949,10 @@ function makeproxy(proxy, req, res) {
 	var request;
 	var get = uri.method === 'GET' || uri.method === 'HEAD' || uri.method === 'OPTIONS';
 
-	if (secured) {
-		if (get)
-			request = Https.get(uri, makeproxycallback);
-		else
-			request = Https.request(uri, makeproxycallback);
-	} else {
-		if (get)
-			request = Http.get(uri, makeproxycallback);
-		else
-			request = Http.request(uri, makeproxycallback);
-	}
+	if (secured)
+		request = get ? Https.get(uri, makeproxycallback) : Https.request(uri, makeproxycallback);
+	else
+		request = get ? Http.get(uri, makeproxycallback) : Http.request(uri, makeproxycallback);
 
 	request.on('error', makeproxyerror);
 	request.on('abort', makeproxyerror);

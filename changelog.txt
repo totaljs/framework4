@@ -23,6 +23,7 @@
 - added `schema.setDestroy(callback)` executed when the schema is removed
 - added `schema.setTimer(callback)` executed every minute
 - added supports for dynamic schemas in the form `NEWSCHEMA(function(schema))`
+- fixed functionality in the `PROXY()` method
 
 ========================
 0.0.62
