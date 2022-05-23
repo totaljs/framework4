@@ -1462,13 +1462,28 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 
 SchemaBuilderEntityProto.addWorkflow = SchemaBuilderEntityProto.add = function(name, fn, filter) {
 
+	var self = this;
 	name = name.trim();
 
-	!this.workflows && (this.workflows = {});
-	this.workflows[name] = fn;
-	this.meta['workflow_' + name] = 1;
-	this.meta['workflowfilter_' + name] = filter;
-	return this;
+	!self.workflows && (self.workflows = {});
+
+	if (typeof(fn) === 'string') {
+		var meta = fn.split(/-{1,3}>/).trim();
+		GETSCHEMA(meta[0], function(err, schema) {
+			if (schema) {
+				self.workflows[name] = schema.workflows[meta[1]];
+				self.meta['workflow_' + name] = 1;
+				if (!filter)
+					self.meta['workflowfilter_' + name] = schema.meta['workflowfilter_' + meta[1]];
+			}
+		});
+	} else {
+		self.workflows[name] = fn;
+		self.meta['workflow_' + name] = 1;
+		self.meta['workflowfilter_' + name] = filter;
+	}
+
+	return self;
 };
 
 SchemaBuilderEntityProto.addWorkflowExtension = SchemaBuilderEntityProto.addExtension = function(name, fn) {
