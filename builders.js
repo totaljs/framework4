@@ -4674,6 +4674,7 @@ function exec_callback(err, response) {
 		val = self.$transform ? self.maketransform(output.value, output) : output.value;
 
 		if (self.$errorbuilderhandler) {
+
 			// Is the response Total.js ErrorBuilder?
 			if (val instanceof Array && val.length && val[0] && val[0].error) {
 				err = ErrorBuilder.assign(val);
@@ -4683,7 +4684,18 @@ function exec_callback(err, response) {
 					callback(err, EMPTYOBJECT, output);
 					return;
 				}
+			} else if (output.status >= 400) {
+				err = output.status;
+				if (self.$resolve) {
+					self.$.invalid(err);
+					self.$ = null;
+					self.$reject = null;
+					self.$resolve = null;
+				} else
+					callback(err, response, output);
+				return;
 			}
+
 		}
 
 		self.$schema.make(val, function(err, model) {
