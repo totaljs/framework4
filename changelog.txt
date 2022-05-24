@@ -31,7 +31,7 @@
 - added `CONF.allow_stats_status` that stores all status objects
 - updated making of snapshots
 - fixed `WebSocketClient.connect()` (added a small delay for evaluation)
-- updated `EXEC()` by adding `.promise()` for async/await
+- extended `EXEC()` by adding support for query arguments
 
 ========================
 0.0.62

@@ -1720,29 +1720,11 @@ global.WORKFLOW = function(declaration, tasks) {
 	return $;
 };
 
-function _execerror(controller, callback, err, response) {
-	if (controller && controller.$callbackpromise)
-		controller.$callbackpromise(err, response);
-	else if (callback)
-		callback(err, response);
-}
-
 function _execforce(schema, model, callback, controller) {
 
 	// Because "controller" can be SchemaOptions/OperationOptions/TaskOptions
 	if (controller && !(controller instanceof WebSocketClient) && controller.controller)
 		controller = controller.controller;
-
-	if (controller && controller.$checkcsrf === 1) {
-		if (controller.route.flags2.csrf || meta.schema.$csrf) {
-			controller.$checkcsrf = 2;
-			if (!DEF.onCSRFcheck(controller.req)) {
-				setImmediate(_execerror, controller, callback, new ErrorBuilder().push('csrf', 'Invalid CSRF token'));
-				return;
-			}
-		} else
-			controller.$checkcsrf = 2;
-	}
 
 	var method;
 
@@ -1761,13 +1743,16 @@ function _execforce(schema, model, callback, controller) {
 	if (method)
 		schema = schema.substring(1);
 
-	if (!controller) {
-		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY, headers: EMPTYOBJECT });
-		controller.isConnected = false;
+	var index = schema.indexOf('?');
+	var query;
+
+	if (index !== -1) {
+		query = schema.substring(index + 1);
+		schema = schema.substring(0, index).trim();
 	}
 
 	var meta = F.temporary.exec[schema];
-	var tmp, index;
+	var tmp;
 
 	if (!meta) {
 
@@ -1786,9 +1771,10 @@ function _execforce(schema, model, callback, controller) {
 					meta.name = tmp[0];
 					meta.init = tmp[1];
 				} else {
-					setImmediate(_execerror, controller, callback, new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
+					callback(new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
 					return;
 				}
+
 			} else {
 				// operation
 				if (framework_builders.check_operation(tmp[0])) {
@@ -1796,7 +1782,7 @@ function _execforce(schema, model, callback, controller) {
 					meta.name = tmp[0];
 					meta.type = 2;
 				} else {
-					setImmediate(_execerror, controller, callback, new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
+					callback(new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
 					return;
 				}
 			}
@@ -1809,7 +1795,7 @@ function _execforce(schema, model, callback, controller) {
 			tmp = schema.substring(0, index).split(/\s|\t/).trim();
 
 			if (!method && tmp.length !== 2) {
-				setImmediate(_execerror, controller, callback, new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
+				callback(new ErrorBuilder().push('', 'Invalid "{0}" type.'.format(schema)));
 				return;
 			}
 
@@ -1826,7 +1812,7 @@ function _execforce(schema, model, callback, controller) {
 
 			var o = GETSCHEMA(meta.schema);
 			if (!o) {
-				setImmediate(_execerror, controller, callback, new ErrorBuilder().push('', 'Schema "{0}" not found'.format(meta.schema)));
+				callback(new ErrorBuilder().push('', 'Schema "{0}" not found'.format(meta.schema)));
 				return;
 			}
 
@@ -1866,7 +1852,7 @@ function _execforce(schema, model, callback, controller) {
 							tmp.name = item = 'query';
 
 						if (!o.meta[item]) {
-							setImmediate(_execerror, controller, callback, new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
+							callback(new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item)));
 							return;
 						}
 					}
@@ -1887,13 +1873,27 @@ function _execforce(schema, model, callback, controller) {
 		}
 	}
 
-	var cb = (err, response) => _execerror(controller, callback, err, response);
+	if (controller && controller.$checkcsrf === 1) {
+		if (controller.route.flags2.csrf || meta.schema.$csrf) {
+			controller.$checkcsrf = 2;
+			if (!DEF.onCSRFcheck(controller.req)) {
+				callback(new ErrorBuilder().push('csrf', 'Invalid CSRF token'));
+				return;
+			}
+		} else
+			controller.$checkcsrf = 2;
+	}
+
+	if (!controller) {
+		controller = new Controller(null, { uri: EMPTYOBJECT, query: query ? DEF.parsers.urlencoded(query) : {}, body: {}, files: EMPTYARRAY, headers: EMPTYOBJECT });
+		controller.isConnected = false;
+	}
 
 	if (meta.type) {
 		if (meta.type === 1)
-			TASK(meta.name + '/' + meta.init, cb, controller, model);
+			TASK(meta.name + '/' + meta.init, callback, controller, model);
 		else
-			OPERATION(meta.name, model, cb, null, controller);
+			OPERATION(meta.name, model, callback, null, controller);
 		return;
 	}
 
@@ -1917,12 +1917,12 @@ function _execforce(schema, model, callback, controller) {
 
 		var data = {};
 		data.meta = meta;
-		data.callback = cb;
+		data.callback = callback;
 		data.controller = controller;
 		meta.schema.make(model, performsschemaaction_async, data, null, $, meta.operations);
 
 	} else
-		setImmediate(performsschemaaction, meta, null, cb, controller);
+		setImmediate(performsschemaaction, meta, null, callback, controller);
 
 	return controller;
 }
@@ -1935,7 +1935,10 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		model = null;
 	}
 
-	return _execforce(schema, model, callback, controller);
+	if (callback)
+		return _execforce(schema, model, callback, controller);
+	else
+		return new Promise((resolve, reject) => _execforce(schema, model, (err, res) => err ? reject(err) : resolve(res), controller));
 };
 
 function performsschemaaction_async(err, response, data) {
@@ -12419,26 +12422,6 @@ Controller.prototype = {
 
 const ControllerProto = Controller.prototype;
 
-ControllerProto.promise = function($) {
-	var t = this;
-	var promise = new Promise(function(resolve, reject) {
-		t.$callbackpromise = function(err, response) {
-			if (err) {
-				if ($ && $.invalid) {
-					$.invalid(err);
-				} else {
-					if (t.virtual)
-						reject(err);
-					else
-						t.invalid(err);
-				}
-			} else
-				resolve(response);
-		};
-	});
-	return promise;
-};
-
 ControllerProto.csrf = function() {
 	return DEF.onCSRFcreate(this.req);
 };
@@ -12787,7 +12770,7 @@ function websocket_api(url, client, model, callback) {
 		return;
 	}
 
-	var ctrl = new Controller(null, { virtual: true, uri: EMPTYOBJECT, query: query ? query.parseEncoded() : {}, body: model, urlschema: urlschema, files: EMPTYARRAY, ip: client.ip, headers: client.headers, ua: client.ua, user: client.user, session: client.session });
+	var ctrl = new Controller(null, { uri: EMPTYOBJECT, query: query ? query.parseEncoded() : {}, body: model, urlschema: urlschema, files: EMPTYARRAY, ip: client.ip, headers: client.headers, ua: client.ua, user: client.user, session: client.session });
 
 	ctrl.client = client;
 	ctrl.params = {};
