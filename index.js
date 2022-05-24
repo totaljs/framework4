@@ -1726,6 +1726,21 @@ function _execforce(schema, model, callback, controller) {
 	if (controller && !(controller instanceof WebSocketClient) && controller.controller)
 		controller = controller.controller;
 
+	if (!controller || !(controller instanceof Controller)) {
+		var c = controller || EMPTYOBJECT;
+
+		if (c.query && typeof(c.query) === 'string') {
+			if (c.query[0] === '?')
+				c.query = c.query.substring(1);
+			c.query = DEF.parsers.urlencoded(c.query);
+		}
+
+		controller = new Controller(null, { uri: EMPTYOBJECT, query: c.query || {}, body: c.body || {}, files: c.files || EMPTYARRAY, headers: c.headers || EMPTYOBJECT });
+		controller.isConnected = false;
+		controller.$params = c.params;
+		controller.id = c.id;
+	}
+
 	var method;
 
 	switch (schema[0]) {
@@ -1743,16 +1758,8 @@ function _execforce(schema, model, callback, controller) {
 	if (method)
 		schema = schema.substring(1);
 
-	var index = schema.indexOf('?');
-	var query;
-
-	if (index !== -1) {
-		query = schema.substring(index + 1);
-		schema = schema.substring(0, index).trim();
-	}
-
 	var meta = F.temporary.exec[schema];
-	var tmp;
+	var tmp, index;
 
 	if (!meta) {
 
@@ -1884,11 +1891,6 @@ function _execforce(schema, model, callback, controller) {
 			controller.$checkcsrf = 2;
 	}
 
-	if (!controller) {
-		controller = new Controller(null, { uri: EMPTYOBJECT, query: query ? DEF.parsers.urlencoded(query) : {}, body: {}, files: EMPTYARRAY, headers: EMPTYOBJECT });
-		controller.isConnected = false;
-	}
-
 	if (meta.type) {
 		if (meta.type === 1)
 			TASK(meta.name + '/' + meta.init, callback, controller, model);
@@ -1933,6 +1935,11 @@ global.$ACTION = global.EXEC = function(schema, model, callback, controller) {
 		controller = callback;
 		callback = model;
 		model = null;
+	}
+
+	if (!controller && typeof(callback) !== 'function') {
+		controller = callback;
+		callback = null;
 	}
 
 	if (callback)
