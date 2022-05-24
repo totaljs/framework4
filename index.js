@@ -1743,8 +1743,16 @@ function _execforce(schema, model, callback, controller) {
 	if (method)
 		schema = schema.substring(1);
 
+	var index = schema.indexOf('?');
+	var query;
+
+	if (index !== -1) {
+		query = schema.substring(index + 1);
+		schema = schema.substring(0, index).trim();
+	}
+
 	var meta = F.temporary.exec[schema];
-	var tmp, index;
+	var tmp;
 
 	if (!meta) {
 
@@ -1877,7 +1885,7 @@ function _execforce(schema, model, callback, controller) {
 	}
 
 	if (!controller) {
-		controller = new Controller(null, { uri: EMPTYOBJECT, query: {}, body: {}, files: EMPTYARRAY, headers: EMPTYOBJECT });
+		controller = new Controller(null, { uri: EMPTYOBJECT, query: query ? DEF.parsers.urlencoded(query) : {}, body: {}, files: EMPTYARRAY, headers: EMPTYOBJECT });
 		controller.isConnected = false;
 	}
 
