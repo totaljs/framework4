@@ -30,6 +30,7 @@
 - fixed `error404` internal stats
 - added `CONF.allow_stats_status` that stores all status objects
 - updated making of snapshots
+- fixed `WebSocketClient.connect()` (added a small delay for evaluation)
 
 ========================
 0.0.62

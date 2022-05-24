@@ -115,8 +115,11 @@ WebSocketClientProto.api = function(schema, data, callback, timeout) {
 };
 
 WebSocketClientProto.connect = function(url, protocol, origin) {
+	setImmediate(this.connectforce, this, url, protocol, origin);
+};
 
-	var self = this;
+WebSocketClientProto.connectforce = function(self, url, protocol, origin) {
+
 	var options = {};
 	var key = Crypto.randomBytes(16).toString('base64');
 
