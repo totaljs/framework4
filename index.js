@@ -1735,7 +1735,7 @@ function _execforce(schema, model, callback, controller) {
 			c.query = DEF.parsers.urlencoded(c.query);
 		}
 
-		controller = new Controller(null, { uri: EMPTYOBJECT, query: c.query || {}, body: c.body || {}, files: c.files || EMPTYARRAY, headers: c.headers || EMPTYOBJECT });
+		controller = new Controller(null, { uri: EMPTYOBJECT, query: c.query || {}, body: c.body || {}, files: c.files || EMPTYARRAY, headers: c.headers || EMPTYOBJECT, user: c.user, session: c.session });
 		controller.isConnected = false;
 		controller.$params = c.params;
 		controller.id = c.id;
