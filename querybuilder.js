@@ -334,7 +334,12 @@ DBP.evaluate = function(err, response) {
 		response = response[0];
 
 	if (!err && t.error) {
-		if (!response)
+		if (t.error_reverse) {
+			if (response)
+				err = t.error;
+			else if (!t.options.first && response instanceof Array && response.length)
+				err = t.error;
+		} else if (!response)
 			err = t.error;
 		else if (!t.options.first && response instanceof Array && !response.length)
 			err = t.error;
@@ -422,8 +427,9 @@ QBP.fail = function(cb) {
 	return this;
 };
 
-QBP.error = QBP.err = function(err) {
+QBP.error = QBP.err = function(err, reverse) {
 	this.main.error = err + '';
+	this.main.error_reverse = reverse;
 	return this;
 };
 

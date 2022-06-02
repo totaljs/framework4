@@ -32,6 +32,7 @@
 - updated making of snapshots
 - fixed `WebSocketClient.connect()` (added a small delay for evaluation)
 - improved `EXEC()` method by adding a support for external arguments like query, params, id
+- improved `QueryBuilder.error(err, [reverse])` by adding the `reverse` argument
 
 ========================
 0.0.62
