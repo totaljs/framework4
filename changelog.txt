@@ -35,6 +35,7 @@
 - improved `QueryBuilder.error(err, [reverse])` by adding the `reverse` argument
 - fixed applying variables in the FlowStream
 - added `RESTBuilder.strict()` method
+- added `QueryBuilder.language()` method
 
 ========================
 0.0.62

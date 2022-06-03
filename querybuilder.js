@@ -492,6 +492,15 @@ QBP.limit = function(count) {
 	return this;
 };
 
+QBP.language = function(val, prefix, skip) {
+	var self = this;
+	if (skip && val && val === skip)
+		val = '';
+	if (val != null)
+		self.options.language = (prefix == null ? '_' : prefix) + val;
+	return self;
+};
+
 QBP.debug = function() {
 	this.options.debug = true;
 	return this;

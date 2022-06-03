@@ -9,11 +9,11 @@ const FILTER = { find: 1, read: 1, count: 1, scalar: 1, check: 1, list: 1, updat
 const TextDB = require('./textdb');
 const Open = {};
 
-function db_where(where, filter, operator, args) {
+function db_where(where, opt, operator, args) {
 
 	var tmp;
 
-	for (var item of filter) {
+	for (var item of opt.filter) {
 
 		if (item.comparer) {
 			switch (item.comparer) {
@@ -25,6 +25,9 @@ function db_where(where, filter, operator, args) {
 					break;
 			}
 		}
+
+		if (opt.language != null && item.name && item.name[item.name.length - 1] === '§')
+			item.name = item.name.substring(0, item.name.length - 1) + opt.language;
 
 		switch (item.type) {
 			case 'or':
@@ -139,7 +142,7 @@ function makefilter(db, opt, callback) {
 	var args = [];
 	var exec = opt.exec;
 
-	db_where(where, opt.filter, '&&', val => args.push(val) - 1);
+	db_where(where, opt, '&&', val => args.push(val) - 1);
 
 	var builder = {};
 	var insert = exec === 'insert';
@@ -166,8 +169,15 @@ function makefilter(db, opt, callback) {
 			builder.sort = opt.sort.join(',');
 	}
 
-	if (opt.fields)
+	if (opt.fields) {
 		builder.fields = opt.fields.join(',');
+		if (opt.language != null && builder.fields) {
+			builder.fields = builder.fields.replace(/[a-z0-9]+§/gi, function(val) {
+				val = val.substring(0, val.length - 1);
+				return val + (opt.language ? (opt.language + ' as ' + val) : '');
+			});
+		}
+	}
 
 	switch (exec) {
 		case 'find':
