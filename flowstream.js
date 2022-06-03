@@ -268,7 +268,7 @@ function variables(str, data) {
 		return obj;
 	}
 
-	if (str.indexOf('{') === -1)
+	if (typeof(str) !== 'string' || str.indexOf('{') === -1)
 		return str;
 
 	var main = this.main;
