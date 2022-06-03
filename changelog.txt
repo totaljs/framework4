@@ -36,6 +36,7 @@
 - fixed applying variables in the FlowStream
 - added `RESTBuilder.strict()` method
 - added `QueryBuilder.language()` method
+- added a global variable `MODS.` for storing modules
 
 ========================
 0.0.62

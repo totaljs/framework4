@@ -2324,7 +2324,7 @@ function Framework() {
 
 	self.modificators = null;
 	self.modificators2 = null;
-	self.modules = {};
+	global.MODS = self.modules = {};
 	self.models = {};
 	self.builds = {};
 	self.transformations = {};
@@ -6342,6 +6342,10 @@ function install(type, name, filename, next) {
 			m.files = files;
 			break;
 		case 'module':
+
+			if (m.id)
+				F.modules[m.id] = m;
+
 			m.id = name;
 			F.modules[name] = m;
 			break;
