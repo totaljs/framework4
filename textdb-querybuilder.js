@@ -3,17 +3,18 @@ require('./index');
 // Total.js Module: NoSQL embedded
 
 const REG_NULLABLE = /\./g;
+const REG_LANGUAGE = /[a-z0-9]+§/gi;
 const CANSTATS = global.F ? (global.F.stats && global.F.stats.performance && global.F.stats.performance.dbrm != null) : false;
 const LOGGER = '-- NoSQL -->';
 const FILTER = { find: 1, read: 1, count: 1, scalar: 1, check: 1, list: 1, update: 1, remove: 1, query: 1 };
 const TextDB = require('./textdb');
 const Open = {};
 
-function db_where(where, opt, operator, args) {
+function db_where(where, opt, filter, operator, args) {
 
 	var tmp;
 
-	for (var item of opt.filter) {
+	for (var item of filter) {
 
 		if (item.comparer) {
 			switch (item.comparer) {
@@ -32,7 +33,7 @@ function db_where(where, opt, operator, args) {
 		switch (item.type) {
 			case 'or':
 				tmp = [];
-				db_where(tmp, item.value, '||', args);
+				db_where(tmp, opt, item.value, '||', args);
 				where.length && where.push(operator);
 				where.push('(' + tmp.join(' ') + ')');
 				break;
@@ -142,7 +143,7 @@ function makefilter(db, opt, callback) {
 	var args = [];
 	var exec = opt.exec;
 
-	db_where(where, opt, '&&', val => args.push(val) - 1);
+	db_where(where, opt, opt.filter, '&&', val => args.push(val) - 1);
 
 	var builder = {};
 	var insert = exec === 'insert';
@@ -165,14 +166,17 @@ function makefilter(db, opt, callback) {
 		builder.take = opt.take;
 		builder.skip = opt.skip;
 		builder.first = opt.first;
-		if (opt.sort && opt.sort.length)
+		if (opt.sort && opt.sort.length) {
 			builder.sort = opt.sort.join(',');
+			if (opt.language != null)
+				builder.sort = builder.sort.replace(REG_LANGUAGE, val => (val.substring(0, val.length - 1) + opt.language));
+		}
 	}
 
 	if (opt.fields) {
 		builder.fields = opt.fields.join(',');
 		if (opt.language != null && builder.fields) {
-			builder.fields = builder.fields.replace(/[a-z0-9]+§/gi, function(val) {
+			builder.fields = builder.fields.replace(REG_LANGUAGE, function(val) {
 				val = val.substring(0, val.length - 1);
 				return val + (opt.language ? (opt.language + ' as ' + val) : '');
 			});
@@ -249,6 +253,7 @@ function makefilter(db, opt, callback) {
 			break;
 	}
 
+console.log(builder);
 	if (opt.debug)
 		console.log(LOGGER, db.filename, exec, builder);
 
