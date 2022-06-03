@@ -4122,6 +4122,11 @@ RESTP.error = function(err) {
 	return this;
 };
 
+RESTP.strict = function() {
+	this.$strict = true;
+	return this;
+};
+
 RESTP.map = function(map) {
 
 	var arr = map.split(',');
@@ -4735,6 +4740,9 @@ function exec_callback(err, response) {
 					val = EMPTYOBJECT;
 			}
 		}
+
+		if (!err && self.$strict && output.status >= 400)
+			err = output.status;
 
 		if (self.$convert && val && val !== EMPTYOBJECT)
 			val = CONVERT(val, self.$convert);

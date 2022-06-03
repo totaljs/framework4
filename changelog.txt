@@ -34,6 +34,7 @@
 - improved `EXEC()` method by adding a support for external arguments like query, params, id
 - improved `QueryBuilder.error(err, [reverse])` by adding the `reverse` argument
 - fixed applying variables in the FlowStream
+- added `RESTBuilder.strict()` method
 
 ========================
 0.0.62
