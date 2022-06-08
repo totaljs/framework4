@@ -38,6 +38,10 @@
 - added `QueryBuilder.language()` method
 - added a global variable `MODS.` for storing modules
 - fixed filtering in the `QueryBuilder.autoquery()` method
+- extended `QueryBuilder.gridfilter` method by adding support for:
+	- `<number`, `<date` less than
+	- `>number`, `>date` greater than
+	- `!string` exact value
 
 ========================
 0.0.62

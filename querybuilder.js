@@ -793,6 +793,27 @@ QBP.gridfilter = function(name, obj, type, key) {
 	if (!key)
 		key = name;
 
+	if (typeof(type) === 'string') {
+		switch (type) {
+			case 'string':
+				type = String;
+				break;
+			case 'date':
+			case 'datetime':
+				type = Date;
+				break;
+			case 'number':
+			case 'decimal':
+			case 'float':
+				type = Number;
+				break;
+			case 'boolean':
+			case 'bool':
+				type = Boolean;
+				break;
+		}
+	}
+
 	// Between
 	var index = value.indexOf(' - ');
 	if (index !== -1) {
@@ -837,8 +858,18 @@ QBP.gridfilter = function(name, obj, type, key) {
 		return builder.in(key, arr);
 	}
 
-	if (type === undefined || type === String || type === 'string')
-		return builder.search(key, value);
+	if (type === undefined || type === String)
+		return value[0] === '!' ? builder.where(key, '=', value.substring(1)) : builder.search(key, value);
+
+	var comparer = '=';
+
+	switch (value[0]) {
+		case '>':
+		case '<':
+			comparer = value[0];
+			value = value.substring(1);
+			break;
+	}
 
 	if (type === Date) {
 
@@ -851,18 +882,18 @@ QBP.gridfilter = function(name, obj, type, key) {
 
 		if (typeof(val) === 'number') {
 			if (val > 1000)
-				return builder.year(key, val);
+				return builder.year(key, comparer, val);
 			else
-				return builder.month(key, val);
+				return builder.month(key, comparer, val);
 		}
 
 		if (!(val instanceof Date) || !val.getTime())
 			val = NOW;
 
-		return builder.between(key, val.extend('00:00:00'), val.extend('23:59:59'));
+		return comparer === '=' ? builder.between(key, val.extend('00:00:00'), val.extend('23:59:59')) : builder.where(key, comparer, val);
 	}
 
-	return builder.where(key, convert(value, type));
+	return builder.where(key, comparer, convert(value, type));
 };
 
 QBP.sort = function(sort, type) {
