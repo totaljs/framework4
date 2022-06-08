@@ -1048,7 +1048,7 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 			var k = tmp[i].split(':').trim();
 			obj[k[0]] = 1;
 			arr.push(k[0]);
-			k[1] && filter.push({ name: k[0], type: (k[1] || 'string').toLowerCase() });
+			filter.push({ name: k[0], type: (k[1] || 'string').toLowerCase() });
 		}
 
 		allowed = CACHE[key] = { keys: arr, meta: obj, filter: filter };

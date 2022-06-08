@@ -37,6 +37,7 @@
 - added `RESTBuilder.strict()` method
 - added `QueryBuilder.language()` method
 - added a global variable `MODS.` for storing modules
+- fixed filtering in the `QueryBuilder.autoquery()` method
 
 ========================
 0.0.62
