@@ -785,7 +785,7 @@ QBP.gridfilter = function(name, obj, type, key) {
 	var builder = this;
 	var value = obj[name] || '';
 
-	if (!value)
+	if (!value || typeof(value) !== 'string')
 		return builder;
 
 	var arr, val;
@@ -1009,16 +1009,16 @@ QBP.autofill = function($, allowedfields, skipfilter, defsort, maxlimit) {
 		for (var name of schema.fields) {
 			if ((!skipped || !skipped[name]) && query[name]) {
 				var field = schema.schema[name];
-				var type = 'string';
+				var type = String;
 				switch (field.type) {
 					case 2:
-						type = 'number';
+						type = Number;
 						break;
 					case 4:
-						type = 'boolean';
+						type = Boolean;
 						break;
 					case 5:
-						type = 'date';
+						type = Date;
 						break;
 				}
 				t.gridfilter(name, query, type);
