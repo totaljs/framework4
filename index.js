@@ -1162,6 +1162,10 @@ var authbuiltin = function(opt) {
 			sessionid = $.headers[opt.header];
 
 		if (!sessionid) {
+
+			if (opt.locale)
+				$.req.$language = opt.locale(session.data, $.req);
+
 			$.invalid();
 			return;
 		}
@@ -1180,9 +1184,16 @@ var authbuiltin = function(opt) {
 					if (!opt.strict || session.ua === $.ua) {
 						$.req.session = session;
 						$.req.sessionid = session.sessionid;
-						if (!opt.onsession || !opt.onsession(session, $))
+						if (!opt.onsession || !opt.onsession(session, $)) {
+							if (opt.locale)
+								$.req.$language = opt.locale(session.data, $.req);
 							$.success(session.data);
+						}
 					} else {
+
+						if (opt.locale)
+							$.req.$language = opt.locale(null, $.req);
+
 						$.invalid();
 						sessionid = null;
 					}
@@ -1230,7 +1241,7 @@ var authbuiltin = function(opt) {
 				$.req.sessionid = meta.sessionid;
 
 				if (opt.locale)
-					$.req.$language = opt.locale(data);
+					$.req.$language = opt.locale(data, $.req);
 
 				if (!opt.onsession || !opt.onsession($.req.session, $, true))
 					$.success(data);
@@ -8881,10 +8892,11 @@ F.listener = function(req, res) {
 	req.user = req.session = null;
 	req.isStaticFile = CONF.allow_static_files && U.isStaticFile(req.uri.pathname);
 
-	if (req.isStaticFile)
+	if (req.isStaticFile) {
 		req.extension = U.getExtension(req.uri.pathname);
-	else if (DEF.onLocale)
-		req.$language = DEF.onLocale(req, res, req.isStaticFile);
+		if (DEF.onLocale)
+			req.$language = DEF.onLocale(req, res, true);
+	}
 
 	req.on('abort', onrequesterror);
 	req.on('aborted', onrequesterror);
@@ -8904,12 +8916,10 @@ function requestcontinue_middleware(req, res)  {
 	if (req.$total_middleware)
 		req.$total_middleware = null;
 
-	if (req.isStaticFile && F._length_request_middleware_static) {
+	if (req.isStaticFile && F._length_request_middleware_static)
 		async_middleware(0, req, res, F.routes.request_static, requestcontinue_middleware2);
-		return;
-	}
-
-	F.$requestcontinue(req, res, req.headers);
+	else
+		F.$requestcontinue(req, res, req.headers);
 }
 
 function requestcontinue_middleware2(req, res)  {
@@ -9472,19 +9482,13 @@ F.$upgrade = function(req, socket, head) {
 	req.path = framework_internal.routesplit(req.uri.pathname);
 	req.websocket = websocket;
 
-	if (DEF.onLocale)
-		req.$language = DEF.onLocale(req, socket);
-
 	if (F._length_request_middleware) {
 		async_middleware(0, req, req.websocket, F.routes.request, websocketcontinue_middleware);
 	} else {
-
-		if (F._length_request_middleware_socket) {
+		if (F._length_request_middleware_socket)
 			async_middleware(0, req, req.websocket, F.routes.request_socket, websocketcontinue_middleware2);
-			return;
-		}
-
-		F.$websocketcontinue(req, req.$wspath, headers);
+		else
+			F.$websocketcontinue(req, req.$wspath, headers);
 	}
 };
 
@@ -9558,6 +9562,11 @@ F.$websocketcontinue_process = function(route, req, path) {
 	if (!socket.prepare(route.flags, route.protocols, route.allow, route.length)) {
 		socket.$close(4001, '401: unauthorized');
 		return;
+	}
+
+	if (DEF.onLocale) {
+		// req.$language = DEF.onLocale(req, socket);
+		req.$language = DEF.onLocale(req);
 	}
 
 	var id = path + (route.flags.length ? '#' + route.flags.join('-') : '');
@@ -17167,13 +17176,10 @@ function extend_request(PROTO) {
 		if (route.middleware)
 			async_middleware(0, this, res, route.middleware, subscribe_timeout_middleware, route.options, controller);
 		else {
-
-			if (F._length_request_middleware_dynamic) {
+			if (F._length_request_middleware_dynamic)
 				async_middleware(0, this, res, F.routes.request_dynamic, subscribe_timeout_middleware2, null, controller);
-				return;
-			}
-
-			this.$total_execute2();
+			else
+				this.$total_execute2();
 		}
 	};
 
@@ -17292,6 +17298,9 @@ function extend_request(PROTO) {
 
 		if (!route || route.MEMBER !== membertype)
 			route = this.bodyexceeded ? F.lookup_system(431) : F.lookup(this, membertype);
+
+		if (!this.$language && DEF.onLocale)
+			this.$language = DEF.onLocale(this, this.res);
 
 		var status = this.$isAuthorized || route == null ? 404 : 401;
 		var code = this.bodyexceeded ? 431 : status;
@@ -17491,6 +17500,9 @@ function extend_request(PROTO) {
 		if (DEF.onAuthorize) {
 			DEF.onAuthorize(req, req.res, req_authorizetotal);
 		} else {
+
+			if (!req.$language && DEF.onLocale)
+				req.$language = DEF.onLocale(req, req.res);
 
 			if (!req.$total_route)
 				req.$total_route = req.bodyexceeded ? F.lookup_system(431) : F.lookup(req);
