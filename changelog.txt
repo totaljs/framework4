@@ -42,6 +42,7 @@
 	- `<number`, `<date` less than
 	- `>number`, `>date` greater than
 	- `!string` exact value
+- fixed incoming message (`request`) events (different events between Node.js v12 != v18)
 
 ========================
 0.0.62

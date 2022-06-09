@@ -8887,17 +8887,15 @@ F.listener = function(req, res) {
 		req.$language = DEF.onLocale(req, res, req.isStaticFile);
 
 	req.on('abort', onrequesterror);
+	req.on('aborted', onrequesterror);
 
 	if (F._length_request_middleware) {
 		async_middleware(0, req, res, F.routes.request, requestcontinue_middleware);
 	} else {
-
-		if (req.isStaticFile && F._length_request_middleware_static) {
+		if (req.isStaticFile && F._length_request_middleware_static)
 			async_middleware(0, req, res, F.routes.request_static, requestcontinue_middleware2);
-			return;
-		}
-
-		F.$requestcontinue(req, res, headers);
+		else
+			F.$requestcontinue(req, res, headers);
 	}
 };
 
@@ -8976,6 +8974,8 @@ function makeproxy(proxy, req, res) {
 
 	request.on('error', makeproxyerror);
 	request.on('abort', makeproxyerror);
+	request.on('aborted', makeproxyerror);
+
 	request.$res = res;
 	request.$proxy = proxy;
 
@@ -16173,6 +16173,7 @@ function websocket_deflate(data) {
 WebSocketClientProto.upgrade = function(container) {
 	var self = this;
 	self.req.on('abort', websocket_onerror);
+	self.req.on('aborted', websocket_onerror);
 	self.req.on('error', websocket_onerror);
 	self.container = self.controller = container;
 	self.socket.$websocket = this;
