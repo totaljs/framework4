@@ -16195,12 +16195,12 @@ function websocket_ondata(chunk) {
 
 function websocket_onerror(e) {
 	this.destroy && this.destroy();
-	this.$websocket.$onerror(e);
+	this.$websocket && this.$websocket.$onerror(e);
 }
 
 function websocket_close() {
 	this.destroy && this.destroy();
-	this.$websocket.$onclose();
+	this.$websocket && this.$websocket.$onclose();
 }
 
 WebSocketClientProto.$ondata = function(data) {
