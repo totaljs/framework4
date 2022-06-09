@@ -6111,7 +6111,7 @@ function MultipartParser(multipart, stream, callback) {
 	self.stream = stream;
 	self.stream.on('data', self.ondata);
 	self.stream.on('end', self.onend);
-	self.stream.on('close', self.onclose);
+	self.stream.on('error', self.onclose);
 	self.stream.on('abort', self.onclose);
 	self.stream.on('aborted', self.onclose);
 }
@@ -6125,7 +6125,7 @@ MultipartParser.prototype.free = function(err) {
 
 	self.stream.removeListener('data', self.ondata);
 	self.stream.removeListener('end', self.onend);
-	self.stream.removeListener('close', self.onclose);
+	self.stream.removeListener('error', self.onclose);
 	self.stream.removeListener('abort', self.onclose);
 	self.stream.removeListener('aborted', self.onclose);
 	self.current.stream && self.current.stream.end();
