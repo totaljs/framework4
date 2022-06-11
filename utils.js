@@ -2745,6 +2745,104 @@ SP.parseComponent = function(tags) {
 	return output;
 };
 
+SP.streamer = function(beg, end, callback, skip) {
+
+	if (typeof(end) === 'function') {
+		skip = callback;
+		callback = end;
+		end = undefined;
+	}
+
+	var indexer = 0;
+	var canceled = false;
+	var fn;
+	var buffer = this;
+
+	if (skip === undefined)
+		skip = 0;
+
+	if (!end) {
+
+		var length = beg.length;
+		if (!buffer || canceled)
+			return;
+
+		var f = 0;
+
+		var index = buffer.indexOf(beg, f);
+		if (index === -1)
+			return;
+
+		while (index !== -1) {
+
+			if (skip)
+				skip--;
+			else {
+
+				if (callback(buffer.substring(0, index + length), indexer++) === false)
+					canceled = true;
+			}
+
+			if (canceled)
+				return;
+
+			buffer = buffer.slice(index + length);
+			index = buffer.indexOf(beg);
+			if (index === -1)
+				return;
+		}
+
+		return fn;
+	}
+
+	var blength = beg.length;
+	var elength = end.length;
+	var bi = -1;
+	var ei = -1;
+	var is = false;
+
+	if (!buffer || canceled)
+		return;
+
+	if (!is) {
+		var f = 0;
+		bi = buffer.indexOf(beg, f);
+		if (bi === -1)
+			return;
+		is = true;
+	}
+
+	if (is) {
+		ei = buffer.indexOf(end, bi + blength);
+		if (ei === -1)
+			return;
+	}
+
+	while (bi !== -1) {
+
+		if (skip)
+			skip--;
+		else {
+			if (callback(buffer.substring(bi, ei + elength), indexer++) === false)
+				canceled = true;
+		}
+
+		if (canceled)
+			return;
+
+		buffer = buffer.slice(ei + elength);
+		is = false;
+		bi = buffer.indexOf(beg);
+		if (bi === -1)
+			return;
+		is = true;
+		ei = buffer.indexOf(end, bi + blength);
+		if (ei === -1)
+			return;
+	}
+
+};
+
 SP.parseXML = function(replace) {
 
 	var xml = this;
