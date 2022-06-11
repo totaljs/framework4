@@ -44,6 +44,8 @@
 	- `!string` exact value
 - fixed incoming message (`request`) events (different events between Node.js v12 != v18)
 - improved applying of localization
+- added `RESTBuilder.noparse()` it responds raw string as a response
+- added `String.streamer(beg, [end], callback, [skip])` method
 
 ========================
 0.0.62
