@@ -4127,6 +4127,11 @@ RESTP.strict = function() {
 	return this;
 };
 
+RESTP.noparse = function() {
+	this.$noparse = true;
+	return this;
+};
+
 RESTP.map = function(map) {
 
 	var arr = map.split(',');
@@ -4589,11 +4594,10 @@ function exec_callback(err, response) {
 	}
 
 	var ishead = response.status === 204;
-
 	if (ishead) {
 		output.value = response.status < 400;
-	} else if (self.$plain) {
-		output.value = response.response;
+	} else if (self.$plain || self.$noparse) {
+		output.value = response.body;
 	} else {
 		switch (type.toLowerCase()) {
 			case 'text/xml':
