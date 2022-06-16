@@ -1164,7 +1164,7 @@ var authbuiltin = function(opt) {
 		if (!sessionid) {
 
 			if (opt.locale)
-				$.req.$language = opt.locale(session.data, $.req);
+				$.req.$language = opt.locale(null, $.req);
 
 			$.invalid();
 			return;
@@ -2136,7 +2136,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4063;
+	self.is4 = self.version = 4064;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
