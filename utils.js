@@ -174,6 +174,7 @@ var CONTENTTYPES = {
 	package: 'text/plain',
 	pdf: 'application/pdf',
 	png: 'image/png',
+	psd: 'image/vnd.adobe.photoshop',
 	ppt: 'application/vnd.ms-powerpoint',
 	pptx: 'application/vnd.ms-powerpoint',
 	ps: 'application/postscript',
@@ -205,7 +206,8 @@ var CONTENTTYPES = {
 	xpm: 'image/x-xpixmap',
 	xsl: 'application/xml',
 	xslt: 'application/xslt+xml',
-	zip: 'application/zip'
+	zip: 'application/zip',
+	'7zip': 'application/x-7z-compressed'
 };
 
 var dnscache = {};
@@ -6370,23 +6372,66 @@ MultipartParser.prototype.parse_head = function() {
 
 			self.current.width = 0;
 			self.current.height = 0;
+			self.current.header = null;
+			self.current.measure = null;
+
 			switch (self.current.type) {
 				case 'image/svg+xml':
 				case 'image/svg':
+					self.current.header = 'svg';
 					self.current.measure = 'measureSVG';
 					break;
 				case 'image/jpeg':
 				case 'image/jpg':
+					self.current.header = 'jfif';
 					self.current.measure = 'measureJPG';
 					break;
 				case 'image/png':
+					self.current.header = 'png';
 					self.current.measure = 'measurePNG';
 					break;
 				case 'image/gif':
+					self.current.header = 'gif';
 					self.current.measure = 'measureGIF';
 					break;
-				default:
-					self.current.measure = null;
+				case 'image/webp':
+					self.current.header = 'webp';
+					self.current.measure = 'measureWEBP';
+					break;
+				case 'image/vnd.adobe.photoshop':
+					self.current.header = 'bps';
+					self.current.measure = 'measurePSD';
+					break;
+				case 'image/bmp':
+					self.current.header = 'bm';
+					self.current.measure = 'measureBMP';
+					break;
+				case 'application/zip':
+				case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+				case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+					self.current.header = 'pk';
+					break;
+				case 'application/pdf':
+					self.current.header = 'pdf';
+					break;
+				case 'video/mp4':
+					self.current.header = 'ftypmp';
+					break;
+				case 'image/heic':
+				case 'image/heif':
+					self.current.header = 'heic';
+					break;
+				case 'application/x-rar-compressed':
+					self.current.header = 'rar';
+					break;
+				case 'application/x-7z-compressed':
+					self.current.header = '7z';
+					break;
+				case 'audio/mpeg':
+					self.current.header = 'id';
+					break;
+				case 'application/ogg':
+					self.current.header = 'ogg';
 					break;
 			}
 		}
@@ -6418,6 +6463,23 @@ MultipartParser.prototype.parse_file = function() {
 	var self = this;
 	var index = self.buffer.indexOf(self.header);
 	var tmp;
+
+	if (self.current.header) {
+		var check = '';
+		for (var i = 0; i < 30; i++) {
+			var c = self.buffer[i];
+			if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) {
+				if (c < 90)
+					c += 32;
+				check += String.fromCharCode(c);
+			}
+		}
+		if (check.indexOf(self.current.header) === -1) {
+			// Invalid file
+			self.kill('4: Invalid file data');
+			return;
+		}
+	}
 
 	if (self.current.measure) {
 		tmp = framework_image[self.current.measure](self.buffer);
