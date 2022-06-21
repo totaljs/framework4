@@ -6465,6 +6465,7 @@ MultipartParser.prototype.parse_file = function() {
 	var tmp;
 
 	if (self.current.header) {
+
 		var check = '';
 		for (var i = 0; i < 30; i++) {
 			var c = self.buffer[i];
@@ -6474,11 +6475,14 @@ MultipartParser.prototype.parse_file = function() {
 				check += String.fromCharCode(c);
 			}
 		}
+
 		if (check.indexOf(self.current.header) === -1) {
 			// Invalid file
-			self.kill('4: Invalid file data');
+			self.kill('3: Invalid file data');
 			return;
 		}
+
+		self.current.header = null;
 	}
 
 	if (self.current.measure) {
