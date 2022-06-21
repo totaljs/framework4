@@ -2592,6 +2592,7 @@ exports.parseMULTIPART = function(req, type, route) {
 				default:
 					route = F.lookup_system(400);
 					req.bodydata = null;
+					req.options.problem = err.substring(3);
 					if (route) {
 						req.$total_route = route;
 						req.$total_execute(400, true);
