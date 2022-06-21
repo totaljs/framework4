@@ -89,6 +89,45 @@ exports.measureSVG = function(buffer) {
 	return { width: width, height: height };
 };
 
+// image-size
+// Git: https://github.com/image-size/image-size
+// MIT License
+exports.measureWEBP = function(buffer) {
+
+	var header = buffer.toString('ascii', 12, 16);
+
+	buffer = buffer.slice(20, 30);
+
+	if (header === 'VP8X') {
+		var extendedheader = buffer[0];
+		var start = (extendedheader & 0xc0) === 0;
+		var end = (extendedheader & 0x01) === 0;
+		if (start && end)
+			return { width: 1 + buffer.readUIntLE(7, 3), height: 1 + buffer.readUIntLE(4, 3) };
+	}
+
+	if (header === 'VP8 ' && buffer[0] !== 0x2f)
+		return { width: buffer.readInt16LE(8) & 0x3fff, height: buffer.readInt16LE(6) & 0x3fff };
+
+	var signature = buffer.toString('hex', 3, 6);
+	if (header === 'VP8L' && signature !== '9d012a')
+		return { width: 1 + (((buffer[2] & 0x3F) << 8) | buffer[1]), height: 1 + (((buffer[4] & 0xF) << 10) | (buffer[3] << 2) | ((buffer[2] & 0xC0) >> 6)) };
+};
+
+// image-size
+// Git: https://github.com/image-size/image-size
+// MIT License
+exports.measureBMP = function(buffer) {
+	return { width: buffer.readUInt32LE(18), height: Math.abs(buffer.readInt32LE(22)) };
+};
+
+// image-size
+// Git: https://github.com/image-size/image-size
+// MIT License
+exports.measurePSD = function(buffer) {
+	return { width: buffer.readUInt32BE(18), height: buffer.readUInt32BE(14) };
+};
+
 exports.measure = function(type, buffer) {
 	switch (type) {
 		case '.jpg':
@@ -97,10 +136,6 @@ exports.measure = function(type, buffer) {
 		case 'jpeg':
 		case 'image/jpeg':
 			return exports.measureJPG(buffer);
-		case '.gif':
-		case 'gif':
-		case 'image/gif':
-			return exports.measureGIF(buffer);
 		case '.png':
 		case 'png':
 		case 'image/png':
@@ -109,6 +144,22 @@ exports.measure = function(type, buffer) {
 		case 'svg':
 		case 'image/svg+xml':
 			return exports.measureSVG(buffer);
+		case '.gif':
+		case 'gif':
+		case 'image/gif':
+			return exports.measureGIF(buffer);
+		case '.webp':
+		case 'webp':
+		case 'image/webp':
+			return exports.measureWEBP(buffer);
+		case '.psd':
+		case 'psd':
+		case 'image/vnd.adobe.photoshop':
+			return exports.measurePSD(buffer);
+		case '.bmp':
+		case 'bmp':
+		case 'image/bmp':
+			return exports.measureBMP(buffer);
 	}
 };
 
