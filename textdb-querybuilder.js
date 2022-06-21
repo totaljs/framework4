@@ -253,7 +253,6 @@ function makefilter(db, opt, callback) {
 			break;
 	}
 
-console.log(builder);
 	if (opt.debug)
 		console.log(LOGGER, db.filename, exec, builder);
 
