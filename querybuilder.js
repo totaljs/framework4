@@ -493,9 +493,14 @@ QBP.limit = function(count) {
 };
 
 QBP.language = function(val, prefix, skip) {
+
 	var self = this;
-	if (skip && val && val === skip)
+
+	if (skip && val && val === skip) {
 		val = '';
+		prefix = '';
+	}
+
 	if (val != null)
 		self.options.language = (prefix == null ? '_' : prefix) + val;
 	return self;

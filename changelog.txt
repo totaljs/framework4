@@ -3,6 +3,7 @@
 ========================
 
 - fixed `session.onlocale()`
+- fixed prefixes in `QueryBuilder.language()` method
 
 ========================
 0.0.63
