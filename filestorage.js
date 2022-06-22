@@ -550,8 +550,8 @@ FP._remove = function(id, callback) {
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
 	Fs.unlink(filename, function(err) {
-		// NOSQL('~' + self.logger).remove().where('id', id);
-		Fs.appendFile(self.logger, JSON.stringify({ id: id, removed: true, date: NOW = new Date() }) + '\n', NOOP);
+		NOSQL('~' + self.logger).remove().where('id', id);
+		// Fs.appendFile(self.logger, JSON.stringify({ id: id, removed: true, date: NOW = new Date() }) + '\n', NOOP);
 		callback && callback(err);
 	});
 	return self;

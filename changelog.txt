@@ -6,6 +6,7 @@
 - fixed prefixes in `QueryBuilder.language()` method
 - added auto-measuring width/height for `.webp`, `.bmp` and `.psd` images
 - added a small buffer check for uploading file data for most used file extensions
+- improved logger in `FILESTORAGE()`
 
 ========================
 0.0.63
