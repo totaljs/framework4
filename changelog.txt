@@ -7,6 +7,7 @@
 - added auto-measuring width/height for `.webp`, `.bmp` and `.psd` images
 - added a small buffer check for uploading file data for most used file extensions
 - improved logger in `FILESTORAGE()`
+- fixed functionality of `res.nocache()` method in the `res.stream()` method
 
 ========================
 0.0.63

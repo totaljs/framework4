@@ -18355,7 +18355,7 @@ function extend_response(PROTO) {
 		var compress = (options.compress === undefined || options.compress) && CONF.allow_gzip && COMPRESSION[options.type] && accept.indexOf('gzip') !== -1;
 		var headers;
 
-		if (RELEASE) {
+		if (RELEASE && !res.$nocache) {
 			if (compress)
 				headers = HEADERS.stream_release_compress;
 			else
@@ -18369,7 +18369,7 @@ function extend_response(PROTO) {
 
 		headers.Vary = 'Accept-Encoding, Last-Modified, User-Agent';
 
-		if (RELEASE) {
+		if (RELEASE && !res.nocache) {
 			headers.Expires = DATE_EXPIRES;
 			headers['Last-Modified'] = 'Mon, 01 Jan 2001 08:00:00 GMT';
 		}
