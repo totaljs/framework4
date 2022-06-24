@@ -25,6 +25,7 @@ const CONCAT = [null, null];
 const SKIPPORTS = { '80': 1, '443': 1 };
 const REGISARR = /\[\d+\]|\[\]$/;
 const REGREPLACEARR = /\[\]/g;
+const REG_JPG = /jfif|exif/;
 
 const COMPARER = function(a, b) {
 	if (!a && b)
@@ -6383,7 +6384,7 @@ MultipartParser.prototype.parse_head = function() {
 					break;
 				case 'image/jpeg':
 				case 'image/jpg':
-					self.current.header = 'jfif';
+					self.current.header = REG_JPG;
 					self.current.measure = 'measureJPG';
 					break;
 				case 'image/png':
@@ -6476,7 +6477,8 @@ MultipartParser.prototype.parse_file = function() {
 			}
 		}
 
-		if (check.indexOf(self.current.header) === -1) {
+		var isinvalid = typeof(self.current.header) === 'string' ? check.indexOf(self.current.header) === -1 : self.current.header.test(check) !== true;
+		if (isinvalid) {
 			// Invalid file
 			self.kill('3: Invalid file data');
 			return;
