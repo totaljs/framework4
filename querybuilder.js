@@ -65,8 +65,15 @@ function QueryBuilder(main, table, exec) {
 		t.options.first = true;
 	}
 
-	if (main.controller.$debug)
+	var ctrl = main.controller;
+
+	if (ctrl.$debug)
 		t.options.debug = true;
+
+	if (ctrl.$end) {
+		ctrl.$end = false;
+		setImmediate(ctrl.next, ctrl);
+	}
 }
 
 var CTP = Controller.prototype;
@@ -130,6 +137,7 @@ CTP.next = function(t) {
 	}
 
 	t.$callback && t.$callback(t.error, t.response);
+	t.$end = true;
 
 };
 
