@@ -2,6 +2,8 @@ const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
 
 var CACHE = {};
 var EVALUATOR = {};
+var LANGUAGE_SKIP = '_';
+var LANGUAGE_PREFIX = '';
 
 function QueryBuilderOptions() {}
 
@@ -84,6 +86,12 @@ function parsedb(table) {
 	var index = table.indexOf('/');
 	return index === -1 ? { db: 'default', table: table } : { db: table.substring(0, index), table: table.substring(index + 1) };
 }
+
+CTP.language = function(prefix, skip) {
+	LANGUAGE_PREFIX = prefix;
+	LANGUAGE_SKIP = skip;
+	return this;
+};
 
 CTP.exec = function(filter, callback) {
 
@@ -504,13 +512,17 @@ QBP.language = function(val, prefix, skip) {
 
 	var self = this;
 
+	if (!skip)
+		skip = LANGUAGE_SKIP;
+
 	if (skip && val && val === skip) {
 		val = '';
 		prefix = '';
 	}
 
 	if (val != null)
-		self.options.language = (prefix == null ? '_' : prefix) + val;
+		self.options.language = (prefix == null ? LANGUAGE_PREFIX : prefix) + val;
+
 	return self;
 };
 
