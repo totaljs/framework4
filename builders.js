@@ -3035,13 +3035,22 @@ global.EACHSCHEMA = exports.eachschema = function(group, fn) {
 
 global.MAPSCHEMA = function(schema, pk) {
 	return function(response) {
+
+		if (!(response instanceof Array))
+			response = response ? [response] : EMPTYARRAY;
+
 		var items = [];
 		for (var i = 0; i < response.length; i++)
 			items.push(response[i][pk || 'id']);
+
 		var arr = schema.split(',');
 		for (var i = 0; i < arr.length; i++) {
 			var path = arr[i].trim().split('.');
-			GETSCHEMA(path[0]).cl(path[1], items);
+			var tmp = GETSCHEMA(path[0]);
+			if (tmp)
+				tmp.cl(path[1], items);
+			else
+				ERROR('MAPSCHEMA --> "' + path.join('.') + '" not found');
 		}
 	};
 };

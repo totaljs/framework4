@@ -10,6 +10,7 @@
 - fixed functionality of `res.nocache()` method in the `res.stream()` method
 - fixed `continuing` with QueryBuilder processing
 - added `DB().language(prefix, skip)` method that sets a default prefix/skip values
+- added better error handling for `MAPSCHEMA()`
 
 ========================
 0.0.63
