@@ -3050,7 +3050,7 @@ global.MAPSCHEMA = function(schema, pk) {
 			if (tmp)
 				tmp.cl(path[1], items);
 			else
-				ERROR('MAPSCHEMA --> "' + path.join('.') + '" not found');
+				F.error('Schema operation "' + path.join('.') + '" not found', 'MAPSCHEMA()');
 		}
 	};
 };

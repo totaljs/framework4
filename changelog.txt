@@ -11,6 +11,7 @@
 - fixed `continuing` with QueryBuilder processing
 - added `DB().language(prefix, skip)` method that sets a default prefix/skip values
 - added better error handling for `MAPSCHEMA()`
+- improved error outputing
 
 ========================
 0.0.63

@@ -6517,7 +6517,7 @@ DEF.onError = function(err, name, uri) {
 	}
 
 	appenderror(err.stack ? err.stack : err, name, uri);
-	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : err);
+	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : '');
 };
 
 DEF.onCSRFcreate = function(req) {
