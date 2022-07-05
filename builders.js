@@ -4169,14 +4169,17 @@ RESTP.unixsocket = function(socket, path) {
 	return self;
 };
 
-RESTP.promise = function(fn) {
+RESTP.promise = function($) {
 	var self = this;
 	return new Promise(function(resolve, reject) {
-		self.exec(function(err, result) {
-			if (err)
-				reject(err);
-			else
-				resolve(fn == null ? result : fn(result));
+		self.exec(function(err, response) {
+			if (err) {
+				if ($ && $.invalid)
+					$.invalid(err);
+				else
+					reject(err);
+			} else
+				resolve(response);
 		});
 	});
 };
