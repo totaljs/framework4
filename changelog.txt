@@ -13,6 +13,7 @@
 - added better error handling for `MAPSCHEMA()`
 - improved error outputing
 - fixed `RESTBuilder.promise([$])`
+- extended TypeScript
 
 ========================
 0.0.63
