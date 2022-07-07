@@ -633,7 +633,11 @@ type SchemaCallback = {
 	setSaveExtension: (name: string, callback: SchemaExtensionCallback) => void;
 	setUpdate: (callback: SchemaMethodCallback, filter?: string) => void;
 	setUpdateExtension: (name: string, callback: SchemaExtensionCallback) => void;
+	setDestroy: (callback: SchemaMethodCallback, filter?: string) => void;
+	setTimer: (callback: SchemaMethodCallback) => void;
+	undefine: (name: string) => void;
 	jsonschema(name: string): () => void;
+	array: () => void;
 }
 
 // Route
@@ -653,6 +657,7 @@ type Task = Dollar & {
 
 // Websocket
 type FrameworkWebSocketClient = {
+	id: number,
 	options: {
 		type: string;
 		compress: boolean;
@@ -934,6 +939,8 @@ type RESTBuilder = {
 	urlencoded: (data?: string | object) => RESTBuilder;
 	xhr: () => RESTBuilder;
 	xml: (data: string, replace?: boolean) => RESTBuilder;
+	strict: () => RESTBuilder;
+	noparse: () => RESTBuilder;
 }
 
 type RESTBuilderStaticMethods = {
