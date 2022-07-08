@@ -5692,12 +5692,13 @@ F.$load = function(types, targetdirectory, callback) {
 		if (!extension)
 			extension = '.js';
 
-		Fs.readdirSync(directory).forEach(function(o) {
+		var files = Fs.readdirSync(directory);
+		for (var o of files) {
 			var isDirectory = Fs.statSync(Path.join(directory, o)).isDirectory();
 
 			if (isDirectory && isTheme) {
 				output.push({ name: o });
-				return;
+				continue;
 			}
 
 			if (isDirectory) {
@@ -5705,12 +5706,12 @@ F.$load = function(types, targetdirectory, callback) {
 				if (extension === '.package' && o.endsWith(extension)) {
 					var name = o.substring(0, o.length - extension.length);
 					output.push({ name: name[0] === '/' ? name.substring(1) : name, filename: Path.join(dir, o), is: true });
-					return;
+					continue;
 				}
 
 				level++;
 				listing(Path.join(directory, o), level, output, extension);
-				return;
+				continue;
 			}
 
 			var ext = U.getExtension(o);
@@ -5721,14 +5722,17 @@ F.$load = function(types, targetdirectory, callback) {
 				if (extension === '.js' && isTYPESCRIPT) {
 					extension = '.ts';
 					if (ext !== extension || o[0] === '.' || o.endsWith('-bk' + extension) || o.endsWith('_bk' + extension))
-						return;
+						continue;
 				} else
-					return;
+					continue;
 			}
+
+			if ((DEBUG && o.indexOf('-release') !== -1) || (RELEASE && o.indexOf('-debug') !== -1))
+				continue;
 
 			var name = (level ? U.$normalize(directory).replace(dir, '') + '/' : '') + o.substring(0, o.length - ext.length);
 			output.push({ name: name[0] === '/' ? name.substring(1) : name, filename: Path.join(dir, name) + extension });
-		});
+		}
 	}
 
 	try {

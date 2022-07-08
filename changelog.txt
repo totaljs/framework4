@@ -14,6 +14,7 @@
 - improved error outputing
 - fixed `RESTBuilder.promise([$])`
 - extended TypeScript
+- added a support for loading files for the specific environment e.g. `file-debug.js` or `file-release.js`
 
 ========================
 0.0.63
