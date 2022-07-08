@@ -5727,7 +5727,7 @@ F.$load = function(types, targetdirectory, callback) {
 					continue;
 			}
 
-			if ((DEBUG && o.indexOf('-release') !== -1) || (RELEASE && o.indexOf('-debug') !== -1))
+			if ((DEBUG && (/(-|_)release/).test(o)) || (RELEASE && (/(-|_)debug/).test(o) !== -1))
 				continue;
 
 			var name = (level ? U.$normalize(directory).replace(dir, '') + '/' : '') + o.substring(0, o.length - ext.length);
