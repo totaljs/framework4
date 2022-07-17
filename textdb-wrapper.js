@@ -813,6 +813,7 @@ DB.page = function(page, limit) {
 	if (limit)
 		this.options.take = limit;
 	this.options.skip = page * this.options.take;
+	this.options.paginate = 1;
 	return this;
 };
 
@@ -832,6 +833,7 @@ DB.paginate = function(page, limit, maxlimit) {
 
 	this.options.skip = page2 * limit2;
 	this.options.take = limit2;
+	this.options.paginate = 1;
 	return this;
 };
 
@@ -1392,7 +1394,6 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 		self.gridsort(defsort);
 
 	maxlimit && self.paginate(query.page, query.limit, maxlimit);
-
 	return self;
 };
 

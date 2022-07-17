@@ -216,7 +216,7 @@ TextReader.prototype.compare = function(docs) {
 				builder.counter++;
 				builder.push(doc);
 
-				if (self.cancelable && !builder.$sort && builder.response.length === builder.$take) {
+				if (self.cancelable && !builder.$sort && !builder.$paginate && builder.response.length === builder.$take) {
 					builder.canceled = true;
 					self.canceled++;
 				}

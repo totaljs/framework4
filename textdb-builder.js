@@ -115,6 +115,10 @@ QueryBuilder.prototype.assign = function(meta) {
 	meta.sort && self.sort(meta.sort);
 	meta.take && self.take(meta.take);
 	meta.skip && self.skip(meta.skip);
+
+	if (meta.paginate)
+		self.$paginate = 1;
+
 	meta.modify && self.modify(meta.modify, meta.modifyarg);
 	meta.filter && self.filter(meta.filter, meta.filterarg);
 	meta.scalar && self.scalar(meta.scalar, meta.scalararg);
@@ -122,8 +126,10 @@ QueryBuilder.prototype.assign = function(meta) {
 	meta.payload && (self.payload = meta.payload);
 	meta.log && self.log(meta.log);
 	meta.join && self.join(meta.join);
+
 	if (meta.filter)
 		self.filterid = meta.filter;
+
 	return self;
 };
 
@@ -300,6 +306,7 @@ function filterrule() {
 }
 
 QueryBuilder.prototype.modify = function(rule, arg) {
+
 	var self = this;
 	var tmp = FUNCCACHE[rule];
 
