@@ -932,6 +932,12 @@ global.LOADCONFIG = function(value) {
 	if (config.mail_smtp || config.mail_smtp_options)
 		delete F.temporary.mail_settings;
 
+	if (config.default_root) {
+		if (config.default_root[0] !== '/')
+			config.default_root = '/' + config.default_root;
+		config.default_root = U.path(config.default_root);
+	}
+
 	for (var m in config)
 		CONF[m] = config[m];
 
@@ -10744,6 +10750,12 @@ function configure_configs(arr, rewrite) {
 	if (CONF.allow_performance)
 		Http.globalAgent.maxSockets = 9999;
 
+	if (CONF.default_root) {
+		if (CONF.default_root[0] !== '/')
+			CONF.default_root = '/' + CONF.default_root;
+		CONF.default_root = U.path(CONF.default_root);
+	}
+
 	var xpowered = CONF.default_xpoweredby;
 
 	Object.keys(HEADERS).forEach(function(key) {
@@ -13942,10 +13954,12 @@ ControllerProto.$import = function() {
 			merge[0] = merge[0].trim();
 			var index = merge[0].lastIndexOf('.');
 			var mergename = merge[0];
+			var default_root = CONF.default_root;
+
+			CONF.default_root = '';
 
 			ext = U.getExtension(merge[0]);
 			merge[0] = ext === 'css' ? self.public_css(merge[0]) : self.public_js(merge[0]);
-
 			var crc = merge[0].crc32(true);
 
 			for (var j = 1; j < merge.length; j++) {
@@ -13957,10 +13971,18 @@ ControllerProto.$import = function() {
 			var outputname = F.timestamp + crc + mergename.substring(index);
 			outputname = ext === 'css' ? self.public_css(outputname) : self.public_js(outputname);
 
-			var tmp = ext === 'css' ? self.public_css(outputname, true) : self.public_js(outputname, true);
+			var outputurl = outputname;
+
+			if (default_root)
+				outputurl = U.join(default_root, outputurl);
+
+			var tmp = ext === 'css' ? self.public_css(outputurl, true) : self.public_js(outputurl, true);
+
+			CONF.default_root = default_root;
 			$importmergecache[hash] = F.temporary.other[k] = tmp;
 			merge.unshift(outputname);
 			MERGE.apply(global, merge);
+
 			builder += tmp;
 			continue;
 		}

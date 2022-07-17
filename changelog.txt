@@ -3,6 +3,7 @@
 ========================
 
 - fixed TextDB output when `TextDB.paginate()` without sorting
+- fixed `default_root` option for inline merging files directly in the views
 
 ========================
 0.0.64
