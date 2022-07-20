@@ -106,11 +106,11 @@ function execapi(api) {
 		api.evaluate('API is not initialized');
 }
 
-exports.make = function(name, schema, model) {
+exports.make = function(name, schema, data) {
 	var api = new APICall();
 	api.options.name = name;
 	api.options.schema = schema;
-	api.options.model = model;
+	api.options.data = data;
 	setImmediate(execapi, api);
 	return api;
 };
