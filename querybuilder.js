@@ -163,8 +163,9 @@ CTP.promise = function($) {
 				if ($ && $.invalid) {
 					$.invalid(err);
 					t.free();
-				} else
+				} else {
 					reject(err);
+				}
 			} else
 				resolve(response);
 		};
@@ -402,8 +403,10 @@ QBP.promise = function($) {
 				if ($ && $.invalid) {
 					$.invalid(err);
 					t.main.controller.free();
-				} else
+				} else {
+					err.name = 'QueryBuilder(' + t.options.table + ' --> ' + t.options.exec + ')';
 					reject(err);
+				}
 			} else
 				resolve(response);
 		};

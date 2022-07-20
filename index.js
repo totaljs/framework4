@@ -94,6 +94,22 @@ global.NOW = new Date();
 global.THREAD = '';
 global.isWORKER = false;
 
+function apiwrapper(fn_name) {
+
+	var api = require('./api');
+
+	global.API = function(name, schema, model) {
+		return api.make(name, schema, model);
+	};
+
+	global.NEWAPI = function(name, callback) {
+		api.evaluate(name, callback);
+	};
+
+	return global[fn_name];
+}
+
+
 function querybuilderwrapper(fn_name) {
 
 	var db = require('./querybuilder');
@@ -2990,6 +3006,14 @@ global.NOSQL = function(name) {
 global.TEXTDB = function(name) {
 	global.TEXTDB = textdbwrapper;
 	return textdbwrapper(name);
+};
+
+global.API = function() {
+	return apiwrapper('API').apply(this, arguments);
+};
+
+global.NEWAPI = function() {
+	return apiwrapper('NEWAPI').apply(this, arguments);
 };
 
 global.DB = global.DATABASE = function() {
@@ -6516,7 +6540,7 @@ DEF.onError = function(err, name, uri) {
 					}
 				}
 
-				var msg = '======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"' + (uri ? (' (' + uri + ')') : '');
+				var msg = 'ERROR ======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ERROR builds/' + buildname +  ' ' + name + ' line: ' + (info[0] - minus) + ' "' + err.message + '"' + (uri ? (' (' + uri + ')') : '');
 				BUILDERRORS[key] = msg;
 				console.log(msg);
 				appenderror(msg, name, uri);
@@ -6527,7 +6551,11 @@ DEF.onError = function(err, name, uri) {
 	}
 
 	appenderror(err.stack ? err.stack : err, name, uri);
-	console.log('======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : '');
+
+	if (!name && err.name)
+		name = err.name;
+
+	console.log('ERROR ======= ' + (NOW.format('yyyy-MM-dd HH:mm:ss')) + ': ' + (name ? name + ' ---> ' : '') + (err + '') + (uri ? (' (' + uri + ')') : ''), err.stack ? err.stack : '');
 };
 
 DEF.onCSRFcreate = function(req) {

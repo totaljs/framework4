@@ -4,6 +4,8 @@
 
 - fixed TextDB output when `TextDB.paginate()` without sorting
 - fixed `default_root` option for inline merging files directly in the views
+- added `NEWAPI(name, function(opt, next))`
+- added `API(name, schema, model)`
 
 ========================
 0.0.64

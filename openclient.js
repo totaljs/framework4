@@ -124,8 +124,16 @@ exports.create = function(url, id) {
 
 		if (callback)
 			return opt.send(msg, callback, filter, timeout);
-		else
-			return new Promise((resolve, reject) => opt.send(msg, (err, res) => err ? reject(err) : resolve(res), filter, timeout));
+		else {
+			var promise = new Promise((resolve, reject) => opt.send(msg, function(err, res) {
+				if (err) {
+					err.name = 'OPENCLIENT(' + opt.url + ')';
+					reject(err);
+				} else
+					resolve(res);
+			}, filter, timeout));
+			return promise;
+		}
 	};
 
 	opt.cmd = function(msg, filter, timeout) {
