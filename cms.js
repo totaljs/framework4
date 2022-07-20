@@ -349,6 +349,14 @@ exports.compile = function(html, widgets, used) {
 		opt.render = widget.render;
 		opt.beg = opt.body.substring(0, opt.body.indexOf('>') + 1);
 		opt.end = opt.body.substring(opt.body.lastIndexOf('<'));
+
+		index = opt.beg.indexOf('data-cms-id="');
+
+		if (index === -1)
+			opt.uid = opt.beg.makeid();
+		else
+			opt.uid = opt.beg.substring(index + 13, opt.beg.indexOf('"', index + 14));
+
 		response.widgets.push(opt);
 		indexer++;
 	}
@@ -493,6 +501,8 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 
 	self.widgets.wait(function(item, next) {
 
+		opt.id = item.uid;
+		opt.widget = item.id;
 		opt.version = VERSION;
 		opt.config = item.config;
 		opt.body = item.body || '';

@@ -6,6 +6,7 @@
 - fixed `default_root` option for inline merging files directly in the views
 - added `NEWAPI(name, function(opt, next))`
 - added `API(name, schema, model)`
+- fixed cache in CMS Render
 
 ========================
 0.0.64
