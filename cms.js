@@ -478,6 +478,7 @@ CMSRender.prototype.render = function(meta, layout, callback) {
 CMSRender.prototype._render = function(meta, layout, callback) {
 
 	// meta.controller {Object}
+	// meta.url {String}
 	// meta.vars {Object}
 	// meta.refs {Object}
 	// meta.body {String} targeted for the layout
@@ -508,17 +509,21 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 		opt.body = item.body || '';
 		opt.html = item.html || '';
 		opt.template = item.template;
+		opt.cacheid = opt.id;
 
 		var render = item.render;
-
 		if (meta.widgets) {
 			var w = meta.widgets instanceof Array ? meta.widgets.findItem('id', item.id) : meta.widgets[item.id];
-			if (w)
+			if (w) {
 				render = w.render;
+				if (w.cache === 'url' && opt.url)
+					opt.cacheid += '_' + HASH(opt.url).toString(36);
+			}
+
 		}
 
-		if (self.cache[opt.id]) {
-			widgets[item.indexer] = self.cache[opt.id];
+		if (self.cache[opt.cacheid]) {
+			widgets[item.indexer] = self.cache[opt.cacheid];
 			next();
 			return;
 		}
@@ -526,7 +531,7 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 		render(opt, function(response, replace, cache) {
 			widgets[item.indexer] = replace === true ? response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '') : (item.beg + (response || '') + item.end);
 			if (cache)
-				self.cache[opt.id] = widgets[item.indexer];
+				self.cache[opt.cacheid] = widgets[item.indexer];
 			next();
 		});
 
