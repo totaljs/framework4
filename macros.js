@@ -113,7 +113,8 @@ exports.compile = function(str, nocompile) {
 	// Helpers
 	str = str.replace(/[a-z0-9_]+\(/ig, function(text) {
 		var key = '@' + indexer + '@';
-		keywords[key] = 'helpers.' + text.toLowerCase();
+		var index = text.indexOf('(');
+		keywords[key] = 'helpers.' + (text.substring(0, index) + '.call(' + text.substring(index + 1) + 'model,').toLowerCase();
 		indexer++;
 		return key;
 	});
