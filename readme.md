@@ -18,10 +18,10 @@ $ npm install -g total4
 Please support the framework on social networks.
 
 - [Follow Total.js on Gitter](https://gitter.im/totaljs/framework)
-- [Follow Total.js on GitHub](https://github.com/totaljs/framework)
+- [Follow Total.js on GitHub](https://github.com/totaljs)
 - [Follow Total.js on Twitter - __@totalframework__](https://twitter.com/totalframework)
 - [Follow Total.js on Facebook](https://www.facebook.com/totaljs.web.framework)
-- [Follow Total.js on LinkedIn](https://www.linkedin.com/groups/totaljs-8109884)
+- [Follow Total.js on LinkedIn](https://www.linkedin.com/company/total-avengers/)
 
 ## Contact
 
