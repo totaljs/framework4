@@ -8,6 +8,7 @@
 - added `API(name, schema, model)`
 - fixed cache in CMS Render
 - improved helpers in Macros (`this` contains a current model)
+- updated `QueryBuilder.language()` by adding support for `$ {Object}` as the first argument
 
 ========================
 0.0.64

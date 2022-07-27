@@ -518,6 +518,9 @@ QBP.language = function(val, prefix, skip) {
 	if (!skip)
 		skip = LANGUAGE_SKIP;
 
+	if (val && typeof(val) === 'object')
+		val = val.language;
+
 	if (skip && val && val === skip) {
 		val = '';
 		prefix = '';
