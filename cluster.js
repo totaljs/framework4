@@ -16,6 +16,8 @@ var CONTINUE = false;
 var STATS = [];
 var TIMEOUTS = {};
 
+process.env.TZ = 'utc';
+
 exports.on = function(name, callback) {
 	!MASTER && (MASTER = {});
 	if (MASTER[name])
