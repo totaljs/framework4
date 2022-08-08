@@ -154,7 +154,7 @@ function makefilter(db, opt, callback) {
 			if (insert) {
 				builder.payload = opt.payload;
 			} else {
-				builder.modify = iu.query ? iu.query.join('&&') : null;
+				builder.modify = iu.query ? iu.query.join(';') : null;
 				builder.modifyarg = iu.params;
 			}
 		}
