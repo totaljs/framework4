@@ -320,7 +320,6 @@ Message.prototype.send2 = function(callback) {
 
 	if (CONF.allow_totalapi && CONF.mail_api) {
 
-
 		var data = {};
 
 		data.to = [];
