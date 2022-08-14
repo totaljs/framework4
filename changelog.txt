@@ -3,6 +3,7 @@
 ========================
 
 - fixed `update` operation in QueryBuilder NoSQL
+- fixed uploading of `mp4` files
 
 ========================
 0.0.65

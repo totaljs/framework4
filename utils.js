@@ -6416,7 +6416,7 @@ MultipartParser.prototype.parse_head = function() {
 					self.current.header = 'pdf';
 					break;
 				case 'video/mp4':
-					self.current.header = 'ftypmp';
+					self.current.header = 'ftyp';
 					break;
 				case 'image/heic':
 				case 'image/heif':
