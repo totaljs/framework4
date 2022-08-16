@@ -376,8 +376,8 @@ Message.prototype.send2 = function(callback) {
 		CONF.mail_smtp = ea;
 	}
 
-	self.$callback2 = callback;
-	mailer.send(CONF.mail_smtp, opt, self, null, F.port ? CONF.mail_smtp_keepalive : false);
+	// self.$callback2 = callback;
+	mailer.send(CONF.mail_smtp, opt, self, callback, F.port ? CONF.mail_smtp_keepalive : false);
 	return self;
 };
 
