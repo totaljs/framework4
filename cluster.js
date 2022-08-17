@@ -16,8 +16,6 @@ var CONTINUE = false;
 var STATS = [];
 var TIMEOUTS = {};
 
-process.env.TZ = 'utc';
-
 exports.on = function(name, callback) {
 	!MASTER && (MASTER = {});
 	if (MASTER[name])
@@ -135,6 +133,9 @@ exports.res = function(message) {
 };
 
 exports.http = function(count, mode, options, callback) {
+
+	process.env.TZ = (options ? options.tz : '') || 'utc';
+
 	// Fork will obtain options automatically via event
 	if (Cluster.isMaster) {
 		CLUSTER_REQ.id = 'master';
@@ -146,6 +147,9 @@ exports.http = function(count, mode, options, callback) {
 };
 
 exports.https = function(count, mode, options, callback) {
+
+	process.env.TZ = (options ? options.tz : '') || 'utc';
+
 	// Fork will obtain options automatically via event
 	if (Cluster.isMaster) {
 		CLUSTER_REQ.id = 'master';

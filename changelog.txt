@@ -5,6 +5,7 @@
 - fixed `update` operation in QueryBuilder NoSQL
 - fixed uploading of `mp4` files
 - fixed `callback` argument in the `MailMessage.send2()` method
+- added `options.tz` for the cluster mode
 
 ========================
 0.0.65
