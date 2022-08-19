@@ -274,7 +274,7 @@ function variables(str, data) {
 	var main = this.main;
 
 	if (data == true)
-		data = this.data;
+		data = this;
 
 	return str.replace(REG_ARGS, function(text) {
 		var l = text[1] === '{' ? 2 : 1;
@@ -290,8 +290,11 @@ function variables(str, data) {
 		if (!val && main.secrets)
 			val = main.secrets[key];
 
-		if (!val && data && typeof(data) === 'object')
+		if (!val && data && typeof(data) === 'object') {
 			val = key.indexOf('.') === -1 ? data[key] : U.get(data, key);
+			if (val instanceof Date)
+				val = val.format();
+		}
 
 		return val == null ? text : val;
 	});
