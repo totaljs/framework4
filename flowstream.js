@@ -257,13 +257,13 @@ MP.throw = function(a, b, c, d) {
 	return this;
 };
 
-function variables(str, data) {
+function variables(str, data, encoding) {
 
 	if (typeof(str) === 'object') {
 		var obj = {};
 		for (var key in str) {
 			if (typeof(str[key]) === 'string')
-				obj[key] = variables.call(this, str[key], data);
+				obj[key] = variables.call(this, str[key], data, encoding);
 		}
 		return obj;
 	}
@@ -292,16 +292,28 @@ function variables(str, data) {
 
 		if (!val && data && typeof(data) === 'object') {
 			val = key.indexOf('.') === -1 ? data[key] : U.get(data, key);
-			if (val instanceof Date)
-				val = val.format();
+			if (encoding !== 'json') {
+				if (val instanceof Date)
+					val = val.format();
+			}
+		}
+
+		switch (encoding) {
+			case 'urlencoded':
+			case 'url':
+				val = encodeURIComponent(val);
+				break;
+			case 'json':
+				val = JSON.stringify(val);
+				break;
 		}
 
 		return val == null ? text : val;
 	});
 }
 
-MP.replace = MP.variables = function(str, data) {
-	return variables.call(this, str, data);
+MP.replace = MP.variables = function(str, data, encoding) {
+	return variables.call(this, str, data, encoding);
 };
 
 function timeouthandler(msg) {
