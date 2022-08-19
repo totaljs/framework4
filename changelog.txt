@@ -6,7 +6,8 @@
 - fixed uploading of `mp4` files
 - fixed `callback` argument in the `MailMessage.send2()` method
 - added `options.tz` for the cluster mode
-- improved `FlowStreamMessage.variables()` by adding support for nested properties `path1.path2.value`
+- updated `FlowStreamMessage.variables()` by adding support for nested properties `path1.path2.value`
+- updated `FlowStreamMessage.variables()`, keys for `data` must be in the form `{data.key}`
 
 ========================
 0.0.65
