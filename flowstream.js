@@ -290,8 +290,12 @@ function variables(str, data) {
 		if (!val && main.secrets)
 			val = main.secrets[key];
 
-		if (!val && data && typeof(data) === 'object')
-			val = data[key];
+		if (!val && data && typeof(data) === 'object') {
+			if (key.indexOf('.') === -1)
+				val = data[key];
+			else
+				val = U.get(data, key);
+		}
 
 		return val == null ? text : val;
 	});
