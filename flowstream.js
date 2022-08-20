@@ -306,6 +306,9 @@ function variables(str, data, encoding) {
 			case 'json':
 				val = JSON.stringify(val);
 				break;
+			case 'querify':
+				val = QUERIFY(val).substring(1);
+				break;
 		}
 
 		return val == null ? text : val;
