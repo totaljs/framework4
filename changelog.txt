@@ -9,6 +9,7 @@
 - updated `FlowStreamMessage.variables()` by adding support for nested properties `path1.path2.value`
 - updated `FlowStreamMessage.variables()` keys for `data` must be in the form `{data.key}`
 - updated `FlowStreamMessage.variables(str, [data], [encoding])` by adding `encoding` argument
+- fixed parsing JSON schemas from the string
 
 ========================
 0.0.65
