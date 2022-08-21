@@ -6781,7 +6781,7 @@ String.prototype.toJSONSchema = function(name, url) {
 
 	for (var i = 0; i < prop.length; i++) {
 
-		var arr = prop[i].split(':');
+		var arr = prop[i].split(':').trim();
 		var tmp;
 
 		if (arr[0][0] === '!' || arr[0][0] === '*') {
