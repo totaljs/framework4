@@ -290,6 +290,12 @@ function variables(str, data, encoding) {
 		if (!val && main.secrets)
 			val = main.secrets[key];
 
+		if (!val && key === 'hostname') {
+			var val = (main.$schema.origin || '') + (main.$schema.proxypath || '');
+			if (val[val.length - 1] === '/')
+				val = val.substring(0, val.length - 1);
+		}
+
 		if (!val && data && typeof(data) === 'object') {
 			val = key.indexOf('.') === -1 ? data[key] : U.get(data, key);
 			if (encoding !== 'json') {

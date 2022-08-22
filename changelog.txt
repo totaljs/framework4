@@ -9,6 +9,7 @@
 - updated `FlowStreamMessage.variables()` by adding support for nested properties `path1.path2.value`
 - updated `FlowStreamMessage.variables()` keys for `data` must be in the form `{data.key}`
 - updated `FlowStreamMessage.variables(str, [data], [encoding])` by adding `encoding` argument
+- updated `FlowStreamMessage.variables()` by adding `{hostname}` keyword for obtaining of main hostname
 - fixed parsing JSON schemas from the string
 - improved parsing of inline JSON schemas by adding subtypes like `email`, `smallint`, `zip`, etc.
 - added `JSONSchemaObject.transform(value)` method
