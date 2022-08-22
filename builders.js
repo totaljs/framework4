@@ -1960,48 +1960,6 @@ function autotrim(context, value) {
 	return context.trim ? value.trim() : value;
 }
 
-function toName(val) {
-
-	var a = '';
-	var p = 0;
-	var space = false;
-
-	for (var i = 0; i < val.length; i++) {
-		var c = val.charCodeAt(i);
-		if ((c < 65 || (c > 90 && c < 97) || (c > 122 && c < 128)) && c !== 32)
-			continue;
-
-		if (a && p !== 32) {
-
-			if (c === 32) {
-				p = c;
-				space = true;
-				continue;
-			}
-
-			if (space) {
-				a += ' ';
-				space = false;
-			}
-
-			a += val[i];
-
-		} else {
-
-			if (space) {
-				a += ' ';
-				space = false;
-			}
-
-			a += val[i].toUpperCase();
-		}
-
-		p = c;
-	}
-
-	return a;
-}
-
 /**
  * Prepare model according to schema
  * @param {Object} model
@@ -2148,7 +2106,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 								tmp = tmp.capitalize(true);
 							break;
 						case 'name':
-							tmp = toName(tmp);
+							tmp = tmp.toName();
 							break;
 						case 'lowercase':
 							tmp = tmp.toLowerCase();
@@ -2341,7 +2299,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 								continue;
 							break;
 						case 'name':
-							tmp = toName(tmp);
+							tmp = tmp.toName();
 							break;
 						case 'capitalize':
 							tmp = tmp.capitalize();
@@ -5955,7 +5913,7 @@ function convertorcompile(schema, data, key) {
 				obj.fn = (val, obj) => $convertstring(val, obj, true);
 				break;
 			case 'name':
-				obj.fn = (val, obj) => toName($convertstring(val, obj));
+				obj.fn = (val, obj) => $convertstring(val, obj).toName();
 				break;
 			case 'base64':
 				obj.fn = val => typeof(val) === 'string' ? val.isBase64(true) ? val : '' : '';

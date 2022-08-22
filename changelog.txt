@@ -10,6 +10,7 @@
 - updated `FlowStreamMessage.variables()` keys for `data` must be in the form `{data.key}`
 - updated `FlowStreamMessage.variables(str, [data], [encoding])` by adding `encoding` argument
 - fixed parsing JSON schemas from the string
+- improved inline JSON schemas by adding subtypes like `email`, `smallint`, `zip`, etc.
 
 ========================
 0.0.65
