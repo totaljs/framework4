@@ -11,6 +11,7 @@
 - updated `FlowStreamMessage.variables(str, [data], [encoding])` by adding `encoding` argument
 - fixed parsing JSON schemas from the string
 - improved parsing of inline JSON schemas by adding subtypes like `email`, `smallint`, `zip`, etc.
+- added `JSONSchemaObject.transform(value)` method
 
 ========================
 0.0.65
