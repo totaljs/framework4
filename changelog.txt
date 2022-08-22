@@ -12,6 +12,7 @@
 - fixed parsing JSON schemas from the string
 - improved parsing of inline JSON schemas by adding subtypes like `email`, `smallint`, `zip`, etc.
 - added `JSONSchemaObject.transform(value)` method
+- updated schemas by sending raw data if the schema doesn't contain any field
 
 ========================
 0.0.65

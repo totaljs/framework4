@@ -1879,6 +1879,12 @@ SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $, op
 		return output;
 	}
 
+	if (!self.fields.length) {
+		output = model;
+		callback && callback(null, output, arg);
+		return output;
+	}
+
 	var verifications = [];
 	var output = self.prepare(model, null, $, verifications);
 
