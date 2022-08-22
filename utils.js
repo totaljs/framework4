@@ -2531,6 +2531,49 @@ DP.parseDate = function() {
 	return this;
 };
 
+SP.toName = function() {
+
+	var a = '';
+	var p = 0;
+	var space = false;
+	var val = this;
+
+	for (var i = 0; i < val.length; i++) {
+		var c = val.charCodeAt(i);
+		if ((c < 65 || (c > 90 && c < 97) || (c > 122 && c < 128)) && c !== 32)
+			continue;
+
+		if (a && p !== 32) {
+
+			if (c === 32) {
+				p = c;
+				space = true;
+				continue;
+			}
+
+			if (space) {
+				a += ' ';
+				space = false;
+			}
+
+			a += val[i];
+
+		} else {
+
+			if (space) {
+				a += ' ';
+				space = false;
+			}
+
+			a += val[i].toUpperCase();
+		}
+
+		p = c;
+	}
+
+	return a;
+};
+
 SP.isJSONDate = function() {
 	var l = this.length - 1;
 	return l > 22 && l < 30 && this[l] === 'Z' && this[10] === 'T' && this[4] === '-' && this[13] === ':' && this[16] === ':';
@@ -6806,14 +6849,26 @@ String.prototype.toJSONSchema = function(name, url) {
 			case 'string':
 			case 'uid':
 			case 'guid':
+			case 'email':
+			case 'phone':
+			case 'name':
+			case 'url':
+			case 'zip':
+			case 'lowercase':
+			case 'uppercase':
+			case 'capitalize':
+			case 'color':
+			case 'icon':
+			case 'base64':
 				tmp = {};
 				if (isarr) {
 					tmp.type = 'array';
-					tmp.items = { type: 'string' };
+					tmp.items = { type: 'string', subtype: type };
 					if (size)
 						tmp.items.maxLength = size;
 				} else {
 					tmp.type = 'string';
+					tmp.subtype = type;
 					if (size)
 						tmp.maxLength = size;
 				}
@@ -6822,12 +6877,21 @@ String.prototype.toJSONSchema = function(name, url) {
 			case 'number2':
 			case 'float':
 			case 'decimal':
+			case 'int':
+			case 'integer':
+			case 'smallint':
+			case 'tinyint':
+
+				if (type === 'integer')
+					type = 'int';
+
 				tmp = {};
 				if (isarr) {
 					tmp.type = 'array';
-					tmp.items = { type: 'number' };
+					tmp.items = { type: 'number', subtype: type };
 				} else {
 					tmp.type = 'number';
+					tmp.subtype = type;
 				}
 				break;
 			case 'bool':
@@ -6863,6 +6927,12 @@ String.prototype.toJSONSchema = function(name, url) {
 
 	if (required.length)
 		obj.required = required;
+
+	obj.transform = function(value, callback) {
+		var error = new ErrorBuilder();
+		var response = framework_jsonschema.transform(this, error, value);
+		return { error: error.is ? error : null, response: response };
+	};
 
 	return obj;
 };

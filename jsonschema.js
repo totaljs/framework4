@@ -1,5 +1,7 @@
 require('./index');
 
+const REG_NUMBER = /[\d,\.]+/g;
+
 function check_string(meta, error, value, errplus) {
 
 	var type = typeof(val);
@@ -8,6 +10,14 @@ function check_string(meta, error, value, errplus) {
 
 	if (errplus == null)
 		errplus = '';
+
+	if (value) {
+		switch (meta.subtype) {
+			case 'name':
+				value = value.toName();
+				break;
+		}
+	}
 
 	if (meta.$$REQUIRED && !value) {
 		error.push(errplus + meta.$$ID + '.required');
@@ -29,6 +39,71 @@ function check_string(meta, error, value, errplus) {
 		return;
 	}
 
+	if (value) {
+		switch (meta.subtype) {
+
+			case 'email':
+				value = value.replace(/\s/g, '').toLowerCase();
+				if (!value.isEmail()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'phone':
+				value = value.replace(/\s/g, '').toLowerCase();
+				if (!value.isPhone()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'url':
+				if (!value.isURL()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'zip':
+				if (!value.isZIP()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'guid':
+				if (!value.isGUID()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'uid':
+				if (!value.isUID()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'json':
+				if (!value.isJSON()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'base64':
+				if (!value.isBase64()) {
+					error.push(errplus + meta.$$ID + '.invalid');
+					return;
+				}
+				break;
+			case 'lowercase':
+				value = value.toLowerCase();
+				break;
+			case 'uppercase':
+				value = value.toUpperCase();
+				break;
+			case 'capitalize':
+				value = value.capitalize();
+				break;
+		}
+	}
+
 	if (meta.enum instanceof Array) {
 		if (meta.enum.indexOf(value) === -1) {
 			error.push(errplus + meta.$$ID + '.enum');
@@ -38,8 +113,6 @@ function check_string(meta, error, value, errplus) {
 
 	return value;
 }
-
-const REG_NUMBER = /[\d,\.]+/g;
 
 function check_number(meta, error, value, errplus) {
 
@@ -92,6 +165,21 @@ function check_number(meta, error, value, errplus) {
 			error.push(errplus + meta.$$ID + '.minimum');
 			return;
 		}
+	}
+
+	switch (meta.subtype) {
+		case 'smallint':
+			if (value < -32767 || value > 32767) {
+				error.push(errplus + meta.$$ID + '.invalid');
+				return;
+			}
+			break;
+		case 'tinyint':
+			if (value < 0 || value > 255) {
+				error.push(errplus + meta.$$ID + '.invalid');
+				return;
+			}
+			break;
 	}
 
 	if (meta.exclusiveMinimum) {
