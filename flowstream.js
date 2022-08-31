@@ -277,6 +277,7 @@ function variables(str, data, encoding) {
 		data = this;
 
 	return str.replace(REG_ARGS, function(text) {
+
 		var l = text[1] === '{' ? 2 : 1;
 		var key = text.substring(l, text.length - l).trim();
 		var val = null;
@@ -291,33 +292,43 @@ function variables(str, data, encoding) {
 			val = main.secrets[key];
 
 		if (!val && key === 'hostname') {
-			var val = (main.$schema.origin || '') + (main.$schema.proxypath || '');
+			val = (main.$schema.origin || '') + (main.$schema.proxypath || '');
 			if (val[val.length - 1] === '/')
 				val = val.substring(0, val.length - 1);
 		}
 
-		if (!val && data && typeof(data) === 'object') {
+		var customencoding = typeof(encoding) === 'function';
+
+		if (!val && data && typeof(data) === 'object')
 			val = key.indexOf('.') === -1 ? data[key] : U.get(data, key);
+
+		if (customencoding) {
+
+			val = customencoding(val, key);
+
+		} else {
+
 			if (encoding !== 'json') {
 				if (val instanceof Date)
 					val = val.format();
 			}
-		}
 
-		switch (encoding) {
-			case 'urlencoded':
-			case 'url':
-				val = encodeURIComponent(val);
-				break;
-			case 'json':
-				val = JSON.stringify(val);
-				break;
-			case 'querify':
-				val = QUERIFY(val).substring(1);
-				break;
+			switch (encoding) {
+				case 'urlencoded':
+				case 'url':
+					val = encodeURIComponent(val);
+					break;
+				case 'json':
+					val = JSON.stringify(val);
+					break;
+				case 'querify':
+					val = QUERIFY(val).substring(1);
+					break;
+			}
 		}
 
 		return val == null ? text : val;
+
 	});
 }
 

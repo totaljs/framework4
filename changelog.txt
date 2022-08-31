@@ -2,6 +2,8 @@
 0.0.67
 ========================
 
+- improved `encoding` in the `FlowStreamMessage.variables(str, [data], [encoding])` method (it can be a `function(val, key)`)
+
 ========================
 0.0.66
 ========================
