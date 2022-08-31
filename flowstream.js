@@ -304,7 +304,7 @@ function variables(str, data, encoding) {
 
 		if (customencoding) {
 
-			val = customencoding(val, key);
+			val = encoding(val, key);
 
 		} else {
 
