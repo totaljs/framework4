@@ -266,6 +266,7 @@ global.TRANSITION = function(name, data, callback, controller) {
 	var arr = name.split(/-->/).trim();
 	var obj = new TransitionOptions();
 
+	obj.ID = name;
 	obj.controller = controller ? (controller.controller || controller) : null;
 	obj.$callback = callback;
 	obj.data = data;
