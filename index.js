@@ -98,8 +98,8 @@ function apiwrapper(fn_name) {
 
 	var api = require('./api');
 
-	global.API = function(name, schema, data) {
-		return api.make(name, schema, data);
+	global.API = function(name, schema, data, $) {
+		return api.make(name, schema, data, $);
 	};
 
 	global.NEWAPI = function(name, callback) {

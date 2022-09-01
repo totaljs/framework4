@@ -116,7 +116,7 @@ exports.make = function(name, schema, data, $) {
 	api.options.name = name;
 	api.options.schema = schema;
 	api.options.data = data;
-	api.options.controller = $ ? ($.controller || $) : null;
+	api.options.controller = $;
 	setImmediate(execapi, api);
 	return api;
 };
