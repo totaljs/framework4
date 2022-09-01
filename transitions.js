@@ -33,6 +33,21 @@ TIP.session = function(value) {
 	return this;
 };
 
+TIP.error = function(value) {
+	this.options.$error = value;
+	return this;
+};
+
+TIP.done = function($, fn) {
+	this.options.$callback = function(err, response) {
+		if (err)
+			$.invalid(err);
+		else
+			fn(response);
+	};
+	return this;
+};
+
 TIP.callback = function(value) {
 	this.options.$callback = value;
 	return this;
@@ -48,6 +63,7 @@ TIP.promise = function($) {
 	return new Promise(function(resolve, reject) {
 		t.options.$callback = function(err, response) {
 			if (err) {
+				t.options.$error && t.options.$error(err);
 				if ($ && $.invalid)
 					$.invalid(err);
 				else
@@ -138,14 +154,14 @@ TP.refresh = function() {
 	return t;
 };
 
-TIP.output = TOP.callback = function(value) {
+TOP.audit = function(message, type) {
+	AUDIT(this, message, type);
+	return this;
+};
+
+TOP.output = TOP.callback = function(value) {
 
 	var t = this;
-
-	if (!t.$executed) {
-		t.$callback = value;
-		return t;
-	}
 
 	if (t.$callback) {
 		var data = t.action.validate('output', value);
@@ -161,6 +177,8 @@ TOP.invalid = function(err) {
 
 	t.error = new ErrorBuilder();
 	t.error.push(err);
+
+	t.$error && t.$error(t.error);
 
 	if (t.$callback) {
 		t.$callback(t.error);
