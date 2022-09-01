@@ -11012,7 +11012,7 @@ F.lookup = function(req, membertype, skipflags) {
 	}
 
 	// Dynamic routes
-	if (tmp.D) {
+	if (tmp.D && !(length === 1 && arr[0] === '/')) {
 		for (var i = 0; i < tmp.D.length; i++) {
 			var r = tmp.D[i];
 			if (r.url.length === length || r.isWILDCARD) {

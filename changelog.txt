@@ -5,6 +5,7 @@
 - improved `encoding` in the `FlowStreamMessage.variables(str, [data], [encoding])` method (it can be a `function(val, key)`)
 - improved `encode` argument in `String.args()` - now it can be a `function(val, key)`
 - improved error handling in JSON Schemas
+- fixed routing
 
 ========================
 0.0.66
