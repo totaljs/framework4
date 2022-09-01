@@ -170,7 +170,6 @@ function runwatching() {
 			Path.join(directory, CONF.directory_themes),
 			Path.join(directory, CONF.directory_middleware),
 			Path.join(directory, CONF.directory_configs),
-			Path.join(directory, CONF.directory_transitions),
 			Path.join(directory, CONF.directory_bundles),
 			Path.join(directory, '/startup/'),
 			Path.join(directory, '/threads/'),

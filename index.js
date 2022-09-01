@@ -2211,7 +2211,6 @@ function Framework() {
 		directory_themes: '/themes/',
 		directory_tasks: '/tasks/',
 		directory_updates: '/updates/',
-		directory_transitions: '/transitions/',
 
 		// all HTTP static request are routed to directory-public
 		static_url: '',
@@ -6002,16 +6001,6 @@ F.$load = function(types, targetdirectory, callback) {
 			arr = [];
 			listing(dir, 0, arr);
 			arr.forEach(item => dependencies.push(next => install_extension(item.filename, next)));
-			resume();
-		});
-	}
-
-	if (can('transitions') && CONF.directory_transitions) {
-		operations.push(function(resume) {
-			dir = U.combine(targetdirectory, isPackage ? '/transitions/' : CONF.directory_transitions);
-			arr = [];
-			listing(dir, 0, arr);
-			arr.forEach(item => dependencies.push(next => install('transition', item.name, item.filename, next)));
 			resume();
 		});
 	}
@@ -11893,10 +11882,6 @@ FrameworkPathProto.modules = function(filename) {
 
 FrameworkPathProto.schemas = function(filename) {
 	return U.combine(CONF.directory_schemas, filename);
-};
-
-FrameworkPathProto.transitions = function(filename) {
-	return U.combine(CONF.directory_transitions, filename);
 };
 
 FrameworkPathProto.jsonschemas = function(filename) {
@@ -19641,16 +19626,6 @@ function controller_json_workflow(id) {
 		}
 
 		var schemaname = self.req.$schemaname;
-
-		if (self.route.transition) {
-			var opt = TRANSITION(self.route.schema[1] + ' --> ' + w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
-			opt.options.query = self.query;
-			opt.options.params = self.params;
-			opt.options.user = self.user;
-			opt.options.session = self.session;
-			return;
-		}
-
 		if (!schemaname)
 			schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
 
@@ -20382,5 +20357,3 @@ global.TESTER = function(callback, options) {
 process.connected && setTimeout(function() {
 	process.send('total:init');
 }, 100);
-
-require('./transitions');
