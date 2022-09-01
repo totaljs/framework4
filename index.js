@@ -109,7 +109,6 @@ function apiwrapper(fn_name) {
 	return global[fn_name];
 }
 
-
 function querybuilderwrapper(fn_name) {
 
 	var db = require('./querybuilder');
@@ -2212,6 +2211,7 @@ function Framework() {
 		directory_themes: '/themes/',
 		directory_tasks: '/tasks/',
 		directory_updates: '/updates/',
+		directory_transitions: '/transitions/',
 
 		// all HTTP static request are routed to directory-public
 		static_url: '',
@@ -3548,6 +3548,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var apiparams;
 	var apischema;
 	var apimethod;
+	var apitransition = false;
 
 	if (url instanceof Array) {
 		for (var u of url)
@@ -3645,11 +3646,16 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			return '';
 		}).trim();
 
-		url = url.replace(/\s\*([{}a-z0-9}]|\s)?.*?$/i, function(text) {
+		url = url.replace(/\s(\*|~)([{}a-z0-9}]|\s)?.*?$/i, function(text) {
 			!flags && (flags = []);
 
 			if (text.indexOf('*') !== -1)
 				apischema = text.trim();
+
+			if (text.indexOf('~') !== -1) {
+				apitransition = true;
+				apischema = text.trim();
+			}
 
 			flags.push(text.trim());
 			return '';
@@ -3844,7 +3850,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				continue;
 			}
 
-			if (first === '*') {
+			if (first === '*' || first === '~') {
 
 				workflow = flags[i].trim().substring(1);
 				index = workflow.indexOf('-->');
@@ -3852,6 +3858,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				if (index !== -1) {
 					schema = workflow.substring(0, index).trim();
 					workflow = workflow.substring(index + 3).trim();
+					apitransition = first === '~';
 				} else {
 					schema = workflow;
 					workflow = null;
@@ -4189,7 +4196,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (!F.routes.api[tmpapi])
 			F.routes.api[tmpapi] = {};
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, action: apimethod + ' ' + apischema, params: apiparams, member: membertype, path: mypath, isAPI: true };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: apitransition ? apischema.substring(1) : (apimethod + ' ' + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, transition: apitransition };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
@@ -4230,6 +4237,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.schema = schema;
 	r.novalidate = novalidate;
 	r.workflow = workflow;
+	r.transition = apitransition;
 	r.subdomain = subdomain;
 	r.description = description;
 	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
@@ -5998,6 +6006,16 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('transitions') && CONF.directory_transitions) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/transitions/' : CONF.directory_transitions);
+			arr = [];
+			listing(dir, 0, arr);
+			arr.forEach(item => dependencies.push(next => install('transition', item.name, item.filename, next)));
+			resume();
+		});
+	}
+
 	if (can('plugins') && CONF.directory_plugins) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/plugins/' : CONF.directory_plugins);
@@ -6387,10 +6405,8 @@ function install(type, name, filename, next) {
 			m.files = files;
 			break;
 		case 'module':
-
 			if (m.id)
 				F.modules[m.id] = m;
-
 			m.id = name;
 			F.modules[name] = m;
 			break;
@@ -6406,6 +6422,9 @@ function install(type, name, filename, next) {
 		case 'source':
 			m.id = name;
 			F.sources[name] = m;
+			break;
+		case 'transition':
+			NEWTRANSITION(m.name || name, m);
 			break;
 	}
 
@@ -6782,6 +6801,11 @@ F.findConnections = function(path) {
 DEF.onSchema = function(req, route, callback) {
 
 	var schema;
+
+	if (route.transition) {
+		callback(null, req.body);
+		return;
+	}
 
 	if (route.isDYNAMICSCHEMA) {
 		var index = route.param[route.paramnames.indexOf(route.schema[1])];
@@ -11871,6 +11895,10 @@ FrameworkPathProto.schemas = function(filename) {
 	return U.combine(CONF.directory_schemas, filename);
 };
 
+FrameworkPathProto.transitions = function(filename) {
+	return U.combine(CONF.directory_transitions, filename);
+};
+
 FrameworkPathProto.jsonschemas = function(filename) {
 	return U.combine(CONF.directory_jsonschemas, filename);
 };
@@ -12795,8 +12823,12 @@ function controller_api() {
 	if (CONF.secret_csrf)
 		self.$checkcsrf = 1;
 
-	// Evaluates action
-	EXEC(s.action, model.data, self.callback(), self);
+	if (self.route.transition) {
+		TRANSITION(s.action, s.method === 'GET' ? self.req._querydata : model.data, self.callback(), self);
+	} else {
+		// Evaluates action
+		EXEC(s.action, model.data, self.callback(), self);
+	}
 }
 
 function websocket_api(url, client, model, callback) {
@@ -19589,6 +19621,7 @@ function getSchemaName(schema, params) {
 
 // Default action for workflow routing
 function controller_json_workflow(id) {
+
 	var self = this;
 	var w = self.route.workflow;
 
@@ -19604,6 +19637,13 @@ function controller_json_workflow(id) {
 		}
 
 		var schemaname = self.req.$schemaname;
+
+		if (self.route.transition) {
+			var data = self.req.method === 'GET' ? self.query : self.body;
+			TRANSITION(self.route.schema[1] + ' --> ' + w.id, data, w.view ? self.callback(w.view) : self.callback(), self);
+			return;
+		}
+
 		if (!schemaname)
 			schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
 
@@ -20335,3 +20375,5 @@ global.TESTER = function(callback, options) {
 process.connected && setTimeout(function() {
 	process.send('total:init');
 }, 100);
+
+require('./transitions');

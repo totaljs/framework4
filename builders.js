@@ -4737,11 +4737,10 @@ function exec_callback(err, response) {
 			self.$ = null;
 			self.$reject = null;
 			self.$resolve = null;
-			return;
+		} else {
+			callback(err, val, output);
+			output.cache = true;
 		}
-
-		callback(err, val, output);
-		output.cache = true;
 	}
 }
 
