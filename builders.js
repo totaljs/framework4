@@ -159,14 +159,6 @@ SchemaOptions.prototype = {
 		return this.controller ? this.controller.test : false;
 	},
 
-	get user() {
-		return this.controller ? this.controller.user : null;
-	},
-
-	get session() {
-		return this.controller ? this.controller.session : null;
-	},
-
 	get repo() {
 		if (this.controller)
 			return this.controller.repository;
@@ -215,20 +207,12 @@ SchemaOptions.prototype = {
 		return this.controller ? this.controller.res : null;
 	},
 
-	get params() {
-		return this.controller ? this.controller.params : null;
-	},
-
 	get files() {
 		return this.controller ? this.controller.files : null;
 	},
 
 	get body() {
 		return this.controller ? this.controller.body : null;
-	},
-
-	get query() {
-		return this.controller ? this.controller.query : null;
 	},
 
 	get mobile() {
@@ -1460,6 +1444,38 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 	return self;
 };
 
+SchemaBuilderEntityProto.action = function(name, obj) {
+
+	var self = this;
+	name = name.trim();
+
+	!self.workflows && (self.workflows = {});
+	self.workflows[name] = obj.action || obj.exec;
+
+	if (obj.filter)
+		obj.query = obj.filter;
+
+	delete obj.filter;
+
+	obj.jsonschemaoutput = obj.output ? obj.output.toJSONSchema(name + '_output') : null;
+	obj.jsonschemaparams = obj.params ? obj.params.toJSONSchema(name + '_params') : null;
+	obj.jsonschemaquery = obj.query ? obj.query.toJSONSchema(name + '_query') : null;
+
+	obj.validate = function(type, value) {
+		var jsonschema = this['jsonschema' + type];
+		if (jsonschema) {
+			var error = new ErrorBuilder();
+			var response = framework_jsonschema.transform(jsonschema, error, value);
+			return { error: error.is ? error : null, response: response };
+		} else
+			return { error: null, response: value };
+	};
+
+	self.meta['workflow_' + name] = 2;
+	self.meta['workflowaction_' + name] = obj;
+	return self;
+};
+
 SchemaBuilderEntityProto.addWorkflow = SchemaBuilderEntityProto.add = function(name, fn, filter) {
 
 	var self = this;
@@ -2425,9 +2441,13 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 	var has = builder.is;
 	has && self.onError && self.onError(builder, model, type, name);
 
+	var output = response === undefined ? model : response;
+	if ($ && $.$action && $.$action.jsonschemaoutput)
+		output = $.$action.validate('output', output).response;
+
 	if (callback) {
 		if (response !== NoOp)
-			callback(has ? builder : null, response === undefined ? model : response, model);
+			callback(has ? builder : null, output, model);
 		else
 			callback = null;
 	}
@@ -2436,8 +2456,8 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 		if ($.events.error && has)
 			$.emit('error', builder);
 		else if ($.events.response && !has)
-			$.emit('response', response === undefined ? model : response);
-		$.events.end && $.emit('end', has ? builder : null, response === undefined ? model : response);
+			$.emit('response', output);
+		$.events.end && $.emit('end', has ? builder : null, output);
 	}
 
 	return self;
@@ -2503,7 +2523,7 @@ SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare) {
+SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, additional) {
 
 	var error = new ErrorBuilder();
 	var self = this;
@@ -2524,6 +2544,58 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	$.ID = self.name + '.' + (name ? name : type);
 	$.type = type;
+
+	if (additional && additional.params)
+		$.params = additional.params;
+	else
+		$.params = controller ? controller.params : {};
+
+	if (additional && additional.query)
+		$.query = additional.query;
+	else
+		$.query = controller ? controller.query : {};
+
+	if (additional && additional.user)
+		$.user = additional.user;
+	else
+		$.user = controller ? controller.user : {};
+
+	if (additional && additional.session)
+		$.session = additional.session;
+	else
+		$.session = controller ? controller.session : {};
+
+	if (type === 'workflow') {
+		var action = self.meta['workflowaction_' + name];
+		if (action) {
+
+			var res;
+
+			if (action.jsonschemaquery) {
+				res = action.validate('query', $.query);
+				if (res.error) {
+					for (var item of res.error.items)
+						item.name = 'query.' + item.name;
+					$.invalid(res.error);
+					return;
+				}
+				$.query = res.response;
+			}
+
+			if (action.jsonschemaparams) {
+				res = action.validate('params', $.params);
+				if (res.error) {
+					for (var item of res.error.items)
+						item.name = 'params.' + item.name;
+					$.invalid(res.error);
+					return;
+				}
+				$.params = res.response;
+			}
+
+			$.$action = action;
+		}
+	}
 
 	if (controller && controller.req && controller.req.keys)
 		$.keys = controller.req.keys;
@@ -2618,12 +2690,13 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 			item.call(self, $, $.model);
 		else
 			runmiddleware($, self, item);
+
 	}, $);
 
 	return self;
 };
 
-SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
+SchemaBuilderEntityProto.async = function(model, callback, index, controller, additional) {
 
 	var self = this;
 	var error = new ErrorBuilder();
@@ -2655,6 +2728,29 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 	// Multiple responses
 	$.$multiple = true;
 	$.$async = a;
+
+	var params;
+	var query;
+
+	if (additional && additional.params)
+		params = additional.params;
+	else
+		params = controller ? controller.params : {};
+
+	if (additional && additional.query)
+		query = additional.query;
+	else
+		query = controller ? controller.query : {};
+
+	if (additional && additional.user)
+		$.user = additional.user;
+	else
+		$.user = controller ? controller.user : {};
+
+	if (additional && additional.session)
+		$.session = additional.session;
+	else
+		$.session = controller ? controller.session : {};
 
 	var proc = function(err, response) {
 
@@ -2709,6 +2805,40 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller) {
 			$.ID = self.name + '.' + (name ? name : a.type);
 			$.name = a.type + (name ? ('.' + name) : '');
 			$.options = item.options;
+			$.params = params;
+			$.query = query;
+
+			if (a.type === 'workflow') {
+				var action = self.meta['workflowaction_' + name];
+				if (action) {
+
+					var res;
+
+					if (action.jsonschemaquery) {
+						res = action.validate('query', $.query);
+						if (res.error) {
+							for (var item of res.error.items)
+								item.name = 'query.' + item.name;
+							proc(res.error);
+							return;
+						}
+						$.query = res.response;
+					}
+
+					if (action.jsonschemaparams) {
+						res = action.validate('params', $.params);
+						if (res.error) {
+							for (var item of res.error.items)
+								item.name = 'params.' + item.name;
+							proc(res.error);
+							return;
+						}
+						$.params = res.response;
+					}
+
+					$.$action = action;
+				}
+			}
 
 			if (controller && controller.req && controller.req.keys)
 				$.keys = controller.req.keys;
@@ -6232,6 +6362,248 @@ TaskBuilderProto.exec = function(name, callback) {
 
 	self.next(name);
 	return self;
+};
+
+function SchemaCall() {
+	this.options = {};
+	setImmediate(t => t.exec(), this);
+}
+
+var SCP = SchemaCall.prototype;
+
+SCP.params = function(value) {
+	this.options.params = value;
+	return this;
+};
+
+SCP.exec = function() {
+
+	var self = this;
+	var controller = self.options.controller;
+	var meta = self.meta;
+
+	self.options.callback = function(err, response) {
+		if (err) {
+			self.options.error(err);
+			self.options.$callback(err);
+		} else
+			self.options.$callback(null, response);
+	};
+
+	if (self.$error) {
+		self.options.callback(self.$error);
+		return;
+	}
+
+	if (controller && controller.$checkcsrf === 1) {
+		if (controller.route.flags2.csrf || meta.schema.$csrf) {
+			controller.$checkcsrf = 2;
+			if (!DEF.onCSRFcheck(controller.req)) {
+				self.options.callback(new ErrorBuilder().push('csrf', 'Invalid CSRF token'));
+				return;
+			}
+		} else
+			controller.$checkcsrf = 2;
+	}
+
+	if (self.options.model) {
+		meta.schema.make(self.options.model, function(err, response) {
+			if (err) {
+				self.options.callback(err);
+			} else {
+				self.options.model = response;
+				performsschemaaction(self);
+			}
+		}, null, null, null, meta.operations);
+
+	} else
+		performsschemaaction(self);
+
+};
+
+function performsschemaaction(caller) {
+
+	var meta = caller.meta;
+	var controller = caller.options.controller;
+
+	if (meta.schema.$bodyencrypt && controller && controller.req)
+		controller.req.$bodyencrypt = true;
+
+	if (meta.schema.$bodycompress && controller && controller.req)
+		controller.req.$bodycompress = true;
+
+	if (meta.multiple) {
+		var add = meta.schema.async(caller.options.model, caller.options.callback, meta.opcallbackindex, controller);
+		for (var i = 0; i < meta.op.length; i++)
+			add(meta.op[i].name);
+	} else {
+		var op = meta.op[0];
+		if (op.type)
+			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, caller.options.callback, true, caller.options);
+		else
+			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, caller.options.callback, true, caller.options);
+	}
+}
+
+SCP.query = function(value) {
+	this.options.query = value;
+	return this;
+};
+
+SCP.user = function(value) {
+	this.options.user = value;
+	return this;
+};
+
+SCP.error = function(value) {
+	this.options.error = value;
+	return this;
+};
+
+SCP.done = function($, fn) {
+	this.options.$callback = function(err, response) {
+		if (err)
+			$.invalid(err);
+		else
+			fn(response);
+	};
+	return this;
+};
+
+SCP.callback = function(value) {
+	this.options.$callback = value;
+	return this;
+};
+
+SCP.promise = function($) {
+	var t = this;
+	return new Promise(function(resolve, reject) {
+		t.options.$callback = function(err, response) {
+			if (err) {
+				t.options.error && t.options.error(err);
+				if ($ && $.invalid)
+					$.invalid(err);
+				else
+					reject(err);
+			} else
+				resolve(response);
+		};
+	});
+};
+
+SCP.controller = function(ctrl) {
+	this.options.controller = ctrl;
+	return this;
+};
+
+global.CALL = function(schema, model, controller) {
+
+	// Because "controller" can be SchemaOptions/OperationOptions/TaskOptions
+	if (controller && !(controller instanceof WebSocketClient) && controller.controller)
+		controller = controller.controller;
+
+	var caller = new SchemaCall();
+	var key = '_' + schema;
+
+	caller.options.controller = controller;
+
+	var meta = F.temporary.exec[key];
+	if (meta) {
+		caller.meta = meta;
+		return caller;
+	}
+
+	var method;
+
+	switch (schema[0]) {
+		case '+':
+			method = 'POST';
+			break;
+		case '#':
+			method = 'PATCH';
+			break;
+		case '-':
+			method = 'GET';
+			break;
+	}
+
+	if (method)
+		schema = schema.substring(1);
+
+	var tmp, index;
+
+	index = schema.indexOf('-->');
+
+	var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
+	tmp = schema.substring(0, index).split(/\s|\t/).trim();
+
+	meta = {};
+	meta.method = method;
+	meta.schema = tmp[0];
+
+	if (meta.schema[0] === '*')
+		meta.schema = meta.schema.substring(1);
+
+	meta.op = [];
+
+	var o = GETSCHEMA(meta.schema);
+	if (!o) {
+		caller.$error = 'Schema "{0}" not found'.format(meta.schema);
+		return caller;
+	}
+
+	meta.operations = {};
+
+	for (var i = 0; i < op.length; i++) {
+
+		tmp = {};
+
+		var item = op[i];
+		if (item[0] === '@')
+			item = item.substring(1);
+
+		index = item.indexOf('(');
+
+		if (index !== -1) {
+			meta.opcallbackindex = i - 1;
+			tmp.response = true;
+			item = item.substring(0, index).trim();
+			continue;
+		}
+
+		tmp.name = item;
+
+		if (!o.meta[item]) {
+			if (o.meta['workflow_' + item])
+				tmp.type = 'workflow';
+			else if (o.meta['operation_' + item])
+				tmp.type = 'operation';
+			else if (o.meta['task_' + item])
+				tmp.type = 'task';
+			else {
+
+				if (item === 'get') {
+					tmp.name = item = 'read';
+				} else if (item === 'list')
+					tmp.name = item = 'query';
+
+				if (!o.meta[item]) {
+					caller.$error = 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item);
+					return caller;
+				}
+			}
+		}
+
+		meta.operations[tmp.name] = 1;
+		meta.op.push(tmp);
+	}
+
+	meta.multiple = meta.op.length > 1;
+	meta.schema = o;
+
+	F.temporary.exec[key] = meta;
+	caller.meta = meta;
+	return caller;
 };
 
 setImmediate(function() {

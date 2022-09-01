@@ -6,6 +6,8 @@
 - improved `encode` argument in `String.args()` - now it can be a `function(val, key)`
 - improved error handling in JSON Schemas
 - fixed routing
+- added `CALL(schema, model, [controller])` method
+- added `schema.action(name, options)` method
 
 ========================
 0.0.66
