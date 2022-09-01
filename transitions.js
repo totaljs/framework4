@@ -9,6 +9,55 @@ function Transition() {
 	t.actions = {};
 }
 
+function TransitionInit() {}
+
+var TIP = TransitionInit.prototype;
+
+TIP.params = function(value) {
+	this.options.params = value;
+	return this;
+};
+
+TIP.query = function(value) {
+	this.options.query = value;
+	return this;
+};
+
+TIP.user = function(value) {
+	this.options.user = value;
+	return this;
+};
+
+TIP.session = function(value) {
+	this.options.session = value;
+	return this;
+};
+
+TIP.callback = function(value) {
+	this.options.$callback = value;
+	return this;
+};
+
+TIP.configure = function(config) {
+	this.options.config = config;
+	return this;
+};
+
+TIP.promise = function($) {
+	var t = this;
+	return new Promise(function(resolve, reject) {
+		t.options.$callback = function(err, response) {
+			if (err) {
+				if ($ && $.invalid)
+					$.invalid(err);
+				else
+					reject(err);
+			} else
+				resolve(response);
+		};
+	});
+};
+
 function TransitionOptions() {}
 
 TransitionOptions.prototype = {
@@ -17,36 +66,8 @@ TransitionOptions.prototype = {
 		return this.controller;
 	},
 
-	get value() {
-		return this.model;
-	},
-
 	get test() {
 		return this.controller ? this.controller.test : false;
-	},
-
-	get user() {
-		return this.controller ? this.controller.user : null;
-	},
-
-	get session() {
-		return this.controller ? this.controller.session : null;
-	},
-
-	get sessionid() {
-		return this.controller ? this.controller.sessionid : null;
-	},
-
-	get url() {
-		return (this.controller ? this.controller.url : '') || '';
-	},
-
-	get uri() {
-		return this.controller ? this.controller.uri : null;
-	},
-
-	get path() {
-		return (this.controller ? this.controller.path : EMPTYARRAY);
 	},
 
 	get split() {
@@ -61,10 +82,6 @@ TransitionOptions.prototype = {
 		return this.controller ? this.controller.ip : null;
 	},
 
-	get id() {
-		return this.controller ? this.controller.id : null;
-	},
-
 	get req() {
 		return this.controller ? this.controller.req : null;
 	},
@@ -73,20 +90,12 @@ TransitionOptions.prototype = {
 		return this.controller ? this.controller.res : null;
 	},
 
-	get params() {
-		return this.controller ? this.controller.params : null;
-	},
-
 	get files() {
 		return this.controller ? this.controller.files : null;
 	},
 
 	get body() {
 		return this.controller ? this.controller.body : null;
-	},
-
-	get query() {
-		return this.controller ? this.controller.query : null;
 	},
 
 	get mobile() {
@@ -113,13 +122,25 @@ TP.refresh = function() {
 		var item = t.actions[key];
 		item.jsonschemainput = item.input ? item.input.toJSONSchema(key + '_input') : null;
 		item.jsonschemaoutput = item.output ? item.output.toJSONSchema(key + '_output') : null;
+		item.jsonschemaparams = item.params ? item.params.toJSONSchema(key + '_params') : null;
+		item.jsonschemaquery = item.query ? item.query.toJSONSchema(key + '_query') : null;
 		item.validate = function(type, value) {
-			var error = new ErrorBuilder();
-			var response = framework_jsonschema.transform(type === 'input' ? this.jsonschemainput : this.jsonschemaoutput, error, value);
-			return { error: error.is ? error : null, response: response };
+			var jsonschema = this['jsonschema' + type];
+			if (jsonschema) {
+				var error = new ErrorBuilder();
+				var response = framework_jsonschema.transform(jsonschema, error, value);
+				return { error: error.is ? error : null, response: response };
+			} else
+				return { error: null, response: value };
 		};
 	}
 
+	return t;
+};
+
+TOP.set = function(name, value) {
+	var t = this;
+	t[name] = value;
 	return t;
 };
 
@@ -185,12 +206,39 @@ function exectransition(obj) {
 		return;
 	}
 
+	if (obj.action.jsonschemaparams) {
+		var res = obj.action.validate('params', obj.params || EMPTYOBJECT);
+		if (res.error) {
+
+			for (var item of res.error.items)
+				item.source = 'params';
+
+			obj.$callback && obj.$callback(res.error);
+			return;
+		}
+		obj.params = res.response;
+	}
+
+	if (obj.action.jsonschemaquery) {
+		var res = obj.action.validate('query', obj.query || EMPTYOBJECT);
+		if (res.error) {
+
+			for (var item of res.error.items)
+				item.source = 'query';
+
+			obj.$callback && obj.$callback(res.error);
+			return;
+		}
+		obj.query = res.response;
+	}
+
 	if (obj.action.jsonschemainput) {
 		var res = obj.action.validate('input', obj.data || EMPTYOBJECT);
 		if (res.error) {
 			obj.$callback && obj.$callback(res.error);
 			return;
 		}
+		obj.data = obj.model = res.response;
 	}
 
 	obj.action.exec.call(obj.action, obj);
@@ -220,8 +268,11 @@ global.TRANSITION = function(name, data, callback, controller) {
 		obj.config = item.config;
 	}
 
+	var init = new TransitionInit();
+	init.options = obj;
+
 	setImmediate(exectransition, obj);
-	return obj;
+	return init;
 };
 
 global.NEWTRANSITION = function(name, fn) {

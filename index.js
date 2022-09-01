@@ -12824,7 +12824,11 @@ function controller_api() {
 		self.$checkcsrf = 1;
 
 	if (self.route.transition) {
-		TRANSITION(s.action, s.method === 'GET' ? self.req._querydata : model.data, self.callback(), self);
+		var opt = TRANSITION(s.action, model.data, self.callback(), self);
+		opt.options.query = self.req._querydata;
+		opt.options.params = self.params;
+		opt.options.user = self.user;
+		opt.options.session = self.session;
 	} else {
 		// Evaluates action
 		EXEC(s.action, model.data, self.callback(), self);
@@ -19639,8 +19643,11 @@ function controller_json_workflow(id) {
 		var schemaname = self.req.$schemaname;
 
 		if (self.route.transition) {
-			var data = self.req.method === 'GET' ? self.query : self.body;
-			TRANSITION(self.route.schema[1] + ' --> ' + w.id, data, w.view ? self.callback(w.view) : self.callback(), self);
+			var opt = TRANSITION(self.route.schema[1] + ' --> ' + w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
+			opt.options.query = self.query;
+			opt.options.params = self.params;
+			opt.options.user = self.user;
+			opt.options.session = self.session;
 			return;
 		}
 
