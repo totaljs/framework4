@@ -3783,12 +3783,20 @@ SP.decode = function() {
 SP.arg = SP.args = function(obj, encode, def) {
 	if (typeof(encode) === 'string')
 		def = encode;
+	var isfn = typeof(encode) === 'function';
 	return this.replace(regexpARG, function(text) {
-		// Is double?
+		// Is double bracket?
 		var l = text[1] === '{' ? 2 : 1;
-		var val = obj[text.substring(l, text.length - l).trim()];
-		if (encode && encode === 'json')
-			return JSON.stringify(val);
+		var key = text.substring(l, text.length - l).trim();
+		var val = obj[key];
+
+		if (encode) {
+			if (isfn)
+				return encode(val, key);
+			if (encode === 'json')
+				return JSON.stringify(val);
+		}
+
 		return val == null ? (def == null ? text : def) : encode ? encode === 'html' ? (val + '').encode() : encodeURIComponent(val + '') : val;
 	});
 };
