@@ -138,13 +138,7 @@ TP.refresh = function() {
 	return t;
 };
 
-TOP.set = function(name, value) {
-	var t = this;
-	t[name] = value;
-	return t;
-};
-
-TOP.callback = function(value) {
+TIP.output = TOP.callback = function(value) {
 
 	var t = this;
 
@@ -164,11 +158,15 @@ TOP.callback = function(value) {
 
 TOP.invalid = function(err) {
 	var t = this;
-	if (t.$executed && t.$callback) {
-		t.error.push(err);
+
+	t.error = new ErrorBuilder();
+	t.error.push(err);
+
+	if (t.$callback) {
 		t.$callback(t.error);
 		t.$callback = null;
 	}
+
 	return t;
 };
 
@@ -240,7 +238,7 @@ function exectransition(obj) {
 		}
 		obj.data = obj.model = obj.value = res.response;
 	} else
-		obj.data = obj.model = obj.value = obj.data || EMPTYOBJECT;
+		obj.model = obj.value = obj.data || EMPTYOBJECT;
 
 	obj.action.exec.call(obj.action, obj);
 }
@@ -252,6 +250,7 @@ global.TRANSITION = function(name, data, callback, controller) {
 
 	obj.controller = controller ? (controller.controller || controller) : null;
 	obj.$callback = callback;
+	obj.data = data;
 
 	var item = F.transitions[arr[0]];
 	if (!item) {
