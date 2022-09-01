@@ -63,6 +63,11 @@ APICallProto.data = function(cb) {
 	return this;
 };
 
+APICallProto.controller = function($) {
+	this.options.controller = $.controller || $;
+	return this;
+};
+
 APICallProto.error = APICallProto.err = function(err, reverse) {
 	this.$error = err + '';
 	this.$error_reverse = reverse;
@@ -106,11 +111,12 @@ function execapi(api) {
 		api.evaluate('API is not initialized');
 }
 
-exports.make = function(name, schema, data) {
+exports.make = function(name, schema, data, $) {
 	var api = new APICall();
 	api.options.name = name;
 	api.options.schema = schema;
 	api.options.data = data;
+	api.options.controller = $ ? ($.controller || $) : null;
 	setImmediate(execapi, api);
 	return api;
 };
