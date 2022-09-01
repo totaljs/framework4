@@ -238,8 +238,9 @@ function exectransition(obj) {
 			obj.$callback && obj.$callback(res.error);
 			return;
 		}
-		obj.data = obj.model = res.response;
-	}
+		obj.data = obj.model = obj.value = res.response;
+	} else
+		obj.data = obj.model = obj.value = obj.data || EMPTYOBJECT;
 
 	obj.action.exec.call(obj.action, obj);
 }
@@ -250,7 +251,6 @@ global.TRANSITION = function(name, data, callback, controller) {
 	var obj = new TransitionOptions();
 
 	obj.controller = controller ? (controller.controller || controller) : null;
-	obj.data = obj.model = data;
 	obj.$callback = callback;
 
 	var item = F.transitions[arr[0]];
