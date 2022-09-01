@@ -6901,6 +6901,7 @@ String.prototype.toJSONSchema = function(name, url) {
 					tmp.type = 'number';
 					tmp.subtype = type;
 				}
+
 				break;
 			case 'bool':
 			case 'boolean':
