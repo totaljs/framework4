@@ -7,7 +7,7 @@
 - improved error handling in JSON Schemas
 - fixed routing
 - added `CALL(schema, model, [controller])` method
-- added `schema.action(name, options)` method
+- added `schema.action([name], options)` method
 
 ========================
 0.0.66

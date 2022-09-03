@@ -1447,6 +1447,12 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 SchemaBuilderEntityProto.action = function(name, obj) {
 
 	var self = this;
+
+	if (typeof(name) === 'object') {
+		obj = name;
+		name = obj.id || obj.name;
+	}
+
 	name = name.trim();
 
 	!self.workflows && (self.workflows = {});
@@ -1457,6 +1463,7 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	delete obj.filter;
 
+	obj.jsonschemainput = obj.input ? obj.input.toJSONSchema(name + '_input') : null;
 	obj.jsonschemaoutput = obj.output ? obj.output.toJSONSchema(name + '_output') : null;
 	obj.jsonschemaparams = obj.params ? obj.params.toJSONSchema(name + '_params') : null;
 	obj.jsonschemaquery = obj.query ? obj.query.toJSONSchema(name + '_query') : null;
@@ -2533,6 +2540,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	var key = type + (name ? ('.' + name) : '');
 	var now;
+	var skipkeys = false;
 
 	if (CONF.logger)
 		now = Date.now();
@@ -2571,6 +2579,16 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 			var res;
 
+			if (action.jsonschemainput) {
+				res = action.validate('input', model);
+				if (res.error) {
+					$.invalid(res.error);
+					return;
+				}
+				skipkeys = true;
+				model = res.response;
+			}
+
 			if (action.jsonschemaquery) {
 				res = action.validate('query', $.query);
 				if (res.error) {
@@ -2597,12 +2615,14 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 		}
 	}
 
-	if (controller && controller.req && controller.req.keys)
-		$.keys = controller.req.keys;
-	else if (type === 'patch') // Due to $PATCH() method
-		$.keys = Object.keys(model);
-	else
-		$.keys = null;
+	if (!skipkeys) {
+		if (controller && controller.req && controller.req.keys)
+			$.keys = controller.req.keys;
+		else if (type === 'patch') // Due to $PATCH() method
+			$.keys = Object.keys(model);
+		else
+			$.keys = null;
+	}
 
 	self.perform(type, name, $, noprepare);
 };
@@ -6384,7 +6404,7 @@ SCP.exec = function() {
 
 	self.options.callback = function(err, response) {
 		if (err) {
-			self.options.error(err);
+			self.options.error && self.options.error(err);
 			self.options.$callback(err);
 		} else
 			self.options.$callback(null, response);
@@ -6505,6 +6525,7 @@ global.CALL = function(schema, model, controller) {
 	var caller = new SchemaCall();
 	var key = '_' + schema;
 
+	caller.options.model = model;
 	caller.options.controller = controller;
 
 	var meta = F.temporary.exec[key];
