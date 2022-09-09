@@ -28,7 +28,6 @@ APICallProto.promise = function($) {
 			if (err) {
 				if ($ && $.invalid) {
 					$.invalid(err);
-					t.free();
 				} else {
 					err.name = 'API(' + t.options.name + ' --> ' + t.options.schema + ')';
 					reject(err);

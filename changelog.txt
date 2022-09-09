@@ -8,6 +8,7 @@
 - fixed routing
 - added `CALL(schema, model, [controller])` method
 - added `schema.action([name], options)` method
+- fixed error handling in `API`
 
 ========================
 0.0.66
