@@ -40,7 +40,7 @@ function parseRule(selector) {
 	return rule;
 }
 
-HTMLElement.prototype.find = function(selector) {
+HTMLElement.prototype.find = function(selector, reverse) {
 
 	var self = this;
 	var selectors = selector.split(',');
@@ -51,7 +51,11 @@ HTMLElement.prototype.find = function(selector) {
 		rules.push(parseRule(sel.trim()));
 
 	var travelse = function(rule, children) {
+
 		for (var node of children) {
+
+			if (!node.tagName)
+				continue;
 
 			var skip = false;
 
@@ -86,18 +90,29 @@ HTMLElement.prototype.find = function(selector) {
 			if (!skip && !rule.nested)
 				rule.output.push(node);
 
-			if (node.children)
-				travelse(skip ? rule : (rule.nested || rule), node.children, skip ? false : !!rule.nested);
+			if ((reverse && node.parentNode) || (!reverse && node.children.length))
+				travelse(skip ? rule : (rule.nested || rule), reverse ? [node.parentNode] : node.children, skip ? false : !!rule.nested);
 		}
 	};
 
+	if (reverse && !self.parentNode)
+		return output;
+
 	for (var rule of rules) {
-		travelse(rule, self.children);
+		travelse(rule, reverse ? [self.parentNode] : self.children);
 		if (rule.output.length)
 			output.push.apply(output, rule.output);
 	}
 
 	return output;
+};
+
+HTMLElement.prototype.parent = function() {
+	return this.parentNode;
+};
+
+HTMLElement.prototype.closest = function(selector) {
+	return this.find(selector, true);
 };
 
 HTMLElement.prototype.attrd = function(name, value) {
