@@ -9,6 +9,7 @@
 - added `CALL(schema, model, [controller])` method
 - added `schema.action([name], options)` method
 - fixed error handling in `API`
+- added a simple HTML parser `String.parseHTML([trim])`
 
 ========================
 0.0.66

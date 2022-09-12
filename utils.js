@@ -2616,6 +2616,10 @@ if (!SP.trim) {
 	};
 }
 
+SP.parseHTML = function(trim) {
+	return require('./htmlparser').parseHTML(this, trim);
+};
+
 /**
  * Checks if the string starts with the text
  * @see {@link http://docs.totaljs.com/SP/#SP.startsWith|Documentation}
