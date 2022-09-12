@@ -2,6 +2,15 @@ function HTMLElement() {
 	this.children = [];
 }
 
+HTMLElement.prototype = {
+	get innerHTML() {
+		return this.toString();
+	},
+	get innerText() {
+		return this.toString().removeTags();
+	}
+};
+
 function parseRule(selector) {
 
 	var rule = {};
@@ -274,7 +283,11 @@ HTMLElement.prototype.prepend = function(str) {
 	return dom;
 };
 
-HTMLElement.prototype.toString = function(formatted) {
+HTMLElement.prototype.text = function() {
+	return this.html().removeTags();
+};
+
+HTMLElement.prototype.toString = HTMLElement.prototype.html = function(formatted) {
 
 	var self = this;
 	var builder = [];
