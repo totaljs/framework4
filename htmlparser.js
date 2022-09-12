@@ -260,7 +260,7 @@ HTMLElement.prototype.append = function(str) {
 	for (var item of dom.children)
 		self.children.push(item);
 
-	return self;
+	return dom;
 };
 
 HTMLElement.prototype.prepend = function(str) {
@@ -271,7 +271,7 @@ HTMLElement.prototype.prepend = function(str) {
 	for (var item of dom.children)
 		self.children.unshift(item);
 
-	return self;
+	return dom;
 };
 
 HTMLElement.prototype.toString = function(formatted) {
