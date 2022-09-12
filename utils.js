@@ -1908,7 +1908,7 @@ exports.validate_builder = function(model, error, schema, path, index, $, pluspa
 		var type = typeof(value);
 		var prefix = schema.resourcePrefix ? (schema.resourcePrefix + name) : name;
 
-		if (value === undefined) {
+		if (TYPE.required && value === undefined) {
 			error.push(pluspath + name, '@', current + name, index, prefix);
 			continue;
 		} else if (type === 'function')
