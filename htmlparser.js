@@ -1,3 +1,5 @@
+require('./utils');
+
 function HTMLElement() {
 	this.children = [];
 }
@@ -11,21 +13,34 @@ HTMLElement.prototype = {
 	}
 };
 
-function parseRule(selector) {
+function parseRule(selector, output) {
 
 	var rule = {};
 
 	rule.attrs = [];
-	rule.output = [];
+	rule.output = output || [];
 
-	var index = selector.indexOf('>');
+	// div div[name="Peter Sirka"]
+	// div > div[name="Peter Sirka"]
 
-	if (index !== -1) {
-		var nested = selector.substring(index + 1).trim();
-		rule.nested = parseRule(nested);
-		rule.nested.output = rule.output;
-		selector = selector.substring(0, index).trim();
+	// for (var c of selector) {
+	// 	if (c === '>')
+	// 		console.log(c);
+	// }
+
+	var cache = [];
+
+	selector = selector.replace(/\[.*?\]/gi, text => '[' + (cache.push(text) - 1) + ']').replace(/(\s)?>(\s)?/, '>').replace(/\s{2}/g, '');
+
+	var m = selector.match(/>|\s/);
+	if (m) {
+		var nested = selector.substring(m.index + 1).trim().replace(/\[\d+\]/g, text => cache[+text.substring(1, text.length - 1)]);
+		rule.nested = parseRule(nested, rule.output);
+		rule.direct = m[0] === '>';
+		selector = selector.substring(0, m.index).trim();
 	}
+
+	selector = selector.replace(/\[\d+\]/, text => cache[+text.substring(1, text.length - 1)]);
 
 	var match = selector.match(/[#|.][a-z-_0-9]+/i);
 	if (match) {
@@ -39,15 +54,37 @@ function parseRule(selector) {
 	match = selector.match(/\[.*?\]/i);
 	if (match) {
 		for (var m of match) {
-			index = m.indexOf('=');
-			rule.attrs.push({ id: m.substring(1, index).trim(), value: m.substring(index + 2, m.length - 3).trim() });
+			var index = m.indexOf('=');
+			rule.attrs.push({ id: m.substring(1, index).trim(), value: m.substring(index + 2, m.length - 2).trim() });
 		}
 		selector = selector.replace(match, '');
 	}
 
-	rule.tagName = selector.toUpperCase();
+	selector = selector.trim();
+	rule.tagName = selector[0] === '*' ? '' : selector.toUpperCase();
 	return rule;
 }
+
+HTMLElement.prototype.browse = function(fn, reverse) {
+
+	var self = this;
+
+	var browse = function(children) {
+		for (var node of children) {
+			if (node && node.tagName) {
+				var a = fn(node);
+				if (a !== true)
+					browse(reverse ? [node.parentNode] : node.children);
+			}
+		}
+	};
+
+	if (reverse && !self.parentNode)
+		return;
+
+	browse(reverse ? [self.parentNode] : self.children);
+	return self;
+};
 
 HTMLElement.prototype.find = function(selector, reverse) {
 
@@ -59,7 +96,7 @@ HTMLElement.prototype.find = function(selector, reverse) {
 	for (var sel of selectors)
 		rules.push(parseRule(sel.trim()));
 
-	var travelse = function(rule, children) {
+	var browse = function(rule, children, parent) {
 
 		for (var node of children) {
 
@@ -72,9 +109,11 @@ HTMLElement.prototype.find = function(selector, reverse) {
 				skip = true;
 
 			if (rule.attrs.length && !skip) {
+
 				for (var attr of rule.attrs) {
 
 					switch (attr.id) {
+
 						case 'class':
 							var tmp = node.attrs[attr.id];
 							if (tmp) {
@@ -86,8 +125,12 @@ HTMLElement.prototype.find = function(selector, reverse) {
 							break;
 
 						default:
-							if (node.attrs[attr.id] !== attr.value)
+							if (attr.value) {
+								if (node.attrs[attr.id] !== attr.value)
+									skip = true;
+							} else if (node.attrs[attr.id] === undefined)
 								skip = true;
+
 							break;
 					}
 
@@ -96,11 +139,28 @@ HTMLElement.prototype.find = function(selector, reverse) {
 				}
 			}
 
-			if (!skip && !rule.nested)
-				rule.output.push(node);
+			var next = ((reverse && node.parentNode) || (!reverse && node.children.length));
 
-			if ((reverse && node.parentNode) || (!reverse && node.children.length))
-				travelse(skip ? rule : (rule.nested || rule), reverse ? [node.parentNode] : node.children, skip ? false : !!rule.nested);
+			if (parent) {
+				if (skip && parent.direct)
+					continue;
+			}
+
+			if (rule.nested) {
+
+				if (!skip && next)
+					browse(rule.nested, reverse ? [node.parentNode] : node.children, rule);
+
+				// Again same
+				if (!parent)
+					browse(rule, reverse ? [node.parentNode] : node.children);
+
+			} else {
+				if (!skip)
+					rule.output.push(node);
+				if (next)
+					browse(rule, reverse ? [node.parentNode] : node.children);
+			}
 		}
 	};
 
@@ -108,10 +168,40 @@ HTMLElement.prototype.find = function(selector, reverse) {
 		return output;
 
 	for (var rule of rules) {
-		travelse(rule, reverse ? [self.parentNode] : self.children);
+		browse(rule, reverse ? [self.parentNode] : self.children);
 		if (rule.output.length)
 			output.push.apply(output, rule.output);
 	}
+
+	output.aclass = function(cls) {
+		for (var item of this)
+			item.aclass(cls);
+		return this;
+	};
+
+	output.rclass = function(cls) {
+		for (var item of this)
+			item.rclass(cls);
+		return this;
+	};
+
+	output.tclass = function(cls, value) {
+		for (var item of this)
+			item.tclass(cls, value);
+		return this;
+	};
+
+	output.attr = function(key, value) {
+		for (var item of this)
+			item.attr(key, value);
+		return this;
+	};
+
+	output.attrd = function(key, value) {
+		for (var item of this)
+			item.attrd(key, value);
+		return this;
+	};
 
 	return output;
 };
@@ -162,10 +252,17 @@ HTMLElement.prototype.parsecache = function() {
 HTMLElement.prototype.stringifycache = function() {
 	var self = this;
 	self.attrs.class = Object.keys(self.cache.cls).join(' ');
+
 	var tmp = [];
+
 	for (var key in self.cache.css)
 		tmp.push(key + ':' + self.cache.css[key]);
-	self.attrs.style = tmp.join(';');
+
+	if (tmp.length)
+		self.attrs.style = tmp.join(';');
+	else if (self.attrs.style != null)
+		delete self.attrs.style;
+
 	return self;
 };
 
@@ -269,7 +366,7 @@ HTMLElement.prototype.append = function(str) {
 	for (var item of dom.children)
 		self.children.push(item);
 
-	return dom;
+	return dom.children.length === 1 ? dom.children[0] : dom.children;
 };
 
 HTMLElement.prototype.prepend = function(str) {
@@ -292,7 +389,7 @@ HTMLElement.prototype.toString = HTMLElement.prototype.html = function(formatted
 	var self = this;
 	var builder = [];
 
-	var travelse = function(children, level) {
+	var browse = function(children, level) {
 
 		for (var item of children) {
 
@@ -318,7 +415,7 @@ HTMLElement.prototype.toString = HTMLElement.prototype.html = function(formatted
 					} else {
 						builder.push(indent + '<' + tag + (attrs.length ? (' ' + attrs.join(' ')) : '') + '>' + (item.children.length ? '' : ('</' + tag + '>')));
 						if (item.children.length) {
-							travelse(item.children, level + 1);
+							browse(item.children, level + 1);
 							builder.push(indent + '</' + tag + '>');
 						}
 					}
@@ -327,7 +424,7 @@ HTMLElement.prototype.toString = HTMLElement.prototype.html = function(formatted
 		}
 	};
 
-	travelse(self.tagName ? [self] : self.children, 0);
+	browse(self.tagName ? [self] : self.children, 0);
 	return builder.join(formatted ? '\n' : '');
 };
 
@@ -417,12 +514,10 @@ function parseHTML(html, trim) {
 		var tag = node;
 		var index = tag.indexOf(' ');
 
-		if (tag === '/div') {
-			console.log('ERROR', str);
+		if (tag.indexOf('/') !== -1) {
+			console.log('ERROR', tag);
 			return;
 		}
-
-		// console.log('---->', tag);
 
 		if (index > 0) {
 			tag = tag.substring(0, index);
