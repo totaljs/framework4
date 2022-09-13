@@ -45,6 +45,11 @@ exports.make = function(callback, options) {
 
 					if (err) {
 
+						if (err instanceof ErrorBuilder)
+							err = err.toString();
+						else if (err instanceof Array && err[0].error)
+							err = err[0].error;
+
 						var obj = { group: group.name, test: test.name, err: err };
 
 						// Run group cleanup after failed test
