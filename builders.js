@@ -2673,6 +2673,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	}
 
 	var ref = self[ntype];
+
 	var item = ref ? (name ? ref[name] : ref) : undefined;
 
 	if (!item) {
@@ -6435,7 +6436,6 @@ SCP.exec = function() {
 				performsschemaaction(self);
 			}
 		}, null, null, null, meta.operations);
-
 	} else
 		performsschemaaction(self);
 
@@ -6595,6 +6595,7 @@ global.CALL = function(schema, model, controller) {
 		tmp.name = item;
 
 		if (!o.meta[item]) {
+
 			if (o.meta['workflow_' + item])
 				tmp.type = 'workflow';
 			else if (o.meta['operation_' + item])
