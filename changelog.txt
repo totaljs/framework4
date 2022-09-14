@@ -11,6 +11,7 @@
 - fixed error handling in `API`
 - added a simple HTML parser `String.parseHTML([trim])`
 - improved error handling in unit tests
+- fixed number converting in JSON schemas
 
 ========================
 0.0.66
