@@ -1,6 +1,6 @@
 require('./index');
 
-const REG_NUMBER = /[\d,\.]+/g;
+const REG_NUMBER = /[\d,\.]+/;
 
 function check_string(meta, error, value, errplus) {
 
@@ -138,6 +138,7 @@ function check_number(meta, error, value, errplus) {
 			value = value.parseFloat();
 		else
 			value = null;
+
 	} else if (type !== 'number')
 		value = null;
 
