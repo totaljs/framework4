@@ -2566,7 +2566,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	if (additional && additional.user)
 		$.user = additional.user;
 	else
-		$.user = controller ? controller.user : {};
+		$.user = controller ? controller.user : null;
 
 	if (additional && additional.session)
 		$.session = additional.session;
