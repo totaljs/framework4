@@ -298,7 +298,7 @@ CTP.remove = CTP.rem = function(table) {
 	return new QueryBuilder(db, meta.table, 'remove');
 };
 
-CTP.query = function(table, query) {
+CTP.query = function(table, query, params) {
 
 	if (query == null) {
 		query = table;
@@ -312,6 +312,7 @@ CTP.query = function(table, query) {
 	db.controller = t;
 	t.commands.push(db);
 	db.options.query = query;
+	db.options.params = params;
 	return new QueryBuilder(db, '', 'query');
 };
 

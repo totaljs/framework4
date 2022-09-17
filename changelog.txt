@@ -12,6 +12,7 @@
 - added a simple HTML parser `String.parseHTML([trim])`
 - improved error handling in unit tests
 - fixed number converting in JSON schemas
+- extended `QueryBuilder.query(query, [params])` by adding `params` argument
 
 ========================
 0.0.66
