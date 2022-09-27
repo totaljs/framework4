@@ -2,6 +2,8 @@
 0.0.68
 ========================
 
+- fixed sending files via `REQUEST()` method (a problem with the buffer)
+
 ========================
 0.0.67
 ========================
