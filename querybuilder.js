@@ -391,7 +391,10 @@ DBP.evaluate = function(err, response) {
 	if (err) {
 		t.callback_fail && t.callback_fail(err);
 	} else {
-		t.$audit && t.$audit();
+		if (t.$audit) {
+			t.$audit();
+			t.$audit = null;
+		}
 		t.callback_data && t.callback_data(response);
 	}
 
