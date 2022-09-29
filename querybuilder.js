@@ -1,4 +1,5 @@
 const REG_FIELDS_CLEANER = /"|`|\||'|\s/g;
+const REG_ARGS = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
 
 var CACHE = {};
 var EVALUATOR = {};
@@ -387,13 +388,54 @@ DBP.evaluate = function(err, response) {
 			t.controller.response = response;
 	}
 
-	if (err)
+	if (err) {
 		t.callback_fail && t.callback_fail(err);
-	else
+	} else {
+		t.$audit && t.$audit();
 		t.callback_data && t.callback_data(response);
+	}
 
 	t.callback && t.callback(err, response);
 	setImmediate(t.controller.next, t.controller);
+};
+
+QBP.audit = function($, message, type) {
+	var self = this;
+	self.main.$audit = function() {
+
+		// Dynamic arguments
+		if (message && message.indexOf('{') !== -1) {
+			message = message.replace(REG_ARGS, function(text) {
+				var l = text[1] === '{' ? 2 : 1;
+				var key = text.substring(l, text.length - l).trim();
+				var val = null;
+				var five = key.substring(0, 5);
+				if (five === 'user.') {
+					if ($.user) {
+						key = key.substring(5);
+						val = key.indexOf('.') === -1 ? $.user[key] : U.get($.user, key);
+					}
+				} else if (five === 'data.') {
+					if (self.options.payload) {
+						key = key.substring(5);
+						val = key.indexOf('.') === -1 ? self.options.payload[key] : U.get(self.options.payload, key);
+					}
+				} else if (key.substring(0, 6) === 'model.') {
+					if ($.value) {
+						key = key.substring(6);
+						val = key.indexOf('.') === -1 ? $.model[key] : U.get($.model, key);
+					}
+				} else if (key.substring(0, 7) === 'params.')
+					val = $.params[key.substring(7)];
+				else if (key.substring(0, 6) === 'query.')
+					val = $.query[key.substring(6)];
+				return val == null ? text : val;
+			});
+		}
+
+		$.audit(message, type);
+	};
+	return self;
 };
 
 QBP.promise = function($) {

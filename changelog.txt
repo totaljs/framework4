@@ -3,6 +3,8 @@
 ========================
 
 - fixed sending files via `REQUEST()` method (a problem with the buffer)
+- added QueryBuilder by adding `QueryBuilder.audit($, [message], [type])` method
+	- `message` supports dynamic arguments in the form `{user.key}, {model.key}, {data.key}, {params.key} or {query.key}`
 
 ========================
 0.0.67
