@@ -4,6 +4,7 @@ const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
 const REGEXP_COLOR = /^#([A-F0-9]{3}|[A-F0-9]{6}|[A-F0-9]{8})$/i;
 const REGEXP_ICON = /^(far|fab|fad|fal|fas|fa)?\sfa-[a-z0-9-]+$/;
+const REG_ARGS = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 const BOOL = { true: 1, on: 1, '1': 1 };
 
@@ -6383,6 +6384,43 @@ TaskBuilderProto.exec = function(name, callback) {
 
 	self.next(name);
 	return self;
+};
+
+SchemaOptionsProto.variables = OperationOptionsProto.variables = TaskBuilderProto.variables = function(str, data) {
+
+	if (str.indexOf('{') === -1)
+		return str;
+
+	return str.replace(REG_ARGS, function(text) {
+		var l = text[1] === '{' ? 2 : 1;
+		var key = text.substring(l, text.length - l).trim();
+		var val = null;
+		var five = key.substring(0, 5);
+		if (five === 'user.') {
+			if ($.user) {
+				key = key.substring(5);
+				val = key.indexOf('.') === -1 ? $.user[key] : U.get($.user, key);
+			}
+		} else if (five === 'data.') {
+			if (data) {
+				key = key.substring(5);
+				val = key.indexOf('.') === -1 ? data[key] : U.get(data, key);
+			}
+		} else {
+			var six = key.substring(0, 6);
+			if (six === 'model.' || six === 'value.') {
+				if ($.model) {
+					key = key.substring(6);
+					val = key.indexOf('.') === -1 ? $.model[key] : U.get($.model, key);
+				}
+			} else if (six === 'query.')
+				val = $.query[key.substring(6)];
+			else if (key.substring(0, 7) === 'params.')
+				val = $.params[key.substring(7)];
+		}
+		return val == null ? text : val;
+	});
+
 };
 
 function SchemaCall() {
