@@ -947,6 +947,9 @@ global.LOADCONFIG = function(value) {
 	if (config.mail_smtp || config.mail_smtp_options)
 		delete F.temporary.mail_settings;
 
+	if (config.root)
+		config.default_root = config.root;
+
 	if (config.default_root) {
 		if (config.default_root[0] !== '/')
 			config.default_root = '/' + config.default_root;
@@ -10636,6 +10639,7 @@ function configure_configs(arr, rewrite) {
 				break;
 
 			case 'default_root':
+			case 'root':
 				if (value)
 					obj[name] = U.path(value);
 				break;
@@ -10763,6 +10767,9 @@ function configure_configs(arr, rewrite) {
 	}
 
 	U.extend(CONF, obj, rewrite);
+
+	if (CONF.root)
+		CONF.default_root = CONF.root;
 
 	if (!CONF.secret_uid)
 		CONF.secret_uid = (CONF.name).crc32(true) + '';
