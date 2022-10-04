@@ -6391,6 +6391,8 @@ SchemaOptionsProto.variables = OperationOptionsProto.variables = TaskBuilderProt
 	if (str.indexOf('{') === -1)
 		return str;
 
+	var $ = this;
+
 	return str.replace(REG_ARGS, function(text) {
 		var l = text[1] === '{' ? 2 : 1;
 		var key = text.substring(l, text.length - l).trim();
