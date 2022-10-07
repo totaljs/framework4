@@ -6245,7 +6245,9 @@ function MultipartParser(multipart, stream, callback) {
 	self.size = 0;
 
 	self.ondata = function(chunk) {
+
 		self.size += chunk.length;
+
 		if (self.buffer) {
 			CONCAT[0] = self.buffer;
 			CONCAT[1] = chunk;
@@ -6292,19 +6294,21 @@ MultipartParser.prototype.free = function(err) {
 
 MultipartParser.prototype.parse = function(type) {
 	var self = this;
-	switch (self.step) {
-		case 0: // no data, tries to parse meta
-			self.parse_meta(type);
-			break;
-		case 1: // part found
-			self.parse_head();
-			break;
-		case 2: // part data
-			self.parse_data();
-			break;
-		case 3: // part file
-			self.parse_file();
-			break;
+	if (self.buffer.length) {
+		switch (self.step) {
+			case 0: // no data, tries to parse meta
+				self.parse_meta(type);
+				break;
+			case 1: // part found
+				self.parse_head();
+				break;
+			case 2: // part data
+				self.parse_data();
+				break;
+			case 3: // part file
+				self.parse_file();
+				break;
+		}
 	}
 };
 
@@ -6501,6 +6505,7 @@ MultipartParser.prototype.parse_head = function() {
 		self.current.stream = Fs.createWriteStream(self.current.path);
 		var file = { path: self.current.path, name: self.current.name, filename: self.current.filename, size: 0, type: self.current.type, width: 0, height: 0 };
 		self.current.file = file;
+		self.current.fileheader = Buffer.alloc(0);
 		self.current.stream.$mpfile = file;
 		self.current.stream.$mpinstance = self;
 		self.current.stream.on('close', multipartfileready);
@@ -6514,17 +6519,17 @@ MultipartParser.prototype.parse_head = function() {
 	self.parse();
 };
 
-MultipartParser.prototype.parse_file = function() {
+MultipartParser.prototype.parse_meta_check = function() {
 
 	var self = this;
-	var index = self.buffer.indexOf(self.header);
-	var tmp;
 
 	if (self.current.header) {
 
 		var check = '';
 		for (var i = 0; i < 30; i++) {
 			var c = self.buffer[i];
+			if (c == null)
+				break;
 			if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) {
 				if (c < 90)
 					c += 32;
@@ -6536,19 +6541,35 @@ MultipartParser.prototype.parse_file = function() {
 		if (isinvalid) {
 			// Invalid file
 			self.kill('3: Invalid file data');
-			return;
+			return true;
 		}
 
 		self.current.header = null;
 	}
 
 	if (self.current.measure) {
-		tmp = framework_image[self.current.measure](self.buffer);
+		var tmp = framework_image[self.current.measure](self.buffer);
 		if (tmp) {
 			self.current.file.width = tmp.width;
 			self.current.file.height = tmp.height;
 		}
 		self.current.measure = null;
+	}
+
+	self.current.fileheader = null;
+};
+
+MultipartParser.prototype.parse_file = function() {
+
+	var self = this;
+	var index = self.buffer.indexOf(self.header);
+
+	if (self.current.fileheader) {
+		self.current.fileheader = Buffer.concat([self.current.fileheader, self.buffer.length > 100 ? self.buffer.slice(0, 100) : self.buffer]);
+		if (self.current.fileheader.length > 60) {
+			if (self.parse_meta_check())
+				return;
+		}
 	}
 
 	if (index !== -1) {
@@ -6557,6 +6578,11 @@ MultipartParser.prototype.parse_file = function() {
 		self.current.file.size += index - 4;
 		self.sizes.total += index - 4;
 		self.sizes.files += index - 4;
+
+		if (self.current.fileheader) {
+			if (self.parse_meta_check())
+				return;
+		}
 
 		if (self.limits.files && self.sizes.files > self.limits.files) {
 			self.kill('4: File body is too large');
@@ -6602,6 +6628,7 @@ MultipartParser.prototype.parse_file = function() {
 };
 
 MultipartParser.prototype.parse_data = function() {
+
 	var self = this;
 	var index = self.buffer.indexOf(self.header);
 

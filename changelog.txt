@@ -8,6 +8,7 @@
 - added QueryBuilder by adding `QueryBuilder.audit($, [message], [type])` method
 	- `message` supports dynamic arguments in the form `{user.key}, {model.key}, {data.key}, {params.key} or {query.key}`
 - added `CONF.root` as an alias for `CONF.default_root`
+- fixed uploading files
 
 ========================
 0.0.67
