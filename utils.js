@@ -3506,7 +3506,11 @@ function parseDateFormat(format, val) {
 			h += 12;
 	}
 
-	return new Date((dt.y || dt.Y) || 0, (dt.M || 1) - 1, dt.d || dt.D || 0, h || 0, dt.m || 0, dt.s || 0);
+	var y = (dt.y || dt.Y) || 0;
+	if (y < 100)
+		y += 2000;
+
+	return new Date(y, (dt.M || 1) - 1, dt.d || dt.D || 0, h || 0, dt.m || 0, dt.s || 0);
 }
 
 SP.parseDate = function(format) {
