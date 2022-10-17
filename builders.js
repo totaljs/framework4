@@ -2587,7 +2587,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 					return;
 				}
 				skipkeys = true;
-				model = res.response;
+				$.model = res.response;
 			}
 
 			if (action.jsonschemaquery) {
