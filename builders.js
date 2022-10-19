@@ -4257,6 +4257,11 @@ RESTP.noparse = function() {
 	return this;
 };
 
+RESTP.debug = function() {
+	this.$debug = true;
+	return this;
+};
+
 RESTP.map = function(map) {
 
 	var arr = map.split(',');
@@ -4785,6 +4790,9 @@ function exec_callback(err, response) {
 	output.origin = response.origin;
 	output.cache = false;
 	output.datetime = NOW;
+
+	if (self.$debug)
+		console.log('--DEBUG-- RESTBuilder: ' + response.status + ' ' + self.options.method + ' ' + QUERIFY(self.options.url || (self.options.unixsocket + self.options.path), self.options.query), '|', 'Error:', err, '|', 'Response:', response.body);
 
 	if (!err && self.$errorhandler) {
 		if (typeof(self.$errorhandler) === 'function')

@@ -3,6 +3,8 @@
 ========================
 
 - fixed `input` filter in the Schema actions
+- added `API().debug()` method for quick printing data
+- added `RESTBuilder().debug()` method for quick printing data
 
 ========================
 0.0.68

@@ -52,6 +52,11 @@ APICallProto.done = function($, callback) {
 	return t;
 };
 
+APICallProto.debug = function() {
+	this.$debug = true;
+	return this;
+};
+
 APICallProto.fail = function(cb) {
 	this.$callback_fail = cb;
 	return this;
@@ -99,6 +104,7 @@ APICallProto.evaluate = function(err, response) {
 	else
 		t.$callback_data && t.$callback_data(response);
 
+	t.$debug && console.log('--DEBUG-- API: ' + t.options.name + ' --> ' + t.options.schema, '|', 'Error:', err, '|', 'Response:', response);
 	t.$callback && t.$callback(err, response);
 };
 
