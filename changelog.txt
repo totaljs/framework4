@@ -4,6 +4,7 @@
 
 - fixed `input` filter in the Schema actions
 - added `API().debug()` method for quick printing data
+- added `API().audit()` method
 - added `RESTBuilder().debug()` method for quick printing data
 
 ========================

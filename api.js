@@ -40,6 +40,17 @@ APICallProto.promise = function($) {
 	return promise;
 };
 
+APICallProto.audit = function($, message, type) {
+	var t = this;
+	t.$audit = function() {
+		// Dynamic arguments
+		if (message)
+			message = $.variables(message, t.options.data);
+		$.audit(message, type);
+	};
+	return t;
+};
+
 APICallProto.done = function($, callback) {
 	var t = this;
 	t.$callback = function(err, response) {
@@ -99,10 +110,15 @@ APICallProto.evaluate = function(err, response) {
 			err = t.$error;
 	}
 
-	if (err)
+	if (err) {
 		t.$callback_fail && t.$callback_fail(err);
-	else
+	} else {
+		if (t.$audit) {
+			t.$audit();
+			t.$audit = null;
+		}
 		t.$callback_data && t.$callback_data(response);
+	}
 
 	t.$debug && console.log('--DEBUG-- API: ' + t.options.name + ' --> ' + t.options.schema, '|', 'Error:', err, '|', 'Response:', response);
 	t.$callback && t.$callback(err, response);
