@@ -9,6 +9,7 @@
 - improved checking SVG during uploading
 - updated `opt.files` by adding downloading files from URL address in the `REQUEST()` method
 - updated `RESTBuilder.file(name, filename, [buffer/url])` method
+- fixed `Object` type without properties in JSON schemas
 
 ========================
 0.0.68

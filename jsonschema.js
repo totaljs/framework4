@@ -478,6 +478,9 @@ function check_object(meta, error, value, response, stop, definitions) {
 	if (stop && error.items.length)
 		return;
 
+	if (!meta.properties)
+		return value;
+
 	if (!response)
 		response = new framework_builders.SchemaValue();
 
