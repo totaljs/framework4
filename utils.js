@@ -26,6 +26,7 @@ const SKIPPORTS = { '80': 1, '443': 1 };
 const REGISARR = /\[\d+\]|\[\]$/;
 const REGREPLACEARR = /\[\]/g;
 const REG_JPG = /jfif|exif/;
+const REG_SVG = /xml|svg/;
 
 const COMPARER = function(a, b) {
 	if (!a && b)
@@ -859,8 +860,11 @@ function request_writefile(req, options, file, next) {
 		return;
 	}
 
-	var isbuffer = file.buffer instanceof Buffer;
-	var filename = (isbuffer ? file.filename : exports.getName(file.filename));
+	var filedata = file.buffer || file.url;
+	var isbuffer = filedata instanceof Buffer;
+	var isurl = isbuffer ? false : typeof(filedata) === 'string' && filedata;
+
+	var filename = (isbuffer || isurl ? file.filename : exports.getName(file.filename));
 
 	req.write((options.first ? '' : NEWLINE) + '--' + options.boundary + NEWLINE + 'Content-Disposition: form-data; name="' + file.name + '"; filename="' + filename + '"' + NEWLINE + 'Content-Type: ' + exports.getContentType(exports.getExtension(filename)) + NEWLINE + NEWLINE);
 
@@ -869,11 +873,27 @@ function request_writefile(req, options, file, next) {
 
 	if (isbuffer) {
 		try {
-			req.write(file.buffer);
+			req.write(filedata);
 		} catch (e) {
 			request_process_error.apply(req, e);
 		}
 		next();
+	} else if (isurl) {
+		// Download
+		var opt = {};
+		opt.method = 'GET';
+		opt.custom = true;
+		opt.url = filedata;
+		opt.callback = function(err, response) {
+			if (response && response.stream) {
+				response.stream.on('close', next);
+				response.stream.pipe(req, STREAMPIPE);
+			} else {
+				err && request_process_error.apply(req, err);
+				next();
+			}
+		};
+		REQUEST(opt);
 	} else {
 		var stream = Fs.createReadStream(file.filename);
 		stream.once('close', next);
@@ -6442,7 +6462,7 @@ MultipartParser.prototype.parse_head = function() {
 			switch (self.current.type) {
 				case 'image/svg+xml':
 				case 'image/svg':
-					self.current.header = 'svg';
+					self.current.header = REG_SVG;
 					self.current.measure = 'measureSVG';
 					break;
 				case 'image/jpeg':
