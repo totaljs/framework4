@@ -75,6 +75,7 @@ const JSFILES = { js: 1, mjs: 1 };
 const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1, pin: 1 };
 const isTYPESCRIPT = (/\.ts$/).test(process.argv[1]);
 const SOCKETWINDOWS = '\\\\?\\pipe';
+const SESSIONSEPARATOR = '\0';
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -1155,7 +1156,7 @@ var authbuiltin = function(opt) {
 	};
 
 	opt.sign = function(sessionid, userid) {
-		return (sessionid + '-' + userid + '-' + Date.now().toString(36)).encrypt(opt.secret);
+		return (sessionid + SESSIONSEPARATOR + userid + SESSIONSEPARATOR + Date.now().toString(36)).encrypt(opt.secret);
 	};
 
 	opt.authcookie = function($, sessionid, userid, expiration, options) {
@@ -1197,7 +1198,7 @@ var authbuiltin = function(opt) {
 		var id = sessionid.decrypt(opt.secret);
 		if (id) {
 
-			id = id.split('-');
+			id = id.split(SESSIONSEPARATOR);
 
 			if (!id[0] || !id[1] || !id[2])
 				id = null;
