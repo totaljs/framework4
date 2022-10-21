@@ -6,6 +6,7 @@
 - added `API().debug()` method for quick printing data
 - added `API().audit()` method
 - added `RESTBuilder().debug()` method for quick printing data
+- added `CALL().debug()` method for quick printing data
 - improved checking SVG during uploading
 - updated `opt.files` by adding downloading files from URL address in the `REQUEST()` method
 - updated `RESTBuilder.file(name, filename, [buffer/url])` method

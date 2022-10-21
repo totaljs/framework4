@@ -6440,6 +6440,11 @@ function SchemaCall() {
 
 var SCP = SchemaCall.prototype;
 
+SCP.debug = function() {
+	this.options.debug = true;
+	return this;
+};
+
 SCP.params = function(value) {
 	this.options.params = value;
 	return this;
@@ -6500,16 +6505,25 @@ function performsschemaaction(caller) {
 	if (meta.schema.$bodycompress && controller && controller.req)
 		controller.req.$bodycompress = true;
 
+	var callback = caller.options.callback;
+
+	if (caller.options.debug) {
+		callback = function(err, response) {
+			console.log('--DEBUG-- CALL:', 'Query:', caller.options.query, '|', 'Params:', caller.options.params, '|', 'Model:', caller.options.model, '|', 'Error:', err, '|', 'Response:', response);
+			caller.options.callback(err, response);
+		};
+	}
+
 	if (meta.multiple) {
-		var add = meta.schema.async(caller.options.model, caller.options.callback, meta.opcallbackindex, controller);
+		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller);
 		for (var i = 0; i < meta.op.length; i++)
 			add(meta.op[i].name);
 	} else {
 		var op = meta.op[0];
 		if (op.type)
-			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, caller.options.callback, true, caller.options);
+			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, callback, true, caller.options);
 		else
-			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, caller.options.callback, true, caller.options);
+			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, callback, true, caller.options);
 	}
 }
 
