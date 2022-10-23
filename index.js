@@ -18826,8 +18826,7 @@ function $file_range(name, range, headers, res, total) {
 				if (!F.routes.filesfallback || !F.routes.filesfallback(res.req, res))
 					res.throw404();
 			} else {
-				if (RELEASE)
-					F.temporary.range[name] = stats.size;
+				F.temporary.range[name] = stats.size;
 				$file_range(name, range, headers, res, stats.total);
 			}
 		});
