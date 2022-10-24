@@ -13,6 +13,7 @@
 - fixed `Object` type without properties in JSON schemas
 - fixed built-in `session` mechanism (a problem with storing sessionid/userid with the dash `-`)
 - fixed streaming videos in the debug mode
+- improved HTML Parser
 
 ========================
 0.0.68

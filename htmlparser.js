@@ -62,6 +62,7 @@ function parseRule(selector, output) {
 
 	selector = selector.trim();
 	rule.tagName = selector[0] === '*' ? '' : selector.toUpperCase();
+
 	return rule;
 }
 
@@ -447,7 +448,7 @@ function removeComments(html) {
 	return html;
 }
 
-function parseHTML(html, trim) {
+function parseHTML(html, trim, onerror) {
 
 	var makeText = function(parent, str) {
 		var obj = new HTMLElement();
@@ -481,13 +482,21 @@ function parseHTML(html, trim) {
 		var count = 0;
 		var beg = str.indexOf('<');
 		var end = -1;
+		var tmp;
+
 		if (beg !== -1)
 			end = str.indexOf('>', beg + 1);
 
-		if (beg === -1 || end === -1)
+		if (beg === -1 || end === -1) {
+			if (parent) {
+				tmp = str;
+				if (trim)
+					tmp = tmp.trim();
+				tmp && parent.children.push(makeText(parent, tmp));
+			}
 			return '';
+		}
 
-		var tmp;
 
 		if (beg > 0) {
 			tmp = str.substring(0, beg);
@@ -514,16 +523,16 @@ function parseHTML(html, trim) {
 		var tag = node;
 		var index = tag.indexOf(' ');
 
-		if (tag.indexOf('/') !== -1) {
-			console.log('ERROR', tag);
-			return;
-		}
-
 		if (index > 0) {
 			tag = tag.substring(0, index);
 			node = node.substring(index + 1);
 		} else
 			node = '';
+
+		if (tag.indexOf('/') !== -1) {
+			onerror && onerror(tag);
+			return;
+		}
 
 		dom.tagName = tag.toUpperCase();
 		dom.children = [];
