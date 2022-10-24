@@ -87,6 +87,52 @@ HTMLElement.prototype.browse = function(fn, reverse) {
 	return self;
 };
 
+function extendarr(output) {
+
+	output.aclass = function(cls) {
+		for (var item of this)
+			item.aclass(cls);
+		return this;
+	};
+
+	output.rclass = function(cls) {
+		for (var item of this)
+			item.rclass(cls);
+		return this;
+	};
+
+	output.tclass = function(cls, value) {
+		for (var item of this)
+			item.tclass(cls, value);
+		return this;
+	};
+
+	output.attr = function(key, value) {
+		for (var item of this)
+			item.attr(key, value);
+		return this;
+	};
+
+	output.attrd = function(key, value) {
+		for (var item of this)
+			item.attrd(key, value);
+		return this;
+	};
+
+	output.find = function(selector) {
+		var arr = [];
+		for (var item of this) {
+			var result = item.find(selector);
+			if (result.length)
+				arr.push(result);
+		}
+		extendarr(arr);
+		return this;
+	};
+
+	return output;
+}
+
 HTMLElement.prototype.find = function(selector, reverse) {
 
 	var self = this;
@@ -174,36 +220,7 @@ HTMLElement.prototype.find = function(selector, reverse) {
 			output.push.apply(output, rule.output);
 	}
 
-	output.aclass = function(cls) {
-		for (var item of this)
-			item.aclass(cls);
-		return this;
-	};
-
-	output.rclass = function(cls) {
-		for (var item of this)
-			item.rclass(cls);
-		return this;
-	};
-
-	output.tclass = function(cls, value) {
-		for (var item of this)
-			item.tclass(cls, value);
-		return this;
-	};
-
-	output.attr = function(key, value) {
-		for (var item of this)
-			item.attr(key, value);
-		return this;
-	};
-
-	output.attrd = function(key, value) {
-		for (var item of this)
-			item.attrd(key, value);
-		return this;
-	};
-
+	extendarr(output);
 	return output;
 };
 
