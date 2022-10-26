@@ -1445,6 +1445,10 @@ SchemaBuilderEntityProto.addOperation = function(name, opname, filter) {
 	return self;
 };
 
+function preparejsonschema(filename) {
+	return filename.replace(/\.json/g, '');
+}
+
 SchemaBuilderEntityProto.action = function(name, obj) {
 
 	var self = this;
@@ -1464,10 +1468,10 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	delete obj.filter;
 
-	obj.jsonschemainput = obj.input ? obj.input.toJSONSchema(name + '_input') : null;
-	obj.jsonschemaoutput = obj.output ? obj.output.toJSONSchema(name + '_output') : null;
-	obj.jsonschemaparams = obj.params ? obj.params.toJSONSchema(name + '_params') : null;
-	obj.jsonschemaquery = obj.query ? obj.query.toJSONSchema(name + '_query') : null;
+	obj.jsonschemainput = obj.input ? obj.input.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.input)] : obj.input.toJSONSchema(name + '_input') : null;
+	obj.jsonschemaoutput = obj.output ? obj.output.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.output)] : obj.output.toJSONSchema(name + '_output') : null;
+	obj.jsonschemaparams = obj.params ? obj.params.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.params)] : obj.params.toJSONSchema(name + '_params') : null;
+	obj.jsonschemaquery = obj.query ? obj.query.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.query)] : obj.query.toJSONSchema(name + '_query') : null;
 
 	obj.validate = function(type, value) {
 		var jsonschema = this['jsonschema' + type];

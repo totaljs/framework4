@@ -6341,6 +6341,11 @@ function install(type, name, filename, next) {
 			if (tmp.$id)
 				F.jsonschemas[tmp.$id] = tmp;
 			F.jsonschemas[name] = tmp;
+			tmp.transform = function(value, callback) {
+				var error = new ErrorBuilder();
+				var response = framework_jsonschema.transform(this, error, value);
+				return { error: error.is ? error : null, response: response };
+			};
 		} else
 			F.error('jsonschema', 'Invalid JSON schema: ' + filename);
 		next();

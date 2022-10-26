@@ -2,7 +2,7 @@
 0.0.70
 ========================
 
-
+- `schema.action()` supports a link to the JSON schema declaration
 
 ========================
 0.0.69
