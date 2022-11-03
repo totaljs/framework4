@@ -3,6 +3,7 @@
 ========================
 
 - `schema.action()` supports a link to the JSON schema declaration
+- fixed making insecure HTTPS requests by [DJTripper](https://github.com/DJTripper)
 
 ========================
 0.0.69
