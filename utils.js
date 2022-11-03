@@ -588,7 +588,7 @@ function _request(opt, callback) {
 	uri.method = opt.method;
 	uri.headers = opt.headers;
 
-	if (options.insecure) {
+	if (opt.insecure) {
 		uri.rejectUnauthorized = false;
 		uri.requestCert = true;
 	}
