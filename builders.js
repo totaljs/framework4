@@ -4138,11 +4138,6 @@ function RESTBuilder(url) {
 	this.$errorbuilderhandler = true;
 }
 
-RESTBuilder.insecure = function() {
-	this.options.insecure = true;
-	return this;
-};
-
 RESTBuilder.make = function(fn) {
 	var instance = new RESTBuilder();
 	fn && fn(instance);
@@ -4245,6 +4240,11 @@ RESTBuilder.setDefaultTransform = function(name) {
 };
 
 var RESTP = RESTBuilder.prototype;
+
+RESTP.insecure = function() {
+	this.options.insecure = true;
+	return this;
+};
 
 RESTP.error = function(err) {
 	this.$errorhandler = err;
