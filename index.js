@@ -3123,7 +3123,7 @@ F.stop = F.kill = function(signal) {
 		F.server.close();
 	}
 
-	setTimeout(() => process.exit(signal), 300);
+	setTimeout(() => process.exit(1), 300);
 };
 
 global.PROXY = function(url, target, copypath, before, after, check, timeout) {
@@ -19084,7 +19084,7 @@ process.on('uncaughtException', function(e) {
 	if (err.indexOf('listen EADDRINUSE') !== -1) {
 		process.send && process.send('total:eaddrinuse');
 		console.log('\nThe IP address and the PORT is already in use.\nYou must change the PORT\'s number or IP address.\n');
-		process.exit('SIGTERM');
+		process.exit(1);
 		return;
 	} else if (CONF.allow_filter_errors && REG_SKIPERROR.test(err))
 		return;
