@@ -6992,13 +6992,43 @@ String.prototype.toJSONSchema = function(name, url) {
 	if (required.length)
 		obj.required = required;
 
-	obj.transform = function(value, callback) {
-		var error = new ErrorBuilder();
-		var response = framework_jsonschema.transform(this, error, value);
-		return { error: error.is ? error : null, response: response };
-	};
-
+	obj.transform = exports.jsonschematransform;
 	return obj;
+};
+
+exports.jsonschematransform = function(value, callback, partial) {
+
+	var error = new ErrorBuilder();
+	var response = null;
+
+	if (partial) {
+
+		var tmp = {};
+		var schema = {};
+
+		schema.properties = {};
+		schema.required = [];
+
+		for (let key in value) {
+			let prop = this.properties[key];
+			if (prop) {
+				tmp[key] = value[key];
+				schema.properties[key] = prop;
+				if (this.required.includes(key))
+					schema.required.push(key);
+			}
+		}
+
+		schema.$id = this.$id;
+		schema.$schema = this.$schema;
+		schema.type = this.type;
+
+		response = framework_jsonschema.transform(schema, error, tmp);
+
+	} else
+		response = framework_jsonschema.transform(this, error, value);
+
+	return { error: error.is ? error : null, response: response };
 };
 
 exports.set = function(obj, path, value) {

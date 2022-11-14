@@ -1473,14 +1473,9 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 	obj.jsonschemaparams = obj.params ? obj.params.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.params)] : obj.params.toJSONSchema(name + '_params') : null;
 	obj.jsonschemaquery = obj.query ? obj.query.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.query)] : obj.query.toJSONSchema(name + '_query') : null;
 
-	obj.validate = function(type, value) {
+	obj.validate = function(type, value, partial) {
 		var jsonschema = this['jsonschema' + type];
-		if (jsonschema) {
-			var error = new ErrorBuilder();
-			var response = framework_jsonschema.transform(jsonschema, error, value);
-			return { error: error.is ? error : null, response: response };
-		} else
-			return { error: null, response: value };
+		return jsonschema ? jsonschema.transform(value, null, partial) : { error: null, response: value };
 	};
 
 	self.meta['workflow_' + name] = 2;
@@ -2585,11 +2580,14 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 			var res;
 
 			if (action.jsonschemainput) {
-				res = action.validate('input', model);
+
+				res = action.validate('input', model, type === 'patch' || (controller && controller.req && controller.req.keys));
+
 				if (res.error) {
 					$.invalid(res.error);
 					return;
 				}
+
 				skipkeys = true;
 				$.model = res.response;
 			}

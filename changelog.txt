@@ -5,6 +5,7 @@
 - `schema.action()` supports a link to the JSON schema declaration
 - fixed making insecure HTTPS requests by [DJTripper](https://github.com/DJTripper)
 - fixed `RESTBuilder.insecure()` method
+- extended `jsonschema.transform(value, callback, [partial])` by adding `partial` argument
 
 ========================
 0.0.69
