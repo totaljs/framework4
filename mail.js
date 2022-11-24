@@ -1,5 +1,3 @@
-'use strict';
-
 const Net = require('net');
 const Tls = require('tls');
 const Fs = require('fs');
@@ -9,7 +7,7 @@ const REG_ESMTP = /\besmtp\b/i;
 const REG_STATE = /\d+/;
 const REG_WINLINE = /\r\n/g;
 const REG_NEWLINE = /\n/g;
-const REG_AUTH = /(AUTH LOGIN|AUTH PLAIN|PLAIN LOGIN)/i;
+const REG_AUTH = /(AUTH LOGIN|AUTH PLAIN|PLAIN LOGIN|XOAUTH2|XOAUTH)/i;
 const REG_TLS = /TLS/;
 const REG_STARTTLS = /STARTTLS/;
 const EMPTYARRAY = [];
@@ -632,7 +630,7 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 	if (options && options.secure && !options.port)
 		options.port = 465;
 
-	options = framework_utils.copy(options, { secure: false, port: 25, user: '', password: '', timeout: 10000, tls: null });
+	options = framework_utils.copy(options, { secure: false, port: 25, user: '', password: '', timeout: 10000, tls: null, token: '' });
 
 	if (options.secure) {
 		var internal = framework_utils.copy(options);
@@ -898,11 +896,12 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 
 		var code = +line.match(REG_STATE)[0];
 		if (code === 250 && !isAuthorization) {
-			if (REG_AUTH.test(line) && ((options.user && options.password) || options.xoauth2)) {
+			if (REG_AUTH.test(line) && (options.user && (options.password || options.token))) {
 				isAuthorization = true;
-				if (options.xoauth2 && line.indexOf('XOAUTH2') !== -1)
-					auth.push('AUTH XOAUTH2 ' + options.xoauth2);
-				else if (line.lastIndexOf('XOAUTH') === -1) {
+				if (options.token && line.indexOf('XOAUTH2') !== -1) {
+					auth.push('AUTH XOAUTH2');
+					auth.push(Buffer.from('user=' + options.user + '\1auth=Bearer ' + options.token + '\1\1').toString('base64'));
+				} else if (line.lastIndexOf('XOAUTH') === -1) {
 					auth.push('AUTH LOGIN');
 					auth.push(Buffer.from(options.user).toString('base64'));
 					auth.push(Buffer.from(options.password).toString('base64'));
