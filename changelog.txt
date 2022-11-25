@@ -8,6 +8,7 @@
 - extended `jsonschema.transform(value, callback, [partial])` by adding `partial` argument
 - `mail_smtp_options` supports `token {String}` for OAuth 2.0 Access Token
 - added `QueryBuilder.equal(object)` method
+- fixed `UNAUTHORIZED()` method
 
 ========================
 0.0.69

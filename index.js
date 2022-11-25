@@ -458,17 +458,19 @@ global.UNAUTHORIZED = function($) {
 			return false;
 
 		var compare = user.permissions || user.roles;
+		var args = arguments;
+
 		if (compare) {
 			if (compare instanceof Array) {
 				for (var i = 0; i < compare.length; i++) {
-					for (var j = 1; j < arguments.length; j++) {
-						if (arguments[j] === compare[i])
+					for (var j = 1; j < args.length; j++) {
+						if (args[j] === compare[i])
 							return false;
 					}
 				}
 			} else {
-				for (var j = 1; j < arguments.length; j++) {
-					if (user.permisions[arguments[j]])
+				for (var j = 1; j < args.length; j++) {
+					if (compare[args[j]])
 						return false;
 				}
 			}
