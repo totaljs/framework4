@@ -489,6 +489,12 @@ QBP.userid = function(id) {
 	return id instanceof Array ? this.in('userid', id) : this.where('userid', id);
 };
 
+QBP.equal = function(obj) {
+	for (var key of obj)
+		this.where(key, obj[key]);
+	return this;
+};
+
 QBP.where = function(name, comparer, value) {
 
 	var t = this;
