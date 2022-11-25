@@ -490,7 +490,7 @@ QBP.userid = function(id) {
 };
 
 QBP.equal = function(obj) {
-	for (var key of obj)
+	for (var key in obj)
 		this.where(key, obj[key]);
 	return this;
 };
