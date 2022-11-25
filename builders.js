@@ -2215,7 +2215,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 					if (type.subtype === 'number' && typeof(tmp) === 'string')
 						tmp = tmp.parseFloat(null);
 					item[property] = tmp != null && type.raw.indexOf(tmp) !== -1 ? tmp : undefined;
-					if (item[property] == null && type.def)
+					if (item[property] == null && (type.def || type.def === null))
 						item[property] = type.def;
 					break;
 
@@ -2223,7 +2223,7 @@ SchemaBuilderEntityProto.prepare = function(model, dependencies, $, verification
 				case 9:
 					tmp = val;
 					item[property] = tmp != null ? type.raw[tmp] : undefined;
-					if (item[property] == null && type.def)
+					if (item[property] == null && (type.def || type.def === null))
 						item[property] = type.def;
 					break;
 

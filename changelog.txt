@@ -9,6 +9,7 @@
 - `mail_smtp_options` supports `token {String}` for OAuth 2.0 Access Token
 - added `QueryBuilder.equal(object)` method
 - fixed `UNAUTHORIZED()` method
+- fixed a default nullable value for `enum` types in the Total.js schemas
 
 ========================
 0.0.69
