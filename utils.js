@@ -6902,6 +6902,12 @@ String.prototype.toJSONSchema = function(name, url) {
 		if (isarr)
 			type = type.substring(1, type.length - 1);
 
+		var isenum = type[0] === '{';
+		if (isenum) {
+			tmp = type.substring(1, type.length - 1).split(/;|\|/).trim();
+			type = 'enum';
+		}
+
 		var index = type.indexOf('(');
 		if (index !== -1) {
 			size = +type.substring(index + 1, type.length - 1).trim();
@@ -6983,6 +6989,9 @@ String.prototype.toJSONSchema = function(name, url) {
 				} else {
 					tmp.type = 'object';
 				}
+				break;
+			case 'enum':
+				tmp = { enum: tmp, type: 'string' }
 				break;
 		}
 		if (tmp)

@@ -2,6 +2,9 @@
 0.0.71
 ========================
 
+- added support fro inline enums for `String.toJSONSchema()`
+- added support for inline enums in Schema actions
+
 ========================
 0.0.70
 ========================
