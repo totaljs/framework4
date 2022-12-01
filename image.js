@@ -200,7 +200,7 @@ ImageProto.measure = function(callback) {
 
 	F.stats.performance.open++;
 	var extension = self.filename.substring(index).toLowerCase();
-	var stream = require('fs').createReadStream(self.filename, { start: 0, end: extension === '.jpg' ? 40000 : 24 });
+	var stream = require('fs').createReadStream(self.filename, { start: 0, end: (extension === '.jpg' || extension === '.webp') ? 40000 : 24 });
 
 	stream.on('data', function(buffer) {
 
@@ -213,6 +213,9 @@ ImageProto.measure = function(callback) {
 				return;
 			case '.png':
 				callback(null, exports.measurePNG(buffer));
+				return;
+			case '.webp':
+				callback(null, exports.measureWEBP(buffer));
 				return;
 		}
 
