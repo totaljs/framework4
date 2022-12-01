@@ -4,6 +4,7 @@
 
 - added support fro inline enums for `String.toJSONSchema()`
 - added support for inline enums in Schema actions
+- added `webp` image size measurement by [Marek Mráz](https://github.com/Mrazbb)
 
 ========================
 0.0.70
