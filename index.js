@@ -11152,7 +11152,6 @@ global.ACCEPT = F.accept = function(ext, type) {
 
 global.TotalAPI = function(token, type, data, callback, filename) {
 
-
 	if (typeof(type) === 'object' || typeof(data) === 'function' || (typeof(data) === 'object' && data.req)) {
 		filename = callback;
 		callback = data;
@@ -11166,18 +11165,43 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 		return;
 	}
 
-	if (!callback)
-		callback = NOOP;
-
 	if (typeof(data) !== 'object')
 		data = { value: data };
 
-	var builder = RESTBuilder.POST('https://api.totaljs.com/' + type + '/', data);
+	var opt = {};
+	opt.method = 'POST';
+	opt.url = 'https://api.totaljs.com/' + type + '/';
+	opt.body = JSON.stringify(data);
+	opt.type = 'json';
+	opt.keepalive = true;
+	opt.headers = { 'x-token': token };
 
-	builder.options.keepalive = true;
-	builder.options.headers['x-token'] = token;
+	if (callback == null || callback.istotal) {
+		// promise
+		return new Promise(function(resolve, reject) {
+			opt.callback = function(err, response) {
 
-	builder.stream(function(err, response) {
+				if (!err && response.status >= 400) {
+					var tmp = response.body.parseJSON();
+					err = new Error((tmp && tmp instanceof Array && tmp.length ? tmp[0].error : '') || 'Unexpected problem');
+				}
+
+				if (err) {
+					if (callback && callback.invalid) {
+						callback.invalid(err);
+					} else {
+						err.name = 'TotalAPI(' + type + ')';
+						reject(err);
+					}
+				} else
+					resolve(response.parseJSON(true));
+			};
+			REQUEST(opt);
+		});
+	}
+
+	opt.custom = true;
+	opt.callback = function(err, response) {
 
 		if (err) {
 			callback(err);
@@ -11222,9 +11246,12 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 					err = new ErrorBuilder().push(status + '');
 				callback(err, response);
 			}
+
 		});
 
-	});
+	};
+
+	REQUEST(opt);
 };
 
 // A temporary variable for generating Worker ID

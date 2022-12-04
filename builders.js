@@ -17,6 +17,7 @@ var pendingdownload = {};
 function SchemaValue() {}
 
 function SchemaOptions(error, model, options, callback, controller, name, schema) {
+	this.istotal = true;
 	this.error = error;
 	this.model = model;
 	this.options = options || EMPTYOBJECT;
@@ -30,6 +31,7 @@ function SchemaOptions(error, model, options, callback, controller, name, schema
 
 function TaskBuilder($) {
 	var t = this;
+	t.istotal = true;
 	t.value = {};
 	t.tasks = {};
 	if ($ instanceof SchemaOptions || $ instanceof OperationOptions || $ instanceof TaskBuilder) {
@@ -413,6 +415,8 @@ SchemaOptionsProto.noop = function() {
 };
 
 function SchemaBuilderEntity(name) {
+
+	this.istotal = true;
 	this.name = name;
 	// this.primary;
 	this.trim = true;
@@ -5624,6 +5628,7 @@ function OperationOptions(error, value, options, controller) {
 	} else if (options === undefined)
 		options = EMPTYOBJECT;
 
+	this.istotal = true;
 	this.controller = controller;
 	this.model = this.value = value;
 	this.error = error;
@@ -5850,6 +5855,7 @@ OperationOptionsProto.invalid = function(name, error, path, index) {
 };
 
 function AuthOptions(req, res, callback) {
+	this.istotal = true;
 	this.req = req;
 	this.res = res;
 	this.processed = false;
