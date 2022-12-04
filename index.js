@@ -10662,10 +10662,7 @@ function configure_configs(arr, rewrite) {
 					var co = (value[j] || '').trim();
 					if (co) {
 						co = co.toLowerCase();
-						if (co.substring(0, 2) === '//') {
-							tmp.push(co);
-						} else
-							tmp.push(co.substring(co.indexOf('/') + 2));
+						tmp.push(co.substring(0, 2) === '//' ? co.substring(co.indexOf('/') + 2) : co);
 					}
 				}
 				obj[name] = tmp.length ? tmp : null;
