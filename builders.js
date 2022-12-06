@@ -2592,7 +2592,6 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 					return;
 				}
 
-				skipkeys = true;
 				$.model = res.response;
 			}
 
@@ -2622,14 +2621,20 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 		}
 	}
 
-	if (!skipkeys) {
-		if (controller && controller.req && controller.req.keys)
-			$.keys = controller.req.keys;
-		else if (type === 'patch') // Due to $PATCH() method
-			$.keys = Object.keys(model);
+	if ($.$action) {
+		if (!self.middlewares || !self.middlewares.length)
+			$.$action.action.call(self, $, $.model);
 		else
-			$.keys = null;
+			runmiddleware($, self, $.$action.action);
+		return;
 	}
+
+	if (controller && controller.req && controller.req.keys)
+		$.keys = controller.req.keys;
+	else if (type === 'patch') // Due to $PATCH() method
+		$.keys = Object.keys(model);
+	else
+		$.keys = null;
 
 	self.perform(type, name, $, noprepare);
 };
@@ -2836,11 +2841,25 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 			$.params = params;
 			$.query = query;
 
+			var skipkeys = false;
+
 			if (a.type === 'workflow') {
 				var action = self.meta['workflowaction_' + name];
 				if (action) {
 
 					var res;
+
+					if (action.jsonschemainput) {
+
+						res = action.validate('input', model, controller && controller.req && controller.req.keys);
+
+						if (res.error) {
+							$.invalid(res.error);
+							return;
+						}
+
+						$.model = res.response;
+					}
 
 					if (action.jsonschemaquery) {
 						res = action.validate('query', $.query);
@@ -2868,12 +2887,14 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 				}
 			}
 
-			if (controller && controller.req && controller.req.keys)
-				$.keys = controller.req.keys;
-			else if (a.type === 'patch') // Due to $PATCH() method
-				$.keys = Object.keys(model);
-			else
-				$.keys = null;
+			if (!skipkeys) {
+				if (controller && controller.req && controller.req.keys)
+					$.keys = controller.req.keys;
+				else if (a.type === 'patch') // Due to $PATCH() method
+					$.keys = Object.keys(model);
+				else
+					$.keys = null;
+			}
 
 			var novalidate = true;
 
