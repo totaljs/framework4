@@ -758,6 +758,7 @@ var _prefix;
 
 require('./tangular');
 require('./test');
+require('./templates');
 
 function countuploadstats(chunk) {
 	F.stats.performance.upload += chunk.length / 1024 / 1024;

@@ -5,7 +5,7 @@
 
 	var Tangular = {};
 	var Thelpers = Tangular.helpers = {};
-	Tangular.version = 'v5.0.1';
+	Tangular.version = 'v5.0.2';
 	Tangular.cache = {};
 
 	W.Ta = W.Tangular = Tangular;
@@ -327,7 +327,7 @@
 
 	Thelpers.$execute = function(helpers, model, name, a, b, c, d, e, f, g, h) {
 
-		var fn = Thelpers[name] || helpers[name];
+		var fn = helpers[name] || Thelpers[name];
 
 		if (!fn) {
 			console && console.warn('Tangular: missing helper', '"' + name + '"');

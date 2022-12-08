@@ -8,6 +8,8 @@
 - added `promise` support for the `TotalAPI()` method
 - fixed `default_cors` option
 - fixed `schema.action()` for the standard REST routes
+- updated Tangular version
+- added `TEMPLATE(url/filename/Tangulartemplate, model, [$])` method for generating templates
 
 ========================
 0.0.70
