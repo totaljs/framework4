@@ -6723,7 +6723,10 @@ setImmediate(function() {
 	ON('service', function(counter) {
 		for (var key in schemasall) {
 			var schema = schemasall[key];
-			schema && schema.$service && schema.$service(counter);
+			if (schema && schema.$service && schema.$servicecounter !== counter) {
+				schema.$servicecounter = counter;
+				schema.$service(counter);
+			}
 		}
 	});
 });
