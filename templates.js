@@ -56,6 +56,15 @@ global.TEMPLATE = function(body, model, $) {
 				REQUEST(opt);
 				return;
 			} else {
+
+				if (body[0] === '~') {
+					body = body.substring(1);
+				} else {
+					body = PATH.templates(body);
+					if (body.indexOf('.html') === -1)
+						body += '.html';
+				}
+
 				F.Fs.readFile(body, function(err, response) {
 
 					if (err) {

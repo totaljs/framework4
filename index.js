@@ -2192,6 +2192,7 @@ function Framework() {
 		directory_bundles: '/bundles/',
 		directory_controllers: '/controllers/',
 		directory_components: '/components/',
+		directory_templates: '/templates/',
 		directory_views: '/views/',
 		directory_definitions: '/definitions/',
 		directory_builds: '/builds/',
@@ -9763,7 +9764,7 @@ global.HTMLMAIL = function(address, subject, body, language, callback) {
 			body = TRANSLATOR(language, body);
 	}
 
-	var body = body.indexOf('<body>') === -1 ? ('<!DOCTYPE html><html><head><title>' + subject + '</title><meta charset="utf-8" /></head><body>' + body + '</body></html>') : body;
+	var body = body.indexOf('<body>') === -1 ? ('<!DOCTYPE html><html><head><title>' + subject + '</title><meta charset="utf-8" /></head><body style="padding:0;margin:0;font-family:Arial;font-size:14px;font-weight:normal">' + body + '</body></html>') : body;
 	return DEF.onMail(address, subject, body, callback);
 };
 
@@ -11966,6 +11967,10 @@ FrameworkPathProto.themes = function(filename) {
 
 FrameworkPathProto.components = function(filename) {
 	return U.combine(CONF.directory_components, filename);
+};
+
+FrameworkPathProto.templates = function(filename) {
+	return U.combine(CONF.directory_templates, filename);
 };
 
 FrameworkPathProto.root = function(filename) {

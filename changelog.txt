@@ -2,6 +2,13 @@
 0.0.72
 ========================
 
+- added `/templates/` directory for the templates
+- updated `TEMPLATE()` functionality
+	- `filename` is targeted to the `/templates/` directory
+	- `~filename` is will be used as an absolute filename
+	- `http:// or https://` will download template from the URL address
+- updated `HTMLMAIL()`, `<body` element is with the normalized CSS
+
 ========================
 0.0.71
 ========================
