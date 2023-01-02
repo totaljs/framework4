@@ -8,6 +8,7 @@
 	- `~filename` is will be used as an absolute filename
 	- `http:// or https://` will download template from the URL address
 - updated `HTMLMAIL()`, `<body` element is with the normalized CSS
+- fixed using `port` in the `PROXY()` method
 
 ========================
 0.0.71

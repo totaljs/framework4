@@ -9016,6 +9016,8 @@ function makeproxy(proxy, req, res) {
 			uri.path = req.url.substring(proxy.url.length - 1);
 		else
 			uri.path = proxy.path + req.uri.path + (proxy.query ? (req.uri.query ? ('&' + proxy.query) : proxy.query) : '');
+		if (proxy.uri.port)
+			uri.port = proxy.uri.port;
 	}
 
 	if (uri.headers.connection)
