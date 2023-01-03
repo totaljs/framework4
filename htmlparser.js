@@ -584,6 +584,14 @@ function parseHTML(html, trim, onerror) {
 			beg = str.indexOf(tagBeg, pos);
 			end = str.indexOf(tagEnd, pos);
 
+			// Fallback for the non-exists end tag
+			if (end === -1) {
+				console.log(tagBeg, count);
+				end = str.length;
+				pos = end;
+				break;
+			}
+
 			if (beg !== -1 && beg < end) {
 				count++;
 				pos = str.indexOf('>', beg);
