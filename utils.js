@@ -1015,6 +1015,10 @@ function request_response(res) {
 		// tmp.agent = false;
 		tmp.method = uri.method;
 
+		res.req.socket.destroy();
+		res.req.socket.end();
+		res.req.destroy();
+		res.removeAllListeners();
 		res.req.removeAllListeners();
 		res.req = null;
 
