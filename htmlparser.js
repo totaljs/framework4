@@ -586,7 +586,6 @@ function parseHTML(html, trim, onerror) {
 
 			// Fallback for the non-exists end tag
 			if (end === -1) {
-				console.log(tagBeg, count);
 				end = str.length;
 				pos = end;
 				break;
