@@ -9,6 +9,8 @@
 	- `http:// or https://` will download template from the URL address
 - updated `HTMLMAIL()`, `<body` element is with the normalized CSS
 - fixed using `port` in the `PROXY()` method
+- fixed closing of request/response when redirecting in the `REQUEST()` method
+- fixed HTML parser by adding fallback for the non-exists end tag
 
 ========================
 0.0.71
