@@ -76,7 +76,9 @@ global.TEMPLATE = function(body, model, $) {
 					}
 
 					data = parse(response.toString('utf8'));
-					cache[id] = data;
+
+					if (!DEBUG)
+						cache[id] = data;
 
 					try {
 						resolve(data.template({ value: model || data.model }, null, data.helpers));
