@@ -3,7 +3,7 @@
 const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
 const REGEXP_COLOR = /^#([A-F0-9]{3}|[A-F0-9]{6}|[A-F0-9]{8})$/i;
-const REGEXP_ICON = /^(far|fab|fad|fal|fas|fa)?\sfa-[a-z0-9-]+$/;
+const REGEXP_ICON = /^(ti|far|fab|fad|fal|fas|fa)?\s(fa|ti)-[a-z0-9-]+$/;
 const REG_ARGS = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 const BOOL = { true: 1, on: 1, '1': 1 };
