@@ -113,7 +113,7 @@ function runwatching() {
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
-	const REG_COMPONENTS = /(components|plugins|extensions)\/.*?\.html|\.package\/.*?$/i;
+	const REG_COMPONENTS = /(components|plugins|extensions)\/[a-z0-9-_]\.html|\.package\/.*?$/i;
 	const REG_JSONSCHEMAS = /jsonschemas\/.*?\.json$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
 	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
