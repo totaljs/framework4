@@ -13122,16 +13122,17 @@ ControllerProto.invalid = function(status, error) {
 	}
 
 	var type = typeof(status);
-
-	if (type === 'number')
-		self.status = status;
-
 	var builder = new ErrorBuilder();
 
 	if (status instanceof Error)
 		builder.push(status);
 	else
 		builder.push(status, error);
+
+	if (type === 'number')
+		self.status = status;
+	else if (self.status > 399)
+		builder.status = self.status;
 
 	setImmediate(next_controller_invalid, self, builder);
 	return builder;
