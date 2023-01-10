@@ -15,6 +15,7 @@
 - fixed `debug` mode for `.html` plugins/extensions/components
 - extended `Icon` schema type by adding support for Total.js Icons
 - fixed applying of `controller.status` for `controller.invalid()` method
+- fixed parsing data in the promise in the `TotalAPI()` method
 
 ========================
 0.0.71
