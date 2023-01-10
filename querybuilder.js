@@ -131,7 +131,7 @@ CTP.exec = function(filter, callback) {
 CTP.next = function(t) {
 
 	if (t.error) {
-		t.$callback && t.$callback(t.error);
+		t.$callback && t.$callback(t.error, null);
 		t.free();
 		return;
 	}

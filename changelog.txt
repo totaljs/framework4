@@ -16,6 +16,7 @@
 - extended `Icon` schema type by adding support for Total.js Icons
 - fixed applying of `controller.status` for `controller.invalid()` method
 - fixed parsing data in the promise in the `TotalAPI()` method
+- fixed error handling in the `QueryBuilder`
 
 ========================
 0.0.71

@@ -2449,6 +2449,7 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 		response = arg[1];
 	}
 
+
 	var has = builder.is;
 	has && self.onError && self.onError(builder, model, type, name);
 
@@ -2544,7 +2545,6 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	var key = type + (name ? ('.' + name) : '');
 	var now;
-	var skipkeys = false;
 
 	if (CONF.logger)
 		now = Date.now();
