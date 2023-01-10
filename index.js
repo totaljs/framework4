@@ -3710,7 +3710,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 	if (url[0] === '#' && url.length > 1) {
 		url = url.substring(1);
-		if (url !== '400' && url !== '401' && url !== '403' && url !== '404' && url !== '408' && url !== '409' && url !== '431' && url !== '500' && url !== '501') {
+		if (url !== '400' && url !== '401' && url !== '403' && url !== '404' && url !== '408' && url !== '409' && url !== '431' && url !== '500' && url !== '501' && url !== '503') {
 
 			var sitemapflags = funcExecute instanceof Array ? funcExecute : flags;
 			if (!(sitemapflags instanceof Array))
@@ -11195,7 +11195,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 						reject(err);
 					}
 				} else
-					resolve(response.parseJSON(true));
+					resolve(response.body.parseJSON(true));
 			};
 			REQUEST(opt);
 		});
