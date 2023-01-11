@@ -9770,6 +9770,21 @@ global.HTMLMAIL = function(address, subject, body, language, callback) {
 	return DEF.onMail(address, subject, body, callback);
 };
 
+global.COMPONENTATOR = function(name, components) {
+
+	var url = 'https://componentator.com/download.js?id=' + components;
+	var relative = 'ui-' + url.makeid() + '.js';
+	var filename = PATH.public(relative);
+
+	REPO[name] = '/' + relative;
+
+	F.Fs.lstat(filename, function(err) {
+		if (err)
+			DOWNLOAD(url, filename);
+	});
+
+};
+
 /**
  * Renders view
  * @param {String} name View name.
