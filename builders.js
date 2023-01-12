@@ -240,6 +240,10 @@ SchemaOptions.prototype = {
 
 var SchemaOptionsProto = SchemaOptions.prototype;
 
+SchemaOptionsProto.publish = function() {
+	console.log(this.ID);
+};
+
 SchemaOptionsProto.on = function(name, fn) {
 	var self = this;
 	if (!self.events)
@@ -1476,6 +1480,8 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 	obj.jsonschemaoutput = obj.output ? obj.output.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.output)] : obj.output.toJSONSchema(name + '_output') : null;
 	obj.jsonschemaparams = obj.params ? obj.params.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.params)] : obj.params.toJSONSchema(name + '_params') : null;
 	obj.jsonschemaquery = obj.query ? obj.query.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.query)] : obj.query.toJSONSchema(name + '_query') : null;
+
+	obj.publish && NEWPUBLISH(self.name + '.' + name, obj.publish == true ? (obj.jsonschemainput || obj.jsonschemaoutput) : obj.publish);
 
 	obj.validate = function(type, value, partial) {
 		var jsonschema = this['jsonschema' + type];
@@ -6486,6 +6492,10 @@ SCP.exec = function() {
 	var meta = self.meta;
 
 	self.options.callback = function(err, response) {
+
+		if (!self.options.$callback)
+			self.options.$callback = NOOP;
+
 		if (err) {
 			self.options.error && self.options.error(err);
 			self.options.$callback(err);
