@@ -1512,8 +1512,6 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 			}
 		}
 
-		console.log(obj);
-
 		NEWPUBLISH(self.name + '.' + name, tmsschema);
 	}
 
