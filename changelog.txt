@@ -24,6 +24,7 @@
 - added `$.publish(value)` property into the `SchemaOptions`
 - improved `String.toJSONSchema()`
 - improved HttpFile.move between volumes
+- updated svg check
 
 ========================
 0.0.71

@@ -26,7 +26,8 @@ const SKIPPORTS = { '80': 1, '443': 1 };
 const REGISARR = /\[\d+\]|\[\]$/;
 const REGREPLACEARR = /\[\]/g;
 const REG_JPG = /jfif|exif/;
-const REG_SVG = /xml|svg/;
+//const REG_SVG = /xml|svg/; // due to comments it's not possible to detect it correctly
+const REG_SVG = /<|>/;
 
 const COMPARER = function(a, b) {
 	if (!a && b)
