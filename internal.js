@@ -261,6 +261,21 @@ HFP._move = function(filename, callback) {
 	var self = this;
 	Fs.rename(self.path, filename, function(err) {
 
+		if (err && err.code === 'EXDEV') {
+			self.copy(filename, function(err){
+
+				Fs.unlink(self.path, NOOP);
+
+				if (!err) {
+					self.path = filename;
+					self.rem = false;
+				}
+
+				callback && callback(err);
+			});
+			return;
+		}
+
 		if (!err) {
 			self.path = filename;
 			self.rem = false;
