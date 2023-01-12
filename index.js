@@ -5059,7 +5059,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 };
 
 F.initwebsocket = function() {
-	if (F.routes.websockets.length && CONF.allow_websocket && F.server) {
+	if (((F.routes.websockets.length && CONF.allow_websocket) || (F._request_check_proxy)) && F.server) {
 		F.server.on('upgrade', F.$upgrade);
 		F.initwebsocket = null;
 	}
@@ -8993,7 +8993,24 @@ function onrequesterror() {
 		this.res.$aborted = true;
 }
 
-function makeproxy(proxy, req, res) {
+function makeproxyheadersws(header, headers) {
+
+	var output = [];
+
+	for (var key in headers) {
+		var value = headers[key];
+		if (value instanceof Array) {
+			for (var item of value)
+				output.push(key + ': ' + item);
+		} else
+			output.push(key + ': ' + value);
+	}
+
+	output.unshift(header);
+	return output.join(NEWLINE) + NEWLINE + NEWLINE;
+}
+
+function makeproxy(proxy, req, res, wshead) {
 
 	var secured = proxy.uri.protocol === 'https:';
 	var uri = {};
@@ -9020,13 +9037,14 @@ function makeproxy(proxy, req, res) {
 			uri.port = proxy.uri.port;
 	}
 
-	if (uri.headers.connection)
+	if (!wshead && uri.headers.connection)
 		delete uri.headers.connection;
 
 	uri.headers['x-forwarded-for'] = req.ip;
 	uri.headers['x-forwarded-url'] = req.url;
 	uri.headers['x-forwarded-host'] = req.headers.host;
 	uri.agent = secured ? PROXYKEEPALIVEHTTPS : PROXYKEEPALIVE;
+
 	delete uri.headers.host;
 
 	proxy.before && proxy.before(uri, req, res);
@@ -9036,13 +9054,9 @@ function makeproxy(proxy, req, res) {
 	if (res.headersSent || res.success)
 		return;
 
-	var request;
 	var get = uri.method === 'GET' || uri.method === 'HEAD' || uri.method === 'OPTIONS';
-
-	if (secured)
-		request = get ? Https.get(uri, makeproxycallback) : Https.request(uri, makeproxycallback);
-	else
-		request = get ? Http.get(uri, makeproxycallback) : Http.request(uri, makeproxycallback);
+	var kind = secured ? Https : Http;
+	var request = get && !wshead ? kind.get(uri, makeproxycallback) : kind.request(uri, makeproxycallback);
 
 	request.on('error', makeproxyerror);
 	request.on('abort', makeproxyerror);
@@ -9050,11 +9064,36 @@ function makeproxy(proxy, req, res) {
 
 	request.$res = res;
 	request.$proxy = proxy;
+	request.iswebsocket = !!wshead;
 
-	if (proxy.timeout) {
+	if (!wshead && proxy.timeout) {
 		req.$total_timeout = proxy.timeout;
 		TIMEOUTS.push(req);
 		FINISHED(res, () => req && (req.success = true));
+	}
+
+	if (wshead) {
+
+		res.setTimeout(0);
+		res.setNoDelay(true);
+		res.setKeepAlive(true, 0);
+
+		wshead && wshead.length && res.unshift(wshead);
+
+		request.on('response', function (proxyres) {
+			if (!proxyres.upgrade) {
+				res.write(makeproxyheadersws('HTTP/' + proxyres.httpVersion + ' ' + proxyres.statusCode + ' ' + proxyres.statusMessage, proxyres.headers));
+				proxyres.pipe(res);
+			}
+		});
+
+		request.on('upgrade', function(proxyres, proxysocket, proxyhead) {
+			if (proxyhead && proxyhead.length)
+				proxysocket.unshift(proxyhead);
+			res.write(makeproxyheadersws('HTTP/1.1 101 Switching Protocols', proxyres.headers));
+			proxysocket.pipe(res).pipe(proxysocket);
+		});
+
 	}
 
 	if (get)
@@ -9072,14 +9111,16 @@ function makeproxyerror(err) {
 	MODELERROR.status = U.httpstatus(503, false);
 	MODELERROR.error = err + '';
 	this.success = true;
-	this.$res.writeHead(503, HEADERS.response503);
+
+	if (this.$res.writeHead)
+		this.$res.writeHead(503, HEADERS.response503);
+
 	this.$res.end(VIEW('.' + PATHMODULES + 'error', MODELERROR));
 }
 
 function makeproxycallback(response) {
-
 	this.$proxy.after && this.$proxy.after(response);
-	this.$res.writeHead(response.statusCode, response.headers);
+	this.$res.writeHead && this.$res.writeHead(response.statusCode, response.headers);
 	response.pipe(this.$res, PROXYOPTIONS);
 }
 
@@ -9515,13 +9556,29 @@ F.$upgrade = function(req, socket, head) {
 	if (F._length_wait || !req.headers.upgrade || !REGWS.test(req.headers.upgrade))
 		return;
 
+	var headers = req.headers;
+	req.$protocol = req.connection.encrypted || (headers['x-forwarded-protocol'] || headers['x-forwarded-proto']) === 'https' ? 'https' : 'http';
+	req.uri = framework_internal.parseURI(req);
+
+	if (F._request_check_proxy) {
+		var url = req.url.toLowerCase();
+		for (var i = 0; i < F.routes.proxies.length; i++) {
+			var proxy = F.routes.proxies[i];
+			var u = url.substring(0, proxy.url.length);
+			if (u[u.length - 1] !== '/')
+				u += '/';
+			if (u === proxy.url && (!proxy.check || proxy.check(req, socket, head))) {
+				F.stats.response.proxy++;
+				makeproxy(proxy, req, socket, head);
+				return;
+			}
+		}
+	}
+
 	// disables timeout
 	socket.setTimeout(0);
 	socket.on('error', NOOP);
 
-	var headers = req.headers;
-	req.$protocol = req.connection.encrypted || (headers['x-forwarded-protocol'] || headers['x-forwarded-proto']) === 'https' ? 'https' : 'http';
-	req.uri = framework_internal.parseURI(req);
 	req.$total_route = F.lookup_websocket(req, 0, true);
 
 	if (!req.$total_route || (req.$total_route.flags2.csrf && !DEF.onCSRFcheck(req)) || DEF.blacklist[req.ip]) {

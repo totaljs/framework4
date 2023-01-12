@@ -2,6 +2,7 @@
 0.0.72
 ========================
 
+- added support for WebSocket for the Total.js Proxy
 - added `/templates/` directory for the templates
 - updated `TEMPLATE()` functionality
 	- `filename` is targeted to the `/templates/` directory
