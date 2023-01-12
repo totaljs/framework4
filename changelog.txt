@@ -23,6 +23,7 @@
 - added `publish:Boolean/String` property into the `schema.action()`
 - added `$.publish(value)` property into the `SchemaOptions`
 - improved `String.toJSONSchema()`
+- improved HttpFile.move between volumes
 
 ========================
 0.0.71
