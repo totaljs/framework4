@@ -243,8 +243,18 @@ var SchemaOptionsProto = SchemaOptions.prototype;
 SchemaOptionsProto.publish = function(value) {
 	var name = this.ID;
 	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name]) {
+
+		var tmp = {};
+		if (tmp) {
+			for (var key in value) {
+				if (!this.$publish || this.$publish[key])
+					tmp[key] = value[key];
+			}
+		}
+
 		F.stats.performance.publish++;
-		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
+		F.tms.socket.send({ type: 'publish', id: name, data: tmp }, client => client.tmsready);
+
 	}
 	return this;
 };
@@ -1488,12 +1498,21 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	if (obj.publish) {
 
-		var tmsschema = obj.publish == true ? (obj.jsonschemainput || obj.jsonschemaoutput) : obj.publish;
+		var tmsschema = obj.publish == true ? (obj.input || obj.output) : obj.publish;
 
 		if (typeof(tmsschema) === 'string') {
 			if (tmsschema[0] === '+')
-				tmsschema = (obj.input || obj.output) + ',' + tmsschema.substring(0);
+				tmsschema = (obj.input || obj.output) + ',' + tmsschema.substring(1);
+
+			var keys = tmsschema.split(',');
+			obj.$publish = [];
+			for (var key of keys) {
+				var index = key.indexOf(':');
+				obj.$publish.push(index === -1 ? key : key.substring(0, index));
+			}
 		}
+
+		console.log(obj);
 
 		NEWPUBLISH(self.name + '.' + name, tmsschema);
 	}
