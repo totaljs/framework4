@@ -19,6 +19,7 @@
 - fixed parsing data in the promise in the `TotalAPI()` method
 - fixed error handling in the `QueryBuilder`
 - added `COMPONENTATOR(name, components)` method for downloading of UI components
+- fixed returning object instance in the `ROUTE()` method
 
 ========================
 0.0.71

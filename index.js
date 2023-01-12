@@ -3566,7 +3566,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	url = url.trim();
 
 	var isremoveonly = funcExecute === null;
-
 	var mypath = url;
 
 	if (flags instanceof Array) {
@@ -3601,21 +3600,15 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 		if (url.indexOf('.') !== -1) {
 			tmp = url.split('.');
-			if (tmp[1].length < 6) {
-				FILE(url, funcExecute, flags);
-				return;
-			}
+			if (tmp[1].length < 6)
+				return FILE(url, funcExecute, flags);
 		}
 
-		if ((/^(\+|-){0,}(WS|WSS|SOCKET)\s/).test(url)) {
-			WEBSOCKET(url, funcExecute, flags, length);
-			return;
-		}
+		if ((/^(\+|-){0,}(WS|WSS|SOCKET)\s/).test(url))
+			return WEBSOCKET(url, funcExecute, flags, length);
 
-		if ((/^(\+|-){0,}(FILE)\s/).test(url)) {
-			FILE(url, funcExecute, flags);
-			return;
-		}
+		if ((/^(\+|-){0,}(FILE)\s/).test(url))
+			return FILE(url, funcExecute, flags);
 	}
 
 	if (typeof(flags) === 'number') {
