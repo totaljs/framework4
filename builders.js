@@ -240,8 +240,13 @@ SchemaOptions.prototype = {
 
 var SchemaOptionsProto = SchemaOptions.prototype;
 
-SchemaOptionsProto.publish = function() {
-	console.log(this.ID);
+SchemaOptionsProto.publish = function(value) {
+	var name = this.ID;
+	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name]) {
+		F.stats.performance.publish++;
+		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
+	}
+	return this;
 };
 
 SchemaOptionsProto.on = function(name, fn) {
