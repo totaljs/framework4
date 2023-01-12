@@ -6936,12 +6936,13 @@ String.prototype.toJSONSchema = function(name, url) {
 				tmp = {};
 				if (isarr) {
 					tmp.type = 'array';
-					tmp.items = { type: 'string', subtype: type };
+					tmp.items = { type: 'string', subtype: type === 'string' ? undefined : type };
 					if (size)
 						tmp.items.maxLength = size;
 				} else {
 					tmp.type = 'string';
-					tmp.subtype = type;
+					if (type !== tmp.type)
+						tmp.subtype = type;
 					if (size)
 						tmp.maxLength = size;
 				}
@@ -6961,10 +6962,11 @@ String.prototype.toJSONSchema = function(name, url) {
 				tmp = {};
 				if (isarr) {
 					tmp.type = 'array';
-					tmp.items = { type: 'number', subtype: type };
+					tmp.items = { type: 'number', subtype: type === 'number' ? undefined : type };
 				} else {
 					tmp.type = 'number';
-					tmp.subtype = type;
+					if (type !== 'number')
+						tmp.subtype = type;
 				}
 
 				break;
