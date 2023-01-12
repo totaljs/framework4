@@ -1486,7 +1486,17 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 	obj.jsonschemaparams = obj.params ? obj.params.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.params)] : obj.params.toJSONSchema(name + '_params') : null;
 	obj.jsonschemaquery = obj.query ? obj.query.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.query)] : obj.query.toJSONSchema(name + '_query') : null;
 
-	obj.publish && NEWPUBLISH(self.name + '.' + name, obj.publish == true ? (obj.jsonschemainput || obj.jsonschemaoutput) : obj.publish);
+	if (obj.publish) {
+
+		var tmsschema = obj.publish == true ? (obj.jsonschemainput || obj.jsonschemaoutput) : obj.publish;
+
+		if (typeof(tmsschema) === 'string') {
+			if (tmsschema[0] === '+')
+				tmsschema = (obj.input || obj.output) + ',' + tmsschema.substring(0);
+		}
+
+		NEWPUBLISH(self.name + '.' + name, tmsschema);
+	}
 
 	obj.validate = function(type, value, partial) {
 		var jsonschema = this['jsonschema' + type];
