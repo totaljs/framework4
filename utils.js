@@ -6900,7 +6900,7 @@ String.prototype.toJSONSchema = function(name, url) {
 			required.push(arr[0]);
 		}
 
-		var type = arr[1].toLowerCase().trim();
+		var type = (arr[1] || 'string').toLowerCase().trim();
 		var size = 0;
 		var isarr = type[0] === '[';
 		if (isarr)
@@ -6995,7 +6995,7 @@ String.prototype.toJSONSchema = function(name, url) {
 				}
 				break;
 			case 'enum':
-				tmp = { enum: tmp, type: 'string' }
+				tmp = { enum: tmp, type: 'string' };
 				break;
 		}
 		if (tmp)
