@@ -7144,7 +7144,7 @@ F.usage = function(detailed) {
 };
 
 DEF.onPrefSave = function(val) {
-	Fs.writeFile(PATH.databases(PREFFILE), JSON.stringify(val), ERROR('DEF.onPrefSave'));
+	Fs.writeFile(PATH.databases(PREFFILE), JSON.stringify(val, null, '\t'), ERROR('DEF.onPrefSave'));
 };
 
 DEF.onPrefLoad = function(next) {
