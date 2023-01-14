@@ -246,7 +246,17 @@ function makefilter(db, opt, callback) {
 				case 'group':
 					builder.scalar = opt.scalar.key2 ? 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+(doc.{1}||0)}'.format(opt.scalar.key, opt.scalar.key2) : 'if (doc.{0}!=null){tmp.val=doc.{0};arg[tmp.val]=(arg[tmp.val]||0)+1}'.format(opt.scalar.key);
 					builder.scalararg = {};
-					db.find().assign(builder).$callback = console.log;
+					db.find().assign(builder).$callback = function(err, response) {
+						var output = [];
+						for (var key in response) {
+							var val = response[key];
+							var mod = {};
+							mod[opt.scalar.key] = key;
+							mod.value = val;
+							output.push(mod);
+						}
+						callback(err, output);
+					};
 					break;
 			}
 			isread = true;

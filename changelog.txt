@@ -3,6 +3,7 @@
 ========================
 
 - PREF configuration is saved nicely
+- fixed scalar opertaion for NoSQL QueryBuilder
 
 ========================
 0.0.72
