@@ -6933,6 +6933,7 @@ String.prototype.toJSONSchema = function(name, url) {
 			case 'lowercase':
 			case 'uppercase':
 			case 'capitalize':
+			case 'capitalize2':
 			case 'color':
 			case 'icon':
 			case 'base64':

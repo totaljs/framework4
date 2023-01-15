@@ -4,6 +4,7 @@
 
 - PREF configuration is saved nicely
 - fixed scalar opertaion for NoSQL QueryBuilder
+- fixed validating data according to the JSON schema
 
 ========================
 0.0.72

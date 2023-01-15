@@ -1,10 +1,13 @@
 require('./index');
 
-const REG_NUMBER = /[\d,\.]+/;
+const REG_NUMBER = /[\d,.]+/;
+const REG_COLOR = /^#([A-F0-9]{3}|[A-F0-9]{6}|[A-F0-9]{8})$/i;
+const REG_ICON = /^(ti|far|fab|fad|fal|fas|fa)?\s(fa|ti)-[a-z0-9-]+$/;
 
 function check_string(meta, error, value, errplus) {
 
-	var type = typeof(val);
+	var type = typeof(value);
+
 	if (type !== 'string')
 		value = value ? (value + '') : null;
 
@@ -47,7 +50,7 @@ function check_string(meta, error, value, errplus) {
 
 			case 'email':
 				value = value.replace(/\s/g, '').toLowerCase();
-				if (!value.isEmail()) {
+				if (value && !value.isEmail()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
@@ -55,62 +58,80 @@ function check_string(meta, error, value, errplus) {
 				break;
 			case 'phone':
 				value = value.replace(/\s/g, '').toLowerCase();
-				if (!value.isPhone()) {
+				if (value && !value.isPhone()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
 				}
 				break;
 			case 'url':
-				if (!value.isURL()) {
+				if (value && !value.isURL()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
 				}
 				break;
 			case 'zip':
-				if (!value.isZIP()) {
+				if (value && !value.isZIP()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
 				}
 				break;
 			case 'guid':
-				if (!value.isGUID()) {
+				if (value && !value.isGUID()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
-				}
+				} else if (!value)
+					value = null;
 				break;
 			case 'uid':
-				if (!value.isUID()) {
+				if (value && !value.isUID()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
-				}
+				} else if (!value)
+					value = null;
 				break;
 			case 'json':
-				if (!value.isJSON()) {
+				if (value && !value.isJSON()) {
 					// error.push(errplus + meta.$$ID + '.invalid');
 					error.push(errplus + meta.$$ID);
 					return;
 				}
 				break;
 			case 'base64':
-				if (!value.isBase64()) {
-					// error.push(errplus + meta.$$ID + '.invalid');
+				if (value && !value.isBase64()) {
 					error.push(errplus + meta.$$ID);
 					return;
 				}
 				break;
+			case 'color':
+				if (value && !REG_COLOR.test(value)) {
+					error.push(errplus + meta.$$ID);
+					return;
+				}
+				break;
+			case 'icon':
+				if (value && !REG_ICON.test(value)) {
+					error.push(errplus + meta.$$ID);
+					return;
+				}
+				break;
+			case 'lower':
 			case 'lowercase':
 				value = value.toLowerCase();
 				break;
+			case 'upper':
 			case 'uppercase':
 				value = value.toUpperCase();
 				break;
 			case 'capitalize':
 				value = value.capitalize();
+				break;
+			case 'capitalize2':
+				value = value.capitalize(true);
 				break;
 		}
 	}
