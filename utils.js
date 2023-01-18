@@ -6887,7 +6887,19 @@ String.prototype.toJSONSchema = function(name, url) {
 	obj.type = 'object';
 	obj.properties = {};
 
-	var prop = this.split(',');
+	var str = this;
+
+	var nestedtypes = [];
+
+	str = str.replace(/\[.*?\]/g, function(text) {
+		return '[#' + (nestedtypes.push(text.substring(1, text.length - 1)) - 1) + ']';
+	});
+
+	str = str.replace(/\{.*?\}/g, function(text) {
+		return '{#' + (nestedtypes.push(text.substring(1, text.length - 1)) - 1) + '}';
+	});
+
+	var prop = str.split(/,|\n/);
 	var required = [];
 
 	for (var i = 0; i < prop.length; i++) {
@@ -6907,16 +6919,45 @@ String.prototype.toJSONSchema = function(name, url) {
 		if (isarr)
 			type = type.substring(1, type.length - 1);
 
+		var nestedschema = '';
 		var isenum = type[0] === '{';
 		if (isenum) {
-			tmp = type.substring(1, type.length - 1).split(/;|\|/).trim();
-			type = 'enum';
+			tmp = type.substring(2, type.length - 1);
+			tmp = nestedtypes[+tmp];
+
+			// Nested schema
+			if (tmp.includes(':')) {
+				nestedschema = tmp;
+				type = 'object';
+			} else {
+				tmp = tmp.split(/;|\|/).trim();
+				type = 'enum';
+			}
 		}
 
 		var index = type.indexOf('(');
 		if (index !== -1) {
 			size = +type.substring(index + 1, type.length - 1).trim();
 			type = type.substring(0, index);
+		}
+
+		if (type[0] === '#') {
+			nestedschema = nestedtypes[+type.substring(1)].toJSONSchema();
+			type = 'object';
+		} else if (type[0] === '@') {
+
+			// other schema
+			var subname = type.substring(1);
+			var schema = GETSCHEMA(subname);
+
+			schema =  schema ? schema.toJSONSchema() : F.jsonschemas[subname];
+
+			if (schema)
+				nestedschema = schema;
+			else
+				throw new Error('Schema "' + subname + '" not found');
+
+			type = 'object';
 		}
 
 		switch (type) {
@@ -6995,10 +7036,11 @@ String.prototype.toJSONSchema = function(name, url) {
 				tmp = {};
 				if (isarr) {
 					tmp.type = 'array';
-					tmp.items = { type: 'object' };
-				} else {
+					tmp.items = nestedschema || { type: 'object' };
+				} else if (nestedschema)
+					tmp = nestedschema;
+				else
 					tmp.type = 'object';
-				}
 				break;
 			case 'enum':
 				tmp = { enum: tmp, type: 'string' };

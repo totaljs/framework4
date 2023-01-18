@@ -2,6 +2,12 @@
 0.0.74
 ========================
 
+- improved error handling in JSON Schemas
+- improved `.toJSONSchema()` by adding:
+	- nested object in the form `{ name:String, path: String }`
+	- nested object arrays in the form `[{ name: String, path: String }]`
+	- linked schemas in the form `name:@User, address:@Address`
+
 ========================
 0.0.73
 ========================

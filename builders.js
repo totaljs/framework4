@@ -679,11 +679,12 @@ SchemaBuilderEntityProto.toJSONSchema = function() {
 					tmp = {};
 					if (field.isArray) {
 						tmp.type = 'array';
-						tmp.items = { type: 'string' };
+						tmp.items = { type: 'string', subtype: field.subtype };
 						if (field.length)
 							tmp.items.maxLength = field.length;
 					} else {
 						tmp.type = 'string';
+						tmp.subtype = field.subtype;
 						if (field.length)
 							tmp.maxLength = field.length;
 					}
