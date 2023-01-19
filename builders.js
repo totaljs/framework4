@@ -6609,6 +6609,11 @@ SCP.user = function(value) {
 	return this;
 };
 
+SCP.language = function(value) {
+	this.options.language = value;
+	return this;
+};
+
 SCP.error = function(value) {
 	this.options.error = value;
 	return this;
