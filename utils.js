@@ -6942,8 +6942,16 @@ String.prototype.toJSONSchema = function(name, url) {
 		}
 
 		if (type[0] === '#') {
-			nestedschema = nestedtypes[+type.substring(1)].toJSONSchema();
-			type = 'object';
+
+			type = nestedtypes[+type.substring(1)];
+
+			// Is nested object? {...}
+			if (isenum) {
+				nestedschema = type.toJSONSchema();
+				type = 'object';
+			} else
+				type = type.toLowerCase();
+
 		} else if (type[0] === '@') {
 
 			// other schema
