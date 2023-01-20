@@ -26,7 +26,7 @@ function SchemaOptions(error, model, options, callback, controller, name, schema
 	this.name = name;
 	this.schema = schema;
 	this.responses = {};
-	this.repo = {};
+	this.repo = this.controller ? (this.controller.repository || {}) : {};
 	// this.events;
 }
 
@@ -161,14 +161,6 @@ SchemaOptions.prototype = {
 
 	get test() {
 		return this.controller ? this.controller.test : false;
-	},
-
-	get repo() {
-		if (this.controller)
-			return this.controller.repository;
-		if (!this.$$repository)
-			this.$$repository = {};
-		return this.$$repository;
 	},
 
 	get sessionid() {
