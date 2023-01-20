@@ -1490,6 +1490,9 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 	obj.jsonschemaparams = obj.params ? obj.params.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.params)] : obj.params.toJSONSchema(name + '_params') : null;
 	obj.jsonschemaquery = obj.query ? obj.query.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.query)] : obj.query.toJSONSchema(name + '_query') : null;
 
+	if (obj.permissions && typeof(obj.permissions) === 'string')
+		obj.permissions = obj.permissions.split(/,|;/).trim();
+
 	if (obj.publish) {
 
 		var tmsschema = obj.publish == true ? (obj.input || obj.output) : obj.publish;
@@ -2612,6 +2615,16 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	if (type === 'workflow') {
 		var action = self.meta['workflowaction_' + name];
 		if (action) {
+
+			// Check a user session
+			if (action.user && !$.user) {
+				$.invalid(401);
+				return;
+			}
+
+			// Check permissions
+			if (action.permissions && UNAUTHORIZED($, action.permissions))
+				return;
 
 			var res;
 

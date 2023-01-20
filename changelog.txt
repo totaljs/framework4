@@ -10,6 +10,9 @@
 - added `CALL().language(value)` method
 - added `$.repo {Object}` into the `SchemaOptions`
 - added support for promises into the `CLEANUP()`
+- extended `schema.action()` by adding new options:
+	- `user: true/false`
+	- `permissions: 'read,write,admin'`
 
 ========================
 0.0.73
