@@ -13,6 +13,7 @@
 - extended `schema.action()` by adding new options:
 	- `user: true/false`
 	- `permissions: 'read,write,admin'`
+- added `QueryBuilder.returning(fields)` method
 
 ========================
 0.0.73

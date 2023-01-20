@@ -450,6 +450,24 @@ QBP.callback = function($) {
 	return t;
 };
 
+QBP.returning = function(fields) {
+
+	var key = '_' + fields;
+
+	if (!CACHE[key]) {
+		var arr = [];
+		fields = fields.split(',');
+		for (var field of fields) {
+			field = field.trim();
+			arr.push(field);
+		}
+		CACHE[key] = arr;
+	}
+
+	this.options.returning = CACHE[key];
+	return this;
+};
+
 QBP.nobind = function() {
 	this.main.$nobind = true;
 	return this;
@@ -656,17 +674,21 @@ QBP.or = function(callback) {
 };
 
 QBP.fields = function(fields) {
+
 	var t = this;
-	var arr = [];
+	var key = '_' + fields;
 
-	fields = fields.split(',');
-
-	for (var field of fields) {
-		field = field.trim();
-		arr.push(field);
+	if (!CACHE[key]) {
+		var arr = [];
+		fields = fields.split(',');
+		for (var field of fields) {
+			field = field.trim();
+			arr.push(field);
+		}
+		CACHE[key] = arr;
 	}
 
-	t.options.fields = arr;
+	t.options.fields = CACHE[key];
 	return t;
 };
 
