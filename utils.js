@@ -6888,7 +6888,6 @@ String.prototype.toJSONSchema = function(name, url) {
 	obj.properties = {};
 
 	var str = this;
-
 	var nestedtypes = [];
 
 	str = str.replace(/\[.*?\]/g, function(text) {
@@ -6944,6 +6943,12 @@ String.prototype.toJSONSchema = function(name, url) {
 		if (type[0] === '#') {
 
 			type = nestedtypes[+type.substring(1)];
+
+			if (type[0] === '{') {
+				isenum = true;
+				type = type.substring(1, type.length - 1);
+			} else if (type.includes(',') || type.includes('\n'))
+				isenum = true;
 
 			// Is nested object? {...}
 			if (isenum) {
