@@ -26,6 +26,7 @@ function SchemaOptions(error, model, options, callback, controller, name, schema
 	this.name = name;
 	this.schema = schema;
 	this.responses = {};
+	this.repo = {};
 	// this.events;
 }
 

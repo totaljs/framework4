@@ -8,6 +8,8 @@
 	- nested object arrays in the form `[{ name: String, path: String }]`
 	- linked schemas in the form `name:@User, address:@Address`
 - added `CALL().language(value)` method
+- added `$.repo {Object}` into the `SchemaOptions`
+- added support for promises into the `CLEANUP()`
 
 ========================
 0.0.73

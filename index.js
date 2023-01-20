@@ -2038,6 +2038,10 @@ global.NEWSCHEMA = function(name, make) {
 };
 
 global.CLEANUP = function(stream, callback) {
+
+	if (!callback)
+		return new Promise(resolve => CLEANUP(stream, resolve));
+
 	FINISHED(stream, function() {
 		DESTROY(stream);
 		if (callback) {
@@ -2049,11 +2053,8 @@ global.CLEANUP = function(stream, callback) {
 
 global.SUCCESS = function(success, value) {
 
-	if (typeof(success) === 'function') {
-		return function(err, value) {
-			success(err, SUCCESS(err, value));
-		};
-	}
+	if (typeof(success) === 'function')
+		return (err, value) => success(err, SUCCESS(err, value));
 
 	var err;
 
