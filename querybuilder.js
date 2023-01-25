@@ -38,9 +38,11 @@ function execdb(db) {
 		if (db.options.checksum)
 			db.options.checksum = HASH(db.options.checksum).toString(36);
 
-		conn.call(db, db.options, function(err, response) {
-			db.evaluate(err, response);
-		});
+		//conn.call(db, db.options, function(err, response) {
+		//	db.evaluate(err, response);
+		//});
+
+		conn.call(db, db.options, db.evaluate);
 
 	} else
 		db.evaluate('Database is not initialized');
@@ -139,7 +141,7 @@ CTP.next = function(t) {
 	if (t.commands) {
 		var item = t.commands.shift();
 		if (item) {
-			setImmediate(execdb, item);
+			execdb(item);
 			return;
 		}
 	}
@@ -170,7 +172,6 @@ CTP.promise = function($) {
 				resolve(response);
 		};
 	});
-
 	return promise;
 };
 
