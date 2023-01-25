@@ -42,7 +42,7 @@ function execdb(db) {
 		//	db.evaluate(err, response);
 		//});
 
-		conn.call(db, db.options, db.evaluate);
+		conn.call(db, db.options, (err, response) => db.evaluate(err, response));
 
 	} else
 		db.evaluate('Database is not initialized');
