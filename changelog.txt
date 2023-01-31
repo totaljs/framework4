@@ -3,6 +3,7 @@
 ========================
 
 - updated `CALL()` response (it returns `Object` instead of `Array`) with multiple actions
+- `$.action(name, [data])` is an alias for `CALL()` method directly in the SchemaOptions
 
 ========================
 0.0.74
