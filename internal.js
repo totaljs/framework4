@@ -1133,7 +1133,7 @@ function view_parse(content, minify, filename, controller) {
 		return '$VIEWCACHE[' + index + ']';
 	});
 
-	var fn = ('(function(self,repository,model,session,query,body,url,helpers,user,config,functions,index,output,files,mobile,settings){var R=this.repository;var M=model;var theme=this.themeName;var language=this.language;var sitemap=this.repository.$sitemap;' + (isCookie ? 'var cookie=function(name){return self.req.cookie(name)};' : '') + (functions.length ? functions.join('') + ';' : '') + 'var controller=self;' + builder + ';return $output;})');
+	var fn = ('(function(self,repository,model,session,query,body,url,helpers,user,config,functions,index,output,files,mobile,settings){var R=this.repository;var M=model;var theme=this.themeName;var language=this.req.$language||\'\';var sitemap=this.repository.$sitemap;' + (isCookie ? 'var cookie=function(name){return self.req.cookie(name)};' : '') + (functions.length ? functions.join('') + ';' : '') + 'var controller=self;' + builder + ';return $output;})');
 	try {
 		fn = eval(fn);
 		fn.components = keys;
