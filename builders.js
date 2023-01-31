@@ -233,6 +233,20 @@ SchemaOptions.prototype = {
 
 var SchemaOptionsProto = SchemaOptions.prototype;
 
+SchemaOptionsProto.action = function(schema, data) {
+
+	var key = 'action_' + schema;
+	var tmp = F.temporary.exec[key];
+
+	if (!tmp) {
+		if (schema.indexOf('-->') === -1)
+			schema = this.schema.name + ' --> ' + schema;
+		F.temporary.exec[key] = tmp = schema;
+	}
+
+	return CALL(tmp, data);
+};
+
 SchemaOptionsProto.publish = function(value) {
 	var name = this.ID;
 	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name]) {
@@ -2774,7 +2788,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	return self;
 };
 
-SchemaBuilderEntityProto.async = function(model, callback, index, controller, additional) {
+SchemaBuilderEntityProto.async = function(model, callback, index, controller, additional, returnobject) {
 
 	var self = this;
 	var error = new ErrorBuilder();
@@ -2834,7 +2848,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 
 		a.pending--;
 
-		var key = a.type + (a.name ? ('_' + a.name) : '');
+		var key = (a.type + (a.name ? ('_' + a.name) : ''));
 		if (err) {
 
 			if ($.events) {
@@ -2850,7 +2864,14 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 			a.controller = null;
 			a = null;
 		} else {
-			$.responses[key] = $.responses[a.indexer] = response;
+
+			if (returnobject) {
+				$.responses[a.name] = response;
+			} else {
+				$.responses[key] = response;
+				$.responses[a.indexer] = response;
+			}
+
 			$.events && $.events.data && $.emit('data', response, key);
 			a.next();
 		}
@@ -2957,10 +2978,14 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 
 		} else if (!a.pending) {
 			if (a.index == null) {
-				var tmp = [];
-				var max = a.indexer + 1;
-				for (var i = 0; i < max; i++)
-					tmp.push($.responses[i]);
+
+				var tmp = returnobject ? $.responses : [];
+
+				if (!returnobject) {
+					var max = a.indexer + 1;
+					for (var i = 0; i < max; i++)
+						tmp.push($.responses[i]);
+				}
 
 				if ($.events) {
 					$.events.error && $.emit('response', tmp);
@@ -6593,7 +6618,7 @@ function performsschemaaction(caller) {
 	}
 
 	if (meta.multiple) {
-		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller);
+		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller, null, true);
 		for (var i = 0; i < meta.op.length; i++)
 			add(meta.op[i].name);
 	} else {

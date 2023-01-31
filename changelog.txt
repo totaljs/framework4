@@ -2,6 +2,7 @@
 0.0.75
 ========================
 
+- updated `CALL()` response (it returns `Object` instead of `Array`) with multiple actions
 
 ========================
 0.0.74
