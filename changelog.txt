@@ -9,6 +9,7 @@
 - added `FlowStreamInstance.refresh` delegate (executed if the Flow schema is updated)
 - added `FlowStreamInstance.instances {Object}` alias to `flowinstance.meta.flow`
 - added `FlowStreamInstance.middleware` delegate `{Function($, next($))}` for processing of messages
+- added `FlowStreamInstance.logger(callback)` that captures all send messages
 
 ========================
 0.0.74

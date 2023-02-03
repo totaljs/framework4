@@ -587,7 +587,7 @@ function Flow(name, errorhandler) {
 	t.meta.components = {};
 	t.meta.flow = {};
 	t.meta.cache = {};
-	t.middleware = {};
+	t.logger = [];
 	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0, minutes: 0 };
 	t.mm = 0;
 	t.paused = false;
@@ -801,6 +801,8 @@ FP.cleanforce = function() {
 		}
 	}
 
+	var fn = key => self.meta.flow[key] == null;
+	self.logger = self.logger.remove(fn);
 	return self;
 };
 
@@ -902,6 +904,23 @@ FP.ondebug = function(a, b, c, d) {
 	// this == instance
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
+
+function newlogger(callback) {
+
+	var self = this;
+	self.$logger = callback;
+
+	var index = self.main.logger.indexOf(self.id);
+	if (callback) {
+		if (index === -1)
+			self.main.logger.push(self.id);
+	} else {
+		if (index !== -1)
+			self.main.logger.splice(index, 1);
+	}
+
+	return self;
+}
 
 function newmessage(data) {
 	var self = this;
@@ -1427,6 +1446,7 @@ FP.initcomponent = function(key, component) {
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.newmessage = newmessage;
+	instance.logger = newlogger;
 	instance.transform = newtransform;
 	instance.replace = variables;
 	instance.instances = self.meta.flow;
@@ -1467,9 +1487,20 @@ function sendmessage(instance, message, event, nomiddleware) {
 		return;
 	}
 
+	// Middleware
 	if (!nomiddleware && instance.middleware) {
 		instance.middleware(message, m => sendmessage(instance, m, event, true));
 		return;
+	}
+
+	// Logger
+	if (instance.main.logger.length) {
+		var main = instance.main;
+		for (var key of main.logger) {
+			var tmp = main.meta.flow[key];
+			if (tmp && tmp.$logger)
+				tmp.$logger(message);
+		}
 	}
 
 	if (event) {
@@ -1761,7 +1792,7 @@ FP.export_component = function(id) {
 		obj.css = com.ui.css;
 		obj.js = com.ui.js;
 		obj.icon = com.icon;
-		obj.color = com.color;
+		obj.color = com.ui.color;
 		obj.config = com.config;
 		obj.html = com.ui.html;
 		obj.readme = com.ui.readme;
