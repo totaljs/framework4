@@ -5,6 +5,10 @@
 - updated `CALL()` response (it returns `Object` instead of `Array`) with multiple actions
 - `$.action(name, [data])` is an alias for `CALL()` method directly in the SchemaOptions
 - fixed view command `@{language}`
+- added `FlowStreamInstance.init` delegate (executed once when the instance is ready)
+- added `FlowStreamInstance.refresh` delegate (executed if the Flow schema is updated)
+- added `FlowStreamInstance.instances {Object}` alias to `flowinstance.meta.flow`
+- added `FlowStreamInstance.middleware` delegate `{Function($, next($))}` for processing of messages
 
 ========================
 0.0.74

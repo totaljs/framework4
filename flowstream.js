@@ -587,6 +587,7 @@ function Flow(name, errorhandler) {
 	t.meta.components = {};
 	t.meta.flow = {};
 	t.meta.cache = {};
+	t.middleware = {};
 	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0, minutes: 0 };
 	t.mm = 0;
 	t.paused = false;
@@ -1310,8 +1311,10 @@ FP._use = function(schema, callback, reinit, insert) {
 			if (!fi || reinit) {
 				self.meta.flow[key] = instance;
 				var tmp = self.initcomponent(key, component);
-				if (tmp)
+				if (tmp) {
 					tmp.ts = ts;
+					tmp.newbie = true;
+				}
 			} else {
 				fi.connections = instance.connections;
 				fi.x = instance.x;
@@ -1351,6 +1354,15 @@ FP._use = function(schema, callback, reinit, insert) {
 				}
 			}
 
+			for (var key in self.meta.flow) {
+				var instance = self.meta.flow[key];
+				if (instance.newbie) {
+					instance.init && instance.init();
+					instance.newbie = false;
+				}
+				instance.refresh && instance.refresh();
+			}
+
 			self.loading--;
 			self.cleanforce();
 			self.$events.schema && self.emit('schema', self.meta.flow);
@@ -1366,6 +1378,10 @@ FP._use = function(schema, callback, reinit, insert) {
 
 	return self;
 };
+
+function findinstance(id) {
+	return this.main.find(id);
+}
 
 FP.initcomponent = function(key, component) {
 
@@ -1413,6 +1429,7 @@ FP.initcomponent = function(key, component) {
 	instance.newmessage = newmessage;
 	instance.transform = newtransform;
 	instance.replace = variables;
+	instance.instances = self.meta.flow;
 
 	self.onconnect && self.onconnect(instance);
 
@@ -1443,11 +1460,15 @@ FP.initcomponent = function(key, component) {
 	return instance;
 };
 
-function sendmessage(instance, message, event) {
-
+function sendmessage(instance, message, event, nomiddleware) {
 
 	if (instance.isdestroyed || message.isdestroyed || instance.main.paused) {
 		message.destroy();
+		return;
+	}
+
+	if (!nomiddleware && instance.middleware) {
+		instance.middleware(message, m => sendmessage(instance, m, event, true));
 		return;
 	}
 
@@ -1464,12 +1485,12 @@ function sendmessage(instance, message, event) {
 
 		if (instance[key]) {
 			is = true;
-			instance[key].call(message.instance, message);
+			instance[key](message);
 		}
 
 		if (instance.message) {
-			instance.message.call(message.instance, message);
 			is = true;
+			instance.message(message);
 		}
 
 		if (!is)
