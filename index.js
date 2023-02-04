@@ -9015,18 +9015,27 @@ function makeproxy(proxy, req, res, wshead) {
 	} else
 		uri.socketPath = proxy.uri.socketPath;
 
+	var tmp;
+
 	uri.method = req.method;
 	uri.headers = req.headers;
 
 	if (uri.socketPath) {
 		uri.path = proxy.copypath == false || proxy.copypath === 'replace' ? req.url.substring(proxy.url.length - 1) : req.uri.path;
 	} else {
-		if (proxy.copypath === false)
-			uri.path = proxy.uri.href;
-		else if (proxy.copypath === 'replace')
+
+		if (proxy.copypath === false) {
+			uri.path = proxy.uri.path;
+		} else if (proxy.copypath === 'replace')
 			uri.path = req.url.substring(proxy.url.length - 1);
-		else
-			uri.path = proxy.path + req.uri.path + (proxy.query ? (req.uri.query ? ('&' + proxy.query) : proxy.query) : '');
+		else if (proxy.copypath === 'extend') {
+			tmp = req.uri.path.substring(proxy.url.length);
+			uri.path = proxy.path + (tmp ? ((tmp[0] === '/' ? '' : '/') + tmp) : '') + (proxy.query ? (req.uri.query ? ('&' + proxy.query) : proxy.query) : '');
+		} else {
+			tmp = req.uri.path;
+			uri.path = proxy.path + (tmp ? ((tmp[0] === '/' ? '' : '/') + tmp) : '') + (proxy.query ? (req.uri.query ? ('&' + proxy.query) : proxy.query) : '');
+		}
+
 		if (proxy.uri.port)
 			uri.port = proxy.uri.port;
 	}

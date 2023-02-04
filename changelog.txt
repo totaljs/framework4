@@ -10,6 +10,7 @@
 - added `FlowStreamInstance.instances {Object}` alias to `flowinstance.meta.flow`
 - added `FlowStreamInstance.middleware` delegate `{Function($, next($))}` for processing of messages
 - added `FlowStreamInstance.logger(callback)` that captures all send messages
+- improved `PROXY()` method
 
 ========================
 0.0.74
