@@ -3157,13 +3157,17 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 	else
 		target = { socketPath: target };
 
+
+	if (copypath === 'replace' && target.pathname.length > 1)
+		copypath = 'extend';
+
 	var obj = { url: url, uri: target, before: before, after: after, check: check, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
 
 	if (target.href) {
 		var index = target.href.indexOf('?');
 		if (index !== -1)
 			obj.query = target.href.substring(index + 1);
-		obj.path = target.pathname.substring(0, target.pathname.length - 1);
+		obj.path = target.pathname[target.pathname.length - 1] === '/' ? target.pathname.substring(0, target.pathname.length - 1) : target.pathname;
 	}
 
 	F._request_check_proxy = F.routes.proxies.push(obj);
