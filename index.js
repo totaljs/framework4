@@ -3158,7 +3158,7 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 		target = { socketPath: target };
 
 
-	if (copypath === 'replace' && target.pathname.length > 1)
+	if ((copypath === true || copypath === 'replace') && target.pathname.length > 1)
 		copypath = 'extend';
 
 	var obj = { url: url, uri: target, before: before, after: after, check: check, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
