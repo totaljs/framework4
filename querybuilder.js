@@ -365,12 +365,31 @@ DBP.evaluate = function(err, response) {
 	}
 
 	// Upsert
-	if (!err && t.options.exec === 'update' && t.options.upsert && (!response || !response.length)) {
-		t.$insert && t.$insert(t.options.payload, t.$insertparam);
-		t.options.exec = 'insert';
-		t.options.filter.length = 0;
-		execdb(t);
-		return;
+	if (!err && t.options.exec === 'update' && t.options.upsert) {
+
+		var is = false;
+
+		if (t.options.upsert) {
+
+			if (t.options.first) {
+				if (!response)
+					is = true;
+			} else {
+				if (!response.length)
+					is = true;
+			}
+
+
+		} else if (!response)
+			is = true;
+
+		if (is) {
+			t.$insert && t.$insert(t.options.payload, t.$insertparam);
+			t.options.exec = 'insert';
+			t.options.filter.length = 0;
+			execdb(t);
+			return;
+		}
 	}
 
 	if (!err && t.options.exec === 'list') {
