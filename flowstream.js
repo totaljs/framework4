@@ -102,6 +102,10 @@ MP.emit = function(name, a, b, c, d, e, f, g) {
 	return self;
 };
 
+MP.resume = function() {
+	sendmessage(this.to, this, this.$emitevent, true);
+};
+
 MP.emit2 = function(name, a, b, c, d, e, f, g) {
 
 	var self = this;
@@ -566,6 +570,7 @@ MP.end = MP.destroy = function() {
 	self.isdestroyed = true;
 	self.repo = null;
 	self.main = null;
+	self.middleware = null;
 	self.from = null;
 	self.to = null;
 	self.data = null;
@@ -588,6 +593,7 @@ function Flow(name, errorhandler) {
 	t.meta.flow = {};
 	t.meta.cache = {};
 	t.logger = [];
+	t.middleware = [];
 	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0, minutes: 0 };
 	t.mm = 0;
 	t.paused = false;
@@ -803,6 +809,7 @@ FP.cleanforce = function() {
 
 	var fn = key => self.meta.flow[key] == null;
 	self.logger = self.logger.remove(fn);
+	self.middleware = self.middleware.remove(fn);
 	return self;
 };
 
@@ -921,6 +928,24 @@ function newlogger(callback) {
 
 	return self;
 }
+
+function newmiddleware(callback) {
+
+	var self = this;
+	self.$middleware = callback;
+
+	var index = self.main.middleware.indexOf(self.id);
+	if (callback) {
+		if (index === -1)
+			self.main.middleware.push(self.id);
+	} else {
+		if (index !== -1)
+			self.main.middleware.splice(index, 1);
+	}
+
+	return self;
+}
+
 
 function newmessage(data) {
 	var self = this;
@@ -1447,6 +1472,7 @@ FP.initcomponent = function(key, component) {
 	instance.send = self.ontrigger;
 	instance.newmessage = newmessage;
 	instance.logger = newlogger;
+	instance.middleware = newmiddleware;
 	instance.transform = newtransform;
 	instance.replace = variables;
 	instance.instances = self.meta.flow;
@@ -1480,17 +1506,34 @@ FP.initcomponent = function(key, component) {
 	return instance;
 };
 
-function sendmessage(instance, message, event, nomiddleware) {
+function sendmessage(instance, message, event) {
 
 	if (instance.isdestroyed || message.isdestroyed || instance.main.paused) {
 		message.destroy();
 		return;
 	}
 
-	// Middleware
-	if (!nomiddleware && instance.middleware) {
-		instance.middleware(message, m => sendmessage(instance, m, event, true));
-		return;
+	if (message.middleware === undefined && instance.main.middleware.length) {
+		message.middleware = instance.main.middleware.slice(0);
+		if (message.middleware.length)
+			message.$emitevent = event;
+		else
+			message.middleware = null;
+	}
+
+	if (message.middleware && message.middleware.length) {
+		var mid = message.middleware.shift();
+		if (mid) {
+			var tmp = instance.main.meta.flow[mid];
+			if (tmp && tmp.$middleware) {
+				// Executes middleware
+				tmp.$middleware(message);
+			} else {
+				// Maybe another middleware
+				sendmessage(instance, message, event);
+			}
+			return;
+		}
 	}
 
 	// Logger

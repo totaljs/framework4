@@ -8,8 +8,8 @@
 - added `FlowStreamInstance.init` delegate (executed once when the instance is ready)
 - added `FlowStreamInstance.refresh` delegate (executed if the Flow schema is updated)
 - added `FlowStreamInstance.instances {Object}` alias to `flowinstance.meta.flow`
-- added `FlowStreamInstance.middleware` delegate `{Function($, next($))}` for processing of messages
 - added `FlowStreamInstance.logger(callback)` that captures all send messages
+- added `FlowStreamInstance.middleware(callback)` that captures all send messages and prevents continuing
 - improved `PROXY()` method
 
 ========================
