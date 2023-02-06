@@ -365,7 +365,7 @@ DBP.evaluate = function(err, response) {
 	}
 
 	// Upsert
-	if (!err && t.options.exec === 'update' && t.options.upsert && !response) {
+	if (!err && t.options.exec === 'update' && t.options.upsert && (!response || !response.length)) {
 		t.$insert && t.$insert(t.options.payload, t.$insertparam);
 		t.options.exec = 'insert';
 		t.options.filter.length = 0;
