@@ -9844,7 +9844,7 @@ global.COMPONENTATOR = function(name, components) {
 
 	F.Fs.lstat(filename, function(err) {
 		if (err)
-			DOWNLOAD(url, filename);
+			DOWNLOAD(url, filename, ERROR('COMPONENTATOR'));
 	});
 
 };
