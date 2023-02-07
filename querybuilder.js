@@ -369,7 +369,7 @@ DBP.evaluate = function(err, response) {
 
 		var is = false;
 
-		if (t.options.upsert) {
+		if (t.options.returning) {
 
 			if (t.options.first) {
 				if (!response)
