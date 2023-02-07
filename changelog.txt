@@ -13,6 +13,7 @@
 - improved `PROXY()` method
 - added error handling for `COMPONENTATOR()`
 - fixed `returning` with modify and upsert in the `QueryBuilder`
+- added support for cloning folders in remote editing
 
 ========================
 0.0.74

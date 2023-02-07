@@ -343,7 +343,10 @@ function create($, model) {
 			// file not found
 			// we can continue
 			if (data.folder) {
-				mkdir(filename, $.done());
+				if (model.clone)
+					F.Fs.cp(PATH.root(data.clone), filename, { recursive: true, force: true }, $.done());
+				else
+					mkdir(filename, $.done());
 			} else {
 				var name = U.getName(filename);
 				mkdir(filename.substring(0, filename.length - name.length), function() {
