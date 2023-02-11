@@ -9837,7 +9837,9 @@ global.HTMLMAIL = function(address, subject, body, language, callback) {
 global.COMPONENTATOR = function(name, components, removeprev) {
 
 	var url = 'https://componentator.com/download.js?id=' + components;
-	var relative = 'ui-' + url.makeid() + '.js';
+
+	var nameid = name.slug();
+	var relative = 'ui-' + (removeprev ? (nameid + '-') : '') + url.makeid() + '.js';
 	var filename = PATH.public(relative);
 
 	REPO[name] = '/' + relative;
@@ -9846,9 +9848,8 @@ global.COMPONENTATOR = function(name, components, removeprev) {
 		F.Fs.readdir(PATH.public(), function(err, files) {
 
 			var rem = [];
-			var reg = (/ui-[a-z0-9]+\.js/);
 			for (var m of files) {
-				if (m !== relative && reg.test(m))
+				if (m !== relative && m.indexOf('ui-' + nameid + '-') !== -1)
 					rem.push(PATH.public(m));
 			}
 
