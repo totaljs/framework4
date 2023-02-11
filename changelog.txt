@@ -2,6 +2,7 @@
 0.0.76
 ========================
 
+- updated `COMPONENTATOR(name, components, [removeprev])` by adding `removeprev` argument
 
 ========================
 0.0.75

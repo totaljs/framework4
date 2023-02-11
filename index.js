@@ -9834,13 +9834,29 @@ global.HTMLMAIL = function(address, subject, body, language, callback) {
 	return DEF.onMail(address, subject, body, callback);
 };
 
-global.COMPONENTATOR = function(name, components) {
+global.COMPONENTATOR = function(name, components, removeprev) {
 
 	var url = 'https://componentator.com/download.js?id=' + components;
 	var relative = 'ui-' + url.makeid() + '.js';
 	var filename = PATH.public(relative);
 
 	REPO[name] = '/' + relative;
+
+	if (removeprev) {
+		F.Fs.readdir(PATH.public(), function(err, files) {
+
+			var rem = [];
+			var reg = (/ui-[a-z0-9]+\.js/);
+			for (var m of files) {
+				if (m !== relative && reg.test(m))
+					rem.push(PATH.public(m));
+			}
+
+			if (rem.length)
+				PATH.unlink(rem);
+
+		});
+	}
 
 	F.Fs.lstat(filename, function(err) {
 		if (err)
