@@ -2637,8 +2637,12 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 			}
 
 			// Check permissions
-			if (action.permissions && UNAUTHORIZED($, action.permissions))
-				return;
+			if (action.permissions) {
+				var permissions = action.permissions.slice(0);
+				permissions.unshift($);
+				if (UNAUTHORIZED.apply(global, permissions))
+					return;
+			}
 
 			var res;
 
