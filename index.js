@@ -1127,7 +1127,7 @@ var authbuiltin = function(opt) {
 				if (session.sessionid === id) {
 					delete opt.sessions[key];
 					opt.onlogout && opt.onlogout(session);
-					opt.cookie && $.cookie && $.cookie(opt.cookie, '', '-1 day');
+					opt.cookie && $.cookie && $.cookie(opt.cookie, '', '-1 year', opt.options);
 					return true;
 				}
 			}
@@ -1245,7 +1245,7 @@ var authbuiltin = function(opt) {
 					opt.blocked[$.ip] = 1;
 			}
 
-			opt.cookie && $.res && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+			opt.cookie && $.res && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 year', opt.options);
 			$.invalid();
 			return;
 		}
@@ -1286,7 +1286,7 @@ var authbuiltin = function(opt) {
 						opt.blocked[$.ip] = 1;
 				}
 
-				opt.cookie && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 day');
+				opt.cookie && $.res.cookie && $.res.cookie(opt.cookie, '', '-1 year', opt.options);
 				$.invalid();
 
 				if (pending.length)
@@ -2165,7 +2165,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4077;
+	self.is4 = self.version = 4078;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
