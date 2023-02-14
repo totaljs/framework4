@@ -5531,7 +5531,7 @@ function tmscontroller() {
 
 		if (CONF.secret_tms) {
 			var token = client.headers['x-token']; // || client.query.token;
-			if (token !== CONF.secret_tms) {
+			if (token != CONF.secret_tms) {
 				if (TMSBLOCKED[client.ip])
 					TMSBLOCKED[client.ip]++;
 				else
