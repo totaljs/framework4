@@ -1019,6 +1019,11 @@ QBP.gridsort = function(sort) {
 	return t;
 };
 
+QBP.schema = function(value) {
+	this.options.schema = value || '';
+	return this;
+};
+
 QBP.autofill = function($, allowedfields, skipfilter, defsort, maxlimit) {
 
 	if (typeof(defsort) === 'number') {
