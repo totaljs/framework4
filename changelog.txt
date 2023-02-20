@@ -5,6 +5,7 @@
 - fixed `opt.options` argument in the `AUTH()` method
 - fixed `secret_tms` (now it can contain a raw number)
 - added `QueryBuilder.schema(name)`
+- fixed generating filenames via `COMPONENTATOR()` method (added `.min` pharse)
 
 ========================
 0.0.77

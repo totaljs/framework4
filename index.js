@@ -9839,7 +9839,7 @@ global.COMPONENTATOR = function(name, components, removeprev) {
 	var url = 'https://componentator.com/download.js?id=' + components;
 
 	var nameid = name.slug();
-	var relative = 'ui-' + (removeprev ? (nameid + '-') : '') + url.makeid() + '.js';
+	var relative = 'ui-' + (removeprev ? (nameid + '-') : '') + url.makeid() + '.min.js';
 	var filename = PATH.public(relative);
 
 	REPO[name] = '/' + relative;
