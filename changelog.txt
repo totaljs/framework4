@@ -7,6 +7,7 @@
 - added `QueryBuilder.schema(name)`
 - fixed generating filenames via `COMPONENTATOR()` method (added `.min` pharse)
 - fixed parsing inline JSON schemas (without defined types) in `schema.action()`
+- extended schema `Icon` validator by adding `tic` ([T]otal.js [I]con [C]ustom)
 
 ========================
 0.0.77
