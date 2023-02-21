@@ -6,6 +6,7 @@
 - fixed `secret_tms` (now it can contain a raw number)
 - added `QueryBuilder.schema(name)`
 - fixed generating filenames via `COMPONENTATOR()` method (added `.min` pharse)
+- fixed parsing inline JSON schemas (without defined types) in `schema.action()`
 
 ========================
 0.0.77

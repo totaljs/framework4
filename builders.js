@@ -4,6 +4,7 @@ const REGEXP_CLEAN_EMAIL = /\s/g;
 const REGEXP_CLEAN_PHONE = /\s|\.|-|\(|\)/g;
 const REGEXP_COLOR = /^#([A-F0-9]{3}|[A-F0-9]{6}|[A-F0-9]{8})$/i;
 const REGEXP_ICON = /^(ti|far|fab|fad|fal|fas|fa)?\s(fa|ti)-[a-z0-9-]+$/;
+const REGEXP_JSONSCHEMA = /(,|:|\*)/;
 const REG_ARGS = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 const BOOL = { true: 1, on: 1, '1': 1 };
@@ -1499,10 +1500,10 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	delete obj.filter;
 
-	obj.jsonschemainput = obj.input ? obj.input.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.input)] : obj.input.toJSONSchema(name + '_input') : null;
-	obj.jsonschemaoutput = obj.output ? obj.output.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.output)] : obj.output.toJSONSchema(name + '_output') : null;
-	obj.jsonschemaparams = obj.params ? obj.params.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.params)] : obj.params.toJSONSchema(name + '_params') : null;
-	obj.jsonschemaquery = obj.query ? obj.query.indexOf(':') === - 1 ? F.jsonschemas[preparejsonschema(obj.query)] : obj.query.toJSONSchema(name + '_query') : null;
+	obj.jsonschemainput = obj.input ? REGEXP_JSONSCHEMA.test(obj.input) ? obj.input.toJSONSchema(name + '_input') : F.jsonschemas[preparejsonschema(obj.input)] : null;
+	obj.jsonschemaoutput = obj.output ? REGEXP_JSONSCHEMA.test(obj.output) ? obj.output.toJSONSchema(name + '_output') : F.jsonschemas[preparejsonschema(obj.output)] : null;
+	obj.jsonschemaparams = obj.params ? REGEXP_JSONSCHEMA.test(obj.params) ? obj.params.toJSONSchema(name + '_params') : F.jsonschemas[preparejsonschema(obj.params)] : null;
+	obj.jsonschemaquery = obj.query ? REGEXP_JSONSCHEMA.test(obj.query) ? obj.query.toJSONSchema(name + '_query') : F.jsonschemas[preparejsonschema(obj.query)] : null;
 
 	if (obj.permissions && typeof(obj.permissions) === 'string')
 		obj.permissions = obj.permissions.split(/,|;/).trim();
