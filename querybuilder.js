@@ -387,6 +387,7 @@ DBP.evaluate = function(err, response) {
 			t.$insert && t.$insert(t.options.payload, t.$insertparam);
 			t.options.exec = 'insert';
 			t.options.filter.length = 0;
+			t.options.schema = ''; // because the schema is applied
 			execdb(t);
 			return;
 		}
