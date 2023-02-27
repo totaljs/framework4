@@ -6920,13 +6920,14 @@ String.prototype.toJSONSchema = function(name, url) {
 
 		var nestedschema = '';
 		var isenum = type[0] === '{';
+
 		if (isenum) {
 			tmp = type.substring(2, type.length - 1);
 			tmp = nestedtypes[+tmp];
 
 			// Nested schema
 			if (tmp.includes(':')) {
-				nestedschema = tmp;
+				nestedschema = tmp.toJSONSchema();
 				type = 'object';
 			} else {
 				tmp = tmp.split(/;|\|/).trim();
@@ -7047,6 +7048,7 @@ String.prototype.toJSONSchema = function(name, url) {
 				break;
 			case 'object':
 				tmp = {};
+
 				if (isarr) {
 					tmp.type = 'array';
 					tmp.items = nestedschema || { type: 'object' };
@@ -7054,6 +7056,7 @@ String.prototype.toJSONSchema = function(name, url) {
 					tmp = nestedschema;
 				else
 					tmp.type = 'object';
+
 				break;
 			case 'enum':
 				tmp = { enum: tmp, type: 'string' };
@@ -7088,7 +7091,7 @@ exports.jsonschematransform = function(value, callback, partial) {
 			if (prop) {
 				tmp[key] = value[key];
 				schema.properties[key] = prop;
-				if (this.required.includes(key))
+				if (this.required && this.required.includes(key))
 					schema.required.push(key);
 			}
 		}
