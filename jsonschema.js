@@ -358,6 +358,8 @@ function check_array(meta, error, value, stop, definitions, path) {
 					default:
 						tmp = check_string(type, error, val, null, currentpath);
 						if (tmp != null) {
+							if (!tmp && type.subtype === 'uid')
+								tmp = null;
 							response.push(tmp);
 							break;
 						} else {
@@ -428,8 +430,11 @@ function check_array(meta, error, value, stop, definitions, path) {
 				case 'string':
 				default:
 					tmp = check_string(meta.items, error, val, null, currentpath);
-					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1)) {
+						if (!tmp && meta.items.subtype === 'uid')
+							tmp = null;
 						response.push(tmp);
+					}
 					break;
 			}
 		}
@@ -522,6 +527,10 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 			case 'string':
 				tmp = check_string(prop, error, val, null, currentpath);
 				if (tmp != null) {
+
+					if (!tmp && prop.subtype === 'uid')
+						tmp = null;
+
 					response[key] = tmp;
 					count++;
 				}
@@ -578,6 +587,8 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 					// String
 					tmp = check_string(prop, error, val, null, currentpath);
 					if (tmp != null) {
+						if (!tmp && prop.subtype === 'uid')
+							value = null;
 						response[key] = tmp;
 						count++;
 					}

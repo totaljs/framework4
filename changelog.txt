@@ -3,6 +3,7 @@
 ========================
 
 - fixed parsing of nested JSON schemas defined
+- fixed `UID` parsing subtype in JSON schemas
 
 ========================
 0.0.78
