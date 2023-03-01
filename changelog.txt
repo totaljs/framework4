@@ -4,6 +4,7 @@
 
 - fixed parsing of nested JSON schemas defined
 - fixed `UID` parsing subtype in JSON schemas
+- improved error handling in the FlowStream
 
 ========================
 0.0.78

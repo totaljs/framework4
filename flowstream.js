@@ -657,6 +657,14 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var type = typeof(declaration);
 
 	if (type === 'string') {
+
+		if (!declaration) {
+			var e = new Error('Invalid component declaration');
+			callback && callback(e);
+			self.error(e, 'register', name);
+			return;
+		}
+
 		try {
 			declaration = new Function('instance', declaration);
 		} catch (e) {
@@ -1193,12 +1201,9 @@ FP.load = function(components, design, callback) {
 					next();
 				});
 			} else {
-				self.register(key, body, function(err) {
-					err && error.push(err);
-					next();
-				});
+				error.push('Invalid component: ' + key);
+				next();
 			}
-
 		}, function() {
 
 			// Loads design
@@ -1737,6 +1742,13 @@ FP.add = function(name, body, callback) {
 	var self = this;
 	var meta = body.parseComponent({ readme: '<readme>', settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', schema: '<schema>', template: '<template>' });
 	var node = (meta.be || meta.be2 || '');
+
+	if (!meta.be && !meta.be2) {
+		var e = new Error('Invalid component content');
+		self.error(e, 'add', name);
+		callback && callback(e);
+		return;
+	}
 
 	meta.id = name;
 	meta.checksum = HASH(node).toString(36);
