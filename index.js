@@ -300,7 +300,7 @@ global.NEWCALL = function(name, schema, callback) {
 	tmsrefresh_delay();
 };
 
-global.NEWSUBSCRIBE = function(name, value) {
+global.NEWSUBSCRIBE = function(name, value, callback) {
 
 	if (value) {
 		var schemaid = registerjsonschema(name, value);
@@ -310,6 +310,10 @@ global.NEWSUBSCRIBE = function(name, value) {
 		delete F.tms.subscribe_cache[name];
 
 	tmsrefresh_delay();
+
+	if (callback && typeof(callback) === 'function')
+		SUBSCRIBE(name, callback);
+
 };
 
 global.PUBLISH = function(name, value) {

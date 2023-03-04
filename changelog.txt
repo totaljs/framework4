@@ -3,6 +3,7 @@
 ========================
 
 - added `CONF.default_tms_maxlength` option
+- improved `NEWSUBSCRIBE(name, schema, [callback])` by adding the `callback` argument
 
 ========================
 0.0.79
