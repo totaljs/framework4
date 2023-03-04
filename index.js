@@ -2165,7 +2165,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4079;
+	self.is4 = self.version = 4080;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
@@ -2257,6 +2257,7 @@ function Framework() {
 		default_errorbuilder_status: 400,
 		default_errorbuilder_forxhr: true,
 		default_tms_url: '/$tms/',
+		default_tms_maxlength: 1024, // max. 1 MB
 
 		// Default originators
 		default_cors: null,
@@ -20158,7 +20159,7 @@ NEWCOMMAND('refresh_tms', function() {
 	}
 
 	if ((is && endpoint && CONF.allow_tms) || (endpoint && CONF.allow_tms && !F.tms.route))
-		F.tms.route = ROUTE('SOCKET ' + endpoint, tmscontroller);
+		F.tms.route = ROUTE('SOCKET ' + endpoint, tmscontroller, [], CONF.default_tms_maxlength);
 
 	F.tms.url = endpoint;
 
