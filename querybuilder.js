@@ -1176,16 +1176,19 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 		var obj = {};
 		var arr = [];
 		var filter = [];
+		var localized = {};
 		tmp = schema.split(',').trim();
 
 		for (var i = 0; i < tmp.length; i++) {
 			var k = tmp[i].split(':').trim();
 			obj[k[0]] = 1;
 			arr.push(k[0]);
-			filter.push({ name: k[0], type: (k[1] || 'string').toLowerCase() });
+			var cleaned = k[0].replace(/§/g, '');
+			localized[cleaned] = k[0];
+			filter.push({ name: cleaned, type: (k[1] || 'string').toLowerCase() });
 		}
 
-		allowed = CACHE[key] = { keys: arr, meta: obj, filter: filter };
+		allowed = CACHE[key] = { keys: arr, meta: obj, filter: filter, fields: localized };
 	}
 
 	var fields = query.fields;
@@ -1211,7 +1214,7 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 
 	if (allowed && allowed.filter) {
 		for (var item of allowed.filter)
-			t.gridfilter(item.name, query, item.type);
+			t.gridfilter(item.name, query, item.type, allowed.fields[item.name]);
 	}
 
 	if (query.sort) {
