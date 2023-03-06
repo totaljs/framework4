@@ -1002,7 +1002,7 @@ QBP.sort = function(sort, type) {
 	return t;
 };
 
-QBP.gridsort = function(sort) {
+QBP.gridsort = function(sort, localized) {
 
 	var t = this;
 
@@ -1012,8 +1012,24 @@ QBP.gridsort = function(sort) {
 	var keys = sort.split(',');
 	for (var key of keys) {
 		key = key.trim();
+
 		var index = key.lastIndexOf('_');
-		t.options.sort.push(index === -1 ? (key + '_asc') : key);
+		var field = '';
+		var sort = '';
+
+		if (index === -1) {
+			field = key;
+			sort = 'asc';
+		} else {
+			field = key.substring(0, index);
+			sort = key.substring(index + 1);
+		}
+
+		if (localized && localized[field])
+			field = localized[field];
+
+		//t.options.sort.push(index === -1 ? (key + '_asc') : key);
+		t.options.sort.push(field + '_' + sort);
 	}
 
 	return t;
@@ -1181,9 +1197,9 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 
 		for (var i = 0; i < tmp.length; i++) {
 			var k = tmp[i].split(':').trim();
-			obj[k[0]] = 1;
 			arr.push(k[0]);
 			var cleaned = k[0].replace(/§/g, '');
+			obj[cleaned] = 1;
 			localized[cleaned] = k[0];
 			filter.push({ name: cleaned, type: (k[1] || 'string').toLowerCase() });
 		}
@@ -1229,15 +1245,15 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 			if ((skipped && skipped[name]) || (!allowed.meta[name]))
 				continue;
 
-			t.sort(name, item[index + 1] === 'd');
+			t.sort(allowed.fields[name], item[index + 1] === 'd');
 			count++;
 		}
 
 		if (!count && defsort)
-			t.gridsort(defsort);
+			t.gridsort(defsort, allowed.fields);
 
 	} else if (defsort)
-		t.gridsort(defsort);
+		t.gridsort(defsort, allowed.fields);
 
 	maxlimit && t.paginate(query.page, query.limit, maxlimit);
 	return t;
