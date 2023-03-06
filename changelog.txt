@@ -4,6 +4,7 @@
 
 - added `CONF.default_tms_maxlength` option
 - improved the `NEWSUBSCRIBE(name, schema, [callback])` method by adding the `callback` argument
+- added `inmemory` database support for `QueryBuilder`
 
 ========================
 0.0.79

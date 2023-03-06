@@ -7,7 +7,6 @@ const REG_LANGUAGE = /[a-z0-9]+§/gi;
 const CANSTATS = global.F ? (global.F.stats && global.F.stats.performance && global.F.stats.performance.dbrm != null) : false;
 const LOGGER = '-- NoSQL -->';
 const FILTER = { find: 1, read: 1, count: 1, scalar: 1, check: 1, list: 1, update: 1, remove: 1, query: 1 };
-const TextDB = require('./textdb');
 const Open = {};
 
 function db_where(where, opt, filter, operator, args) {
@@ -312,7 +311,21 @@ NEWDB('nosql', function($, next) {
 
 	if (!Open[key]) {
 		var filename = $.table[0] === '~' ? $.table.substring(1) : PATH.databases($.table + '.' + type);
-		Open[key] = TextDB.JsonDB(filename, false);
+		Open[key] = require('./textdb').JsonDB(filename, false);
+		Open[key].$qbkey = key;
+	}
+
+	makefilter(Open[key], $, next);
+});
+
+NEWDB('inmemory', function($, next) {
+
+	var type = 'inmemory';
+	var key = type + '_' + $.table;
+
+	if (!Open[key]) {
+		var filename = $.table[0] === '~' ? $.table.substring(1) : PATH.databases($.table + '.' + type);
+		Open[key] = require('./inmemory').load(filename);
 		Open[key].$qbkey = key;
 	}
 
