@@ -2637,6 +2637,13 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 				return;
 			}
 
+			if (action.sa) {
+				if (!$.user || (!$.user.sa && !$.user.su)) {
+					$.invalid(401);
+					return;
+				}
+			}
+
 			// Check permissions
 			if (action.permissions) {
 				var permissions = action.permissions.slice(0);

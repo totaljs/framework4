@@ -6,6 +6,7 @@
 - improved the `NEWSUBSCRIBE(name, schema, [callback])` method by adding the `callback` argument
 - added `inmemory` database support for `QueryBuilder`
 - fixed localized filters in `QueryBuilder.autoquery()`
+- extended the `schema.action({ ..sa: true }, ...)` method by adding `sa` option
 
 ========================
 0.0.79
