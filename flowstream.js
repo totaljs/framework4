@@ -1406,10 +1406,22 @@ FP._use = function(schema, callback, reinit, insert) {
 			for (var key in self.meta.flow) {
 				var instance = self.meta.flow[key];
 				if (instance.newbie) {
-					instance.init && instance.init();
+					if (instance.init) {
+						try {
+							instance.init();
+						} catch (e) {
+							self.onerror.call(instance, e, 'instance_init', key);
+						}
+					}
 					instance.newbie = false;
 				}
-				instance.refresh && instance.refresh();
+				if (instance.refresh) {
+					try {
+						instance.refresh();
+					} catch (e) {
+						self.onerror.call(instance, e, 'instance_refresh', key);
+					}
+				}
 			}
 
 			self.loading--;

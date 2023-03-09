@@ -7,6 +7,7 @@
 - added `inmemory` database support for `QueryBuilder`
 - fixed localized filters in `QueryBuilder.autoquery()`
 - extended the `schema.action({ ..sa: true }, ...)` method by adding `sa` option
+- improved error handling in the `FlowStream`
 
 ========================
 0.0.79
