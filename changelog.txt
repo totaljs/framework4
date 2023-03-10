@@ -9,6 +9,7 @@
 - extended the `schema.action({ ..sa: true }, ...)` method by adding `sa` option
 - improved error handling in the `FlowStream`
 - fixed parsing inline JSON schemas
+- added `wav` as the allowed static file
 
 ========================
 0.0.79
