@@ -10,6 +10,7 @@
 - improved error handling in the `FlowStream`
 - fixed parsing inline JSON schemas
 - added `wav` as the allowed static file
+- added support for the `.ui` file extension (json --> UI builder)
 
 ========================
 0.0.79

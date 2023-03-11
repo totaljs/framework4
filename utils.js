@@ -152,6 +152,7 @@ var CONTENTTYPES = {
 	jpg: 'image/jpeg',
 	js: 'text/javascript',
 	json: 'application/json',
+	ui: 'application/json', // UI builder
 	jsx: 'text/jsx',
 	less: 'text/css',
 	m3u8: 'application/x-mpegURL',
