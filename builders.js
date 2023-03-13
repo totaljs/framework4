@@ -1492,8 +1492,11 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	name = name.trim();
 
+	!self.actions && (self.actions = {});
+
 	!self.workflows && (self.workflows = {});
 	self.workflows[name] = obj.action || obj.exec;
+	self.actions[name] = obj;
 
 	if (obj.filter)
 		obj.query = obj.filter;
