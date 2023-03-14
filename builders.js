@@ -240,9 +240,9 @@ SchemaOptionsProto.action = function(schema, data) {
 	var tmp = F.temporary.exec[key];
 
 	if (!tmp) {
-		if (schema.indexOf('-->') === -1)
+		if (schema.indexOf('-->') === -1 && this.schema)
 			schema = this.schema.name + ' --> ' + schema;
-		F.temporary.exec[key] = tmp = schema;
+		F.temporary.exec[key] = tmp = schema.trim();
 	}
 
 	return CALL(tmp, data);
@@ -422,6 +422,7 @@ SchemaOptionsProto.done = function(arg) {
 };
 
 SchemaOptionsProto.invalid = function(name, error, path, index) {
+
 	var self = this;
 
 	if (arguments.length) {
@@ -1535,6 +1536,12 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 		return jsonschema ? jsonschema.transform(value, null, partial) : { error: null, response: value };
 	};
 
+	if (obj.route) {
+		if (obj.route.indexOf('-->') === -1)
+			obj.route += '  ' + self.name + ' --> ' + name;
+		obj.$route = ROUTE(obj.route);
+	}
+
 	self.meta['workflow_' + name] = 2;
 	self.meta['workflowaction_' + name] = obj;
 	return self;
@@ -2502,7 +2509,6 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 		response = arg[1];
 	}
 
-
 	var has = builder.is;
 	has && self.onError && self.onError(builder, model, type, name);
 
@@ -2599,11 +2605,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	var key = type + (name ? ('.' + name) : '');
 	var now;
 
-	if (CONF.logger)
-		now = Date.now();
-
 	var $ = new SchemaOptions(error, model, options, function(response) {
-		CONF.logger && F.ilogger(self.getLoggerName(type, name), $.controller, now);
 		self.$process(arguments, $.model, type, name, error, response, callback, $);
 	}, controller, key, self);
 
@@ -2817,9 +2819,6 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 	a.pending = 0;
 	a.type = '';
 
-	if (CONF.logger)
-		a.now = Date.now();
-
 	self.resourceName && error.setResource(self.resourceName);
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
 
@@ -2828,7 +2827,6 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 	var $ = new SchemaOptions(error, model, null, function(response) {
 		if (!$.initialized)
 			$.initialized = true;
-		CONF.logger && F.ilogger(self.getLoggerName(a.type, a.name), $.controller, a.now);
 		self.$process(arguments, $.model, a.type, a.name, error, response, proc, $);
 	}, controller, null, self);
 
@@ -5272,6 +5270,79 @@ global.TASK = function(taskname, name, callback, options, value, isprocessed) {
 	return obj;
 };
 
+global.NEWACTION = function(name, obj) {
+
+	if (typeof(name) === 'object') {
+		obj = name;
+		name = obj.id || obj.name;
+	}
+
+	name = name.trim();
+
+	// Helper for auto-routing due to older operations
+	F.$newoperations = true;
+
+	if (F.actions[name])
+		F.actions[name].remove();
+
+	F.actions[name] = obj;
+	obj.id = name;
+	obj.isaction = true;
+	obj.jsonschemainput = obj.input ? REGEXP_JSONSCHEMA.test(obj.input) ? obj.input.toJSONSchema(name + '_input') : F.jsonschemas[preparejsonschema(obj.input)] : null;
+	obj.jsonschemaoutput = obj.output ? REGEXP_JSONSCHEMA.test(obj.output) ? obj.output.toJSONSchema(name + '_output') : F.jsonschemas[preparejsonschema(obj.output)] : null;
+	obj.jsonschemaparams = obj.params ? REGEXP_JSONSCHEMA.test(obj.params) ? obj.params.toJSONSchema(name + '_params') : F.jsonschemas[preparejsonschema(obj.params)] : null;
+	obj.jsonschemaquery = obj.query ? REGEXP_JSONSCHEMA.test(obj.query) ? obj.query.toJSONSchema(name + '_query') : F.jsonschemas[preparejsonschema(obj.query)] : null;
+	obj.$owner = F.$owner();
+	obj.schema = {};
+	obj.schema.$csrf = obj.csrf;
+	obj.schema.$bodyencrypt = obj.encrypt;
+	obj.schema.$bodycompress = obj.compress;
+
+	if (obj.middleware)
+		obj.middleware = obj.middleware.replace(/,/g, ' ').replace(/\s{2,}/, ' ');
+
+	obj.remove = function() {
+		obj.$route && obj.$route.remove();
+		delete F.actions[obj.id];
+		obj = null;
+	};
+
+	if (obj.route) {
+		if (obj.route.indexOf('-->') === -1)
+			obj.route += '  *  --> ' + name;
+		obj.$route = ROUTE(obj.route);
+	}
+
+	if (obj.permissions && typeof(obj.permissions) === 'string')
+		obj.permissions = obj.permissions.split(/,|;/).trim();
+
+	if (obj.publish) {
+
+		var tmsschema = obj.publish == true ? (obj.input || obj.output) : obj.publish;
+
+		if (typeof(tmsschema) === 'string') {
+			if (tmsschema[0] === '+')
+				tmsschema = (obj.input || obj.output) + ',' + tmsschema.substring(1);
+
+			var keys = tmsschema.split(',');
+			obj.$publish = [];
+			for (var key of keys) {
+				var index = key.indexOf(':');
+				obj.$publish.push(index === -1 ? key : key.substring(0, index));
+			}
+		}
+
+		NEWPUBLISH(name, tmsschema);
+	}
+
+	obj.validate = function(type, value, partial) {
+		var jsonschema = this['jsonschema' + type];
+		return jsonschema ? jsonschema.transform(value, null, partial) : { error: null, response: value };
+	};
+
+	return obj;
+};
+
 global.NEWOPERATION = function(name, fn, repeat, stop, binderror, filter) {
 
 	if (typeof(repeat) === 'boolean') {
@@ -5465,9 +5536,6 @@ global.OPERATION = function(name, value, callback, param, controller, isprocesse
 	var error = new ErrorBuilder();
 	var $now;
 
-	if (CONF.logger)
-		$now = Date.now();
-
 	if (fn) {
 
 		if (fn.$filter && controller) {
@@ -5484,7 +5552,6 @@ global.OPERATION = function(name, value, callback, param, controller, isprocesse
 		self.$repeat = fn.$repeat;
 		self.callback = function(value) {
 
-			CONF.logger && F.ilogger(getLoggerNameOperation(name), controller, $now);
 			if (arguments.length > 1) {
 				if (value instanceof Error || (value instanceof ErrorBuilder && value.is)) {
 					self.error.push(value);
@@ -5560,8 +5627,6 @@ global.RUN = function(name, value, callback, param, controller, result) {
 
 	opt.callback = function(value) {
 
-		CONF.logger && F.ilogger(getLoggerNameOperation(opt.name), controller, opt.duration);
-
 		if (arguments.length > 1) {
 			if (value instanceof Error || (value instanceof ErrorBuilder && value.is)) {
 				opt.error.push(value);
@@ -5623,10 +5688,6 @@ global.RUN = function(name, value, callback, param, controller, result) {
 		opt.$current = fn;
 		opt.$next = next;
 		opt.meta.next = name[index];
-
-		if (CONF.logger)
-			opt.duration = Date.now();
-
 		fn(opt, opt.value);
 
 	}, () => callback(error.items.length ? error : null, result ? opt.output : opt.response, opt));
@@ -6429,7 +6490,6 @@ TaskBuilderProto.push = function(name, fn) {
 TaskBuilderProto.next = function() {
 	var self = this;
 	if (!self.$done) {
-		self.current && self.controller && CONF.logger && F.ilogger((self.name || 'tasks') + '.' + self.current, self.controller, self.$now);
 		self.prev = self.current;
 		for (var i = 0; i < arguments.length; i++) {
 			self.current = arguments[i];
@@ -6497,13 +6557,8 @@ TaskBuilderProto.callback = function(fn) {
 
 TaskBuilderProto.exec = function(name, callback) {
 	var self = this;
-
 	if (callback)
 		self.$callback = callback;
-
-	if (CONF.logger)
-		self.$now = Date.now();
-
 	self.next(name);
 	return self;
 };
@@ -6598,7 +6653,7 @@ SCP.exec = function() {
 			controller.$checkcsrf = 2;
 	}
 
-	if (self.options.model) {
+	if (!meta.action && self.options.model) {
 		meta.schema.make(self.options.model, function(err, response) {
 			if (err) {
 				self.options.callback(err);
@@ -6611,6 +6666,173 @@ SCP.exec = function() {
 		performsschemaaction(self);
 
 };
+
+function evaloperation($, name, meta, skipmiddleware) {
+
+	var action = F.actions[name];
+
+	if (!action) {
+		$.invalid('Action "{0}" not found'.format(name));
+		return;
+	}
+
+	$.ID = name;
+	$.name = name;
+	$.query = $.cache.query;
+	$.params = $.cache.params;
+
+	// Check a user session
+	if (action.user && !$.user) {
+		$.invalid(401);
+		return;
+	}
+
+	if (action.sa) {
+		if (!$.user || (!$.user.sa && !$.user.su)) {
+			$.invalid(401);
+			return;
+		}
+	}
+
+	// Check permissions
+	if (action.permissions) {
+		var permissions = action.permissions.slice(0);
+		permissions.unshift($);
+		if (UNAUTHORIZED.apply(global, permissions)) {
+			return;
+		}
+	}
+
+	if (!skipmiddleware && action.middleware) {
+		CALL(meta.symbol + action.middleware, $.model, $.controller).callback(function(err, response) {
+
+			if (err) {
+				$.invalid(err);
+				return;
+			}
+
+			for (var key in response)
+				$.responses[key] = response[key];
+
+			evaloperation($, name, meta, true);
+		});
+		return;
+	}
+
+	var res;
+
+	if (action.jsonschemainput) {
+
+		res = action.validate('input', $.model, meta.method === 'PATCH' || ($.controller && $.controller.req && $.controller.req.keys));
+
+		if (res.error) {
+			$.invalid(res.error);
+			return;
+		}
+
+		$.model = res.response;
+	}
+
+	if (action.jsonschemaquery) {
+		res = action.validate('query', $.query);
+		if (res.error) {
+			for (var item of res.error.items)
+				item.name = 'query.' + item.name;
+			$.invalid(res.error);
+			return;
+		}
+		$.query = res.response;
+	}
+
+	if (action.jsonschemaparams) {
+		res = action.validate('params', $.params);
+		if (res.error) {
+			for (var item of res.error.items)
+				item.name = 'params.' + item.name;
+			$.invalid(res.error);
+			return;
+		}
+		$.params = res.response;
+	}
+
+	$.$action = action;
+	action.action.call($, $, $.model);
+}
+
+function callnewoperation(caller, meta) {
+
+	var error = new ErrorBuilder();
+	var $ = new SchemaOptions(error, caller.options.model, null, function(a, b) {
+
+		var response = null;
+
+		if (a) {
+			if (a instanceof Error || a instanceof ErrorBuilder)
+				error.push(a);
+			else
+				response = a;
+		} else
+			response = b;
+
+		if (error.items.length) {
+			caller.options.callback(error.items.length ? error : null);
+			return;
+		}
+
+		if (response && $.$action && $.$action.jsonschemaoutput)
+			response = $.$action.jsonschemaoutput.transform(response).response;
+
+		if (meta.multiple) {
+
+			$.responses[$.current] = response;
+			$.index++;
+
+			var next = meta.op[$.index];
+			if (next) {
+				$.current = next.name;
+				evaloperation($, $.current, caller.meta);
+				return;
+			} else
+				response = meta.opcallback ? $.responses[meta.opcallback] : $.responses;
+		}
+
+		caller.options.callback(error.items.length ? error : null, response);
+
+	}, caller.options.controller, '');
+
+	var additional = caller.options;
+	var controller = caller.options.controller;
+
+	$.cache = {};
+
+	if (additional && additional.params)
+		$.cache.params = additional.params;
+	else
+		$.cache.params = controller ? controller.params : {};
+
+	if (additional && additional.query)
+		$.cache.query = additional.query;
+	else
+		$.cache.query = controller ? controller.query : {};
+
+	if (additional && additional.user)
+		$.user = additional.user;
+	else
+		$.user = controller ? controller.user : null;
+
+	if (additional && additional.session)
+		$.session = additional.session;
+	else
+		$.session = controller ? controller.session : {};
+
+	$.multiple = meta.multiple;
+
+	if ($.multiple)
+		$.index = 0;
+
+	$.current = meta.op[0].name;
+	evaloperation($, $.current, caller.meta);
+}
 
 function performsschemaaction(caller) {
 
@@ -6632,7 +6854,9 @@ function performsschemaaction(caller) {
 		};
 	}
 
-	if (meta.multiple) {
+	if (meta.action) {
+		callnewoperation(caller, meta);
+	} else if (meta.multiple) {
 		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller, null, true);
 		for (var i = 0; i < meta.op.length; i++)
 			add(meta.op[i].name);
@@ -6708,7 +6932,7 @@ global.CALL = function(schema, model, controller) {
 		controller = controller.controller;
 
 	var caller = new SchemaCall();
-	var key = '_' + schema;
+	var key = schema;
 
 	caller.options.model = model;
 	caller.options.controller = controller;
@@ -6721,6 +6945,9 @@ global.CALL = function(schema, model, controller) {
 
 	var method;
 
+	meta = {};
+	meta.symbol = schema[0];
+
 	switch (schema[0]) {
 		case '+':
 			method = 'POST';
@@ -6731,31 +6958,45 @@ global.CALL = function(schema, model, controller) {
 		case '-':
 			method = 'GET';
 			break;
+		default:
+			meta.symbol = '-';
+			break;
 	}
+
 
 	if (method)
 		schema = schema.substring(1);
 
-	var tmp, index;
+	var tmp, index, op;
 
 	index = schema.indexOf('-->');
 
-	var op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
-	tmp = schema.substring(0, index).split(/\s|\t/).trim();
+	if (index === -1) {
+		// operation
+		op = schema.split(/\s/).trim();
+		tmp = '*';
+	} else {
+		op = (schema.substring(index + 3).trim().trim().replace(/@/g, '') + ' ').split(/\s/).trim();
+		tmp = schema.substring(0, index).split(/\s|\t/).trim();
+	}
 
-	meta = {};
 	meta.method = method;
 	meta.schema = tmp[0];
 
 	if (meta.schema[0] === '*')
-		meta.schema = meta.schema.substring(1);
+		meta.schema = meta.schema.substring(1).trim();
 
+	meta.action = !meta.schema;
 	meta.op = [];
 
-	var o = GETSCHEMA(meta.schema);
-	if (!o) {
-		caller.$error = 'Schema "{0}" not found'.format(meta.schema);
-		return caller;
+	var o;
+
+	if (meta.schema) {
+		var o = GETSCHEMA(meta.schema);
+		if (!o) {
+			caller.$error = 'Schema "{0}" not found'.format(meta.schema);
+			return caller;
+		}
 	}
 
 	meta.operations = {};
@@ -6774,10 +7015,17 @@ global.CALL = function(schema, model, controller) {
 			meta.opcallbackindex = i - 1;
 			tmp.response = true;
 			item = item.substring(0, index).trim();
+			meta.opcallback = meta.op[meta.opcallbackindex].name;
 			continue;
 		}
 
 		tmp.name = item;
+
+		if (meta.action) {
+			meta.operations[item] = 1;
+			meta.op.push(tmp);
+			continue;
+		}
 
 		if (!o.meta[item]) {
 
@@ -6795,7 +7043,7 @@ global.CALL = function(schema, model, controller) {
 					tmp.name = item = 'query';
 
 				if (!o.meta[item]) {
-					caller.$error = 'Schema "{0}" doesn\'t contain "{1}" operation.'.format(meta.schema, item);
+					caller.$error = 'Schema "{0}" doesn\'t contain "{1}" operation'.format(meta.schema, item);
 					return caller;
 				}
 			}
@@ -6806,7 +7054,9 @@ global.CALL = function(schema, model, controller) {
 	}
 
 	meta.multiple = meta.op.length > 1;
-	meta.schema = o;
+
+	if (!meta.action)
+		meta.schema = o;
 
 	F.temporary.exec[key] = meta;
 	caller.meta = meta;

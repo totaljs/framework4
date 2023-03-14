@@ -162,6 +162,7 @@ function runwatching() {
 			Path.join(directory, CONF.directory_builds),
 			Path.join(directory, CONF.directory_jsonschemas),
 			Path.join(directory, CONF.directory_schemas),
+			Path.join(directory, CONF.directory_actions),
 			Path.join(directory, CONF.directory_tasks),
 			Path.join(directory, CONF.directory_resources),
 			Path.join(directory, CONF.directory_source),

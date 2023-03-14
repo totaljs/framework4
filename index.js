@@ -76,6 +76,7 @@ const BLACKLIST_AUDIT = { password: 1, token: 1, accesstoken: 1, access_token: 1
 const isTYPESCRIPT = (/\.ts$/).test(process.argv[1]);
 const SOCKETWINDOWS = '\\\\?\\pipe';
 const SESSIONSEPARATOR = '\0';
+const CALLMETHOD = { POST: '+', PUT: '+', PATCH: '#' };
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -2204,6 +2205,7 @@ function Framework() {
 		directory_plugins: '/plugins/',
 		directory_temp: '/tmp/',
 		directory_models: '/models/',
+		directory_actions: '/actions/',
 		directory_schemas: '/schemas/',
 		directory_extensions: '/extensions/',
 		directory_jsonschemas: '/jsonschemas/',
@@ -2310,7 +2312,6 @@ function Framework() {
 
 		textdb_worker: false,
 		textdb_inmemory: 0, // in MB
-		logger: false,
 
 		mail_smtp_keepalive: '10 minutes',
 
@@ -2398,6 +2399,7 @@ function Framework() {
 	self.openclients = {};
 	self.ui = {};
 	self.jsonschemas = {};
+	self.actions = {};
 	self.tms = { subscribers: {}, publish_cache: {}, subscribe_cache: {}, publishers: {}, calls: {} };
 	self.databases = {};
 	self.directory = HEADERS.workers2.cwd = HEADERS.workers.cwd = HEADERS.worker_threads.cwd = directory;
@@ -4035,11 +4037,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	}
 
 	if (workflow) {
-		var tmpa = workflow.replace(/,/g, ' ').replace(/@/g, '').split(' ').trim();
+		var winline = workflow.replace(/,/g, ' ').replace(/@/g, '');
+		var tmpa = winline.split(' ').trim();
 		var rindex = tmpa.indexOf('(response)');
 		if (rindex !== -1)
 			tmpa.splice(rindex, 1);
-		workflow = { id: tmpa.length > 1 ? tmpa : tmpa[0], index: rindex === -1 ? null : rindex - 1 };
+		workflow = { id: tmpa.length > 1 ? tmpa : tmpa[0], index: rindex === -1 ? null : rindex - 1, actions: winline };
 	}
 
 	if (type === 'string') {
@@ -5905,6 +5908,16 @@ F.$load = function(types, targetdirectory, callback) {
 		});
 	}
 
+	if (can('actions') && CONF.directory_actions) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/actions/' : CONF.directory_actions);
+			arr = [];
+			listing(dir, 0, arr);
+			arr.forEach(item => dependencies.push(next => install('action', item.name, item.filename, next)));
+			resume();
+		});
+	}
+
 	if (can('tasks') && CONF.directory_tasks) {
 		operations.push(function(resume) {
 			dir = U.combine(targetdirectory, isPackage ? '/tasks/' : CONF.directory_tasks);
@@ -6067,27 +6080,38 @@ F.$load = function(types, targetdirectory, callback) {
 									});
 								}
 
-								path = PATH.root('plugins/' + plugin + CONF.directory_schemas);
+								path = PATH.root('plugins/' + plugin + CONF.directory_actions);
 								U.ls(path, function(items) {
 
 									if (items) {
 										items.forEach(function(item) {
 											if (item.substring(item.length - 3) === SCRIPTEXT)
-												dependencies.push(next => install('schema', U.getName(item).replace(/\.js$/i, ''), item, next));
+												dependencies.push(next => install('action', U.getName(item).replace(/\.js$/i, ''), item, next));
 										});
 									}
 
-									path = PATH.root('plugins/' + plugin + CONF.directory_tasks);
+									path = PATH.root('plugins/' + plugin + CONF.directory_schemas);
 									U.ls(path, function(items) {
 
 										if (items) {
 											items.forEach(function(item) {
 												if (item.substring(item.length - 3) === SCRIPTEXT)
-													dependencies.push(next => install('task', U.getName(item).replace(/\.js$/i, ''), item, next));
+													dependencies.push(next => install('schema', U.getName(item).replace(/\.js$/i, ''), item, next));
 											});
 										}
 
-										next();
+										path = PATH.root('plugins/' + plugin + CONF.directory_tasks);
+										U.ls(path, function(items) {
+
+											if (items) {
+												items.forEach(function(item) {
+													if (item.substring(item.length - 3) === SCRIPTEXT)
+														dependencies.push(next => install('task', U.getName(item).replace(/\.js$/i, ''), item, next));
+												});
+											}
+
+											next();
+										});
 									});
 								});
 							});
@@ -6434,7 +6458,7 @@ function install(type, name, filename, next) {
 		delete m.install;
 	}
 
-	if (type !== 'model' && type !== 'schema' && type !== 'middleware' && type !== 'operation' && type !== 'task' && type !== 'definition')
+	if (type !== 'model' && type !== 'schema' && type !== 'action' && type !== 'middleware' && type !== 'operation' && type !== 'task' && type !== 'definition')
 		F.routes_sort();
 
 	next && internal_next(next);
@@ -14659,8 +14683,6 @@ ControllerProto.callback = function(view) {
 	var self = this;
 	return function(err, data) {
 
-		CONF.logger && self.req.$logger && F.ilogger(null, self.req);
-
 		if (self.res && self.res.success)
 			return;
 
@@ -19549,9 +19571,6 @@ function async_middleware(index, req, res, middleware, callback, options, contro
 	var output;
 	var $now;
 
-	if (CONF.logger)
-		$now = Date.now();
-
 	var opt = req.$total_middleware;
 
 	if (!index || !opt) {
@@ -19563,7 +19582,6 @@ function async_middleware(index, req, res, middleware, callback, options, contro
 		opt.controller = controller;
 		opt.callback2 = callback;
 		opt.next = function(err) {
-			CONF.logger && F.ilogger(getLoggerMiddleware(name), req, $now);
 			var mid = req.$total_middleware;
 			if (err === false) {
 				req.$total_route && req.$total_success();
@@ -19759,13 +19777,15 @@ function controller_json_workflow(id) {
 	var w = self.route.workflow;
 
 	self.id = self.route.paramidindex === -1 ? id : self.req.split[self.route.paramidindex];
-	CONF.logger && (self.req.$logger = []);
 
 	if (!w.type) {
 
 		// IS IT AN OPERATION?
 		if (!self.route.schema.length) {
-			OPERATION(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
+			if (F.$newoperations)
+				CALL((CALLMETHOD[self.method] || '-') + ' ' + w.actions, self.body, self).callback(w.view ? self.callback(w.view) : self.callback());
+			else
+				OPERATION(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
 			return;
 		}
 
@@ -19827,11 +19847,13 @@ function controller_json_workflow_multiple(id) {
 	var w = self.route.workflow;
 
 	self.id = self.route.paramidindex === -1 ? id : self.req.split[self.route.paramidindex];
-	CONF.logger && (self.req.$logger = []);
 
 	// IS IT AN OPERATION?
 	if (!self.route.schema.length) {
-		RUN(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), null, self, w.index != null ? w.id[w.index] : null);
+		if (F.$newoperations)
+			CALL((CALLMETHOD[self.method] || '-') + ' ' + w.actions, self.body, self).callback(w.view ? self.callback(w.view) : self.callback());
+		else
+			RUN(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), null, self, w.index != null ? w.id[w.index] : null);
 		return;
 	}
 
@@ -19855,66 +19877,6 @@ function controller_json_workflow_multiple(id) {
 	} else
 		self.throw500('Schema "{0}" not found.'.format(getSchemaName(self.route.schema, self.isDYNAMICSCHEMA ? self.params : null)));
 }
-
-function ilogger(body) {
-	PATH.verify('logs');
-	U.queue('F.ilogger', 5, function(next) {
-		F.stats.performance.open++;
-		Fs.appendFile(U.combine(CONF.directory_logs, 'logger.log'), body, next);
-	});
-}
-
-F.ilogger = function(name, req, ts) {
-
-	if (req && req instanceof Controller)
-		req = req.req;
-
-	var isc = CONF.logger === 'console';
-	var divider = '';
-
-	for (var i = 0; i < (isc ? 64 : 220); i++)
-		divider += '-';
-
-	var msg;
-
-	if (req && !name && req.$logger && req.$logger.length) {
-
-		msg = req.method + ' ' + req.url;
-
-		req.$logger.unshift(msg);
-		req.$logger.push(divider);
-
-		if (isc)
-			console.log(req.$logger.join('\n'));
-		else {
-			req.$logger.push('');
-			ilogger(req.$logger.join('\n'));
-		}
-
-		req.$logger = null;
-		return;
-	}
-
-	if (!name)
-		return;
-
-	var dt = new Date();
-
-	msg = dt.format('yyyy-MM-dd HH:mm:ss') + ' | ' + name.padRight(40, ' ') + ' | ' + (((dt.getTime() - ts) / 1000).format(3) + ' sec.').padRight(12) + ' | ' + (req ? (req.method + ' ' + req.url).max(70) : '').padRight(70);
-
-	if (isc) {
-		if (req && req.$logger)
-			req.$logger.push(msg);
-		else
-			console.log(msg + '\n' + divider);
-	} else {
-		msg = msg + ' | ' + (req ? (req.ip || '') : '').padRight(20) + ' | ' + (req && req.headers ? (req.headers['user-agent'] || '') : '');
-		if (req && req.$logger)
-			req.$logger.push(msg);
-		else
-			ilogger(msg + '\n' + divider + '\n');
-	}
-};
 
 function evalroutehandleraction(controller) {
 	if (controller.route.isPARAM) {

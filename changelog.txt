@@ -3,6 +3,8 @@
 ========================
 
 - extended the schema object by adding `.actions = {}` property (with all defined actions)
+- added `NEWACTION()` method that offers awesome functionality for independent actions in the schema
+- removed unused `CONF.logger`
 
 ========================
 0.0.80
