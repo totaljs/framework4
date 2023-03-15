@@ -3567,7 +3567,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var apiparams;
 	var apischema;
 	var apimethod;
-	var apinew;
 
 	if (url instanceof Array) {
 		for (var u of url)
@@ -3662,11 +3661,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 
 			!flags && (flags = []);
 
-			if (text.indexOf('*') !== -1) {
+			if (text.indexOf('*') !== -1)
 				apischema = text.trim();
-				if (apischema === '*')
-					apinew = true;
-			}
 
 			flags.push(text.trim());
 
@@ -4030,6 +4026,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		method = 'get';
 	}
 
+	// Without action
+	if (apiname && !workflow)
+		workflow = apiname;
+
 	if (workflow) {
 		var winline = workflow.replace(/,/g, ' ').replace(/@/g, '');
 		var tmpa = winline.split(' ').trim();
@@ -4203,7 +4203,10 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (!F.routes.api[tmpapi])
 			F.routes.api[tmpapi] = {};
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + ' ' + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true };
+		if (apiname && !apischema)
+			apischema = '*  -->  ' + apiname;
+
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
