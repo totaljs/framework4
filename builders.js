@@ -6971,7 +6971,7 @@ global.CALL = function(schema, model, controller) {
 			method = 'GET';
 			break;
 		default:
-			meta.symbol = '-';
+			meta.symbol = model ? '+' : '-';
 			break;
 	}
 
