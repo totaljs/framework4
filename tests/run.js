@@ -560,9 +560,9 @@ tests.push(function(next) {
 
 	});
 
-	// API Routes
+	// API Routes: Schemas
 	subtests.push(function(next) {
-		subtest_name = 'API Routes';
+		subtest_name = 'API Routes: Schemas';
 		subtest_log = log(subtest_name, 1, true);
 		console.log(subtest_log);
 
@@ -658,7 +658,117 @@ tests.push(function(next) {
 
 			RESTBuilder.API(url + route_path, 'api_keys_multi', data).exec(function(err, res) {
 				Assert.ok(!err && res && res.value && res.value.includes(data.valid) && !res.value.includes(data.invalid), subtest_name + ' - PATCH - Multiple operation keys');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
 
+		// Run
+		tests.wait(function(item, next) {
+			item(next);
+		}, next);
+
+	});
+
+	// API Routes: Actions
+	subtests.push(function(next) {
+
+		F.$newoperations = true;
+		subtest_name = 'API Routes: Actions';
+		subtest_log = log(subtest_name, 1, true);
+		console.log(subtest_log);
+
+		var route_path = '/v1/';
+		var tests = [];
+
+		// Basic
+		tests.push(function(next) {
+			test_name = 'Basic';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			RESTBuilder.API(url + route_path, 'api_action_basic').exec(function(err, res) {
+				Assert.ok(err === null && res.success, subtest_name + ' - ' + test_name);
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Data validation (+)
+		tests.push(function(next) {
+			test_name = 'Validation (+)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_action_validation', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value && res.value.valid === data.valid, subtest_name + ' - ' + test_name + ' - cannot be error');
+				Assert.ok(res.value.invalid !== data.invalid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Without data validation (-)
+		tests.push(function(next) {
+			test_name = 'Validation (-)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_action_novalidation', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value && res.value.valid !== data.valid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				Assert.ok(res.value.invalid !== data.invalid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Patch validation (#)
+		tests.push(function(next) {
+			test_name = 'Patch validation (#)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_action_patch', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success && res.value.valid === data.valid, subtest_name + ' - cannot be error');
+				Assert.ok(res.value.invalid !== data.invalid, subtest_name + ' - ' + test_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Patch Keys
+		tests.push(function(next) {
+			test_name = 'Patch keys';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_action_keys', data).exec(function(err, res) {
+				Assert.ok(err === null && res.success, subtest_name + ' - cannot be error');
+				Assert.ok(res.value.includes('valid'), subtest_name + ' - cannot be error');
+				Assert.ok(!res.value.includes('invalid'), subtest_name + ' - cannot be returned');
+				console.timeEnd(test_log);
+				next();
+			});
+		});
+
+		// Patch Keys - Multioperation
+		tests.push(function(next) {
+			test_name = 'Patch keys (multioperation)';
+			test_log = log(test_name, 2);
+			console.time(test_log);
+
+			var data = { valid: 'valid', invalid: 'invalid' };
+
+			RESTBuilder.API(url + route_path, 'api_action_keys_multi', data).exec(function(err, res) {
+				Assert.ok(!err && res && res.value && res.value.includes(data.valid) && !res.value.includes(data.invalid), subtest_name + ' - PATCH - Multiple operation keys');
 				console.timeEnd(test_log);
 				next();
 			});
@@ -1322,8 +1432,10 @@ tests.push(function(next) {
 
 });
 
-
 tests.push(function(next) {
+
+	F.$newoperations = false;
+
 	var group_name = 'Operations';
 	var group_log = log(group_name, 0, true);
 	var subtests = [];

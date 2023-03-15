@@ -3567,7 +3567,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	var apiparams;
 	var apischema;
 	var apimethod;
-	var apitransition = false;
+	var apinew;
 
 	if (url instanceof Array) {
 		for (var u of url)
@@ -3659,18 +3659,19 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		}).trim();
 
 		url = url.replace(/\s(\*|~)([{}a-z0-9}]|\s)?.*?$/i, function(text) {
+
 			!flags && (flags = []);
 
-			if (text.indexOf('*') !== -1)
+			if (text.indexOf('*') !== -1) {
 				apischema = text.trim();
-
-			if (text.indexOf('~') !== -1) {
-				apitransition = true;
-				apischema = text.trim();
+				if (apischema === '*')
+					apinew = true;
 			}
 
 			flags.push(text.trim());
+
 			return '';
+
 		}).trim();
 
 		var index = url.indexOf(' ');
@@ -3695,14 +3696,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			}
 
 			var apitmp = apiname[0];
-
-			if (apitmp === '+')
-				apimethod = 'POST';
-			else if (apitmp === '#')
-				apimethod = 'PATCH';
-			else
-				apimethod = 'GET';
-
+			apimethod = apitmp === '+' || apitmp === '#' ? apitmp : '-';
 			apiname = apiname.replace(/^(\+|-|#)/, '').trim();
 		}
 
@@ -3711,6 +3705,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			method.split(',').forEach(m => flags.push(m.trim()));
 			method = '';
 		}
+
 	}
 
 	if (url[0] === '#' && url.length > 1) {
@@ -3870,7 +3865,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				if (index !== -1) {
 					schema = workflow.substring(0, index).trim();
 					workflow = workflow.substring(index + 3).trim();
-					apitransition = first === '~';
 				} else {
 					schema = workflow;
 					workflow = null;
@@ -4209,7 +4203,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (!F.routes.api[tmpapi])
 			F.routes.api[tmpapi] = {};
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: apitransition ? apischema.substring(1) : (apimethod + ' ' + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, transition: apitransition };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + ' ' + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
@@ -4250,7 +4244,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	r.schema = schema;
 	r.novalidate = novalidate;
 	r.workflow = workflow;
-	r.transition = apitransition;
 	r.subdomain = subdomain;
 	r.description = description;
 	r.controller = CURRENT_CONTROLLER ? CURRENT_CONTROLLER : 'unknown';
@@ -6448,9 +6441,6 @@ function install(type, name, filename, next) {
 			m.id = name;
 			F.sources[name] = m;
 			break;
-		case 'transition':
-			NEWTRANSITION(m.name || name, m);
-			break;
 	}
 
 	if (m.install) {
@@ -6827,7 +6817,7 @@ DEF.onSchema = function(req, route, callback) {
 
 	var schema;
 
-	if (route.transition) {
+	if (route.newactions) {
 		callback(null, req.body);
 		return;
 	}
@@ -12910,6 +12900,7 @@ function controller_api() {
 
 	var schema = model.schema.split('/');
 	var s = api[schema[0].trim()];
+
 	if (!s) {
 		self.throw404('Schema not found');
 		return;
@@ -12976,16 +12967,9 @@ function controller_api() {
 	if (CONF.secret_csrf)
 		self.$checkcsrf = 1;
 
-	if (self.route.transition) {
-		var opt = TRANSITION(s.action, model.data, self.callback(), self);
-		opt.options.query = self.req._querydata;
-		opt.options.params = self.params;
-		opt.options.user = self.user;
-		opt.options.session = self.session;
-	} else {
-		// Evaluates action
-		EXEC(s.action, model.data, self.callback(), self);
-	}
+	// Evaluates action
+	CALL(s.action, model.data, self).callback(self.callback());
+	// EXEC(s.action, model.data, self.callback(), self);
 }
 
 function websocket_api(url, client, model, callback) {

@@ -2594,7 +2594,7 @@ SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, additional) {
+SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, additional, symbol) {
 
 	var error = new ErrorBuilder();
 	var self = this;
@@ -2603,7 +2603,6 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
 
 	var key = type + (name ? ('.' + name) : '');
-	var now;
 
 	var $ = new SchemaOptions(error, model, options, function(response) {
 		self.$process(arguments, $.model, type, name, error, response, callback, $);
@@ -2707,7 +2706,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 	if (controller && controller.req && controller.req.keys)
 		$.keys = controller.req.keys;
-	else if (type === 'patch') // Due to $PATCH() method
+	else if (type === 'patch' || symbol == '#') // Due to $PATCH() method
 		$.keys = Object.keys(model);
 	else
 		$.keys = null;
@@ -2805,7 +2804,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	return self;
 };
 
-SchemaBuilderEntityProto.async = function(model, callback, index, controller, additional, returnobject) {
+SchemaBuilderEntityProto.async = function(model, callback, index, controller, additional, returnobject, symbol) {
 
 	var self = this;
 	var error = new ErrorBuilder();
@@ -2879,6 +2878,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 		} else {
 
 			if (returnobject) {
+				$.responses[a.indexer] = response;
 				$.responses[a.name] = response;
 			} else {
 				$.responses[key] = response;
@@ -2969,7 +2969,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 			if (!skipkeys) {
 				if (controller && controller.req && controller.req.keys)
 					$.keys = controller.req.keys;
-				else if (a.type === 'patch') // Due to $PATCH() method
+				else if (a.type === 'patch' || symbol === '#') // Due to $PATCH() method
 					$.keys = Object.keys(model);
 				else
 					$.keys = null;
@@ -3008,6 +3008,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 				callback(null, tmp);
 
 			} else {
+
 				var res = $.responses[a.index];
 				if ($.events) {
 					$.events.error && $.emit('response', res);
@@ -6653,6 +6654,9 @@ SCP.exec = function() {
 			controller.$checkcsrf = 2;
 	}
 
+	if (meta.symbol === '-')
+		self.options.model = {};
+
 	if (!meta.action && self.options.model) {
 		meta.schema.make(self.options.model, function(err, response) {
 			if (err) {
@@ -6667,7 +6671,7 @@ SCP.exec = function() {
 
 };
 
-function evaloperation($, name, meta, skipmiddleware) {
+function evalaction($, name, meta, skipmiddleware) {
 
 	var action = F.actions[name];
 
@@ -6714,7 +6718,7 @@ function evaloperation($, name, meta, skipmiddleware) {
 			for (var key in response)
 				$.responses[key] = response[key];
 
-			evaloperation($, name, meta, true);
+			evalaction($, name, meta, true);
 		});
 		return;
 	}
@@ -6723,7 +6727,9 @@ function evaloperation($, name, meta, skipmiddleware) {
 
 	if (action.jsonschemainput) {
 
-		res = action.validate('input', $.model, meta.method === 'PATCH' || ($.controller && $.controller.req && $.controller.req.keys));
+		var ispatch = meta.method === 'PATCH' || ($.controller && $.controller.req && $.controller.req.keys);
+
+		res = action.validate('input', $.model || EMPTYOBJECT, $.ispatch);
 
 		if (res.error) {
 			$.invalid(res.error);
@@ -6731,10 +6737,13 @@ function evaloperation($, name, meta, skipmiddleware) {
 		}
 
 		$.model = res.response;
+
+		if (ispatch)
+			$.keys = Object.keys($.model);
 	}
 
 	if (action.jsonschemaquery) {
-		res = action.validate('query', $.query);
+		res = action.validate('query', $.query || EMPTYOBJECT);
 		if (res.error) {
 			for (var item of res.error.items)
 				item.name = 'query.' + item.name;
@@ -6745,7 +6754,7 @@ function evaloperation($, name, meta, skipmiddleware) {
 	}
 
 	if (action.jsonschemaparams) {
-		res = action.validate('params', $.params);
+		res = action.validate('params', $.params || EMPTYOBJECT);
 		if (res.error) {
 			for (var item of res.error.items)
 				item.name = 'params.' + item.name;
@@ -6759,7 +6768,7 @@ function evaloperation($, name, meta, skipmiddleware) {
 	action.action.call($, $, $.model);
 }
 
-function callnewoperation(caller, meta) {
+function callnewaction(caller, meta) {
 
 	var error = new ErrorBuilder();
 	var $ = new SchemaOptions(error, caller.options.model, null, function(a, b) {
@@ -6790,7 +6799,7 @@ function callnewoperation(caller, meta) {
 			var next = meta.op[$.index];
 			if (next) {
 				$.current = next.name;
-				evaloperation($, $.current, caller.meta);
+				evalaction($, $.current, caller.meta);
 				return;
 			} else
 				response = meta.opcallback ? $.responses[meta.opcallback] : $.responses;
@@ -6831,7 +6840,7 @@ function callnewoperation(caller, meta) {
 		$.index = 0;
 
 	$.current = meta.op[0].name;
-	evaloperation($, $.current, caller.meta);
+	evalaction($, $.current, caller.meta);
 }
 
 function performsschemaaction(caller) {
@@ -6855,17 +6864,18 @@ function performsschemaaction(caller) {
 	}
 
 	if (meta.action) {
-		callnewoperation(caller, meta);
+		callnewaction(caller, meta);
 	} else if (meta.multiple) {
-		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller, null, true);
+		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller, null, true, caller.meta.symbol);
 		for (var i = 0; i < meta.op.length; i++)
 			add(meta.op[i].name);
 	} else {
 		var op = meta.op[0];
-		if (op.type)
-			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, callback, true, caller.options);
-		else
-			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, callback, true, caller.options);
+		if (op.type) {
+			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, callback, true, caller.options, caller.meta.symbol);
+		} else {
+			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, callback, true, caller.options, caller.meta.symbol);
+		}
 	}
 }
 
@@ -6962,7 +6972,6 @@ global.CALL = function(schema, model, controller) {
 			meta.symbol = '-';
 			break;
 	}
-
 
 	if (method)
 		schema = schema.substring(1);
