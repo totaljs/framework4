@@ -6654,10 +6654,7 @@ SCP.exec = function() {
 			controller.$checkcsrf = 2;
 	}
 
-	if (meta.symbol === '-')
-		self.options.model = {};
-
-	if (!meta.action && self.options.model) {
+	if (!meta.action && meta.symbol !== '-' && self.options.model) {
 		meta.schema.make(self.options.model, function(err, response) {
 			if (err) {
 				self.options.callback(err);
@@ -6666,8 +6663,13 @@ SCP.exec = function() {
 				performsschemaaction(self);
 			}
 		}, null, null, null, meta.operations);
-	} else
+	} else {
+
+		if (meta.symbol === '-')
+			self.options.model = {};
+
 		performsschemaaction(self);
+	}
 
 };
 
