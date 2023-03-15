@@ -2660,7 +2660,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 
 			if (action.jsonschemainput) {
 
-				res = action.validate('input', model, type === 'patch' || (controller && controller.req && controller.req.keys));
+				res = action.validate('input', model, symbol === '#' || type === 'patch' || (controller && controller.req && controller.req.keys));
 
 				if (res.error) {
 					$.invalid(res.error);
