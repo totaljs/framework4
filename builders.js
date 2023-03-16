@@ -1509,6 +1509,9 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 	obj.jsonschemaparams = obj.params ? REGEXP_JSONSCHEMA.test(obj.params) ? obj.params.toJSONSchema(name + '_params') : F.jsonschemas[preparejsonschema(obj.params)] : null;
 	obj.jsonschemaquery = obj.query ? REGEXP_JSONSCHEMA.test(obj.query) ? obj.query.toJSONSchema(name + '_query') : F.jsonschemas[preparejsonschema(obj.query)] : null;
 
+	if (obj.cache)
+		obj.cache = parseactioncache(obj, obj.cache);
+
 	if (obj.permissions && typeof(obj.permissions) === 'string')
 		obj.permissions = obj.permissions.split(/,|;/).trim();
 
@@ -2513,8 +2516,13 @@ SchemaBuilderEntityProto.$process = function(arg, model, type, name, builder, re
 	has && self.onError && self.onError(builder, model, type, name);
 
 	var output = response === undefined ? model : response;
-	if ($ && $.$action && $.$action.jsonschemaoutput)
-		output = $.$action.validate('output', output).response;
+
+	if ($ && $.$action) {
+		if ($.$action.jsonschemaoutput)
+			output = $.$action.validate('output', output).response;
+		if ($.$action.cache)
+			$.$action.cache($, output);
+	}
 
 	if (callback) {
 		if (response !== NoOp)
@@ -2594,10 +2602,13 @@ SchemaBuilderEntityProto.workflow2 = function(name, opt, callback, controller) {
 	return self;
 };
 
-SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, additional, symbol) {
+SchemaBuilderEntityProto.exec = function(type, name, model, options, controller, callback, noprepare, caller) {
 
 	var error = new ErrorBuilder();
 	var self = this;
+
+	var additional = caller ? caller.options : null;
+	var symbol = caller ? caller.meta.symbol : null;
 
 	self.resourceName && error.setResource(self.resourceName);
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
@@ -2630,6 +2641,11 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 		$.session = additional.session;
 	else
 		$.session = controller ? controller.session : {};
+
+	if (caller) {
+		caller.action = action;
+		$.caller = caller;
+	}
 
 	if (type === 'workflow') {
 		var action = self.meta['workflowaction_' + name];
@@ -2693,6 +2709,14 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 			}
 
 			$.$action = action;
+
+			if (action.cache) {
+				var res = action.cache($);
+				if (res) {
+					callback(null, res);
+					return;
+				}
+			}
 		}
 	}
 
@@ -2760,7 +2784,6 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	}
 
 	var ref = self[ntype];
-
 	var item = ref ? (name ? ref[name] : ref) : undefined;
 
 	if (!item) {
@@ -2804,7 +2827,7 @@ SchemaBuilderEntityProto.perform = function(type, name, $, noprepare, nomiddlewa
 	return self;
 };
 
-SchemaBuilderEntityProto.async = function(model, callback, index, controller, additional, returnobject, symbol) {
+SchemaBuilderEntityProto.async = function(model, callback, index, controller, caller, returnobject) {
 
 	var self = this;
 	var error = new ErrorBuilder();
@@ -2817,6 +2840,9 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 	a.op = [];
 	a.pending = 0;
 	a.type = '';
+
+	var additional = caller ? caller.options : null;
+	var symbol = caller ? caller.meta.symbol : null;
 
 	self.resourceName && error.setResource(self.resourceName);
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
@@ -2855,6 +2881,11 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 		$.session = additional.session;
 	else
 		$.session = controller ? controller.session : {};
+
+	if (caller) {
+		$.caller = caller;
+		caller.$ = $;
+	}
 
 	var proc = function(err, response) {
 
@@ -2960,6 +2991,14 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ad
 							return;
 						}
 						$.params = res.response;
+					}
+
+					if (action.cache) {
+						res = action.cache($);
+						if (res) {
+							proc(null, res);
+							return;
+						}
 					}
 
 					$.$action = action;
@@ -5271,6 +5310,77 @@ global.TASK = function(taskname, name, callback, options, value, isprocessed) {
 	return obj;
 };
 
+function parseactioncache(obj, meta) {
+
+	var query = meta.query;
+	var user = meta.user;
+	var params = meta.params;
+	var language = meta.language;
+
+	if (typeof(user) === 'string')
+		user = user.split(',').trim();
+	else if (user === true)
+		user = ['id'];
+	else
+		user = null;
+
+	if (typeof(params) === 'string')
+		params = params.split(',').trim();
+	else if (params === true) {
+		if (obj.jsonschemaparams) {
+			params = [];
+			for (var key in obj.jsonschemaparams.properties)
+				params.push(key);
+		} else
+			params = null;
+	} else
+		params = null;
+
+	if (typeof(query) === 'string')
+		query = query.split(',').trim();
+	else if (query === true) {
+		if (obj.jsonschemaquery) {
+			query = [];
+			for (var key in obj.jsonschemaquery.properties)
+				query.push(key);
+		} else
+			query = null;
+	} else
+		query = null;
+
+	return function($, value) {
+		if (value === undefined) {
+
+			var key = 'ac_' + $.ID;
+			var sum = '';
+
+			if (language)
+				sum += ($.language || '');
+
+			if (query) {
+				for (let key of query)
+					sum += $.query[key] + '';
+			}
+
+			if (params) {
+				for (let key of params)
+					sum += $.params[key] + '';
+			}
+
+			if (user && $.user) {
+				for (let key of user)
+					sum += $.user[key] + '';
+			}
+
+			$.cachekey = key + (sum ? HASH(sum, true) : '');
+			return CACHE($.cachekey);
+		}
+
+		$.cachekey && CACHE($.cachekey, value && value.success ? CLONE(value) : value, meta.expire || '5 minutes');
+	};
+
+}
+
 global.NEWACTION = function(name, obj) {
 
 	if (typeof(name) === 'object') {
@@ -5298,6 +5408,9 @@ global.NEWACTION = function(name, obj) {
 	obj.schema.$csrf = obj.csrf;
 	obj.schema.$bodyencrypt = obj.encrypt;
 	obj.schema.$bodycompress = obj.compress;
+
+	if (obj.cache)
+		obj.cache = parseactioncache(obj, obj.cache);
 
 	if (obj.middleware)
 		obj.middleware = obj.middleware.replace(/,/g, ' ').replace(/\s{2,}/, ' ');
@@ -6634,8 +6747,10 @@ SCP.exec = function() {
 		if (err) {
 			self.options.error && self.options.error(err);
 			self.options.$callback(err);
-		} else
+		} else {
+			self.action && self.action.cache && self.action.cache(self.$, response);
 			self.options.$callback(null, response);
+		}
 	};
 
 	if (self.$error) {
@@ -6673,7 +6788,7 @@ SCP.exec = function() {
 
 };
 
-function evalaction($, name, meta, skipmiddleware) {
+function evalaction($, name, caller, skipmiddleware) {
 
 	var action = F.actions[name];
 
@@ -6704,10 +6819,11 @@ function evalaction($, name, meta, skipmiddleware) {
 	if (action.permissions) {
 		var permissions = action.permissions.slice(0);
 		permissions.unshift($);
-		if (UNAUTHORIZED.apply(global, permissions)) {
+		if (UNAUTHORIZED.apply(global, permissions))
 			return;
-		}
 	}
+
+	var meta = caller.meta;
 
 	if (!skipmiddleware && action.middleware) {
 		CALL(meta.symbol + action.middleware, $.model, $.controller).callback(function(err, response) {
@@ -6720,7 +6836,7 @@ function evalaction($, name, meta, skipmiddleware) {
 			for (var key in response)
 				$.responses[key] = response[key];
 
-			evalaction($, name, meta, true);
+			evalaction($, name, caller, true);
 		});
 		return;
 	}
@@ -6767,7 +6883,16 @@ function evalaction($, name, meta, skipmiddleware) {
 	}
 
 	$.$action = action;
-	action.action.call($, $, $.model);
+	$.caller.$ = $;
+	$.caller.action = action;
+
+	var value = action.cache ? action.cache($) : null;
+	if (value != null) {
+		$.cachekey = null;
+		$.callback(null, value);
+	} else {
+		action.action.call($, $, $.model);
+	}
 }
 
 function callnewaction(caller, meta) {
@@ -6795,13 +6920,18 @@ function callnewaction(caller, meta) {
 
 		if (meta.multiple) {
 
+			if ($.$action && $.$action.cache) {
+				$.$action.cache($, response);
+				$.cachekey = null;
+			}
+
 			$.responses[$.current] = response;
 			$.index++;
 
 			var next = meta.op[$.index];
 			if (next) {
 				$.current = next.name;
-				evalaction($, $.current, caller.meta);
+				evalaction($, $.current, caller);
 				return;
 			} else
 				response = meta.opcallback ? $.responses[meta.opcallback] : $.responses;
@@ -6842,7 +6972,10 @@ function callnewaction(caller, meta) {
 		$.index = 0;
 
 	$.current = meta.op[0].name;
-	evalaction($, $.current, caller.meta);
+	$.caller = caller;
+	$.caller.$ = $;
+
+	evalaction($, $.current, caller);
 }
 
 function performsschemaaction(caller) {
@@ -6868,16 +7001,17 @@ function performsschemaaction(caller) {
 	if (meta.action) {
 		callnewaction(caller, meta);
 	} else if (meta.multiple) {
-		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller, null, true, caller.meta.symbol);
+		var add = meta.schema.async(caller.options.model, callback, meta.opcallbackindex, controller, caller, true);
 		for (var i = 0; i < meta.op.length; i++)
 			add(meta.op[i].name);
 	} else {
 		var op = meta.op[0];
-		if (op.type) {
-			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, callback, true, caller.options, caller.meta.symbol);
-		} else {
-			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, callback, true, caller.options, caller.meta.symbol);
-		}
+		// meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, callback, true, caller.options, caller.meta.symbol, caller);
+		// meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, callback, true, caller.options, caller.meta.symbol, caller);
+		if (op.type)
+			meta.schema.exec(op.type, op.name, caller.options.model, caller.options.config || EMPTYOBJECT, controller, callback, true, caller);
+		else
+			meta.schema.exec(op.name, null, caller.options.model, caller.options.config, controller, callback, true, caller);
 	}
 }
 

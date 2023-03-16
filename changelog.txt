@@ -6,6 +6,7 @@
 - added `NEWACTION()` method that offers awesome functionality for independent actions in the schema
 - removed unused `CONF.logger`
 - improved API routing in the form `ROUTE('API /api/ +action_name')`;
+- added in-memory cache support for the `schema.action()` and `NEWACTION()`
 
 ========================
 0.0.80
