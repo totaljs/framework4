@@ -5316,6 +5316,7 @@ function parseactioncache(obj, meta) {
 	var user = meta.user;
 	var params = meta.params;
 	var language = meta.language;
+	var search = meta.id || meta.key;
 
 	if (typeof(user) === 'string')
 		user = user.split(',').trim();
@@ -5351,28 +5352,38 @@ function parseactioncache(obj, meta) {
 	return function($, value) {
 		if (value === undefined) {
 
-			var key = 'ac_' + $.ID;
+			var key = 'action|' + (search ? (search + '|') : '') + $.ID;
 			var sum = '';
+			var tmp;
 
 			if (language)
 				sum += ($.language || '');
 
 			if (query) {
-				for (let key of query)
-					sum += $.query[key] + '';
+				for (let key of query) {
+					tmp = $.query[key];
+					if (tmp)
+						sum += '|' + tmp;
+				}
 			}
 
 			if (params) {
-				for (let key of params)
-					sum += $.params[key] + '';
+				for (let key of params) {
+					tmp = $.params[key];
+					if (tmp)
+						sum += '|' + tmp;
+				}
 			}
 
 			if (user && $.user) {
-				for (let key of user)
-					sum += $.user[key] + '';
+				for (let key of user) {
+					tmp = $.user[key];
+					if (tmp)
+						sum += '|' + tmp;
+				}
 			}
 
-			$.cachekey = key + (sum ? HASH(sum, true) : '');
+			$.cachekey = key + sum;
 			return CACHE($.cachekey);
 		}
 
