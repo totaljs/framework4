@@ -12358,17 +12358,29 @@ FrameworkCacheProto.remove = function(name) {
 	return value;
 };
 
-FrameworkCacheProto.removeAll = function(search) {
+FrameworkCacheProto.reset = FrameworkCacheProto.removeAll = function(search) {
+
 	var count = 0;
-	var isReg = typeof(search) === 'object';
+	var isarr = search instanceof Array;
+	var isreg = isarr ? false : typeof(search) === 'object';
+	var is = false;
 
 	for (var key in this.items) {
 
-		if (isReg) {
+		if (isreg) {
 			if (!search.test(key))
 				continue;
 		} else {
-			if (key.indexOf(search) === -1)
+			if (isarr) {
+				for (var m of search) {
+					if (key.indexOf(m) !== -1) {
+						is = true;
+						continue;
+					}
+				}
+				if (!is)
+					continue;
+			} else if (key.indexOf(search) === -1)
 				continue;
 		}
 
