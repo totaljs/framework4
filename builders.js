@@ -1491,12 +1491,12 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 		name = obj.id || obj.name;
 	}
 
-	var tmp = name.split('/');
+	var tmp = name.split('/').trim();
 
 	if (tmp.length) {
 		obj.params = [];
 		for (let i = 1; i < tmp.length; i++)
-			obj.params.push(tmp[i]);
+			obj.params.push(tmp[i].replace(/\{|\}/g, ''));
 		obj.params = obj.params.join(',');
 	}
 
@@ -5408,12 +5408,12 @@ global.NEWACTION = function(name, obj) {
 	}
 
 	var url = name;
-	var tmp = name.split('/');
+	var tmp = name.split('/').trim();
 
 	if (tmp.length) {
 		obj.params = [];
 		for (let i = 1; i < tmp.length; i++)
-			obj.params.push(tmp[i]);
+			obj.params.push(tmp[i].replace(/\{|\}/g, ''));
 		obj.params = obj.params.join(',');
 	}
 
@@ -5452,7 +5452,7 @@ global.NEWACTION = function(name, obj) {
 
 	if (obj.route) {
 		if (obj.route.indexOf('-->') === -1)
-			obj.route += '  *  --> ' + url;
+			obj.route += '  *  --> ' + url.replace(/:.*}/g, '}');
 		obj.$route = ROUTE(obj.route);
 	}
 
