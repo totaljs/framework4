@@ -1491,10 +1491,18 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 		name = obj.id || obj.name;
 	}
 
-	name = name.trim();
+	var tmp = name.split('/');
+
+	if (tmp.length) {
+		obj.params = [];
+		for (let i = 1; i < tmp.length; i++)
+			obj.params.push(tmp[i]);
+		obj.params = obj.params.join(',');
+	}
+
+	name = tmp[0].trim();
 
 	!self.actions && (self.actions = {});
-
 	!self.workflows && (self.workflows = {});
 	self.workflows[name] = obj.action || obj.exec;
 	self.actions[name] = obj;
@@ -5399,7 +5407,17 @@ global.NEWACTION = function(name, obj) {
 		name = obj.id || obj.name;
 	}
 
-	name = name.trim();
+	var url = name;
+	var tmp = name.split('/');
+
+	if (tmp.length) {
+		obj.params = [];
+		for (let i = 1; i < tmp.length; i++)
+			obj.params.push(tmp[i]);
+		obj.params = obj.params.join(',');
+	}
+
+	name = tmp[0].trim();
 
 	// Helper for auto-routing due to older operations
 	F.$newoperations = true;
@@ -5434,7 +5452,7 @@ global.NEWACTION = function(name, obj) {
 
 	if (obj.route) {
 		if (obj.route.indexOf('-->') === -1)
-			obj.route += '  *  --> ' + name;
+			obj.route += '  *  --> ' + url;
 		obj.$route = ROUTE(obj.route);
 	}
 
