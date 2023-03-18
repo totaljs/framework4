@@ -5451,8 +5451,10 @@ global.NEWACTION = function(name, obj) {
 	};
 
 	if (obj.route) {
-		if (obj.route.indexOf('-->') === -1)
-			obj.route += '  *  --> ' + url.replace(/:.*}/g, '}');
+		if (obj.route.indexOf('-->') === -1) {
+			url = url.replace(/\{.*?\}/g, text => text.replace(/\:.*?\}/, '}').replace(/\*/g, '')).split('/').trim().join('/')
+			obj.route += '  *  --> ' + url;
+		}
 		obj.$route = ROUTE(obj.route);
 	}
 
