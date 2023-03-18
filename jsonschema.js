@@ -126,7 +126,7 @@ function check_string(meta, error, value, errplus, path) {
 		}
 	}
 
-	if (meta.enum instanceof Array) {
+	if ((value || meta.$$REQUIRED) && meta.enum instanceof Array) {
 		if (!meta.enum.includes(value)) {
 			error.push(errplus + meta.$$ID, undefined, path);
 			return;

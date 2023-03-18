@@ -8,6 +8,7 @@
 - improved API routing in the form `ROUTE('API /api/ +action_name')`;
 - added in-memory cache support for the `schema.action()` and `NEWACTION()`
 - improved `F.cache.removeAll()` by adding support for string array
+- fixed empty value in enum validation in JSON Schemas
 
 ========================
 0.0.80
