@@ -19780,9 +19780,9 @@ function controller_json_workflow(id) {
 	if (!w.type) {
 
 		// IS IT AN OPERATION?
-		if (!self.route.schema.length) {
+		if (!self.route.schema || !self.route.schema.length) {
 			if (F.$newoperations)
-				CALL((CALLMETHOD[self.method] || '-') + ' ' + w.actions, self.body, self).callback(w.view ? self.callback(w.view) : self.callback());
+				CALL((CALLMETHOD[self.req.method] || '-') + ' ' + w.actions, self.body, self).callback(w.view ? self.callback(w.view) : self.callback());
 			else
 				OPERATION(w.id, self.body, w.view ? self.callback(w.view) : self.callback(), self);
 			return;
