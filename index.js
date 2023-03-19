@@ -1714,7 +1714,7 @@ function performschema(type, schema, model, opt, callback, controller, noprepare
 		return false;
 	}
 
-	o.exec(type, null, model, opt, controller, callback, noprepare, true);
+	o.exec(type, null, model, opt, controller, callback, noprepare);
 	return !!o;
 }
 
