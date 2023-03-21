@@ -1493,7 +1493,7 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	var tmp = name.split('/').trim();
 
-	if (tmp.length) {
+	if (tmp.length > 1) {
 		obj.params = [];
 		for (let i = 1; i < tmp.length; i++)
 			obj.params.push(tmp[i].replace(/\{|\}/g, ''));
