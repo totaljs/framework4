@@ -9,6 +9,7 @@
 - added in-memory cache support for the `schema.action()` and `NEWACTION()`
 - improved `F.cache.removeAll()` by adding support for string array
 - fixed empty value in enum validation in JSON Schemas
+- improved the `CORS()` method `CORS('https://.., https://..')` that allows only the specific hostnames
 
 ========================
 0.0.80

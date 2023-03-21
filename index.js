@@ -3357,6 +3357,22 @@ global.CORS = function(url, flags, credentials) {
 
 	var route = {};
 
+	if (url && (/^http(s)?:\/\//).test(url)) {
+		F.routes.corsall = true;
+		F.routes.corsallorigins = url.split(',').trim();
+		PERF.OPTIONS = true;
+		route.url = '*';
+		route.hash = 1;
+		route.remove = function() {
+			F.routes.corsall = false;
+			if (!F._length_cors)
+				delete PERF.OPTIONS;
+		};
+		return route;
+	}
+
+	F.routes.corsallorigins = null;
+
 	if (!arguments.length) {
 		F.routes.corsall = true;
 		PERF.OPTIONS = true;
@@ -9385,6 +9401,11 @@ F.$cors = function(req, res, fn, arg) {
 	var cors, origin;
 	var headers = req.headers;
 	var key;
+
+	if (isAllowed && F.routes.corsallorigins)
+		isAllowed = F.routes.corsallorigins.includes(headers.origin);
+	else
+		isAllowed = F.routes.corsall;
 
 	if (!isAllowed) {
 
