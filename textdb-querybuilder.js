@@ -151,7 +151,7 @@ function makefilter(db, opt, callback) {
 		var iu = db_insertupdate(opt, insert);
 		if (iu) {
 			if (insert) {
-				builder.payload = opt.payload;
+				builder.payload = iu.params;
 			} else {
 				builder.modify = iu.query ? iu.query.join(';') : null;
 				builder.modifyarg = iu.params;
