@@ -6812,7 +6812,7 @@ SCP.exec = function() {
 	} else {
 
 		if (meta.symbol === '-')
-			self.options.model = {};
+			self.options.model = EMPTYOBJECT;
 
 		performsschemaaction(self);
 	}
