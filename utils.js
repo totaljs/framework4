@@ -2733,7 +2733,7 @@ global.HASH = function(value, type) {
 };
 
 SP.sign = function(key) {
-	return this + '-' + (string_hash(this + (key || '')) >> 0).hash(true).toString(36);
+	return this + '-' + (string_hash(this + (key || '')) >> 0).toString(36);
 };
 
 SP.makeid = function() {
