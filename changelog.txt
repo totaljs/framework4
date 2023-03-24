@@ -11,6 +11,7 @@
 - fixed empty value in enum validation in JSON Schemas
 - improved the `CORS()` method `CORS('https://.., https://..')` that allows only the specific hostnames
 - fixed atomic operations in NoSQL QueryBuilder
+- added `String.sign(key)` for making of quick checksums
 
 ========================
 0.0.80

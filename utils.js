@@ -2732,8 +2732,12 @@ global.HASH = function(value, type) {
 	return value.hash(type ? type : true);
 };
 
+SP.sign = function(key) {
+	return this + '-' + (string_hash(this + (key || '')) >> 0).hash(true).toString(36);
+};
+
 SP.makeid = function() {
-	return this.hash(true).toString(36);
+	return (string_hash(this) >> 0).toString(36);
 };
 
 SP.crc32 = function(unsigned) {
