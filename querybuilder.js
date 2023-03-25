@@ -207,14 +207,14 @@ CTP.load = function(conn, opt) {
 
 	var builder = new QueryBuilder(db, opt.table, opt.exec);
 
-	builder.options.fields = opt.fields;
+	builder.options.fields = opt.fields && opt.fields instanceof Array && opt.fields.length ? opt.fields : null;
 	builder.options.skip = opt.skip;
 	builder.options.take = opt.take;
 	builder.options.query = opt.query;
-	builder.options.sort = opt.sort;
+	builder.options.sort = opt.sort && opt.sort instanceof Array && opt.sort.length ? opt.sort : null;
 	builder.options.payload = opt.payload;
 	builder.options.upsert = opt.upsert;
-	builder.options.filter = opt.filter;
+	builder.options.filter = opt.filter && opt.filter instanceof Array  ? opt.filter : EMPTYARRAY;
 
 	return builder;
 };
