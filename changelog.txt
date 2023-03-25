@@ -12,6 +12,7 @@
 - improved the `CORS()` method `CORS('https://.., https://..')` that allows only the specific hostnames
 - fixed atomic operations in NoSQL QueryBuilder
 - added `String.sign(key)` for making of quick checksums
+- added `DB().load([conn], opt)` for loading of prepared QueryBuilder queries
 
 ========================
 0.0.80

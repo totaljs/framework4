@@ -192,6 +192,33 @@ CTP.free = function() {
 	t.commands = t.$callback = t.$fail = t.$data = t.response = t.error = null;
 };
 
+CTP.load = function(conn, opt) {
+
+	if (!opt) {
+		opt = conn;
+		conn = 'default';
+	}
+
+	var t = this;
+	var db = new DB(conn);
+
+	db.controller = t;
+	t.commands.push(db);
+
+	var builder = new QueryBuilder(db, opt.table, opt.exec);
+
+	builder.options.fields = opt.fields;
+	builder.options.skip = opt.skip;
+	builder.options.take = opt.take;
+	builder.options.query = opt.query;
+	builder.options.sort = opt.sort;
+	builder.options.payload = opt.payload;
+	builder.options.upsert = opt.upsert;
+	builder.options.filter = opt.filter;
+
+	return builder;
+};
+
 CTP.find = CTP.all = function(table) {
 	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
 	var t = this;
