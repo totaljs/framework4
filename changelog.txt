@@ -13,6 +13,7 @@
 - fixed atomic operations in NoSQL QueryBuilder
 - added `String.sign(key)` for making of quick checksums
 - added `DB().load([conn], opt)` for loading of prepared QueryBuilder queries
+- fixed encoding config values `@{'%something'}` in the view engine
 
 ========================
 0.0.80
