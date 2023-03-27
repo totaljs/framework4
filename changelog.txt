@@ -14,6 +14,7 @@
 - added `String.sign(key)` for making of quick checksums
 - added `DB().load([conn], opt)` for loading of prepared QueryBuilder queries
 - fixed encoding config values `@{'%something'}` in the view engine
+- fixed multiple outputs in for the actions
 
 ========================
 0.0.80

@@ -2848,6 +2848,7 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ca
 	a.op = [];
 	a.pending = 0;
 	a.type = '';
+	a.done = returnobject ? [] : null;
 
 	var additional = caller ? caller.options : null;
 	var symbol = caller ? caller.meta.symbol : null;
@@ -2915,15 +2916,9 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ca
 			a.controller = null;
 			a = null;
 		} else {
-
-			if (returnobject) {
-				$.responses[a.indexer] = response;
-				$.responses[a.name] = response;
-			} else {
-				$.responses[key] = response;
-				$.responses[a.indexer] = response;
-			}
-
+			$.responses[a.name] = response;
+			$.responses[key] = response;
+			$.responses[a.indexer] = response;
 			$.events && $.events.data && $.emit('data', response, key);
 			a.next();
 		}
@@ -2940,6 +2935,8 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ca
 			a.pending++;
 
 			var name = item.name;
+
+			a.done && a.done.push(name);
 
 			if (self.meta[name]) {
 				a.type = name;
@@ -3039,10 +3036,15 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ca
 		} else if (!a.pending) {
 			if (a.index == null) {
 
-				var tmp = returnobject ? $.responses : [];
+				var max = a.indexer + 1;
+				var tmp;
 
-				if (!returnobject) {
-					var max = a.indexer + 1;
+				if (returnobject) {
+					tmp = {};
+					for (var key of a.done)
+						tmp[key] = $.responses[key];
+				} else {
+					tmp = [];
 					for (var i = 0; i < max; i++)
 						tmp.push($.responses[i]);
 				}
