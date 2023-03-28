@@ -5417,6 +5417,7 @@ global.NEWACTION = function(name, obj) {
 		for (let i = 1; i < tmp.length; i++)
 			obj.params.push(tmp[i].replace(/\{|\}/g, ''));
 		obj.params = obj.params.join(',');
+		obj.$url = url.replace(/\{.*?\}/g, text => text.replace(/:.*?\}/, '}').replace(/\*/g, '')).split('/').trim().join('/');
 	}
 
 	name = tmp[0].trim();
@@ -5453,10 +5454,8 @@ global.NEWACTION = function(name, obj) {
 	};
 
 	if (obj.route) {
-		if (obj.route.indexOf('-->') === -1) {
-			url = url.replace(/\{.*?\}/g, text => text.replace(/\:.*?\}/, '}').replace(/\*/g, '')).split('/').trim().join('/')
-			obj.route += '  *  --> ' + url;
-		}
+		if (obj.route.indexOf('-->') === -1)
+			obj.route = obj.route + '  ' + (obj.input ? '+' : '-') + obj.$url + '  *  -->  ' + name;
 		obj.$route = ROUTE(obj.route);
 	}
 
