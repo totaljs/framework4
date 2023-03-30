@@ -595,7 +595,7 @@ type SchemaOptions = Dollar & {
 	redirect: (error?: Error | string | null, value?: any) => void;
 }
 
-type SchemaCallbackOptions = {
+type SchemaActionOptions = {
 	action: SchemaMethodCallback,
 	name?: string,
 	params?: string,
@@ -638,7 +638,7 @@ type SchemaCallback = {
 	addTask: (name: string, task: string, filter?: string) => void;
 	addWorkflow: (name: string, callback: SchemaMethodCallback, filter?: string) => void;
 	addWorkflowExtension: (name: string, callback: SchemaExtensionCallback) => void;
-	action: (name: string, options?: SchemaCallbackOptions) => void;
+	action: (name: string, options?: SchemaActionOptions) => void;
 	setInsert: (callback: SchemaMethodCallback, filter?: string) => void;
 	setInsertExtension: (name: string, callback: SchemaExtensionCallback) => void;
 	setPatch: (callback: SchemaMethodCallback, filter?: string) => void;
