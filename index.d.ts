@@ -595,6 +595,26 @@ type SchemaOptions = Dollar & {
 	redirect: (error?: Error | string | null, value?: any) => void;
 }
 
+type SchemaActionOptions = {
+	action: SchemaMethodCallback,
+	name?: string,
+	params?: string,
+	query?: string,
+	input?: string,
+	ouput?: string,
+	publish?: string | boolean,
+	user?: boolean,
+	permissions?: string | string[],
+	sa?: boolean,
+	cache?: {
+		user?: boolean,
+		params?: boolean,
+		query?: string,
+		language?: boolean,
+		expire?: string,
+	}
+}
+
 type SchemaCallback = {
 	fields: string[];
 	meta: any;
@@ -602,7 +622,6 @@ type SchemaCallback = {
 	schema: any;
 	trim: boolean;
 	allow: (field: string, field2?: string, field3?: string, field4?: string, field5?: string) => void;
-	before: (name: string, fn: (value, model, index?, request?: Request) => void ) => void;
 	cl: (name: string) => void;
 	compress: () => void;
 	csrf: () => void;
@@ -619,6 +638,7 @@ type SchemaCallback = {
 	addTask: (name: string, task: string, filter?: string) => void;
 	addWorkflow: (name: string, callback: SchemaMethodCallback, filter?: string) => void;
 	addWorkflowExtension: (name: string, callback: SchemaExtensionCallback) => void;
+	action: (name: string, options?: SchemaActionOptions) => void;
 	setInsert: (callback: SchemaMethodCallback, filter?: string) => void;
 	setInsertExtension: (name: string, callback: SchemaExtensionCallback) => void;
 	setPatch: (callback: SchemaMethodCallback, filter?: string) => void;
@@ -641,7 +661,7 @@ type SchemaCallback = {
 }
 
 // Route
-type RouteAction = (req: Request, res: Response) => void;
+type RouteAction = (req: Request, res: Response) => void | ((...args: any) => void);
 
 // Operation
 type Operation = Dollar & {
@@ -902,7 +922,7 @@ type ScheduleInstance = any;
 type RESTBuilder = {
 	accept: (type: string) => void;
 	auth: (user: string, password?: string) => RESTBuilder;
-	cache: (string) => RESTBuilder;
+	cache: (expire: string) => RESTBuilder;
 	callback: (callback: (err: Error | ErrorBuilder, response: object, output: { value: object, response: object | Buffer, status: number, headers: object, hostname: string, cache: boolean, cookie: (name: string) => string}) => void) => RESTBuilder;
 	cert: (key: Buffer, cert: Buffer, dhparam?: Buffer) => RESTBuilder;
 	convert: (inline_schema: string) => RESTBuilder;
@@ -979,153 +999,155 @@ interface TMSClient extends FrameworkWebSocketClient {
 }
 
 // Globals
-declare function SUCCESS();
-type SUCCESS = (success?: boolean, value?: any) => { success: boolean, error: any, value: any};
-type DEF = {
-	onAudit: (name: string, data: object) => void;
-	onCompileScript: (filename: string, body: string) => void;
-	onCompileStyle: (name: string, body: string) => void;
-	onCompileView: (name: string, html: string) => void;
-	onPrefLoad: (next: (pref_obj: object) => void) => void;
-	onPrefSave: (PREF: object) => void;
+declare global {
+	function SUCCESS(): SUCCESS;
+	type SUCCESS = (success?: boolean, value?: any) => { success: boolean, error: any, value: any};
+	type DEF = {
+		onAudit: (name: string, data: object) => void;
+		onCompileScript: (filename: string, body: string) => void;
+		onCompileStyle: (name: string, body: string) => void;
+		onCompileView: (name: string, html: string) => void;
+		onPrefLoad: (next: (pref_obj: object) => void) => void;
+		onPrefSave: (PREF: object) => void;
+	}
+
+	const Builders: any;
+	const CONF: any;
+	const Controller: FrameworkController;
+	const DEBUG: boolean;
+	const DEF: DEF;
+	const EMPTYARRAY: [];
+	const EMPTYCONTROLLER: FrameworkController | any;
+	const EMPTYOBJECT: {};
+	const F: Framework;
+	const FUNC: any;
+	const isWORKER: boolean;
+	const Mail: FrameworkMail;
+	const MAIN: any;
+	const NOW: Date;
+	const Pagination;
+	const PREF: any;
+	const RELEASE: boolean;
+	const REPO: any;
+	const Thelpers;
+	const THREAD: string;
+	const U: FrameworkUtils;
+	const Utils: FrameworkUtils;
+	const PATH: FrameworkPath;
+
+	function ON(name: string, callback: () => void): Framework;
+	function ON(name: 'controller', callback: (controller?: FrameworkController) => void): Framework;
+	function ON(name: 'exit', callback: (signal?: number | string) => void): Framework;
+	function ON(name: 'install', callback: (type?: string, name?: string, instance?: any) => void): Framework;
+	function ON(name: 'ready', callback: () => void): Framework;
+	function ON(name: 'request_begin', callback: (req?: Request, res?: Response) => void): Framework;
+	function ON(name: 'request_end', callback: (req?: Request, res?: Response) => void): Framework;
+	function ON(name: 'request', callback: (req?: Request, res?: Response) => void): Framework;
+	function ON(name: 'service', callback: (count?: number) => void): Framework;
+	function ON(name: 'watcher', callback: (child_process?: ChildProcess) => void): Framework;
+	function ON(name: 'websocket_begin', callback: (controller?: FrameworkController, client?: FrameworkWebSocketClient) => void): Framework;
+	function ON(name: 'websocket_end', callback: (controller?: FrameworkController, client?: FrameworkWebSocketClient) => void): Framework;
+
+	function ACTION(url: string, body: object, fn: ErrorResponse): void;
+	function AUDIT($: Dollar, message?: string, type?: string): void;
+	function AUTH(fn: ($: { ip: string, ua: string, query: object, body: any, params: object, language: string, url: string, files: HttpFile[], headers: object, cookie: (name: string) => void, invalid: (error: string) => void, success: (user_instance: string) => void}) => void): void;
+	function BLOCKED($: Dollar, limit?: number, expiration?: string): boolean;
+	function CACHE(key: string, value?: number, expire?: string, persistent?: boolean): any;
+	function CLEANUP(stream: ReadableStream, callback?: () => void): void;
+	function clearTimeout2(name: string): void;
+	function CLONECLEANUP(source: object, skip?: object): any;
+	function CMD(name: string, a?: object, b?: object, c?: object): void;
+	function CONVERT(obj: object, name: string): object;
+	function CORS(url?: string, flags?: string[], credentials?: boolean): Framework;
+	function COUNTER(name: string): Counter;
+	function DECRYPTREQ(req: Request, val: object | string, key?: string): object | string;
+	function DESTROY(stream: ReadableStream): void;
+	function DIFFARR(name: string, arr_db: object[], arr_form: object[]): object;
+	function DOWNLOAD(url: string, filename: string, callback?: ErrorResponse, timeout?: number): void;
+	function EACHSCHEMA(group: string, fn: (group: string, name: string, schema: string) => void): any;
+	function EACHSCHEMA(fn: (group: string, name: string, schema: string) => void): any;
+	function EMIT(name: string, arg1?: object, arg2?: object, arg3?: object, arg4?: object, arg5?: object): void;
+	function EMIT2(name: string, arg1?: object, arg2?: object, arg3?: object, arg4?: object, arg5?: object): void;
+	function ENCRYPTREQ(req: Request, val: object | string, key?: string, strict?: boolean): string;
+	function ERROR(name: string): Function;
+	function EXEC(schema: string, model: object, callback: ErrorResponse, controller?: Dollar | FrameworkController): FrameworkController;
+	function FAKE(schema: string, required_only: boolean): any;
+	function FILE404(action: (req: Request, res: Response) => void): void;
+	function FILESTORAGE(name: string): FileStorage;
+	function FINISHED(stream: ReadableStream | Response | Request, callback: (err: any) => void): void;
+	function FLOWSTREAM(name?: string): FlowStream;
+	function GETSCHEMA(schema: string, callback: (err: any, schema: any) => void, timeout?: number): any;
+	function GETSCHEMA(schema: string): any;
+	function GROUP(flags: string | string[], action: () => void): Framework;
+	function GROUP(action: () => void): Framework;
+	function GUID(length?: number): string;
+	function HTMLMAIL(address: string | string[], subject: string, html: string, callback?: (err: any) => void, language?: string): MailMessage;
+	function IMPORT(url: string, callback?: (err: any, module: any, response: any) => void): void;
+	function LDAP(options: { ldap: { host: string, port?: number }, user: string, password: string, dn?: string, type: string }, callback: ErrorResponse): void;
+	function LOAD(types: string | string[], path?: string, callback?: () => void): void;
+	function LOCALIZE(fn: (req: Request, res: Response) => void): void;
+	function LOGGER(filename: string, param1?: any, param2?: any, param3?: any, param4?: any, param5?: any): void;
+	function LOGMAIL(address: string | string[], subject: string, body: string, callback?: (err: any) => void): Framework;
+	function MAIL(address: string | string[], subject: string, view_name: string, model?: object, callback?: (err: any) => void, language?: string): MailMessage;
+	function MAKE(name?: string, fn?: (obj: object) => void): any;
+	function MAP(url: string, filename: string, extension?: string[]): Framework;
+	function MAPSCHEMA(schema: string, prop_pk?: string): void;
+	function MERGE(url: string, filename1: string, filename2: string, filename3?: string, filename4?: string, filename5?: string): void;
+	function MIDDLEWARE(name: string, fn: ($: Dollar | null) => void, assign?: string | string[], fisrt?: boolean): void;
+	function MODEL(name: string): any;
+	function MODIFY(fn: (type: string, filename: string, value: string, controller: FrameworkController | undefined) => any): any;
+	function MODULE(name: string): any;
+	function NEWCOMMAND(name: string, callback: Function | null): any;
+	function NEWOPERATION(name: string, fn: ($: Operation) => void, repeat?: number, stop?: boolean, bind_error?: boolean, queryschema?: string);
+	function NEWSCHEMA(schema: string, callback: (schema: SchemaCallback) => void): void;
+	function NEWTASK(name: string, fn: (push: (task: string, callback: ($?: Task, value?: any) => void) => void) => void);
+	function NOOP(): () => void;
+	function NOSQL(name: string): TextDB;
+	function NPMINSTALL(name: string, callback: (err: any) => void): void;
+	function OFF(name: string, callback?: () => void): Framework;
+	function ONCE(name: string, callback: () => void): Framework;
+	function OPERATION(name: string, value: object, callback: ErrorResponse, options?: {}, controller?: FrameworkController);
+	function PAUSE(pause: boolean): void;
+	function PAUSERUN(label: string): void;
+	function PROXY(endpoint: string, hostname: string, copypath?: boolean, before?: (uri: any, req: Request, res: Response) => void, after?: (res: any) => void, timeout?: number): void;
+	function QUERIFY(url: string, data: object): void;
+	function REDIRECT(path: string, host: string, copypath?: boolean, permanent?: boolean): void;
+	function REQUEST(options: RequestOptions, callback?: () => void): void;
+	function REQUIRE(path: string): any;
+	function RESOURCE(name: string, key: string): any;
+	function ROUTE(url: string, action?: string | RouteAction, flags?: string[], length?: number[]): any;
+	function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
+	function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
+	function SESSION(name?: string, ondata?: Function): any;
+	function setTimeout2(name: string, fn: (arg: any) => void, timeout: number, limit?: number, arg?: object): void;
+	function SITEMAP(id: string, first?: boolean, language?: string): object[];
+	function TABLE(name: string): TextDB;
+	function TASK(name: string, callback: ErrorResponse, instance?: Dollar | FrameworkController, value?: object): void; 
+	function TotalAPI(token: string, name: string, data: object, callback: any, filename?: string)
+	function TOUCH(url: string): void;
+	function TRANSLATE(language: string, text: string): string;
+	function TRANSLATOR(language: string, text: string): string;
+	function UID(type?: string): string;
+	function UNAUTHORIZED($: Dollar, roleA: string, roleB?: string, roleC?: string, roleD?: string, roleE?: string): string;
+	function UPDATE(versions: string[], callback: (err: any) => void, pause_server_message: string): string;
+	function VIEW(name: string, model?: object, layout?: string, repository?: object, language?: string): string;
+	function VIEWCOMPILE(html: string, model?: object, layout?: string, repository?: object, language?: string, key?: string): string;
+	function WAIT(validator: Function, callback: ErrorResponse, timeout?: number, interval?: number): boolean;
+	function WEBSOCKETCLIENT(callback: (client: FrameworkWebSocketClient) => void): void;
+	function WORKER(name: string, timeout?: number, args?: string[]): any;
+	function WORKER2(name: string, timeout?: number, callback?: (err: any, buffer: Buffer) => void): any;
+	function WORKFLOW(declaration: ($: Dollar) => void): Dollar;
+	function HTTP(type: string): void;
+	function JSONSCHEMA(id: any, value: any, callback: Function, error?: any): void;
+	function NEWJSONSCHEMA(name: string, value?: string): void;
+	function NEWPUBLISH(name: string, value?: string): void;
+	function NEWSUBSCRIBE(name: string, value?: string): void;
+	function PUBLISH(name: string, value: string): void;
+	function SUBSCRIBE(name: string, callback: Function, client?: any): void;
+	function UNSUBSCRIBE(name: string, callback?: Function): void;
+	function DBMS(): any; // Will be improved in future
+	function NEWCALL(name: string, schema: string, callback?: (data: any, next: ErrorResponse) => void): void;
+	function NEWEXTENSION(code: string, callback: (err: any | null, module: any | null) => void, extend?: (module: any) => void): void;
+	function OPENCLIENT(url: string, id?: string): OpenClientInstance;
+	function TMSCLIENT(url: string, token: string, callback: (err: Error | null, client: TMSClient, meta: any) => void): FrameworkWebSocketClient;
 }
-
-declare const Builders: any;
-declare const CONF: any;
-declare const Controller: FrameworkController;
-declare const DEBUG: boolean;
-declare const DEF: DEF;
-declare const EMPTYARRAY: [];
-declare const EMPTYCONTROLLER: FrameworkController | any;
-declare const EMPTYOBJECT: {};
-declare const F: Framework;
-declare const FUNC: any;
-declare const isWORKER: boolean;
-declare const Mail: FrameworkMail;
-declare const MAIN: any;
-declare const NOW: Date;
-declare const Pagination;
-declare const PREF: any;
-declare const RELEASE: boolean;
-declare const REPO: any;
-declare const Thelpers;
-declare const THREAD: string;
-declare const U: FrameworkUtils;
-declare const Utils: FrameworkUtils;
-declare const PATH: FrameworkPath;
-
-declare function ON(name: string, callback: () => void): Framework;
-declare function ON(name: 'controller', callback: (controller?: FrameworkController) => void): Framework;
-declare function ON(name: 'exit', callback: (signal?: number | string) => void): Framework;
-declare function ON(name: 'install', callback: (type?: string, name?: string, instance?: any) => void): Framework;
-declare function ON(name: 'ready', callback: () => void): Framework;
-declare function ON(name: 'request_begin', callback: (req?: Request, res?: Response) => void): Framework;
-declare function ON(name: 'request_end', callback: (req?: Request, res?: Response) => void): Framework;
-declare function ON(name: 'request', callback: (req?: Request, res?: Response) => void): Framework;
-declare function ON(name: 'service', callback: (count?: number) => void): Framework;
-declare function ON(name: 'watcher', callback: (child_process?: ChildProcess) => void): Framework;
-declare function ON(name: 'websocket_begin', callback: (controller?: FrameworkController, client?: FrameworkWebSocketClient) => void): Framework;
-declare function ON(name: 'websocket_end', callback: (controller?: FrameworkController, client?: FrameworkWebSocketClient) => void): Framework;
-
-declare function ACTION(url: string, body: object, fn: ErrorResponse): void;
-declare function AUDIT($: Dollar, message?: string, type?: string): void;
-declare function AUTH(fn: ($: { ip: string, ua: string, query: object, body: any, params: object, language: string, url: string, files: HttpFile[], headers: object, cookie: (name: string) => void, invalid: (error: string) => void, success: (user_instance: string) => void}) => void): void;
-declare function BLOCKED($: Dollar, limit?: number, expiration?: string): boolean;
-declare function CACHE(key: string, value?: number, expire?: string, persistent?: boolean): any;
-declare function CLEANUP(stream: ReadableStream, callback?: () => void): void;
-declare function clearTimeout2(name: string): void;
-declare function CLONECLEANUP(source: object, skip?: object): any;
-declare function CMD(name: string, a?: object, b?: object, c?: object): void;
-declare function CONVERT(obj: object, name: string): object;
-declare function CORS(url?: string, flags?: string[], credentials?: boolean): Framework;
-declare function COUNTER(name: string): Counter;
-declare function DECRYPTREQ(req: Request, val: object | string, key?: string): object | string;
-declare function DESTROY(stream: ReadableStream): void;
-declare function DIFFARR(name: string, arr_db: object[], arr_form: object[]): object;
-declare function DOWNLOAD(url: string, filename: string, callback?: ErrorResponse, timeout?: number): void;
-declare function EACHSCHEMA(group: string, fn: (group: string, name: string, schema: string) => void): any;
-declare function EACHSCHEMA(fn: (group: string, name: string, schema: string) => void): any;
-declare function EMIT(name: string, arg1?: object, arg2?: object, arg3?: object, arg4?: object, arg5?: object): void;
-declare function EMIT2(name: string, arg1?: object, arg2?: object, arg3?: object, arg4?: object, arg5?: object): void;
-declare function ENCRYPTREQ(req: Request, val: object | string, key?: string, strict?: boolean): string;
-declare function ERROR(name: string): Function;
-declare function EXEC(schema: string, model: object, callback: ErrorResponse, controller?: Dollar | FrameworkController): FrameworkController;
-declare function FAKE(schema: string, required_only: boolean): any;
-declare function FILE404(action: (req: Request, res: Response) => void): void;
-declare function FILESTORAGE(name: string): FileStorage;
-declare function FINISHED(stream: ReadableStream | Response | Request, callback: (err: any) => void): void;
-declare function FLOWSTREAM(name?: string): FlowStream;
-declare function GETSCHEMA(schema: string, callback: (err: any, schema: any) => void, timeout?: number): any;
-declare function GETSCHEMA(schema: string): any;
-declare function GROUP(flags: string | string[], action: () => void): Framework;
-declare function GROUP(action: () => void): Framework;
-declare function GUID(length?: number): string;
-declare function HTMLMAIL(address: string | string[], subject: string, html: string, callback?: (err: any) => void, language?: string): MailMessage;
-declare function IMPORT(url: string, callback?: (err: any, module: any, response: any) => void): void;
-declare function LDAP(options: { ldap: { host: string, port?: number }, user: string, password: string, dn?: string, type: string }, callback: ErrorResponse): void;
-declare function LOAD(types: string | string[], path?: string, callback?: () => void): void;
-declare function LOCALIZE(fn: (req: Request, res: Response) => void): void;
-declare function LOGGER(filename: string, param1?: any, param2?: any, param3?: any, param4?: any, param5?: any): void;
-declare function LOGMAIL(address: string | string[], subject: string, body: string, callback?: (err: any) => void): Framework;
-declare function MAIL(address: string | string[], subject: string, view_name: string, model?: object, callback?: (err: any) => void, language?: string): MailMessage;
-declare function MAKE(name?: string, fn?: (obj: object) => void): any;
-declare function MAP(url: string, filename: string, extension?: string[]): Framework;
-declare function MAPSCHEMA(schema: string, prop_pk?: string): void;
-declare function MERGE(url: string, filename1: string, filename2: string, filename3?: string, filename4?: string, filename5?: string): void;
-declare function MIDDLEWARE(name: string, fn: ($: Dollar | null) => void, assign?: string | string[], fisrt?: boolean): void;
-declare function MODEL(name: string): any;
-declare function MODIFY(fn: (type: string, filename: string, value: string, controller: FrameworkController | undefined) => any): any;
-declare function MODULE(name: string): any;
-declare function NEWCOMMAND(name: string, callback: Function | null): any;
-declare function NEWOPERATION(name: string, fn: ($: Operation) => void, repeat?: number, stop?: boolean, bind_error?: boolean, queryschema?: string);
-declare function NEWSCHEMA(schema: string, callback: (schema: SchemaCallback) => void): void;
-declare function NEWTASK(name: string, fn: (push: (task: string, callback: ($?: Task, value?: any) => void) => void) => void);
-declare function NOOP(): () => void;
-declare function NOSQL(name: string): TextDB;
-declare function NPMINSTALL(name: string, callback: (err: any) => void): void;
-declare function OFF(name: string, callback?: () => void): Framework;
-declare function ONCE(name: string, callback: () => void): Framework;
-declare function OPERATION(name: string, value: object, callback: ErrorResponse, options?: {}, controller?: FrameworkController);
-declare function PAUSE(pause: boolean): void;
-declare function PAUSERUN(label: string): void;
-declare function PROXY(endpoint: string, hostname: string, copypath?: boolean, before?: (uri: any, req: Request, res: Response) => void, after?: (res: any) => void, timeout?: number): void;
-declare function QUERIFY(url: string, data: object): void;
-declare function REDIRECT(path: string, host: string, copypath?: boolean, permanent?: boolean): void;
-declare function REQUEST(options: RequestOptions, callback?: () => void): void;
-declare function REQUIRE(path: string): any;
-declare function RESOURCE(name: string, key: string): any;
-declare function ROUTE(url: string, action?: RouteAction, flags?: string[], length?: number[]): any;
-declare function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
-declare function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
-declare function SESSION(name?: string, ondata?: Function): any;
-declare function setTimeout2(name: string, fn: (arg: any) => void, timeout: number, limit?: number, arg?: object): void;
-declare function SITEMAP(id: string, first?: boolean, language?: string): object[];
-declare function TABLE(name: string): TextDB;
-declare function TASK(name: string, callback: ErrorResponse, instance?: Dollar | FrameworkController, value?: object): void; 
-declare function TotalAPI(token: string, name: string, data: object, callback: any, filename?: string)
-declare function TOUCH(url: string): void;
-declare function TRANSLATE(language: string, text: string): string;
-declare function TRANSLATOR(language: string, text: string): string;
-declare function UID(type?: string): string;
-declare function UNAUTHORIZED($: Dollar, roleA: string, roleB?: string, roleC?: string, roleD?: string, roleE?: string): string;
-declare function UPDATE(versions: string[], callback: (err: any) => void, pause_server_message: string): string;
-declare function VIEW(name: string, model?: object, layout?: string, repository?: object, language?: string): string;
-declare function VIEWCOMPILE(html: string, model?: object, layout?: string, repository?: object, language?: string, key?: string): string;
-declare function WAIT(validator: Function, callback: ErrorResponse, timeout?: number, interval?: number): boolean;
-declare function WEBSOCKETCLIENT(callback: (client: FrameworkWebSocketClient) => void): void;
-declare function WORKER(name: string, timeout?: number, args?: string[]): any;
-declare function WORKER2(name: string, timeout?: number, callback?: (err: any, buffer: Buffer) => void): any;
-declare function WORKFLOW(declaration: ($: Dollar) => void): Dollar;
-declare function HTTP(type: string): void;
-declare function JSONSCHEMA(id: any, value: any, callback: Function, error?: any): void;
-declare function NEWJSONSCHEMA(name: string, value?: string): void;
-declare function NEWPUBLISH(name: string, value?: string): void;
-declare function NEWSUBSCRIBE(name: string, value?: string): void;
-declare function PUBLISH(name: string, value: string): void;
-declare function SUBSCRIBE(name: string, callback: Function, client?: any): void;
-declare function UNSUBSCRIBE(name: string, callback?: Function): void;
-declare function DBMS(): any; // Will be improved in future
-declare function NEWCALL(name: string, schema: string, callback?: (data: any, next: ErrorResponse) => void): void;
-declare function NEWEXTENSION(code: string, callback: (err: any | null, module: any | null) => void, extend?: (module: any) => void): void;
-declare function OPENCLIENT(url: string, id?: string): OpenClientInstance;
-declare function TMSCLIENT(url: string, token: string, callback: (err: Error | null, client: TMSClient, meta: any) => void): FrameworkWebSocketClient;
