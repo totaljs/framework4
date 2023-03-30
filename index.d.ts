@@ -1115,7 +1115,7 @@ declare global {
 	function REQUEST(options: RequestOptions, callback?: () => void): void;
 	function REQUIRE(path: string): any;
 	function RESOURCE(name: string, key: string): any;
-	function ROUTE(url: string, action?: RouteAction, flags?: string[], length?: number[]): any;
+	function ROUTE(url: string, action?: string | RouteAction, flags?: string[], length?: number[]): any;
 	function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
 	function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
 	function SESSION(name?: string, ondata?: Function): any;
