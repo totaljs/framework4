@@ -922,7 +922,7 @@ type ScheduleInstance = any;
 type RESTBuilder = {
 	accept: (type: string) => void;
 	auth: (user: string, password?: string) => RESTBuilder;
-	cache: (string) => RESTBuilder;
+	cache: (expire: string) => RESTBuilder;
 	callback: (callback: (err: Error | ErrorBuilder, response: object, output: { value: object, response: object | Buffer, status: number, headers: object, hostname: string, cache: boolean, cookie: (name: string) => string}) => void) => RESTBuilder;
 	cert: (key: Buffer, cert: Buffer, dhparam?: Buffer) => RESTBuilder;
 	convert: (inline_schema: string) => RESTBuilder;
@@ -999,7 +999,7 @@ interface TMSClient extends FrameworkWebSocketClient {
 }
 
 // Globals
-declare function SUCCESS();
+declare function SUCCESS(): SUCCESS;
 type SUCCESS = (success?: boolean, value?: any) => { success: boolean, error: any, value: any};
 type DEF = {
 	onAudit: (name: string, data: object) => void;
