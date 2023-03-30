@@ -622,7 +622,6 @@ type SchemaCallback = {
 	schema: any;
 	trim: boolean;
 	allow: (field: string, field2?: string, field3?: string, field4?: string, field5?: string) => void;
-	before: (name: string, fn: (value, model, index?, request?: Request) => void ) => void;
 	cl: (name: string) => void;
 	compress: () => void;
 	csrf: () => void;
