@@ -661,7 +661,7 @@ type SchemaCallback = {
 }
 
 // Route
-type RouteAction = (req: Request, res: Response) => void;
+type RouteAction = (req: Request, res: Response) => void | ((...args: any) => void);
 
 // Operation
 type Operation = Dollar & {
