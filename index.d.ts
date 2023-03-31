@@ -453,7 +453,7 @@ type Dollar = {
 	cookie: (name: string, value: string, expire: string, options: object) => string | void;
 	done: (arg?: string | object | boolean) => ErrorResponse;
 	invalid: (name: string | number, error?: string | number | Error) => void;
-	success: (is?: boolean, value?: undefined) => void;
+	success: (is?: boolean, value?: any) => void;
 	successful: (callback: (response: any) => any) => ErrorResponse;
 }
 
@@ -1095,7 +1095,7 @@ declare global {
 	function MERGE(url: string, filename1: string, filename2: string, filename3?: string, filename4?: string, filename5?: string): void;
 	function MIDDLEWARE(name: string, fn: ($: Dollar | null) => void, assign?: string | string[], fisrt?: boolean): void;
 	function MODEL(name: string): any;
-	function MODIFY(fn: (type: string, filename: string, value: string, controller: FrameworkController | undefined) => any): any;
+	function MODIFY(fn: (type: string, filename: string, value: string, controller?: FrameworkController) => any): any;
 	function MODULE(name: string): any;
 	function NEWCOMMAND(name: string, callback: Function | null): any;
 	function NEWOPERATION(name: string, fn: ($: Operation) => void, repeat?: number, stop?: boolean, bind_error?: boolean, queryschema?: string);
@@ -1115,7 +1115,9 @@ declare global {
 	function REQUEST(options: RequestOptions, callback?: () => void): void;
 	function REQUIRE(path: string): any;
 	function RESOURCE(name: string, key: string): any;
-	function ROUTE(url: string, action?: string | RouteAction, flags?: string[], length?: number[]): any;
+	function ROUTE(url: string, action: RouteAction, flags?: string[], length?: number[]): any;
+	function ROUTE(url: string, view: string , flags?: string[], length?: number[]): any;
+	function ROUTE(url: string, flags?: string[], length?: number[]): any;
 	function RUN(names: string, value: object, callback: ErrorResponse, options?: object, controller?: FrameworkController, response_name?: string);
 	function SCHEDULE(date: string | number | Date, repeat?: string, fn?: () => void): ScheduleInstance;
 	function SESSION(name?: string, ondata?: Function): any;
