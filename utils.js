@@ -2733,11 +2733,11 @@ global.HASH = function(value, type) {
 };
 
 SP.sign = function(key) {
-	return this + '-' + (string_hash(this + (key || '')) >> 0).toString(36);
+	return this + '-' + (string_hash(this + (key || '')) >>> 0).toString(36);
 };
 
 SP.makeid = function() {
-	return (string_hash(this) >> 0).toString(36);
+	return (string_hash(this) >>> 0).toString(36);
 };
 
 SP.crc32 = function(unsigned) {
