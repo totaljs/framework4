@@ -13,7 +13,7 @@
 
 const AsyncFunction = async function () {}.constructor;
 
-function findkeywords(line, keywords, replace, allowed) {
+function findkeywords(line, keywords, replace, allowedbeg, allowedend) {
 
 	var white = [' ', '\t', ';'];
 
@@ -36,20 +36,17 @@ function findkeywords(line, keywords, replace, allowed) {
 
 			var beg = line.substring(index - 1, index);
 
-			if (index === 0 || white.includes(beg)) {
+			if (index === 0 || white.includes(beg) || (allowedbeg && allowedbeg.includes(beg))) {
 				var length = index + m.length;
 				var end = line.substring(length, length + 1);
 
-				if (!end || white.includes(end) || (allowed && allowed.includes(end))) {
+				if (!end || white.includes(end) || (allowedend && allowedend.includes(end))) {
 					var output = replace(m);
 					line = line.substring(0, index) + output + line.substring(length);
 				}
 			}
-
 		}
-
 	}
-
 	return line;
 }
 
@@ -105,7 +102,7 @@ function prepareline(str, meta, isasync) {
 	str = findkeywords(str, ['true', 'false', 'yes', 'no', 'ok'], function(text) {
 		text = text.toLowerCase();
 		return text === 'yes' || text === 'true' || text === 'ok';
-	});
+	}, ['('], [')']);
 
 	// AND OR
 	str = findkeywords(str, ['and', 'or'], function(text) {
@@ -186,7 +183,7 @@ function prepareline(str, meta, isasync) {
 	// Properties & fixed values
 	str = str.replace(/.[a-z0-9_.]+./ig, function(text) {
 
-		if ((/@[0-9]+@|true|false/).test(text))
+		if ((/@[0-9]+@|true|false(\))?/).test(text))
 			return text;
 
 		if ((/^[0-9.]+$/i).test(text)) {
@@ -201,7 +198,7 @@ function prepareline(str, meta, isasync) {
 	});
 
 	if (str)
-		meta.builder.push(str.replace(/(\s)?(=|>|<|\+|-)(\s)?/g, n => n.trim()));
+		meta.builder.push(str.replace(/(\s)?(=|>|<|\+|-)(\s)?/g, n => n.trim()) + ';');
 
 }
 
@@ -221,5 +218,5 @@ exports.compile = function(str, nocompile, isasync) {
 		return meta.keywords[text];
 	});
 
-	return nocompile ? compiled : new (isasync ? AsyncFunction : Function)('model', 'helpers', 'var tmp={};' + compiled);
+	return nocompile ? compiled : new (isasync ? AsyncFunction : Function)('model', 'helpers', 'var tmp={};\n' + compiled);
 };
