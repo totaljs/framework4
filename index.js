@@ -3232,8 +3232,8 @@ global.REDIRECT = function(host, newHost, withPath, permanent) {
 	}
 };
 
-global.NEWMACRO = function(str, nocompile) {
-	return require('./macros').compile(str, nocompile);
+global.NEWMACRO = function(str, nocompile, isasync) {
+	return require('./macros').compile(str, nocompile, isasync);
 };
 
 /**
