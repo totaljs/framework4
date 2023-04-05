@@ -84,7 +84,7 @@ function prepareline(str, meta, isasync) {
 	if (str.indexOf(';') !== -1) {
 		var lines = str.split(';');
 		for (var m of lines)
-			m = prepareline(m, meta);
+			m = prepareline(m, meta, isasync);
 		return lines.join('\n');
 	}
 
@@ -160,10 +160,10 @@ function prepareline(str, meta, isasync) {
 	});
 
 	// Helpers
-	str = str.replace(/[a-z0-9_]+\(/ig, function(text) {
+	str = str.replace(/[a-z0-9_]+\((\))?/ig, function(text) {
 		var key = '@' + meta.indexer + '@';
 		var index = text.indexOf('(');
-		meta.keywords[key] = (isasync ? 'await ' : '') + 'helpers.' + (text.substring(0, index) + '.call(' + text.substring(index + 1) + 'model,').toLowerCase();
+		meta.keywords[key] = (isasync ? 'await ' : '') + 'helpers.' + (text.substring(0, index) + '.call(model' + (text.substring(index) === '()' ? ')' : ',')).toLowerCase();
 		meta.indexer++;
 		return key;
 	});
