@@ -214,6 +214,7 @@ CTP.load = function(conn, opt) {
 	builder.options.sort = opt.sort && opt.sort instanceof Array && opt.sort.length ? opt.sort : null;
 	builder.options.payload = opt.payload;
 	builder.options.upsert = opt.upsert;
+	builder.options.returning = opt.returning;
 	builder.options.filter = opt.filter && opt.filter instanceof Array  ? opt.filter : EMPTYARRAY;
 
 	return builder;
@@ -1315,4 +1316,6 @@ exports.evaluate = function(type, callback) {
 
 };
 
+global.QueryBuilderDB = Controller;
+global.QueryBuilder = QueryBuilder;
 exports.Controller = Controller;

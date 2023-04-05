@@ -17,6 +17,8 @@
 - fixed multiple outputs in for the actions
 - fixed parser for macros
 - improved macros by adding async operations
+- added `QueryBuilder` as a global variable (due to extending prototype)
+- added `QueryBuilderDB` as a global variable (due to extending prototype)
 
 ========================
 0.0.80
