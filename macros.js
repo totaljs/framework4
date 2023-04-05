@@ -11,15 +11,59 @@
 	FI
 */
 
-exports.compile = function(str, nocompile) {
+const AsyncFunction = async function () {}.constructor;
 
-	var indexer = 0;
-	var keywords = {};
+function findkeywords(line, keywords, replace, allowed) {
+
+	var white = [' ', '\t', ';'];
+
+	for (var keyword of keywords) {
+
+		var reg = new RegExp(keyword, 'gi');
+		var match = line.match(reg);
+
+		if (!match)
+			continue;
+
+		var index = 0;
+
+		for (var m of match) {
+
+			index = line.indexOf(m);
+
+			if (index === -1)
+				break;
+
+			var beg = line.substring(index - 1, index);
+
+			if (index === 0 || white.includes(beg)) {
+				var length = index + m.length;
+				var end = line.substring(length, length + 1);
+
+				if (!end || white.includes(end) || (allowed && allowed.includes(end))) {
+					var output = replace(m);
+					line = line.substring(0, index) + output + line.substring(length);
+				}
+			}
+
+		}
+
+	}
+
+	return line;
+}
+
+function prepareline(str, meta, isasync) {
+
+	str = str.trim();
+
+	if (str.substring(0, 2) === '//')
+		return;
 
 	// User defined values
-	str = str.replace(/".*?"/g, function(text) {
+	str = str.replace(/(".*?")|('.*?')/g, function(text) {
 
-		var key = '@' + indexer + '@';
+		var key = '@' + meta.indexer + '@';
 
 		text = text.substring(1, text.length - 1);
 		if ((/^[0-9.,]+$/).test(text)) {
@@ -32,90 +76,95 @@ exports.compile = function(str, nocompile) {
 				text = '"' + text + '"';
 		}
 
-		keywords[key] = text;
-		indexer++;
+		meta.keywords[key] = text;
+		meta.indexer++;
 		return key;
 	});
 
-	// Removes comments
-	str = str.split('\n').map(line => line.replace(/\/\/.*?$/g, '')).join('\n');
+	if (str.indexOf(';') !== -1) {
+		var lines = str.split(';');
+		for (var m of lines)
+			m = prepareline(m, meta);
+		return lines.join('\n');
+	}
 
 	// Return
-	str = str.replace(/(\s)?return(\s)?/ig, function(text) {
-		var key = '@' + indexer + '@';
-		keywords[key] = text.toLowerCase();
-		indexer++;
+	str = findkeywords(str, ['return'], function(text) {
+		var key = '@' + meta.indexer + '@';
+		meta.keywords[key] = text.toLowerCase();
+		meta.indexer++;
 		return key;
 	});
 
 	// End condition
-	str = str.replace(/(\s)?fi(\s)?/ig, function(text) {
-		return text.replace(/fi/i, '}');
+	str = findkeywords(str, ['fi'], function() {
+		return '}';
 	});
 
 	// Boolean
-	str = str.replace(/[\s+\-*/()=]?(true|false|yes|no)[\s+\-*/()=]/ig, function(text) {
-		return text.toLowerCase().replace('yes', 'true').replace('no', false);
+	str = findkeywords(str, ['true', 'false', 'yes', 'no', 'ok'], function(text) {
+		text = text.toLowerCase();
+		return text === 'yes' || text === 'true' || text === 'ok';
 	});
 
 	// AND OR
-	str = str.replace(/(\s)(AND|OR)(\s)/ig, function(text) {
-		text = text.toLowerCase();
-		return text.replace(/and/g, '&&').replace(/or/g, '||');
+	str = findkeywords(str, ['and', 'or'], function(text) {
+		return text.toLowerCase().replace(/and/g, '&&').replace(/or/g, '||');
 	});
 
 	// Conditions
-	var lines = str.split('\n');
-	for (var i = 0; i < lines.length; i++) {
-		var line = lines[i];
-		var lower = line.toLowerCase();
-
-		var index = lower.indexOf('else');
-		if (index !== -1) {
-			var tmp = line.substring(index);
-			var tmplower = tmp.toLowerCase();
-			line = line.substring(0, index) + '}' + tmp + (tmplower.indexOf('else if') === -1 ? '{' : '');
-		}
-
-		if (lower.indexOf('if ') !== -1) {
-			lines[i] = line.replace(/.=./g, function(text) {
-				if (text[0] === '>' || text[0] === '<' || text[0] === '=' || (text[1] === '=' && text[2] === '='))
-					return text;
-				if (text[2] === '>' || text[2] === '<')
-					return text[2] + text[1] + text[0];
-				if (text[1] === '=')
-					return text[0] + '=' + text[1] + text[2];
-				return text;
-			}) + '){';
-		} else if (index !== -1) {
-			lines[i] = line;
-		}
+	var lower = str.toLowerCase();
+	var index = lower.indexOf('else');
+	if (index !== -1) {
+		var tmp = str.substring(index);
+		var tmplower = tmp.toLowerCase();
+		str = str.substring(0, index) + '}' + tmp + (tmplower.indexOf('else if') === -1 ? '{' : '');
 	}
 
-	str = lines.join('\n');
+	if (lower.indexOf('if ') !== -1) {
+		str = str.replace(/.=./g, function(text) {
+			if (text[0] === '>' || text[0] === '<' || text[0] === '=' || (text[1] === '=' && text[2] === '='))
+				return text;
+			if (text[2] === '>' || text[2] === '<')
+				return text[2] + text[1] + text[0];
+			if (text[1] === '=')
+				return text[0] + '=' + text[1] + text[2];
+			return text;
+		}) + '){';
+	}
 
 	// Conditions
 	str = str.replace(/(\s)?(else|else\sif|if)(\s)?/ig, function(text) {
-		var key = '@' + indexer + '@';
-		keywords[key] = text.replace(/if(\s)/i, 'if(').replace(/else/i, 'else');
-		indexer++;
+		var key = '@' + meta.indexer + '@';
+		meta.keywords[key] = text.replace(/if(\s)/i, 'if(').replace(/else/i, 'else');
+		meta.indexer++;
+		return key;
+	});
+
+	// Conditions
+	str = findkeywords(str, ['else', 'else if', 'if'], function(text) {
+		text = text.toLowerCase();
+		var key = '@' + meta.indexer + '@';
+		meta.keywords[key] = text.replace(/if(\s)/i, 'if(').replace(/else/i, 'else');
+		meta.indexer++;
 		return key;
 	});
 
 	// Null
-	str = str.replace(/(\s)?(null)(\s)?/ig, function(text) {
-		var key = '@' + indexer + '@';
-		keywords[key] = text.replace(/null/i, 'null');
-		indexer++;
+	str = findkeywords(str, ['null'], function(text) {
+		var key = '@' + meta.indexer + '@';
+		text = text.toLowerCase();
+		meta.keywords[key] = text.replace(/null/i, 'null');
+		meta.indexer++;
 		return key;
 	});
 
 	// Helpers
 	str = str.replace(/[a-z0-9_]+\(/ig, function(text) {
-		var key = '@' + indexer + '@';
+		var key = '@' + meta.indexer + '@';
 		var index = text.indexOf('(');
-		keywords[key] = 'helpers.' + (text.substring(0, index) + '.call(' + text.substring(index + 1) + 'model,').toLowerCase();
-		indexer++;
+		meta.keywords[key] = (isasync ? 'await ' : '') + 'helpers.' + (text.substring(0, index) + '.call(' + text.substring(index + 1) + 'model,').toLowerCase();
+		meta.indexer++;
 		return key;
 	});
 
@@ -128,9 +177,9 @@ exports.compile = function(str, nocompile) {
 		else
 			last = '';
 
-		var key = '@' + indexer + '@';
-		keywords[key] = text.substring(1).toLowerCase().replace(/[a-z]/i, text => 'tmp.' + text);
-		indexer++;
+		var key = '@' + meta.indexer + '@';
+		meta.keywords[key] = text.substring(1).toLowerCase().replace(/[a-z]/i, text => 'tmp.' + text);
+		meta.indexer++;
 		return key + last;
 	});
 
@@ -151,22 +200,26 @@ exports.compile = function(str, nocompile) {
 		return text;
 	});
 
-	if ((/'|`/).test(str))
-		return null;
+	if (str)
+		meta.builder.push(str.replace(/(\s)?(=|>|<|\+|-)(\s)?/g, n => n.trim()));
 
-	str = str.replace(/@\d+@/gi, function(text) {
-		return keywords[text];
+}
+
+exports.compile = function(str, nocompile, isasync) {
+
+	var meta = {};
+	meta.keywords = {};
+	meta.indexer = 0;
+	meta.builder = [];
+
+	var lines = str.split('\n');
+
+	for (var line of lines)
+		prepareline(line, meta, isasync);
+
+	var compiled = meta.builder.join('\n').replace(/@\d+@/gi, function(text) {
+		return meta.keywords[text];
 	});
 
-	lines = str.split('\n').trim();
-	str = '';
-
-	for (var line of lines) {
-		if (line.trim()) {
-			// line = line.replace(/model\.[a-z0-9.]+(\s)?(>|<|=)+./g, text => text.replace(/\./g, '?.'));
-			str += (str ? '\n' : '') + line;
-		}
-	}
-
-	return nocompile ? str : new Function('model', 'helpers', 'var tmp={};' + str);
+	return nocompile ? compiled : new (isasync ? AsyncFunction : Function)('model', 'helpers', 'var tmp={};' + compiled);
 };
