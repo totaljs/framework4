@@ -109,7 +109,7 @@ function runwatching() {
 	const FILENAME = U.getName(process.argv[1] || 'index.js');
 	const VERSION = F.version_header;
 	const REG_CONFIGS = /configs\//g;
-	const REG_FILES = /config-debug|config-release|config|versions|sitemap|\.js$|\.ts$|\.resource$|\.build$/i;
+	const REG_FILES = /config-debug|config-release|config|bundles\.debug|versions|sitemap|\.js$|\.ts$|\.resource$|\.build$/i;
 	const REG_THEMES = /\/themes\//i;
 	const REG_PUBLIC = /\/public\//i;
 	const REG_INDEX = new RegExp(FILENAME.replace(/\.js$/, '') + '_.*?\\.js$');
