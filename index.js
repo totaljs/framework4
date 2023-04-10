@@ -3164,7 +3164,6 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 	else
 		target = { socketPath: target };
 
-
 	if ((copypath === true || copypath === 'replace') && target.pathname.length > 1)
 		copypath = 'extend';
 
@@ -17933,12 +17932,19 @@ function extend_response(PROTO) {
 
 	PROTO.proxy = function(target, copypath, after, timeout) {
 
+		var before;
+
+		if (typeof(copypath) === 'function') {
+			before = copypath;
+			copypath = true;
+		}
+
 		if ((/^(https|http):\/\//).test(target))
 			target = Parser.parse(target);
 		else
 			target = { socketPath: target };
 
-		var obj = { uri: Parser.parse(target), after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
+		var obj = { uri: Parser.parse(target), path: '', before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
 		F.stats.response.proxy++;
 		makeproxy(obj, this.req, this);
 	};

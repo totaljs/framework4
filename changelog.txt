@@ -3,6 +3,7 @@
 ========================
 
 - added a watcher for `bundles.debug`
+- fixed `res.proxy()`
 
 ========================
 0.0.81
