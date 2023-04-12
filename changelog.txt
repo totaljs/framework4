@@ -4,6 +4,7 @@
 
 - added a watcher for `bundles.debug`
 - fixed `res.proxy()`
+- fixed bug with the `instance.replace()` and `message.replace()` methods in the FlowStream (critical)
 
 ========================
 0.0.81

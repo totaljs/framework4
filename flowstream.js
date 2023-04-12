@@ -266,8 +266,11 @@ function variables(str, data, encoding) {
 	if (typeof(str) === 'object') {
 		var obj = {};
 		for (var key in str) {
-			if (typeof(str[key]) === 'string')
-				obj[key] = variables.call(this, str[key], data, encoding);
+			var val = str[key];
+			if (typeof(val) === 'string')
+				obj[key] = variables.call(this, val, data, encoding);
+			else
+				obj[key] = val;
 		}
 		return obj;
 	}
