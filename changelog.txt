@@ -2,6 +2,8 @@
 0.0.83
 ========================
 
+- fixed a backward compatibility with the older schema executors
+
 ========================
 0.0.82
 ========================

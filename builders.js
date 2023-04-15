@@ -2616,7 +2616,7 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	var self = this;
 
 	var additional = caller ? caller.options : null;
-	var symbol = caller ? caller.meta.symbol : null;
+	var symbol = caller && caller.meta ? caller.meta.symbol : null;
 
 	self.resourceName && error.setResource(self.resourceName);
 	self.resourcePrefix && error.setPrefix(self.resourcePrefix);
