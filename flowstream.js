@@ -1443,10 +1443,6 @@ FP._use = function(schema, callback, reinit, insert) {
 	return self;
 };
 
-function findinstance(id) {
-	return this.main.find(id);
-}
-
 FP.initcomponent = function(key, component) {
 
 	var self = this;
