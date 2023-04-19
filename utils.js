@@ -4086,17 +4086,19 @@ SP.parseFloat = function(def) {
 SP.capitalize = function(first) {
 
 	if (first)
-		return (this[0] || '').toUpperCase() + this.substring(1);
+		return (this[0] || '').toUpperCase() + this.substring(1).toLowerCase();
 
 	var builder = '';
 	var c;
 
-	for (var i = 0, length = this.length; i < length; i++) {
-		var c = this[i - 1];
+	var str = this.toLowerCase();
+
+	for (var i = 0; i < str.length; i++) {
+		var c = str[i - 1];
 		if (!c || (c === ' ' || c === '\t' || c === '\n'))
-			c = this[i].toUpperCase();
+			c = str[i].toUpperCase();
 		else
-			c = this[i];
+			c = str[i];
 		builder += c;
 	}
 

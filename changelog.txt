@@ -3,6 +3,7 @@
 ========================
 
 - fixed a backward compatibility with the older schema executors
+- fixed `String.capitalize()` method (chars in uppercase are transformed to a lowercase)
 
 ========================
 0.0.82
