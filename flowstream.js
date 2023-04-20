@@ -622,6 +622,9 @@ function Flow(name, errorhandler) {
 						com.service && com.service(t.stats.minutes);
 					}
 
+					if (t.stats.traffic.priority.length)
+						is = 1;
+
 				} else
 					counter++;
 

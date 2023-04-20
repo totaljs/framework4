@@ -4,6 +4,7 @@
 
 - fixed a backward compatibility with the older schema executors
 - fixed `String.capitalize()` method (chars in uppercase are transformed to lowercase)
+- fixed traffic indicator in the `FlowStream`
 
 ========================
 0.0.82
