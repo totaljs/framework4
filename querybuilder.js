@@ -1297,9 +1297,11 @@ QBP.join = function(name, table, jointype, a, b) {
 	return this;
 };
 
-ON('service', function(counter) {
-	if (counter % 10 === 0)
-		CACHE = {};
+setImmediate(function() {
+	ON('service', function(counter) {
+		if (counter % 10 === 0)
+			CACHE = {};
+	});
 });
 
 exports.evaluate = function(type, callback) {

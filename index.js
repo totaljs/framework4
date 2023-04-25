@@ -77,6 +77,7 @@ const isTYPESCRIPT = (/\.ts$/).test(process.argv[1]);
 const SOCKETWINDOWS = '\\\\?\\pipe';
 const SESSIONSEPARATOR = '\0';
 const CALLMETHOD = { POST: '+', PUT: '+', PATCH: '#' };
+const QB = require('./querybuilder');
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -113,14 +114,12 @@ function apiwrapper(fn_name) {
 
 function querybuilderwrapper(fn_name) {
 
-	var db = require('./querybuilder');
-
 	global.DB = global.DATABASE = function() {
-		return new db.Controller();
+		return new QB.Controller();
 	};
 
 	global.NEWDB = function(name, callback) {
-		db.evaluate(name, callback);
+		QB.evaluate(name, callback);
 	};
 
 	require('./textdb-querybuilder');
