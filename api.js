@@ -7,6 +7,13 @@ exports.evaluate = function(type, callback) {
 		type = 'default';
 	}
 
+	if (type.indexOf(',') !== -1) {
+		var arr = type.split(',').trim();
+		for (var m of arr)
+			exports.evaluate(m, callback);
+		return;
+	}
+
 	if (callback)
 		EVALUATOR[type] = callback;
 	else
@@ -20,6 +27,11 @@ function APICall() {
 }
 
 const APICallProto = APICall.prototype;
+
+APICallProto.output = function(type) {
+	this.options.output = type;
+	return this;
+};
 
 APICallProto.promise = function($) {
 	var t = this;

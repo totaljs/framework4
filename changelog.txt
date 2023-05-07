@@ -5,6 +5,7 @@
 - fixed `TEMPLATE()` parser
 - fixed `stream.pause()/stream.resume()` functionality in the `REQUEST()` method
 - extended: `API()` by adding Total.js API services, e.g. `API('TAPI', 'sms', { ... }).promise()`
+- extended `API()` by adding `.output(type)` method, a value is set to the `opt.output` object
 
 ========================
 0.0.83
