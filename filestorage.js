@@ -247,10 +247,13 @@ FP.saveforce = function(id, name, filename, filenameto, callback, custom, expire
 		}
 	}
 
-	if (isbuffer)
+	if (isbuffer) {
 		writer.end(filename);
-	else
+	} else {
 		reader.pipe(writer);
+		if (typeof(filename) !== 'string')
+			reader.resume();
+	}
 
 	CLEANUP(writer, function() {
 

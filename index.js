@@ -78,6 +78,7 @@ const SOCKETWINDOWS = '\\\\?\\pipe';
 const SESSIONSEPARATOR = '\0';
 const CALLMETHOD = { POST: '+', PUT: '+', PATCH: '#' };
 const QB = require('./querybuilder');
+const Api = require('./api');
 
 var TIMEOUTS = [];
 var PREFFILE = 'preferences.json';
@@ -96,21 +97,6 @@ global.EMPTYARRAY = EMPTYARRAY;
 global.NOW = new Date();
 global.THREAD = '';
 global.isWORKER = false;
-
-function apiwrapper(fn_name) {
-
-	var api = require('./api');
-
-	global.API = function(name, schema, data, $) {
-		return api.make(name, schema, data, $);
-	};
-
-	global.NEWAPI = function(name, callback) {
-		api.evaluate(name, callback);
-	};
-
-	return global[fn_name];
-}
 
 function querybuilderwrapper(fn_name) {
 
@@ -3022,12 +3008,12 @@ global.TEXTDB = function(name) {
 	return textdbwrapper(name);
 };
 
-global.API = function() {
-	return apiwrapper('API').apply(this, arguments);
+global.API = function(name, schema, data, $) {
+	return Api.make(name, schema, data, $);
 };
 
-global.NEWAPI = function() {
-	return apiwrapper('NEWAPI').apply(this, arguments);
+global.NEWAPI = function(name, callback) {
+	Api.evaluate(name, callback);
 };
 
 global.DB = global.DATABASE = function() {
@@ -20488,3 +20474,100 @@ global.TESTER = function(callback, options) {
 process.connected && setTimeout(function() {
 	process.send('total:init');
 }, 100);
+
+Api.evaluate('TotalAPI,TAPI', function(opt, next) {
+
+	if (!CONF.allow_totalapi && opt.schema !== 'check') {
+		next('totalapi_inactive');
+		return;
+	}
+
+	if (typeof(data) !== 'object')
+		opt.data = { value: opt.data };
+
+	var req = {};
+	req.method = 'POST';
+	req.url = 'https://api.totaljs.com/' + opt.schema + '/';
+	req.body = JSON.stringify(opt.data);
+	req.type = 'json';
+	req.keepalive = true;
+	req.headers = { 'x-token': opt.token || CONF.totalapi || CONF.secret_totalapi || '-' };
+	req.custom = true;
+
+	req.callback = function(err, response) {
+
+		if (err) {
+			next(err.toString());
+			return;
+		}
+
+		var buffer = [];
+
+		// Error
+		if (response.status > 200) {
+			response.stream.on('data', chunk => buffer.push(chunk));
+			CLEANUP(response.stream, function() {
+				let output = Buffer.concat(buffer).toString('utf8').parseJSON();
+				$.next(output[0].error);
+			});
+			return;
+		}
+
+		if (!opt.output || opt.output === 'json' || opt.output === 'html' || opt.output === 'plain' || opt.output === 'text' || opt.output === 'base64' || opt.output === 'buffer' || opt.output === 'binary') {
+			response.stream.on('data', chunk => buffer.push(chunk));
+			CLEANUP(response.stream, function() {
+				let output = Buffer.concat(buffer);
+				if (opt.output === 'base64') {
+					output = output.toString('base64');
+				} else if (opt.output !== 'binary' && opt.output !== 'buffer') {
+					output = output.toString('utf8');
+					if (!opt.output || opt.output === 'json')
+						output = output.parseJSON(true);
+				}
+				next(null, output);
+			});
+			return;
+		}
+
+		if (opt.output === 'stream') {
+			next(null, response.stream);
+			return;
+		}
+
+		// FileStorage in the form: "#name id filename"
+		if (opt.output[0] === '#') {
+
+			var fsdata = null;
+			var fs = null;
+
+			if (opt.output[0] === '#') {
+				fsdata = opt.output.substring(1).split(' ');
+				fs = FILESTORAGE(fsdata[0]);
+			}
+
+			var type = (response.headers['content-type'] || '').toLowerCase();
+			var index = type.lastIndexOf(';');
+			if (index !== -1)
+				type = type.substring(0, index);
+
+			var ext = type ? U.getExtensionFromContentType(type) : 'bin';
+			var id = fsdata[1] || UID();
+			var filename = fsdata[2] || id + '.' + ext;
+
+			response.stream.pause();
+			response.stream.on('data', chunk => console.log('data1', chunk));
+
+			fs.save(id, filename, response.stream, next);
+			return;
+		}
+
+		var writer = F.Fs.createWriteStream(opt.output);
+		response.stream.pipe(writer);
+		CLEANUP(writer, function() {
+			opt.next(null, opt.output);
+		});
+
+	};
+
+	REQUEST(req);
+});
