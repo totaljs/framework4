@@ -1123,9 +1123,8 @@ function request_response(res) {
 			res.on('data', request_process_data);
 			res.on('end', request_process_end);
 		}
+		res.resume();
 	}
-
-	res.resume();
 }
 
 function request_process_data(chunk) {

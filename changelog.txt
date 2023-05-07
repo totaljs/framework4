@@ -3,6 +3,7 @@
 ========================
 
 - fixed `TEMPLATE()` parser
+- fixed `stream.pause()/stream.resume()` functionality in the `REQUEST()` method
 
 ========================
 0.0.83
