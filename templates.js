@@ -126,7 +126,7 @@ function parse(body) {
 	beg = body.indexOf('<scr' + 'ipt type="text/json">');
 	if (beg !== -1) {
 		end = body.indexOf('</scr' + 'ipt>', beg + 8);
-		model = PARSE(body.substring(beg + 25, end).trim());
+		model = body.substring(beg + 25, end).trim().parseJSON(true);
 		body = body.substring(0, beg) + body.substring(end + 9);
 	}
 
