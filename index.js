@@ -20482,7 +20482,7 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 		return;
 	}
 
-	if (typeof(data) !== 'object')
+	if (typeof(opt.data) !== 'object')
 		opt.data = { value: opt.data };
 
 	var req = {};
@@ -20508,7 +20508,7 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 			response.stream.on('data', chunk => buffer.push(chunk));
 			CLEANUP(response.stream, function() {
 				let output = Buffer.concat(buffer).toString('utf8').parseJSON();
-				$.next(output[0].error);
+				next(output[0].error);
 			});
 			return;
 		}
@@ -20555,8 +20555,6 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 			var filename = fsdata[2] || id + '.' + ext;
 
 			response.stream.pause();
-			response.stream.on('data', chunk => console.log('data1', chunk));
-
 			fs.save(id, filename, response.stream, next);
 			return;
 		}
