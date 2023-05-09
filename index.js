@@ -13081,7 +13081,7 @@ ControllerProto.getSchema = function() {
 	if (!route.schema || !route.schema[1])
 		throw new Error('The controller\'s route does not defined any schema.');
 	var schemaname = self.req.$schemaname;
-	if (!schema)
+	if (!schemaname)
 		schemaname = (self.route.schema[0] ? (self.route.schema[0] + '/') : '') + (self.route.isDYNAMICSCHEMA ? self.params[self.route.schema[1]] : self.route.schema[1]);
 
 	var key = 'schema_' + schemaname;
