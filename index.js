@@ -5456,7 +5456,7 @@ F.$bundle = function(callback, skip) {
 
 		url.wait(function(item, next) {
 			var filename = PATH.root(CONF.directory_bundles) + item.replace('.url', '.bundle');
-			var link = Fs.readFileSync(PATH.root(CONF.directory_bundles) + item).toString(ENCODING);
+			var link = Fs.readFileSync(PATH.root(CONF.directory_bundles) + item).toString(ENCODING).trim();
 			DOWNLOAD(link, filename, function(err) {
 				err && F.error(err, 'Bundle: ' + link);
 				next();

@@ -116,7 +116,7 @@ function runwatching() {
 	const REG_COMPONENTS = /(components|plugins|extensions)\/[a-z0-9-_]\.html|\.package\/.*?$/i;
 	const REG_JSONSCHEMAS = /jsonschemas\/.*?\.json$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
-	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build)$/i;
+	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build|url)$/i;
 	const REG_RELOAD = /\.(js|ts|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;
@@ -322,6 +322,7 @@ function runwatching() {
 		}
 
 		function refresh() {
+
 			var reload = false;
 			LIVERELOADCHANGE = '';
 
@@ -364,6 +365,7 @@ function runwatching() {
 							}
 
 							LIVERELOADCHANGE = normalize(filename.replace(directory, ''));
+
 							var log = stamp.replace('#', files[filename] === 0 ? 'ADD' : 'UPD') + prefix + LIVERELOADCHANGE;
 							if (files[filename]) {
 								var tmp = isViewPublic(filename);
@@ -397,6 +399,14 @@ function runwatching() {
 				isLoaded = true;
 
 				if (status !== 1 || !force) {
+
+					// Due to bundes/*.url
+					if (status === 2) {
+						status = 1;
+						force = false;
+						changes.length = 0;
+					}
+
 					reload && livereload(LIVERELOADCHANGE);
 					if (counter % 150 === 0)
 						speed = isRELOAD ? 3000 : 6000;
@@ -413,7 +423,7 @@ function runwatching() {
 				for (var i = 0; i < length; i++)
 					console.log(changes[i]);
 
-				changes = [];
+				changes.length = 0;
 				force = false;
 			}, 3);
 		}
@@ -477,10 +487,9 @@ function runwatching() {
 						restart();
 						break;
 					case 'total:ready':
-						if (status === 0) {
+						if (status === 0)
 							app.send('total:debug');
-							status = 1;
-						}
+						status = 2;
 						livereload(LIVERELOADCHANGE);
 						break;
 				}
