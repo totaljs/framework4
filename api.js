@@ -1,5 +1,7 @@
 var EVALUATOR = {};
+var cache = {};
 
+// Registers a new API type
 exports.evaluate = function(type, callback) {
 
 	if (typeof(type) === 'function') {
@@ -13,6 +15,12 @@ exports.evaluate = function(type, callback) {
 			exports.evaluate(m, callback);
 		return;
 	}
+
+	// It can be "camel case"
+	cache[type] = type;
+
+	type = type.toLowerCase();
+	cache[type] = type;
 
 	if (callback)
 		EVALUATOR[type] = callback;
@@ -144,9 +152,10 @@ function execapi(api) {
 		api.evaluate('API is not initialized');
 }
 
+// Makes a new instances of API call
 exports.make = function(name, schema, data, $) {
 	var api = new APICall();
-	api.options.name = name;
+	api.options.name = cache[name] || name;
 	api.options.schema = schema;
 	api.options.data = data;
 	api.options.controller = $;
