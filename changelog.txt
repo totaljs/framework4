@@ -8,6 +8,7 @@
 - extended `API()` by adding `.output(type)` method, a value is set to the `opt.output` object
 - fixed `/bundles/*.url` files in debug mode
 - improved `API()`, the API `name` can now be called in lowercase
+- extended `FAKE()` by adding inline JSON schemas specification
 
 ========================
 0.0.83

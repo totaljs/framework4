@@ -1487,8 +1487,20 @@ global.FAKE = function(schema, onlyrequired) {
 		o = { schema: {} };
 		for (var key in schema)
 			o.schema[key] = framework_builders.parsetype(key, schema[key], true);
-	} else
+	} else {
+
+		if (schema.indexOf(':') !== -1 || schema.indexOf(',') !== -1) {
+			var obj = {};
+			var arr = schema.split(/,|;/).trim();
+			for (var m of arr) {
+				var tmp = m.split(':').trim();
+				obj[tmp[0]] = tmp[1];
+			}
+			return FAKE(obj);
+		}
+
 		o = framework_builders.getschema(schema);
+	}
 
 	var output = {};
 
