@@ -3232,13 +3232,10 @@ global.NEWMACRO = function(str, nocompile, isasync) {
 	return require('./macros').compile(str, nocompile, isasync);
 };
 
-/**
- * Schedule job
- * @param {Date or String} date
- * @param {Boolean} repeat Repeat schedule
- * @param {Function} fn
- * @return {Framework}
- */
+// The method creates a scheduler
+// @date {Date/String} it can contain a "cron" declaration
+// @repeat {String} optional, a repeating time (with except "cron" declaration)
+// @fn {Function} an executor
 global.SCHEDULE = function(date, repeat, fn) {
 
 	if (fn === undefined) {
@@ -3247,20 +3244,34 @@ global.SCHEDULE = function(date, repeat, fn) {
 	}
 
 	var type = typeof(date);
+	var cron = null;
 
 	if (type === 'string') {
-		date = date.parseDate().toUTC();
-		repeat && date < NOW && (date = date.add(repeat));
+
+		if (date.indexOf(' ') !== -1) {
+			cron = require('./cron').make(date);
+		} else {
+			date = date.parseDate().toUTC();
+			repeat && date < NOW && (date = date.add(repeat));
+		}
+
 	} else if (type === 'number')
 		date = new Date(date);
 
-	var sum = date.getTime();
-	repeat && (repeat = repeat.replace('each', '1'));
+	var sum = cron ? 0 : date.getTime();
+
+	if (repeat)
+		repeat = repeat.replace('each', '1');
+
 	var id = U.GUID(5);
-	var item = { id: id, expire: sum, fn: fn, repeat: repeat, owner: CURRENT_OWNER };
+	var item = { id: id, expire: sum, cron: cron, fn: fn, repeat: repeat, owner: CURRENT_OWNER };
 	F.schedules[id] = item;
 
 	item.remove = function() {
+
+		if (item.cron)
+			delete item.cron;
+
 		delete F.schedules[id];
 	};
 
@@ -3271,13 +3282,6 @@ global.SCHEDULE = function(date, repeat, fn) {
 	return item;
 };
 
-/**
- * Auto resize picture according the path
- * @param {String} url Relative path.
- * @param {Function(image)} fn Processing.
- * @param {String Array} flags Optional, can contains extensions `.jpg`, `.gif' or watching path `/img/gallery/`
- * @return {Framework}
- */
 global.RESIZE = function(url, fn, flags) {
 
 	var extensions = {};
@@ -8855,7 +8859,8 @@ F.service = function(count) {
 	}
 
 	// Update expires date
-	count % 1000 === 0 && (DATE_EXPIRES = NOW.add('y', 1).toUTCString());
+	if (count % 1000 === 0)
+		DATE_EXPIRES = NOW.add('y', 1).toUTCString();
 
 	F.$events.service && EMIT('service', count);
 
@@ -8888,6 +8893,13 @@ F.service = function(count) {
 	for (var i = 0; i < keys.length; i++) {
 		var key = keys[i];
 		var schedule = F.schedules[key];
+
+		if (schedule.cron) {
+			if (schedule.cron(NOW))
+				schedule.fn();
+			continue;
+		}
+
 		if (schedule.expire <= expire) {
 			if (schedule.repeat)
 				schedule.expire = NOW.add(schedule.repeat);

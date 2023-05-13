@@ -9,6 +9,7 @@
 - fixed `/bundles/*.url` files in debug mode
 - improved `API()`, the API `name` can now be called in lowercase
 - extended `FAKE()` by adding inline JSON schemas specification
+- extended `SCHEDULE()` method by adding support of `cron` basics
 
 ========================
 0.0.83
