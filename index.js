@@ -1491,7 +1491,7 @@ global.FAKE = function(schema, onlyrequired) {
 
 		if (schema.indexOf(':') !== -1 || schema.indexOf(',') !== -1) {
 			var obj = {};
-			var arr = schema.split(/,|;/).trim();
+			var arr = schema.replace(/\*|!/g, '').split(/,|;/).trim();
 			for (var m of arr) {
 				var tmp = m.split(':').trim();
 				obj[tmp[0]] = tmp[1];
