@@ -1297,6 +1297,24 @@ QBP.join = function(name, table, jointype, a, b) {
 	return this;
 };
 
+QBP.permit = function(name, type, value, useridfield, userid, required) {
+
+	// type: R read
+	// type: W write
+	// type: D delete
+
+	var t = this;
+	var arr = [];
+
+	for (let m of value)
+		arr.push(type + m);
+
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'permit' + type + arr.join('');
+	t.filter.push({ type: 'permit', name: name, value: arr, useridfield: useridfield, userid: userid, required: required != false });
+
+	return t;
+};
+
 setImmediate(function() {
 	ON('service', function(counter) {
 		if (counter % 10 === 0)
