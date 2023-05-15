@@ -3667,9 +3667,12 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			flags.push(first === '-' ? 'unauthorized' : 'authorized');
 		}
 
-		url = url.replace(/\s&[0-9a-z]/gi, function(text) {
+		url = url.replace(/\s&[#0-9a-z]+/gi, function(text) {
 			!flags && (flags = []);
-			flags.push(text.trim());
+			let f = text.trim().substring(1);
+			if ((/^\d+$/).test(f))
+				f = +f;
+			flags.push(f);
 			return '';
 		}).trim();
 
@@ -4222,7 +4225,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (apiname && !apischema)
 			apischema = '*  -->  ' + apiname;
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];

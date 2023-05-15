@@ -11,6 +11,7 @@
 - extended `FAKE()` by adding inline JSON schemas specification
 - extended `SCHEDULE()` method by adding support of `cron` basics
 - added `QueryBuilder.permit(name, type, value, [useridfield], [userid], [required])` method
+- fixed routing inline flags in the form: `&flag1' `&flag2`
 
 ========================
 0.0.83
