@@ -17,15 +17,14 @@ exports.evaluate = function(type, callback) {
 	}
 
 	// It can be "camel case"
-	cache[type] = type;
-
-	type = type.toLowerCase();
-	cache[type] = type;
+	var lower = type.toLowerCase();
+	cache[type] = lower;
+	cache[lower] = lower;
 
 	if (callback)
-		EVALUATOR[type] = callback;
+		EVALUATOR[lower] = callback;
 	else
-		delete EVALUATOR[type];
+		delete EVALUATOR[lower];
 
 };
 
@@ -145,7 +144,7 @@ APICallProto.evaluate = function(err, response) {
 };
 
 function execapi(api) {
-	var conn = EVALUATOR[api.options.name] || EVALUATOR['*'];
+	var conn = EVALUATOR[cache[api.options.name]] || EVALUATOR['*'];
 	if (conn)
 		conn.call(api, api.options, (err, response) => api.evaluate(err, response));
 	else
