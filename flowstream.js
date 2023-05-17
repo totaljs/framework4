@@ -280,7 +280,7 @@ function variables(str, data, encoding) {
 
 	var main = this.main;
 
-	if (data == true)
+	if (data == null || data == true)
 		data = this;
 
 	return str.replace(REG_ARGS, function(text) {
@@ -306,8 +306,10 @@ function variables(str, data, encoding) {
 
 		var customencoding = typeof(encoding) === 'function';
 
-		if (!val && data && typeof(data) === 'object')
-			val = key.indexOf('.') === -1 ? data[key] : U.get(data, key);
+		if (!val && data != null && typeof(data) === 'object') {
+			var nested = key.indexOf('.') !== -1;
+			val = nested ? U.get(data, key) : data[key];
+		}
 
 		if (customencoding) {
 

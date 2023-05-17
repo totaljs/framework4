@@ -12,6 +12,7 @@
 - extended `SCHEDULE()` method by adding support of `cron` basics
 - added `QueryBuilder.permit(name, type, value, [useridfield], [userid], [required])` method
 - fixed routing inline flags in the form: `&flag1' `&flag2`
+- fixed using of message data via `FlowStreamMessage.variables()`
 
 ========================
 0.0.83
