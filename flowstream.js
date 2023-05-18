@@ -1187,7 +1187,7 @@ FP.unload = function(callback) {
 	return self;
 };
 
-FP.load = function(components, design, callback) {
+FP.load = function(components, design, callback, asfile) {
 
 	var self = this;
 	if (self.loading) {
@@ -1207,7 +1207,7 @@ FP.load = function(components, design, callback) {
 				self.add(key, body, function(err) {
 					err && error.push(err);
 					next();
-				});
+				}, asfile);
 			} else {
 				error.push('Invalid component: ' + key);
 				next();
@@ -1753,7 +1753,7 @@ FP.send = function(path, body) {
 	}
 };
 
-FP.add = function(name, body, callback) {
+FP.add = function(name, body, callback, asfile) {
 
 	var self = this;
 	var meta = body.parseComponent({ readme: '<readme>', settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', schema: '<schema>', template: '<template>' });
@@ -1778,7 +1778,44 @@ FP.add = function(name, body, callback) {
 
 		var fn;
 
+		if (asfile) {
+
+			var filename = PATH.temp(self.id + '_' + meta.id);
+
+			F.Fs.writeFile(filename, node, function(err) {
+
+				if (err) {
+					callback && callback(err);
+					return;
+				}
+
+				try {
+					fn = require(filename);
+
+					delete meta.be;
+					delete meta.be2;
+
+					component = self.register(meta.id, fn, null, callback, true);
+
+					if (component) {
+						component.ui = meta;
+						component.ui.raw = body;
+					}
+
+					callback();
+
+				} catch (e) {
+					self.error(e, 'add', name);
+					callback && callback(e);
+				}
+
+			});
+
+			return;
+		}
+
 		try {
+
 			fn = new Function('exports', 'require', node);
 		} catch (e) {
 			self.error(e, 'add', name);
@@ -1789,6 +1826,7 @@ FP.add = function(name, body, callback) {
 		delete meta.be;
 		delete meta.be2;
 		component = self.register(meta.id, fn, null, callback, true);
+
 		if (component)
 			component.ui = meta;
 		else
