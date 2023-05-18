@@ -13,6 +13,7 @@
 - added `QueryBuilder.permit(name, type, value, [useridfield], [userid], [required])` method
 - fixed routing inline flags in the form: `&flag1' `&flag2`
 - fixed using of message data via `FlowStreamMessage.variables()`
+- added support for promises to the `DOWNLOAD()` method
 
 ========================
 0.0.83

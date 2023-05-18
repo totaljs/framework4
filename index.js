@@ -6732,6 +6732,18 @@ DEF.onMapping = function(url, def, ispublic, encode) {
 
 global.DOWNLOAD = function(url, filename, callback, timeout) {
 
+	if (!callback) {
+		// Promise
+		return new Promise(function(resolve, reject) {
+			DOWNLOAD(url, filename, function(err, response) {
+				if (err)
+					reject(err);
+				else
+					resolve(response);
+			}, timeout);
+		});
+	}
+
 	if (!F.isLoaded && url[0] === '/') {
 		setTimeout(global.DOWNLOAD, 200, url, filename, callback, timeout);
 		return;
