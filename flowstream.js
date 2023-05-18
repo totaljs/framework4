@@ -693,10 +693,15 @@ FP.register = function(name, declaration, config, callback, extend) {
 	}
 
 	var curr = { id: name, main: self, connected: true, disabled: false, cache: cache || {}, config: config || {}, stats: {}, ui: {}, iscomponent: true };
+
 	if (extend) {
 		try {
 			var cacheid = name;
-			declaration(curr, F.require);
+			if (type === 'object') {
+				for (var key in declaration)
+					curr[key] = declaration[key];
+			} else
+				declaration(curr, F.require);
 			curr.id = cacheid;
 		} catch (e) {
 			self.error(e, 'register', name);
@@ -704,7 +709,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 			return;
 		}
 	} else
-		curr.make = declaration;
+		curr.make = type === 'object' ? declaration.make : declaration;
 
 	curr.config = CLONE(curr.config || curr.options);
 
@@ -1757,7 +1762,7 @@ FP.add = function(name, body, callback, asfile) {
 
 	var self = this;
 	var meta = body.parseComponent({ readme: '<readme>', settings: '<settings>', css: '<style>', be: '<script total>', be2: '<script node>', js: '<script>', html: '<body>', schema: '<schema>', template: '<template>' });
-	var node = (meta.be || meta.be2 || '');
+	var node = (meta.be || meta.be2 || '').trim().replace(/\n\t/g, '\n');
 
 	if (!meta.be && !meta.be2) {
 		var e = new Error('Invalid component content');
@@ -1780,7 +1785,7 @@ FP.add = function(name, body, callback, asfile) {
 
 		if (asfile) {
 
-			var filename = PATH.temp(self.id + '_' + meta.id);
+			var filename = PATH.temp(self.id + '_' + meta.id) + '.js';
 
 			F.Fs.writeFile(filename, node, function(err) {
 
@@ -1790,6 +1795,7 @@ FP.add = function(name, body, callback, asfile) {
 				}
 
 				try {
+
 					fn = require(filename);
 
 					delete meta.be;
@@ -1802,7 +1808,7 @@ FP.add = function(name, body, callback, asfile) {
 						component.ui.raw = body;
 					}
 
-					callback();
+					callback && callback();
 
 				} catch (e) {
 					self.error(e, 'add', name);
@@ -1817,6 +1823,7 @@ FP.add = function(name, body, callback, asfile) {
 		try {
 
 			fn = new Function('exports', 'require', node);
+
 		} catch (e) {
 			self.error(e, 'add', name);
 			callback && callback(e);

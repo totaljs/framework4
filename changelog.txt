@@ -14,6 +14,9 @@
 - fixed routing inline flags in the form: `&flag1' `&flag2`
 - fixed using of message data via `FlowStreamMessage.variables()`
 - added support for promises to the `DOWNLOAD()` method
+- added `instance.vary(type)` delegate that is executed when `variables`, `variables2` or `secrets` have been changed
+- added `asfile` argument into the `flowstream.add(name, body, [callback], [asfile])` method
+- added `asfiles` argument into the `flowstream.load(components, design, [callback], [asfiles])` method
 
 ========================
 0.0.83
