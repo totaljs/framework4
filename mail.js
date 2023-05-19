@@ -350,6 +350,7 @@ Message.prototype.send2 = function(callback) {
 		data.priority = self.$priotity;
 		data.unsubscribe = self.$unsubscribe;
 		data.confidential = self.$confidential;
+
 		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? (CONF.totalapi || CONF.secret_totalapi) : CONF.mail_api, 'mail', data, callback || NOOP);
 		return;
 	}
@@ -450,7 +451,13 @@ Mailer.prototype.$writeattachment = function(obj) {
 
 	var attachment = obj.files ? obj.files.shift() : false;
 	if (!attachment) {
+
 		mailer.$writeline(obj, '--' + obj.boundary + '--', '', '.');
+
+		if (obj.callback) {
+			obj.callback(null, obj.instance);
+			obj.callback = null;
+		}
 
 		if (obj.messagecallback) {
 			obj.messagecallback(null, obj.instance);

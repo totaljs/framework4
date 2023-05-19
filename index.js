@@ -6894,7 +6894,7 @@ function onSchema_callback(err, res, callback) {
 		callback(null, res);
 }
 
-var onmailsendforce = (cb, message) => message.send2(cb);
+var onmailsendforce = message => message.send2();
 
 /**
  * Mail delegate
@@ -6924,6 +6924,7 @@ DEF.onMail = function(address, subject, body, callback, replyTo) {
 		message.to(address);
 
 	message.from(CONF.mail_from || CONF.mail_address_from || '', CONF.name);
+	callback && message.callback(callback);
 
 	if (replyTo)
 		message.reply(replyTo);
@@ -6938,7 +6939,7 @@ DEF.onMail = function(address, subject, body, callback, replyTo) {
 	tmp = CONF.mail_cc;
 	tmp && tmp.length > 3 && message.cc(tmp);
 
-	message.$sending = setImmediate(onmailsendforce, callback, message);
+	message.$sending = setImmediate(onmailsendforce, message);
 	return message;
 };
 
