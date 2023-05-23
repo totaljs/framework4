@@ -7171,7 +7171,7 @@ global.CALL = function(schema, model, controller) {
 	if (meta.schema) {
 		var o = GETSCHEMA(meta.schema);
 		if (!o) {
-			caller.$error = 'Schema "{0}" not found'.format(meta.schema);
+			caller.$error = new ErrorBuilder().push('', 'Schema "{0}" not found'.format(meta.schema));
 			return caller;
 		}
 	}
@@ -7220,7 +7220,7 @@ global.CALL = function(schema, model, controller) {
 					tmp.name = item = 'query';
 
 				if (!o.meta[item]) {
-					caller.$error = 'Schema "{0}" doesn\'t contain "{1}" operation'.format(meta.schema, item);
+					caller.$error = new ErrorBuilder().push('', 'Schema "{0}" doesn\'t contain "{1}" operation'.format(meta.schema, item));
 					return caller;
 				}
 			}
