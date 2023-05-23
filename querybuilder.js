@@ -7,12 +7,14 @@ var LANGUAGE_PREFIX = '';
 
 function QueryBuilderOptions() {}
 
-function Controller() {
+function Controller(singleton) {
 	var t = this;
-	t.commands = [];
-	t.response = {};
-	t.error = null;
-	setImmediate(t.next, t);
+	if (!singleton) {
+		t.commands = [];
+		t.response = {};
+		t.error = null;
+		setImmediate(t.next, t);
+	}
 }
 
 function DB(conn) {
@@ -70,6 +72,11 @@ function QueryBuilder(main, table, exec) {
 	}
 
 	var ctrl = main.controller;
+
+	if (!ctrl.commands) {
+		setImmediate(execdb, main);
+		return;
+	}
 
 	if (ctrl.$debug)
 		t.options.debug = true;
@@ -203,7 +210,7 @@ CTP.load = function(conn, opt) {
 	var db = new DB(conn);
 
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 
 	var builder = new QueryBuilder(db, opt.table, opt.exec);
 
@@ -224,8 +231,9 @@ CTP.find = CTP.all = function(table) {
 	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
 	var t = this;
 	var db = new DB(meta.db);
+
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'find');
 };
 
@@ -239,7 +247,7 @@ CTP.list = function(table) {
 	var db = new DB(meta.db);
 	var t = this;
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'list');
 };
 
@@ -248,7 +256,7 @@ CTP.check = function(table) {
 	var t = this;
 	var db = new DB(meta.db);
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	var builder = new QueryBuilder(db, meta.table, 'check');
 	builder.options.take = builder.options.first = 1;
 	return builder;
@@ -259,7 +267,7 @@ CTP.read = CTP.one = function(table) {
 	var t = this;
 	var db = new DB(meta.db);
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'read');
 };
 
@@ -268,7 +276,7 @@ CTP.count = function(table) {
 	var t = this;
 	var db = new DB(meta.db);
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'count');
 };
 
@@ -281,7 +289,6 @@ CTP.scalar = function(table, type, key, key2) {
 		key = '*';
 
 	var db = new DB(meta.db);
-	db.controller = t;
 	db.options.scalar = {};
 	db.options.scalar.type = type;
 
@@ -291,7 +298,8 @@ CTP.scalar = function(table, type, key, key2) {
 	if (key2)
 		db.options.scalar.key2 = key2;
 
-	t.commands.push(db);
+	db.controller = t;
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'scalar');
 };
 
@@ -299,9 +307,11 @@ CTP.insert = CTP.ins = function(table, data) {
 	var meta = CACHE[table] || (CACHE[table] = parsedb(table));
 	var t = this;
 	var db = new DB(meta.db);
+
 	db.controller = t;
+	t.commands && t.commands.push(db);
+
 	db.options.payload = data;
-	t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'insert');
 };
 
@@ -311,10 +321,11 @@ CTP.update = CTP.modify = CTP.mod = CTP.upd = function(table, data, upsert) {
 	var t = this;
 	var db = new DB(meta.db);
 
-	db.controller = t;
 	db.options.payload = data;
 	db.options.upsert = upsert;
-	t.commands.push(db);
+	db.controller = t;
+	t.commands && t.commands.push(db);
+
 	return new QueryBuilder(db, meta.table, 'update');
 };
 
@@ -323,7 +334,7 @@ CTP.remove = CTP.rem = function(table) {
 	var t = this;
 	var db = new DB(meta.db);
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'remove');
 };
 
@@ -339,7 +350,7 @@ CTP.query = function(table, query, params) {
 	var t = this;
 	var db = new DB(meta.db);
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	db.options.query = query;
 	db.options.params = params;
 	return new QueryBuilder(db, '', 'query');
@@ -350,7 +361,7 @@ CTP.drop = function(table) {
 	var t = this;
 	var db = new DB(meta.db);
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'drop');
 };
 
@@ -359,7 +370,7 @@ CTP.truncate = CTP.clear = function(table) {
 	var db = new DB(meta.db);
 	var t = this;
 	db.controller = t;
-	t.commands.push(db);
+	t.commands && t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'truncate');
 };
 
@@ -368,8 +379,8 @@ CTP.command = function(table, name) {
 	var db = new DB(meta.db);
 	var t = this;
 	db.controller = t;
+	t.commands && t.commands.push(db);
 	db.options.command = name;
-	t.commands.push(db);
 	return new QueryBuilder(db, meta.table, 'command');
 };
 
@@ -426,13 +437,14 @@ DBP.evaluate = function(err, response) {
 		response.pages = Math.ceil(response.count / t.options.take);
 	}
 
-	t.controller.error = err;
-
-	if (!t.$nobind) {
-		if (t.output)
-			t.controller.response[t.output] = response;
-		else
-			t.controller.response = response;
+	if (t.controller) {
+		t.controller.error = err;
+		if (!t.$nobind) {
+			if (t.output)
+				t.controller.response[t.output] = response;
+			else
+				t.controller.response = response;
+		}
 	}
 
 	if (err) {
@@ -446,7 +458,7 @@ DBP.evaluate = function(err, response) {
 	}
 
 	t.callback && t.callback(err, response);
-	setImmediate(t.controller.next, t.controller);
+	t.controller && setImmediate(t.controller.next, t.controller);
 };
 
 QBP.audit = function($, message, type) {
@@ -469,7 +481,7 @@ QBP.promise = function($) {
 			if (err) {
 				if ($ && $.invalid) {
 					$.invalid(err);
-					t.main.controller.free();
+					t.main.controller && t.main.controller.free();
 				} else {
 					err.name = 'QueryBuilder(' + t.options.table + ' --> ' + t.options.exec + ')';
 					reject(err);

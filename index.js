@@ -100,6 +100,8 @@ global.isWORKER = false;
 
 function querybuilderwrapper(fn_name) {
 
+	global.DATA = new QB.Controller(true);
+
 	global.DB = global.DATABASE = function() {
 		return new QB.Controller();
 	};
