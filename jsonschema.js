@@ -255,8 +255,7 @@ function check_date(meta, error, value, errplus, path) {
 		}
 	}
 
-	if (value != null)
-		return value;
+	return value;
 }
 
 function read_def(ref, definitions) {
@@ -519,10 +518,8 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 				break;
 			case 'date':
 				tmp = check_date(prop, error, val, null, currentpath);
-				if (tmp != null) {
-					response[key] = tmp;
-					count++;
-				}
+				response[key] = tmp;
+				count++;
 				break;
 			case 'string':
 				tmp = check_string(prop, error, val, null, currentpath);

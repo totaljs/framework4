@@ -19,6 +19,7 @@
 - added `asfiles` argument into the `flowstream.load(components, design, [callback], [asfiles])` method
 - fixed `callback` call after calling of `DEF.onMail()` delegate
 - added a global `DATA` object for fast access to the QueryBuilderDB without creating a DB controller (faster than `DB()`)
+- fixed parsing `date` for JSON Schemas (it accepts `null` value)
 
 ========================
 0.0.83
