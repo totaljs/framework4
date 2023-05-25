@@ -26,6 +26,7 @@ const SKIPPORTS = { '80': 1, '443': 1 };
 const REGISARR = /\[\d+\]|\[\]$/;
 const REGREPLACEARR = /\[\]/g;
 const REG_JPG = /jfif|exif/;
+const REG_WEBP = /jfif|webp|exif/;
 const REG_SVG = /xml|svg/i;
 
 const COMPARER = function(a, b) {
@@ -6489,7 +6490,7 @@ MultipartParser.prototype.parse_head = function() {
 					self.current.measure = 'measureGIF';
 					break;
 				case 'image/webp':
-					self.current.header = 'webp';
+					self.current.header = REG_WEBP;
 					self.current.measure = 'measureWEBP';
 					break;
 				case 'image/vnd.adobe.photoshop':
@@ -6572,6 +6573,7 @@ MultipartParser.prototype.parse_meta_check = function() {
 		}
 
 		var isinvalid = typeof(self.current.header) === 'string' ? check.indexOf(self.current.header) === -1 : self.current.header.test(check) !== true;
+
 		if (isinvalid) {
 			// Invalid file
 			self.kill('3: Invalid file data');
