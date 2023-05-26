@@ -21,6 +21,7 @@
 - added a global `DATA` object for fast access to the QueryBuilderDB without creating a DB controller (faster than `DB()`)
 - fixed parsing `date` for JSON Schemas (it accepts `null` value)
 - fixed a check for uploading `webp` images
+- updated `$.action('#|+|-action_name', [model])` method by adding support HTTP method types `#`, `+`, `-`
 
 ========================
 0.0.83

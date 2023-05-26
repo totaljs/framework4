@@ -236,6 +236,13 @@ var SchemaOptionsProto = SchemaOptions.prototype;
 
 SchemaOptionsProto.action = function(schema, data) {
 
+	var c = schema[0];
+
+	if (c === '-' || c === '#' || c === '+')
+		schema = schema.substring(1);
+	else
+		c = '';
+
 	var key = 'action_' + schema;
 	var tmp = F.temporary.exec[key];
 
@@ -245,7 +252,7 @@ SchemaOptionsProto.action = function(schema, data) {
 		F.temporary.exec[key] = tmp = schema.trim();
 	}
 
-	return CALL(tmp, data);
+	return CALL(c + tmp, data);
 };
 
 SchemaOptionsProto.publish = function(value) {
@@ -7053,6 +7060,10 @@ SCP.query = function(value) {
 };
 
 SCP.user = function(value) {
+
+	if (value instanceof SchemaOptions)
+		value = value.user;
+
 	this.options.user = value;
 	return this;
 };
@@ -7099,6 +7110,10 @@ SCP.promise = function($) {
 };
 
 SCP.controller = function(ctrl) {
+
+	if (value instanceof SchemaOptions)
+		value = value.contr;
+
 	this.options.controller = ctrl;
 	return this;
 };
