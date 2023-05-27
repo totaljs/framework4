@@ -24,6 +24,7 @@
 - updated `$.action('#|+|-action_name', [model])` method by adding support HTTP method types `#`, `+`, `-`
 - added `UIDR()` a new UID random generator, it generates text `[a-zA-Z0-9]` - 8 characters + checksum and without timestamp
 - added `U.random_text(length)` generates random text from `[a-zA-Z0-9]`
+- added `CONF.default_uid {String}` option for changing of UID generator (possible values `uidr`, `uid1`, `uid16`, default: `null`)
 
 ========================
 0.0.83

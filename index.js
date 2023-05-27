@@ -1029,6 +1029,16 @@ global.UID16 = function(type, date) {
 };
 
 global.UID = function(type, date) {
+
+	if (CONF.default_uid === 'uidr')
+		return UIDR();
+
+	if (CONF.default_uid === 'uid16')
+		return UID16(type, date);
+
+	if (CONF.default_uid === 'uid1')
+		return UID1(type, date);
+
 	var index;
 	if (type) {
 		if (UIDGENERATOR.types[type])
@@ -10845,6 +10855,10 @@ function configure_configs(arr, rewrite) {
 
 			case 'security.txt':
 				obj[name] = value ? value.split(',').trim().join('\n') : '';
+				break;
+
+			case 'default_uid':
+				obj[name] = value ? value.toLowerCase() : '';
 				break;
 
 			case 'default_crypto_iv':
