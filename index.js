@@ -562,7 +562,7 @@ DEF.validators = {
 	url: /^http(s)?:\/\/[^,{}\\]*$/i,
 	phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
 	zip: /^[0-9a-z\-\s]{3,20}$/i,
-	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c|^[0-9a-z]{4,18}[a-z]{2}\d{1}[01]{1}d$/
+	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c|^[0-9a-z]{4,18}[a-z]{2}\d{1}[01]{1}d|^[0-9a-zA-Z]{8}[A-H]{1}r$/
 };
 
 var PROTORES, PROTOREQ;
@@ -1039,7 +1039,6 @@ global.UID = function(type, date) {
 		}
 	} else
 		index = UIDGENERATOR.index++;
-
 	var ts = date ? UIDGENERATOR_DATE(date).toString(36) : UIDGENERATOR.date36;
 	return ts + index.padLeft(3, '0') + UIDGENERATOR.instance + ts.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
 };

@@ -1798,6 +1798,32 @@ exports.$normalize = function(path) {
 
 const RANDOM_STRING = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 const RANDOM_NUMBER = '0123456789';
+const RANDOM_TEXT = [...RANDOM_NUMBER, ...RANDOM_STRING];
+
+global.UIDR = function() {
+
+	var builder = '';
+	var sum = 0;
+
+	for (var i = 0; i < 8; i++) {
+		var index = Math.floor(Math.random() * RANDOM_TEXT.length);
+		var c = RANDOM_TEXT[index];
+		if (c.charCodeAt(0) < 91)
+			sum++;
+		builder += c;
+	}
+
+	return builder + RANDOM_STRING[sum] + 'r'; // "r" version
+};
+
+exports.random_text = function(max) {
+	var builder = '';
+	for (var i = 0; i < max; i++) {
+		var index = Math.floor(Math.random() * RANDOM_TEXT.length);
+		builder += RANDOM_TEXT[index];
+	}
+	return builder;
+};
 
 exports.random_string = function(max) {
 	var builder = '';
@@ -3917,7 +3943,7 @@ SP.isGUID = function() {
 SP.isUID = function() {
 	var str = this;
 
-	if (str.length < 12 && str.length > 25)
+	if (str.length < 10 && str.length > 25)
 		return false;
 
 	var is = DEF.validators.uid.test(str);
@@ -3927,8 +3953,15 @@ SP.isUID = function() {
 		var beg;
 		var end;
 		var e = str[str.length - 1];
-
-		if (e === 'b' || e === 'c' || e === 'd') {
+		if (e === 'r') {
+			// random version
+			sum = 0;
+			for (var i = 0; i < 8; i++) {
+				if (str.charCodeAt(i) < 91)
+					sum++;
+			}
+			return str[8] == RANDOM_STRING[+sum];
+		} else if (e === 'b' || e === 'c' || e === 'd') {
 			sum = str[str.length - 2];
 			beg = +str[str.length - 3];
 			end = str.length - 5;
@@ -3960,7 +3993,18 @@ SP.parseUID = function() {
 	var hash;
 	var e = self[self.length - 1];
 
-	if (e === 'b' || e === 'c' || e === 'd') {
+	if (e === 'r') {
+		// random version
+		var sum = 0;
+		for (var i = 0; i < 8; i++) {
+			if (self.charCodeAt(i) < 91)
+				sum++;
+		}
+		obj.index = self.substring(0, 8);
+		obj.hash = self[8];
+		obj.valid = obj.hash == RANDOM_STRING[sum];
+		return obj;
+	} else if (e === 'b' || e === 'c' || e === 'd') {
 		end = +self[self.length - 3];
 		var ticks = ((e === 'b' ? (+self.substring(0, end)) : parseInt(self.substring(0, end), e=== 'd' ? 36 : 16)) * 1000 * 60) + 1580511600000; // 1.1.2020
 		obj.date = new Date(ticks);
