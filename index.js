@@ -98,21 +98,11 @@ global.NOW = new Date();
 global.THREAD = '';
 global.isWORKER = false;
 
-function querybuilderwrapper(fn_name) {
-
-	global.DATA = new QB.Controller(true);
-
-	global.DB = global.DATABASE = function() {
-		return new QB.Controller();
-	};
-
-	global.NEWDB = function(name, callback) {
-		QB.evaluate(name, callback);
-	};
-
-	require('./textdb-querybuilder');
-	return global[fn_name];
-}
+global.DATA = new QB.Controller(true);
+global.DB = global.DATABASE = function() {
+	return new QB.Controller();
+};
+global.NEWDB = QB.evaluate;
 
 function updatestatus(meta) {
 	meta.timeout = undefined;
@@ -3028,14 +3018,6 @@ global.API = function(name, schema, data, $) {
 
 global.NEWAPI = function(name, callback) {
 	Api.evaluate(name, callback);
-};
-
-global.DB = global.DATABASE = function() {
-	return querybuilderwrapper('DB').apply(this, arguments);
-};
-
-global.NEWDB = function() {
-	return querybuilderwrapper('NEWDB').apply(this, arguments);
 };
 
 function inmemorywrapper(name) {
@@ -20611,3 +20593,5 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 
 	REQUEST(req);
 });
+
+require('./textdb-querybuilder');
