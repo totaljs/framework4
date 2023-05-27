@@ -1806,10 +1806,18 @@ global.UIDR = function() {
 	var sum = 0;
 
 	for (var i = 0; i < 8; i++) {
-		var index = Math.floor(Math.random() * RANDOM_TEXT.length);
-		var c = RANDOM_TEXT[index];
+		var c;
+
+		if (i === 7) {
+			c = F.uidc;
+		} else {
+			let index = Math.floor(Math.random() * RANDOM_TEXT.length);
+			c = RANDOM_TEXT[index];
+		}
+
 		if (c.charCodeAt(0) < 91)
 			sum++;
+
 		builder += c;
 	}
 

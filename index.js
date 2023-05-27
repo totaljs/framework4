@@ -2108,7 +2108,7 @@ function random2string() {
 
 const WEBSOCKET_COMPRESS = Buffer.from([0x00, 0x00, 0xFF, 0xFF]);
 const WEBSOCKET_COMPRESS_OPTIONS = { windowBits: Zlib.Z_DEFAULT_WINDOWBITS };
-const UIDGENERATOR = { types: {}, typesnumber: {} };
+var UIDGENERATOR = { types: {}, typesnumber: {} };
 
 function UIDGENERATOR_DATE(date) {
 	return Math.round(((date.getTime() - 1580511600000) / 1000 / 60));
@@ -2123,6 +2123,8 @@ function UIDGENERATOR_REFRESH() {
 	UIDGENERATOR.date36 = dt.toString(36);
 	UIDGENERATOR.index = 1;
 
+	F.uidc = U.random_string(1);
+
 	if (!UIDGENERATOR.instance)
 		UIDGENERATOR.instance = random2string();
 
@@ -2136,8 +2138,6 @@ function UIDGENERATOR_REFRESH() {
 			UIDGENERATOR.typesnumber[key] = 0;
 	}
 }
-
-UIDGENERATOR_REFRESH();
 
 const EMPTYBUFFER = Buffer.alloc(0);
 global.EMPTYBUFFER = EMPTYBUFFER;
@@ -20607,4 +20607,5 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 	REQUEST(req);
 });
 
+UIDGENERATOR_REFRESH();
 require('./textdb-querybuilder');
