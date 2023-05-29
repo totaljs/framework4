@@ -1805,10 +1805,10 @@ global.UIDR = function() {
 	var builder = '';
 	var sum = 0;
 
-	for (var i = 0; i < 8; i++) {
+	for (var i = 0; i < 10; i++) {
 		var c;
 
-		if (i === 7) {
+		if (i === 9) {
 			c = F.uidc;
 		} else {
 			let index = Math.floor(Math.random() * RANDOM_TEXT.length);
@@ -3964,11 +3964,11 @@ SP.isUID = function() {
 		if (e === 'r') {
 			// random version
 			sum = 0;
-			for (var i = 0; i < 8; i++) {
+			for (var i = 0; i < 10; i++) {
 				if (str.charCodeAt(i) < 91)
 					sum++;
 			}
-			return str[8] == RANDOM_STRING[+sum];
+			return str[10] == RANDOM_STRING[+sum];
 		} else if (e === 'b' || e === 'c' || e === 'd') {
 			sum = str[str.length - 2];
 			beg = +str[str.length - 3];
