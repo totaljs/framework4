@@ -200,6 +200,7 @@ exports.create = function(url, id) {
 		opt.ws = require('./websocketclient').create();
 		setImmediate(() => opt.ws.connect(url));
 		F.openclients[url] = opt.ws;
+		opt.ws.options.reconnectserver = true;
 		opt.ws.$clients = {};
 		opt.ws.$callbacks = {};
 		opt.ws.$callbackindexer = 0;
