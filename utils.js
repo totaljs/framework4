@@ -1824,6 +1824,33 @@ global.UIDR = function() {
 	return builder + RANDOM_STRING[sum] + 'r'; // "r" version
 };
 
+exports.convert62 = function(number) {
+
+	var rixit; // like 'digit', only in some non-decimal radix
+	var residual = Math.floor(number);
+	var max = RANDOM_TEXT.length;
+	var result = '';
+
+	while (true) {
+		rixit = residual % max;
+		result = RANDOM_TEXT[rixit] + result;
+		residual = Math.floor(residual / max);
+		if (residual == 0)
+			break;
+	}
+
+	return result;
+};
+
+exports.from62 = function(rixits) {
+	var result = 0;
+	var max = RANDOM_TEXT.length;
+	rixits = rixits.split('');
+	for (var i = 0; i < rixits.length; i++)
+		result = (result * max) + RANDOM_TEXT.indexOf(rixits[i]);
+	return result;
+};
+
 exports.random_text = function(max) {
 	var builder = '';
 	for (var i = 0; i < max; i++) {
@@ -3969,6 +3996,12 @@ SP.isUID = function() {
 					sum++;
 			}
 			return str[10] == RANDOM_STRING[+sum];
+		} else if (e === 'f') {
+			sum = str[str.length - 2];
+			beg = +str[str.length - 3];
+			end = str.length - 4;
+			var tmp = exports.from62(str.substring(beg, end)) - 99;
+			return sum === (tmp % 2 ? '1' : '0');
 		} else if (e === 'b' || e === 'c' || e === 'd') {
 			sum = str[str.length - 2];
 			beg = +str[str.length - 3];
@@ -4001,6 +4034,8 @@ SP.parseUID = function() {
 	var hash;
 	var e = self[self.length - 1];
 
+	obj.version = e;
+
 	if (e === 'r') {
 		// random version
 		var sum = 0;
@@ -4012,9 +4047,18 @@ SP.parseUID = function() {
 		obj.hash = self[8];
 		obj.valid = obj.hash == RANDOM_STRING[sum];
 		return obj;
+	} else if (e === 'f') {
+		end = +self[self.length - 3];
+		var ticks = exports.from62(self.substring(0, end)) * 100;
+		obj.date = new Date(ticks);
+		beg = end;
+		end = self.length - 4;
+		hash = +self.substring(self.length - 2, self.length - 1);
+		obj.century = Math.floor((obj.date.getFullYear() - 1) / 100) + 1;
+		obj.hash = self.substring(end, end + 2);
 	} else if (e === 'b' || e === 'c' || e === 'd') {
 		end = +self[self.length - 3];
-		var ticks = ((e === 'b' ? (+self.substring(0, end)) : parseInt(self.substring(0, end), e=== 'd' ? 36 : 16)) * 1000 * 60) + 1580511600000; // 1.1.2020
+		var ticks = ((e === 'b' ? (+self.substring(0, end)) : parseInt(self.substring(0, end), e === 'd' ? 36 : 16)) * 1000 * 60) + 1580511600000; // 1.1.2020
 		obj.date = new Date(ticks);
 		beg = end;
 		end = self.length - 5;
@@ -4072,7 +4116,7 @@ SP.parseUID = function() {
 		obj.hash = self.substring(end, end + 3);
 	}
 
-	obj.index = +self.substring(beg, end);
+	obj.index = e === 'f' ? (exports.from62(self.substring(beg, end)) - 99) : (+self.substring(beg, end));
 	obj.valid = (obj.index % 2 ? 1 : 0) === hash;
 	return obj;
 };

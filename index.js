@@ -562,7 +562,7 @@ DEF.validators = {
 	url: /^http(s)?:\/\/[^,{}\\]*$/i,
 	phone: /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,8}$/im,
 	zip: /^[0-9a-z\-\s]{3,20}$/i,
-	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c|^[0-9a-z]{4,18}[a-z]{2}\d{1}[01]{1}d|^[0-9a-zA-Z]{10}[A-J]{1}r$/
+	uid: /^\d{14,}[a-z]{3}[01]{1}|^\d{9,14}[a-z]{2}[01]{1}a|^\d{4,18}[a-z]{2}\d{1}[01]{1}b|^[0-9a-f]{4,18}[a-z]{2}\d{1}[01]{1}c|^[0-9a-z]{4,18}[a-z]{2}\d{1}[01]{1}d|^[0-9a-zA-Z]{5,10}\d{1}[01]{1}f|^[0-9a-zA-Z]{10}[A-J]{1}r$/
 };
 
 var PROTORES, PROTOREQ;
@@ -1033,13 +1033,8 @@ global.UID = function(type, date) {
 	if (CONF.default_uid === 'uidr')
 		return UIDR();
 
-	if (CONF.default_uid === 'uid16')
-		return UID16(type, date);
-
-	if (CONF.default_uid === 'uid1')
-		return UID1(type, date);
-
 	var index;
+
 	if (type) {
 		if (UIDGENERATOR.types[type])
 			index = UIDGENERATOR.types[type] = UIDGENERATOR.types[type] + 1;
@@ -1049,8 +1044,11 @@ global.UID = function(type, date) {
 		}
 	} else
 		index = UIDGENERATOR.index++;
-	var ts = date ? UIDGENERATOR_DATE(date).toString(36) : UIDGENERATOR.date36;
-	return ts + index.padLeft(3, '0') + UIDGENERATOR.instance + ts.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
+
+	var ts = (date ? date.getTime() : Date.now()) / 100;
+	var h = U.convert62(ts);
+
+	return h + U.convert62(index + 99) + F.uidc + h.length + (index % 2 ? 1 : 0) + 'f'; // "f" version
 };
 
 global.UID1 = function(type, date) {
@@ -2111,7 +2109,7 @@ const WEBSOCKET_COMPRESS_OPTIONS = { windowBits: Zlib.Z_DEFAULT_WINDOWBITS };
 var UIDGENERATOR = { types: {}, typesnumber: {} };
 
 function UIDGENERATOR_DATE(date) {
-	return Math.round(((date.getTime() - 1580511600000) / 1000 / 60));
+	return Math.round((((date.getTime ? date.getTime() : date) - 1580511600000) / 1000 / 60));
 }
 
 function UIDGENERATOR_REFRESH() {
@@ -2120,10 +2118,11 @@ function UIDGENERATOR_REFRESH() {
 
 	UIDGENERATOR.date = dt + '';
 	UIDGENERATOR.date16 = dt.toString(16);
+	// UIDGENERATOR.date36 = Buffer.from(dt.toString(36)).toString('base64').replace(/=/g, '');
 	UIDGENERATOR.date36 = dt.toString(36);
 	UIDGENERATOR.index = 1;
 
-	F.uidc = U.random_string(1);
+	F.uidc = U.random_text(1);
 
 	if (!UIDGENERATOR.instance)
 		UIDGENERATOR.instance = random2string();
