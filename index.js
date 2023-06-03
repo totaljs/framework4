@@ -1030,8 +1030,8 @@ global.UID16 = function(type, date) {
 
 global.UID = function(type, date) {
 
-	if (CONF.default_uid === 'uidr')
-		return UIDR();
+	if (CONF.default_uid === 'r')
+		return UIDR(); // "r" version
 
 	var index;
 
@@ -1045,10 +1045,18 @@ global.UID = function(type, date) {
 	} else
 		index = UIDGENERATOR.index++;
 
-	var ts = (date ? date.getTime() : Date.now()) / 100;
-	var h = U.convert62(ts);
+	var ts;
 
-	return h + U.convert62(index + 99) + F.uidc + h.length + (index % 2 ? 1 : 0) + 'f'; // "f" version
+	// "f" will be a default version in the future
+	if (CONF.default_uid === 'f') {
+		ts = (date ? date.getTime() : Date.now()) / 100;
+		var h = U.convert62(ts);
+		return h + U.convert62(index + 99) + F.uidc + h.length + (index % 2 ? 1 : 0) + 'f'; // "f" version
+	} else {
+		ts = date ? UIDGENERATOR_DATE(date).toString(36) : UIDGENERATOR.date36;
+		return ts + index.padLeft(3, '0') + UIDGENERATOR.instance + ts.length + (index % 2 ? 1 : 0) + 'd'; // "d" version
+	}
+
 };
 
 global.UID1 = function(type, date) {
@@ -10857,12 +10865,16 @@ function configure_configs(arr, rewrite) {
 				break;
 
 			case 'default_uid':
-				obj[name] = value ? value.toLowerCase() : '';
+				value = value ? value.toLowerCase() : '';
+				if (value.length === 4) // `uidr` or `uidf` to `r` or `f`
+					value = value[value.length - 1];
+				obj[name] = value;
 				break;
 
 			case 'default_crypto_iv':
 				obj[name] = typeof(value) === 'string' ? Buffer.from(value, 'hex') : value;
 				break;
+
 			case 'allow_workers_silent':
 				obj[name] = HEADERS.workers.silent = value;
 				break;

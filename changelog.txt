@@ -8,6 +8,7 @@
 - added `U.from62(number)` it converts a 62 custom radix to a number
 - fixed loading of FlowStream schema (critical)
 - fixed a bad place for callback evaluation in the FlowStream (critical)
+- updated `CONF.default_uid {String}` option for changing of UID generator (possible values `f` (new), `r` (new))
 
 ========================
 0.0.84
