@@ -780,6 +780,7 @@ FP.inc = function(num) {
 	else
 		self.loading++;
 
+	// Assurance
 	if (self.loading < 0)
 		self.loading = 0;
 
@@ -1825,8 +1826,6 @@ FP.add = function(name, body, callback, asfile) {
 						component.ui = meta;
 						component.ui.raw = body;
 					}
-
-					callback && callback();
 
 				} catch (e) {
 					self.error(e, 'add', name);
