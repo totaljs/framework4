@@ -716,7 +716,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 	var errors = new ErrorBuilder();
 	var done = function() {
 
-		self.loading--;
+		self.inc(-1);
 		self.meta.components[name] = curr;
 		self.onregister && self.onregister(curr);
 		self.$events.register && self.emit('register', name, curr);
@@ -734,7 +734,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 		callback && callback(errors.length ? errors : null);
 	};
 
-	self.loading++;
+	self.inc(1);
 
 	if (curr.npm && curr.npm.length) {
 		curr.npm.wait(function(name, next) {
@@ -758,15 +758,32 @@ FP.destroy = function() {
 	clearInterval(self.$interval);
 	self.$interval = null;
 
-	self.loading++;
+	self.inc(1);
 	self.unload(function() {
-		self.loading--;
+		self.inc(-1);
 		self.emit('destroy');
 		self.meta = null;
 		self.$events = null;
 		delete F.flows[self.name];
 	});
 
+};
+
+FP.inc = function(num) {
+
+	var self = this;
+
+	if (num === 0)
+		self.loading = 0;
+	else if (num === -1)
+		self.loading--;
+	else
+		self.loading++;
+
+	if (self.loading < 0)
+		self.loading = 0;
+
+	return self;
 };
 
 FP.cleanforce = function() {
@@ -849,7 +866,7 @@ FP.unregister = function(name, callback) {
 	if (curr) {
 		self.onunregister && self.onunregister(curr);
 		self.$events.unregister && self.emit('unregister', name, curr);
-		self.loading++;
+		self.inc(1);
 		Object.keys(self.meta.flow).wait(function(key, next) {
 
 			var instance = self.meta.flow[key];
@@ -872,7 +889,7 @@ FP.unregister = function(name, callback) {
 			next();
 
 		}, function() {
-			self.loading--;
+			self.inc(-1);
 			curr.connected = false;
 			curr.disabled = true;
 			curr.uninstall && curr.uninstall.call(curr, curr);
@@ -1220,9 +1237,9 @@ FP.load = function(components, design, callback, asfile) {
 		}, function() {
 
 			// Loads design
-			self.loading = 0;
+			self.inc(0);
 			self.use(design, function(err) {
-				self.loading = 0;
+				self.inc(0);
 				err && error.push(err);
 				callback && callback(err);
 				self.clean();
@@ -1335,7 +1352,7 @@ FP._use = function(schema, callback, reinit, insert) {
 				delete self.meta.flow.tabs;
 		}
 
-		self.loading++;
+		self.inc(1);
 		keys.wait(function(key, next) {
 
 			if (BLACKLISTID[key]) {
@@ -1437,7 +1454,8 @@ FP._use = function(schema, callback, reinit, insert) {
 				}
 			}
 
-			self.loading--;
+			self.inc(-1);
+
 			self.cleanforce();
 			self.$events.schema && self.emit('schema', self.meta.flow);
 			callback && callback(err.length ? err : null);
