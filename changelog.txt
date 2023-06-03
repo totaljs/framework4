@@ -7,6 +7,7 @@
 - added `U.convert62(number)` it converts number to a 62 custom radix
 - added `U.from62(number)` it converts a 62 custom radix to a number
 - fixed loading of FlowStream schema (critical)
+- fixed a bad place for callback evaluation in the FlowStream (critical)
 
 ========================
 0.0.84
