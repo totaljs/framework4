@@ -11348,8 +11348,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 	opt.keepalive = true;
 	opt.headers = { 'x-token': token };
 
-	if (callback == null || callback.istotal) {
-		// promise
+	if (!callback) {
 		return new Promise(function(resolve, reject) {
 			opt.callback = function(err, response) {
 
@@ -11365,8 +11364,10 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 						err.name = 'TotalAPI(' + type + ')';
 						reject(err);
 					}
-				} else
-					resolve(response.body.parseJSON(true));
+				} else {
+					var type = response.headers['content-type'] || '';
+					resolve(type.indexOf('json') !== -1 ? response.body.parseJSON(true) : response.body);
+				}
 			};
 			REQUEST(opt);
 		});
