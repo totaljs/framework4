@@ -3,6 +3,7 @@
 ========================
 
 - fixed returning binary data in the `TotalAPI()` method
+- fixed logging in the `FILESTORAGE().rename()` method
 
 ========================
 0.0.85

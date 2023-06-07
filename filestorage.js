@@ -531,6 +531,7 @@ FP._rename = function(id, newname, callback) {
 					callback(err);
 					Fs.close(fd, NOOP);
 				} else {
+					meta.id = id;
 					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
 					Fs.close(fd, () => callback(null, meta));
 				}
