@@ -532,7 +532,8 @@ FP._rename = function(id, newname, callback) {
 					Fs.close(fd, NOOP);
 				} else {
 					meta.id = id;
-					Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
+					NOSQL('~' + self.logger).modify(meta).id(id);
+					// Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
 					Fs.close(fd, () => callback(null, meta));
 				}
 			});
@@ -554,7 +555,7 @@ FP._remove = function(id, callback) {
 	var self = this;
 	var filename = Path.join(self.makedirectory(id), id + '.file');
 	Fs.unlink(filename, function(err) {
-		NOSQL('~' + self.logger).remove().where('id', id);
+		NOSQL('~' + self.logger).remove().id(id);
 		// Fs.appendFile(self.logger, JSON.stringify({ id: id, removed: true, date: NOW = new Date() }) + '\n', NOOP);
 		callback && callback(err);
 	});
