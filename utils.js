@@ -3130,7 +3130,10 @@ SP.parseEncoded = function() {
 				if (decodek)
 					key = parseQueryArgumentsDecode(key);
 
-				obj[key] = val;
+				if (obj[key])
+					obj[key] += ',' + val;
+				else
+					obj[key] = val;
 			}
 
 			if (key)
