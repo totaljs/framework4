@@ -5,6 +5,7 @@
 - fixed returning binary data in the `TotalAPI()` method
 - fixed logging in the `FILESTORAGE().rename()` method
 - improved parsing of multiple URL query argument keys (joined into the string separated by a comma)
+- fixed handling arguments in the `RESTBuilder.API()` method
 
 ========================
 0.0.85

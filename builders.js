@@ -4318,29 +4318,10 @@ RESTBuilder.GET = function(url, data) {
 };
 
 RESTBuilder.API = function(url, name, data) {
-
-	var index;
-	var qs = '';
-
-	if (name == null) {
-
-		index = url.indexOf(' ');
-		name = url.substring(index + 1);
-		url = url.substring(0, index);
-
-	} else {
-		index = url.indexOf('?');
-		if (index !== -1) {
-			qs = url.substring(index);
-			url = url.substring(0, index);
-		}
-	}
-
 	var builder = new RESTBuilder(url);
-	builder.operation = name + qs;
+	builder.operation = name;
 	builder.options.method = 'POST';
 	builder.raw(data, 'raw');
-
 	return builder;
 };
 
