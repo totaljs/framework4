@@ -6170,7 +6170,7 @@ AuthOptions.prototype = {
 	},
 
 	get url() {
-		return this.req.url || '';
+		return this.$url ? this.$url : (this.$url = U.path(this.req.uri.pathname).toLowerCase());
 	},
 
 	get uri() {
