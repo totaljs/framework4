@@ -2,6 +2,8 @@
 0.0.87
 ========================
 
+- added `charset=utf-8` to the JSON content-type in the `REQUEST()` method
+
 ========================
 0.0.86
 ========================

@@ -520,7 +520,7 @@ function _request(opt, callback) {
 				opt.headers[CT] = CT_OCTET;
 				break;
 			case 'json':
-				opt.headers[CT] = 'application/json';
+				opt.headers[CT] = 'application/json; charset=utf-8';
 				break;
 			case 'urlencoded':
 				opt.headers[CT] = 'application/x-www-form-urlencoded';
