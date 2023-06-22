@@ -2286,6 +2286,7 @@ function Framework() {
 		default_image_converter: 'gm', // command-line name
 		default_image_quality: 93,
 		default_image_consumption: 0, // disabled because e.g. GM v1.3.32 throws some error about the memory
+		default_tapi: 'eu',
 
 		allow_tms: false,
 		allow_totalapi: true,
@@ -11342,7 +11343,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 
 	var opt = {};
 	opt.method = 'POST';
-	opt.url = 'https://api.totaljs.com/' + type + '/';
+	opt.url = 'https://' + CONF.default_tapi + '.api.totaljs.com/' + type + '/';
 	opt.body = JSON.stringify(data);
 	opt.type = 'json';
 	opt.keepalive = true;
