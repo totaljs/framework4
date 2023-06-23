@@ -6919,8 +6919,8 @@ DEF.onMail = function(address, subject, body, callback, replyTo) {
 	var message = Mail.create(subject, body);
 
 	if (address instanceof Array) {
-		for (var i = 0, length = address.length; i < length; i++)
-			message.to(address[i]);
+		for (let m of address)
+			message.to(m);
 	} else
 		message.to(address);
 
