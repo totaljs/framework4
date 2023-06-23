@@ -11347,7 +11347,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 	opt.body = JSON.stringify(data);
 	opt.type = 'json';
 	opt.keepalive = true;
-	opt.headers = { 'x-token': token };
+	opt.headers = { 'x-token': token, 'x-app': CONF.name };
 
 	if (!callback) {
 		return new Promise(function(resolve, reject) {
@@ -20537,11 +20537,11 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 
 	var req = {};
 	req.method = 'POST';
-	req.url = 'https://api.totaljs.com/' + opt.schema + '/';
+	req.url = 'https://' + CONF.default_tapi + '.api.totaljs.com/' + opt.schema + '/';
 	req.body = JSON.stringify(opt.data);
 	req.type = 'json';
 	req.keepalive = true;
-	req.headers = { 'x-token': opt.token || CONF.totalapi || CONF.secret_totalapi || '-' };
+	req.headers = { 'x-token': opt.token || CONF.totalapi || CONF.secret_totalapi || '-', 'x-app': CONF.name };
 	req.custom = true;
 
 	req.callback = function(err, response) {
@@ -20557,8 +20557,9 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 		if (response.status > 200) {
 			response.stream.on('data', chunk => buffer.push(chunk));
 			CLEANUP(response.stream, function() {
-				let output = Buffer.concat(buffer).toString('utf8').parseJSON();
-				next(output[0].error);
+				let output = Buffer.concat(buffer).toString('utf8');
+				let response = output.parseJSON();
+				next((response && response[0] && response[0].error) || output);
 			});
 			return;
 		}
