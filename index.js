@@ -4214,7 +4214,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 	if (name[1] === '#')
 		name = name.substring(1);
 
-	var tmpapi;
+	var tmpapi = null;
 
 	if (isAPI) {
 
@@ -4226,13 +4226,11 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (apiname && !apischema)
 			apischema = '*  -->  ' + apiname;
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
 			if (tmp.hash === hash && tmp.MEMBER === membertype && tmp.isAPI) {
-				if (timeout && tmp.timeout < timeout)
-					tmp.timeout = timeout;
 				F.routes.all[mypath].routepath = tmp.path;
 				return;
 			}
@@ -12951,6 +12949,7 @@ function controller_api() {
 	}
 
 	var tmp = self.url;
+
 	if (CONF.default_root)
 		tmp = tmp.substring(CONF.default_root.length - 1);
 
@@ -13037,6 +13036,10 @@ function controller_api() {
 
 	if (CONF.secret_csrf)
 		self.$checkcsrf = 1;
+
+
+	if (api.timeout)
+		self.req.$total_timeout = api.timeout / 1000;
 
 	// Evaluates action
 	CALL(s.action, model.data, self).callback(self.callback());

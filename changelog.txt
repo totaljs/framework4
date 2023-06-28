@@ -6,6 +6,7 @@
 - added `default_tapi` config key
 - updated Total.js API endpoint
 - added a timeout for Total API endpoints
+- fixed timeout for API routes
 
 ========================
 0.0.86
