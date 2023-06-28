@@ -11347,6 +11347,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 	opt.body = JSON.stringify(data);
 	opt.type = 'json';
 	opt.keepalive = true;
+	opt.timeout = 60000;
 	opt.headers = { 'x-token': token, 'x-app': CONF.name };
 
 	if (!callback) {
@@ -20540,6 +20541,7 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 	req.url = 'https://' + CONF.default_tapi + '.api.totaljs.com/' + opt.schema + '/';
 	req.body = JSON.stringify(opt.data);
 	req.type = 'json';
+	req.timeout = 60000;
 	req.keepalive = true;
 	req.headers = { 'x-token': opt.token || CONF.totalapi || CONF.secret_totalapi || '-', 'x-app': CONF.name };
 	req.custom = true;

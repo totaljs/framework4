@@ -5,6 +5,7 @@
 - added `charset=utf-8` to the JSON content-type in the `REQUEST()` method
 - added `default_tapi` config key
 - updated Total.js API endpoint
+- added a timeout for Total API endpoints
 
 ========================
 0.0.86
