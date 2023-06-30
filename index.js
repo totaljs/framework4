@@ -8533,7 +8533,6 @@ function extendinitoptions(options) {
 	}
 }
 
-
 function clear_pending_requests() {
 
 	F.stats.request.pending = 0;
@@ -9017,7 +9016,7 @@ F.listener = function(req, res) {
 			req.$language = DEF.onLocale(req, res, true);
 	}
 
-	req.on('abort', onrequesterror);
+	req.on('close', onrequesterror);
 	req.on('aborted', onrequesterror);
 
 	if (F._length_request_middleware) {
@@ -9047,9 +9046,11 @@ function requestcontinue_middleware2(req, res)  {
 }
 
 function onrequesterror() {
-	this.success = true;
-	if (this.res)
-		this.res.$aborted = true;
+	if (!this.success) {
+		this.success = true;
+		if (this.res)
+			this.res.$aborted = true;
+	}
 }
 
 function makeproxyheadersws(header, headers) {
@@ -12486,7 +12487,6 @@ function subscribe_timeout_middleware2(req) {
 	req.$total_execute2();
 }
 
-
 function subscribe_validate_callback(req, code) {
 	req.$total_execute(code);
 }
@@ -13036,7 +13036,6 @@ function controller_api() {
 
 	if (CONF.secret_csrf)
 		self.$checkcsrf = 1;
-
 
 	if (api.timeout)
 		self.req.$total_timeout = api.timeout / 1000;
@@ -15076,7 +15075,6 @@ ControllerProto.throw503 = ControllerProto.view503 = function(problem) {
 	return controller_error_status(this, 503, problem);
 };
 
-
 ControllerProto.redirect = function(url, permanent) {
 	this.precache && this.precache(null, null, null);
 	var res = this.res;
@@ -15907,7 +15905,6 @@ WebSocket.prototype = {
 		}
 	}
 };
-
 
 const WebSocketProto = WebSocket.prototype;
 
