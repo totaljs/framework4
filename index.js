@@ -11347,7 +11347,7 @@ global.TotalAPI = function(token, type, data, callback, filename) {
 	opt.type = 'json';
 	opt.keepalive = true;
 	opt.timeout = 60000;
-	opt.headers = { 'x-token': token, 'x-app': CONF.name };
+	opt.headers = { 'x-token': token, 'x-app': encodeURIComponent(CONF.name) };
 
 	if (!callback) {
 		return new Promise(function(resolve, reject) {
@@ -20543,7 +20543,7 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 	req.type = 'json';
 	req.timeout = 60000;
 	req.keepalive = true;
-	req.headers = { 'x-token': opt.token || CONF.totalapi || CONF.secret_totalapi || '-', 'x-app': CONF.name };
+	req.headers = { 'x-token': opt.token || CONF.totalapi || CONF.secret_totalapi || '-', 'x-app': encodeURIComponent(CONF.name) };
 	req.custom = true;
 
 	req.callback = function(err, response) {
