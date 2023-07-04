@@ -2630,7 +2630,8 @@ F.callback_redirect = function(url) {
 var modules = { buffer: 1, child_process: 1, process: 1, fs: 1, events: 1, http: 1, https: 1, http2: 1, util: 1, net: 1, os: 1, path: 1, punycode: 1, readline: 1, repl: 1, stream: 1, string_decoder: 1, tls: 1, trace_events: 1, tty: 1, dgram: 1, url: 1, v8: 1, vm: 1, wasi: 1, worker_threads: 1, zlib: 1, crypto: 1 };
 
 F.require = function(path) {
-	if (path.startsWith("node:") return require(path);
+	if (path.startsWith('node:'))
+		return require(path);
 	return modules[path] ? require(path) : CONF.node_modules && CONF.node_modules[0] === '~' ? require(Path.join(CONF.node_modules.substring(1), path)) : require(Path.join(F.directory, CONF.node_modules, path));
 };
 

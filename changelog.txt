@@ -8,6 +8,7 @@
 - added a timeout for Total API endpoints
 - fixed timeout for API routes
 - improved "requests timeout" mechanism
+- allow importing node built-in modules #55 by https://github.com/jornverhoeven
 
 ========================
 0.0.86
