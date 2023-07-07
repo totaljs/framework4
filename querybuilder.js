@@ -712,6 +712,23 @@ QBP.notin = function(name, value, id) {
 	return t;
 };
 
+QBP.arr = function(name, comparer, value) {
+
+	var t = this;
+
+	if (comparer === undefined && value === undefined)
+		return t.query(name);
+
+	if (value === undefined) {
+		value = comparer;
+		comparer = '&&';
+	}
+
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'arr' + comparer + name;
+	t.filter.push({ type: 'arr', name: name, comparer: comparer, value: value });
+	return t;
+};
+
 QBP.between = function(name, a, b) {
 	var t = this;
 	t.options.checksum += (t.options.checksum ? ' ' : '') + 'between=' + name;
