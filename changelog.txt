@@ -9,6 +9,7 @@
 - fixed timeout for API routes
 - improved "requests timeout" mechanism
 - allow importing node built-in modules #55 by https://github.com/jornverhoeven
+- improved uploading files in the `REQUEST()` method
 
 ========================
 0.0.86
