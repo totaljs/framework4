@@ -862,7 +862,7 @@ function request_writefile(req, options, file, next) {
 		return;
 	}
 
-	var filedata = file.buffer || file.url || file.path;
+	var filedata = file.buffer || file.url;
 	var isbuffer = filedata instanceof Buffer;
 	var isurl = isbuffer ? false : typeof(filedata) === 'string' && filedata;
 
@@ -897,7 +897,7 @@ function request_writefile(req, options, file, next) {
 		};
 		REQUEST(opt);
 	} else {
-		var stream = Fs.createReadStream(filedata || file.filename);
+		var stream = Fs.createReadStream(file.path || file.filename);
 		stream.once('close', next);
 		stream.pipe(req, STREAMPIPE);
 	}

@@ -4478,7 +4478,19 @@ RESTP.cert = function(key, cert, dhparam) {
 };
 
 RESTP.file = function(name, filename, buffer) {
-	var obj = { name: name, filename: filename, buffer: buffer };
+
+	var obj = { name: name, filename: filename };
+
+	if (buffer) {
+		if (typeof(buffer) === 'string') {
+			if (buffer.isURL())
+				obj.url = buffer;
+			else
+				obj.path = buffer;
+		} else
+			obj.buffer = buffer;
+	}
+
 	if (this.options.files)
 		this.options.files.push(obj);
 	else
