@@ -102,6 +102,23 @@ APICallProto.controller = function($) {
 	return this;
 };
 
+APICallProto.file = function(filename, path, name) {
+
+	var t = this;
+
+	if (!t.options.files)
+		t.options.files = [];
+
+	var obj = { name: name || ('file' + t.options.files.length), filename: filename, path: path };
+
+	if (t.options.files)
+		t.options.files.push(obj);
+	else
+		t.options.files = [obj];
+
+	return t;
+};
+
 APICallProto.error = APICallProto.err = function(err, reverse) {
 	this.$error = err + '';
 	this.$error_reverse = reverse;

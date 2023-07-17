@@ -20535,13 +20535,20 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 		return;
 	}
 
-	if (typeof(opt.data) !== 'object')
+	if (opt.data && typeof(opt.data) !== 'object')
 		opt.data = { value: opt.data };
 
 	var req = {};
+
 	req.method = 'POST';
 	req.url = 'https://' + CONF.default_tapi + '.api.totaljs.com/' + opt.schema + '/';
-	req.body = JSON.stringify(opt.data);
+
+	if (opt.files) {
+		req.body = opt.data;
+		req.files = opt.files;
+	} else
+		req.body = JSON.stringify(opt.data);
+
 	req.type = 'json';
 	req.timeout = 60000;
 	req.keepalive = true;
