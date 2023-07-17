@@ -1995,7 +1995,7 @@ function compressHTML(html, minify, isChunk) {
 
 	html = removeComments(html.replace(REG_WIN, ''));
 
-	var tags = ['script', 'textarea', 'pre', 'code'];
+	var tags = ['script', 'textarea', 'pre', 'code', 'readme'];
 	var id = '[' + new Date().getTime() + ']#';
 	var cache = {};
 	var indexer = 0;

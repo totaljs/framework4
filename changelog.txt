@@ -10,6 +10,7 @@
 - improved "requests timeout" mechanism
 - allow importing node built-in modules #55 by https://github.com/jornverhoeven
 - improved uploading files in the `REQUEST()` method
+- added `<readme>` tag to HTML compression blacklist
 
 ========================
 0.0.86
