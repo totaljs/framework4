@@ -3,6 +3,7 @@
 ========================
 
 - added `API.file(filename, path, [formkey])`
+- added `PATH.plugins(path)` method
 
 ========================
 0.0.87

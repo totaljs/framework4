@@ -12150,6 +12150,10 @@ FrameworkPathProto.templates = function(filename) {
 	return U.combine(CONF.directory_templates, filename);
 };
 
+FrameworkPathProto.plugins = function(filename) {
+	return U.combine(CONF.directory_plugins, filename);
+};
+
 FrameworkPathProto.root = function(filename) {
 	var p = Path.join(directory, filename || '');
 	return F.isWindows ? p.replace(/\\/g, '/') : p;
