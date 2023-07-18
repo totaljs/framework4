@@ -4,6 +4,7 @@
 
 - added `API.file(filename, path, [formkey])`
 - added `PATH.plugins(path)` method
+- added a new event `ON('componentator', function(meta))`
 
 ========================
 0.0.87

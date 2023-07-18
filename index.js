@@ -9905,13 +9905,19 @@ global.HTMLMAIL = function(address, subject, body, language, callback) {
 
 global.COMPONENTATOR = function(name, components, removeprev) {
 
-	var url = 'https://componentator.com/download.js?id=' + components;
+	var meta = {};
 
-	var nameid = name.slug();
+	meta.components = components;
+	meta.name = name;
+
+	F.$events.componentator && EMIT('componentator', meta);
+
+	var url = 'https://componentator.com/download.js?id=' + meta.components;
+	var nameid = meta.name.slug();
 	var relative = 'ui-' + (removeprev ? (nameid + '-') : '') + url.makeid() + '.min.js';
 	var filename = PATH.public(relative);
 
-	REPO[name] = '/' + relative;
+	REPO[meta.name] = '/' + relative;
 
 	if (removeprev) {
 		F.Fs.readdir(PATH.public(), function(err, files) {
