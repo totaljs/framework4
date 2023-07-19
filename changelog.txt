@@ -5,6 +5,7 @@
 - added `API.file(filename, path, [formkey])`
 - added `PATH.plugins(path)` method
 - added a new event `ON('componentator', function(meta))`
+- fixed `FileStorage.readbase64()`
 
 ========================
 0.0.87

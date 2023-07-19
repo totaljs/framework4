@@ -1082,23 +1082,8 @@ FP.readbase64 = function(id, callback) {
 };
 
 FP._readbase64 = function(id, callback) {
-
 	var self = this;
-
-	self.readmeta(id, function(err, meta, filename, fd) {
-
-		if (err) {
-			callback(err);
-			return;
-		}
-
-		F.stats.performance.open++;
-		meta.stream = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE, encoding: 'base64' });
-		callback(null, meta);
-		framework_internal.onFinished(meta.stream, () => Fs.close(fd, NOOP));
-
-	}, true);
-
+	self._readbuffer(id, (err, buffer, meta) => callback(err, buffer ? buffer.toString('base64') : null, meta));
 	return self;
 };
 
