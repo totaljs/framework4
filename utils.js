@@ -6556,14 +6556,6 @@ MultipartParser.prototype.parse_head = function() {
 
 		if (self.current.type) {
 
-			/*
-			if (self.current.ext) {
-				if (self.current.type !== CONTENTTYPES[self.current.ext]) {
-					self.kill('2: Invalid file type');
-					return;
-				}
-			}*/
-
 			self.current.width = 0;
 			self.current.height = 0;
 			self.current.header = null;
@@ -6601,9 +6593,11 @@ MultipartParser.prototype.parse_head = function() {
 					self.current.measure = 'measureBMP';
 					break;
 				case 'application/zip':
+					self.current.header = 'pk';
+					break;
 				case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
 				case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-					self.current.header = 'pk';
+					self.current.header = 'office';
 					break;
 				case 'application/pdf':
 					self.current.header = 'pdf';
@@ -6659,19 +6653,25 @@ MultipartParser.prototype.parse_meta_check = function() {
 
 	if (self.current.header) {
 
-		var check = '';
-		for (var i = 0; i < 30; i++) {
-			var c = self.buffer[i];
-			if (c == null)
-				break;
-			if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) {
-				if (c < 90)
-					c += 32;
-				check += String.fromCharCode(c);
-			}
-		}
+		var isinvalid = true;
 
-		var isinvalid = typeof(self.current.header) === 'string' ? check.indexOf(self.current.header) === -1 : self.current.header.test(check) !== true;
+		if (self.current.header === 'office') {
+			var hex = self.buffer.toString('hex', 0, 3);
+			isinvalid = hex !== 'd0cf11' && hex !== '504b03';
+		} else {
+			var check = '';
+			for (var i = 0; i < 30; i++) {
+				var c = self.buffer[i];
+				if (c == null)
+					break;
+				if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) {
+					if (c < 90)
+						c += 32;
+					check += String.fromCharCode(c);
+				}
+			}
+			isinvalid = typeof(self.current.header) === 'string' ? check.indexOf(self.current.header) === -1 : self.current.header.test(check) !== true;
+		}
 
 		if (isinvalid) {
 			// Invalid file
