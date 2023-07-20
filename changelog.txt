@@ -7,6 +7,7 @@
 - added a new event `ON('componentator', function(meta))`
 - fixed `FileStorage.readbase64()`
 - fixed a file validation for encrypted word/excel files
+- updated Tangular template engine
 
 ========================
 0.0.87

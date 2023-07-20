@@ -5,7 +5,7 @@
 
 	var Tangular = {};
 	var Thelpers = Tangular.helpers = {};
-	Tangular.version = 'v5.0.2';
+	Tangular.version = 'v5.0.3';
 	Tangular.cache = {};
 
 	W.Ta = W.Tangular = Tangular;
@@ -337,7 +337,26 @@
 		return fn.call(model, a, b, c, d, e, f, g, h);
 	};
 
-	Thelpers.encode = function(value) {
+	Thelpers.encode = function(value, type) {
+
+		if (type) {
+
+			if (typeof(type) === 'function')
+				return type(value);
+
+			if (type === 'json')
+				return JSON.stringify(value);
+
+			if (type === 'json2')
+				return JSON.stringify(value, null, '\t');
+
+			if (type === 'url' || type === 'urlencoded')
+				return encodeURIComponent(value);
+
+			if (type === 'querify')
+				return QUERIFY(value);
+		}
+
 		return value == null ? '' : (value + '').replace(REG_ENCODE, function(c) {
 			switch (c) {
 				case '&': return '&amp;';
