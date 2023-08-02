@@ -2378,11 +2378,11 @@ function Framework() {
 	self.modificators = null;
 	self.modificators2 = null;
 	global.MODS = self.modules = {};
+	global.PLUGINS = self.plugins = {};
 	self.models = {};
 	self.builds = {};
 	self.transformations = {};
 	self.extensions = [];
-	self.plugins = {};
 	self.sources = {};
 	self.operations = {};
 	self.tasks = {};

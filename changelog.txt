@@ -8,6 +8,7 @@
 - fixed `FileStorage.readbase64()`
 - fixed a file validation for encrypted word/excel files
 - updated Tangular template engine
+- added a new global keyword `PLUGINS`
 
 ========================
 0.0.87
