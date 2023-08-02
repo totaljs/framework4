@@ -60,19 +60,7 @@ FP.count = function(callback) {
 };
 
 FP.makedirectory = function(id) {
-
-	var val = (HASH(id, true) % 10000) + '';
-	var diff = 4 - val.length;
-
-	if (diff > 0) {
-		for (var i = 0; i < diff; i++)
-			val = '0' + val;
-	}
-
-	if (diff.length > 4)
-		val = val.substring(0, 4);
-
-	return Path.join(this.directory, val);
+	return Path.join(this.directory, U.groupify(id));
 };
 
 FP.readfilename = function(id) {

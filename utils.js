@@ -260,6 +260,29 @@ global.DIFFARR = exports.diffarr = function(prop, db, form) {
 	return obj;
 };
 
+exports.groupify = function(id, count) {
+
+	var number = 1;
+
+	if (!count)
+		count = 4;
+
+	for (var i = 0; i < count; i++)
+		number *= 10;
+
+	var val = (HASH(id, true) % number) + '';
+	var diff = count - val.length;
+	if (diff > 0) {
+		for (var i = 0; i < diff; i++)
+			val = '0' + val;
+	}
+
+	if (diff.length > 4)
+		val = val.substring(0, 4);
+
+	return val;
+};
+
 exports.toURLEncode = function(value) {
 	var builder = [];
 

@@ -9,6 +9,7 @@
 - fixed a file validation for encrypted word/excel files
 - updated Tangular template engine
 - added a new global keyword `PLUGINS`
+- added `U.groupify(id, [count])` method for grouping identifiers
 
 ========================
 0.0.87
