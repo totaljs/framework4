@@ -877,6 +877,7 @@ FP.unregister = function(name, callback) {
 					try {
 						instance.isdestroyed = true;
 						self.ondisconnect && self.ondisconnect(instance);
+						self.$events.disconnect && self.emit('disconnect', instance);
 						instance.close && instance.close.call(instance, true);
 						instance.destroy && instance.destroy.call(instance);
 					} catch (e) {
@@ -1182,6 +1183,7 @@ FP.reconfigure = function(id, config, rewrite) {
 
 		instance.configure && instance.configure(instance.config);
 		self.onreconfigure && self.onreconfigure(instance);
+		self.$events.configure && self.emit('configure', instance);
 	}
 	return !!instance;
 };
@@ -1285,6 +1287,7 @@ FP._remove = function(keys, callback) {
 		if (instance) {
 			instance.ready = false;
 			self.ondisconnect && self.ondisconnect(instance);
+			self.$events.disconnect && self.emit('disconnect', instance);
 			try {
 				instance.close && instance.close.call(instance, true);
 				instance.destroy && instance.destroy.call(instance);
@@ -1407,6 +1410,7 @@ FP._use = function(schema, callback, reinit, insert) {
 					U.extend(fi.config, instance.config);
 					fi.configure && fi.configure(fi.config);
 					self.onreconfigure && self.onreconfigure(fi, true);
+					self.$events.configure && self.emit('configure', fi);
 				}
 			}
 
@@ -1422,6 +1426,7 @@ FP._use = function(schema, callback, reinit, insert) {
 							instance.ready = false;
 							instance.isdestroyed = true;
 							self.ondisconnect && self.ondisconnect(instance);
+							self.$events.disconnect && self.emit('disconnect', instance);
 							try {
 								instance.close && instance.close.call(instance, true);
 								instance.destroy && instance.destroy.call(instance);
@@ -1484,6 +1489,7 @@ FP.initcomponent = function(key, component) {
 
 		try {
 			self.ondisconnect && self.ondisconnect(instance);
+			self.$events.disconnect && self.emit('disconnect', instance);
 			instance.close && instance.close.call(instance);
 		} catch (e) {
 			self.onerror.call(instance, e, 'instance_close', key);
@@ -1523,6 +1529,7 @@ FP.initcomponent = function(key, component) {
 	instance.instances = self.meta.flow;
 
 	self.onconnect && self.onconnect(instance);
+	self.$events.connect && self.emit('connect', instance);
 
 	try {
 		component.make && component.make.call(instance, instance, instance.config);
