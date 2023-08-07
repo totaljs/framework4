@@ -599,6 +599,37 @@ QBP.where = function(name, comparer, value) {
 	return t;
 };
 
+QBP.alike = function(name, comparer, value) {
+
+	var t = this;
+
+	if (value === undefined) {
+		value = comparer;
+		comparer = '&&';
+	} else {
+		switch (comparer) {
+			case '<':
+				comparer = '<@';
+				break;
+			case '>':
+				comparer = '@>';
+				break;
+			case '|':
+				comparer = '||';
+				break;
+			case '&':
+			default:
+				comparer = '&&';
+				break;
+		}
+	}
+
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'alike' + comparer + name;
+	t.filter.push({ type: 'alike', name: name, comparer: comparer, value: value });
+
+	return t;
+};
+
 QBP.take = function(count) {
 	this.options.take = count;
 	return this;
