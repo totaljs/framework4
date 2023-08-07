@@ -11,7 +11,7 @@
 - added a new global keyword `PLUGINS`
 - added `U.groupify(id, [count])` method for grouping identifiers
 - fixed data validation for the schema actions
-- added `DatabaseBuilder.alike(name, [comparer], value)`
+- added `DatabaseBuilder.alike(name, [comparer], value)` by [Gera](https://github.com/Gera-IC)
 - added FlowStream events:
 	- `flowstream.on('connect', function(instance))`
 	- `flowstream.on('disconnect', function(instance))`
