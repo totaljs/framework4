@@ -13052,9 +13052,11 @@ function controller_api() {
 	if (api.timeout)
 		self.req.$total_timeout = api.timeout / 1000;
 
+	if (s.method !== '-' && !model.data)
+		model.data = {};
+
 	// Evaluates action
 	CALL(s.action, model.data, self).callback(self.callback());
-	// EXEC(s.action, model.data, self.callback(), self);
 }
 
 function websocket_api(url, client, model, callback) {
