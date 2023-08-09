@@ -608,7 +608,22 @@ QBP.array = function(name, comparer, value) {
 
 	if (value === undefined) {
 		value = comparer;
-		comparer = '&&';
+		comparer = '&';
+	}
+
+	switch (comparer) {
+		case '<':
+			comparer = '<@';
+			break;
+		case '>':
+			comparer = '@>';
+			break;
+		case '|':
+			comparer = '||';
+			break;
+		case '&':
+			comparer = '&&';
+			break;
 	}
 
 	t.options.checksum += (t.options.checksum ? ' ' : '') + 'array' + comparer + name;
