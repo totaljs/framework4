@@ -599,34 +599,20 @@ QBP.where = function(name, comparer, value) {
 	return t;
 };
 
-QBP.alike = function(name, comparer, value) {
+QBP.array = function(name, comparer, value) {
 
 	var t = this;
+
+	if (comparer === undefined && value === undefined)
+		return t.query(name);
 
 	if (value === undefined) {
 		value = comparer;
 		comparer = '&&';
-	} else {
-		switch (comparer) {
-			case '<':
-				comparer = '<@';
-				break;
-			case '>':
-				comparer = '@>';
-				break;
-			case '|':
-				comparer = '||';
-				break;
-			case '&':
-			default:
-				comparer = '&&';
-				break;
-		}
 	}
 
-	t.options.checksum += (t.options.checksum ? ' ' : '') + 'alike' + comparer + name;
-	t.filter.push({ type: 'alike', name: name, comparer: comparer, value: value });
-
+	t.options.checksum += (t.options.checksum ? ' ' : '') + 'array' + comparer + name;
+	t.filter.push({ type: 'array', name: name, comparer: comparer, value: value });
 	return t;
 };
 
@@ -980,8 +966,24 @@ QBP.gridfilter = function(name, obj, type, key) {
 			case 'bool':
 				type = Boolean;
 				break;
+			case '[string]':
+ 				type = 'Array';
+ 				break;
+ 			case 'json':
+ 				type = 'JSON';
+ 				break;
 		}
 	}
+
+ 	// Array type
+ 	if (type === 'Array') {
+ 		return builder.array(key, value);
+ 	}
+
+ 	// JSON type
+ 	if (type === 'JSON') {
+ 		return builder.search(key, value);
+ 	}
 
 	// Between
 	var index = value.indexOf(' - ');
