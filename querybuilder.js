@@ -603,9 +603,6 @@ QBP.array = function(name, comparer, value) {
 
 	var t = this;
 
-	if (comparer === undefined && value === undefined)
-		return t.query(name);
-
 	if (value === undefined) {
 		value = comparer;
 		comparer = '&&';
@@ -967,23 +964,11 @@ QBP.gridfilter = function(name, obj, type, key) {
 				type = Boolean;
 				break;
 			case '[string]':
- 				type = 'Array';
- 				break;
- 			case 'json':
- 				type = 'JSON';
- 				break;
+				return builder.array(key, value);
+			case 'json':
+				return builder.search(key, value);
 		}
 	}
-
- 	// Array type
- 	if (type === 'Array') {
- 		return builder.array(key, value);
- 	}
-
- 	// JSON type
- 	if (type === 'JSON') {
- 		return builder.search(key, value);
- 	}
 
 	// Between
 	var index = value.indexOf(' - ');
