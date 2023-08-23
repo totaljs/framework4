@@ -12,6 +12,7 @@ const Http = require('http');
 const Https = require('https');
 const Worker = require('worker_threads');
 
+const COMPRESS = { gzip: 1, deflate: 1 };
 const ENCODING = 'utf8';
 const HEADER_CACHE = 'Cache-Control';
 const HEADER_TYPE = 'Content-Type';
@@ -9300,6 +9301,7 @@ F.$requestcontinue = function(req, res, headers) {
 
 		multipart = req.headers['content-type'] || '';
 		req.bodydata = Buffer.alloc(0);
+
 		var index = multipart.indexOf(';', 6);
 		var tmp = multipart;
 		if (index !== -1)
@@ -17373,7 +17375,16 @@ function extend_request(PROTO) {
 
 			this.bodyhas = true;
 			this.bodyexceeded = false;
-			this.on('data', this.$total_parsebody);
+
+			var encoding = this.headers['content-encoding'];
+			if (COMPRESS[encoding]) {
+				this.totalgunzip = encoding === 'gzip' ? Zlib.createGunzip() : Zlib.createInflate();
+				this.totalgunzip.on('data', chunk => this.$total_parsebody(chunk));
+				this.totalgunzip.on('error', () => this.$total_400('Invalid data'));
+				this.pipe(this.totalgunzip);
+			} else
+				this.on('data', this.$total_parsebody);
+
 			this.$total_end();
 		} else
 			this.$total_status(404);
@@ -17407,8 +17418,12 @@ function extend_request(PROTO) {
 				this.$total_schema = true;
 			this.bodydata = null;
 			this.$total_prepare();
-		} else
-			this.on('end', this.$total_end2);
+		} else {
+			if (this.totalgunzip)
+				this.totalgunzip.on('end', () => this.$total_end2());
+			else
+				this.on('end', this.$total_end2);
+		}
 	};
 
 	PROTO.$total_execute = function(status, isError) {
@@ -17629,6 +17644,8 @@ function extend_request(PROTO) {
 	PROTO.$total_end2 = function() {
 
 		var route = this.$total_route;
+
+		this.totalgunzip = null;
 
 		if (this.bodydata)
 			F.stats.performance.download += this.bodydata.length / 1024 / 1024;

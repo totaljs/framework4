@@ -2,6 +2,9 @@
 0.0.89
 ========================
 
+- extended HTTP server by adding `gzip` and `deflate` content-encoding
+- updated `options` by adding `options.compress = 'gzip|deflate'` option in the `REQUEST()` method
+
 ========================
 0.0.88
 ========================

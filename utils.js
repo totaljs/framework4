@@ -554,6 +554,9 @@ function _request(opt, callback) {
 		}
 	}
 
+	if (opt.compress)
+		opt.headers['Content-Encoding'] = opt.compress;
+
 	if (opt.files) {
 		options.boundary = '----TOTALFILE_' + Math.random().toString(36).substring(3);
 		opt.headers[CT] = 'multipart/form-data; boundary=' + options.boundary;
@@ -573,8 +576,11 @@ function _request(opt, callback) {
 				}
 				opt.body = Buffer.from(opt.body, ENCODING);
 			}
-			opt.headers['Content-Length'] = opt.body.length;
+
+			if (!opt.compress || !COMPRESS[opt.compress])
+				opt.headers['Content-Length'] = opt.body.length;
 		}
+
 		options.body = opt.body;
 	}
 
@@ -827,8 +833,15 @@ function request_call(uri, options) {
 
 			req.end(NEWLINE + '--' + options.boundary + '--');
 		});
-	} else
-		req.end(options.body);
+	} else {
+
+		if (options.opt.compress) {
+			Zlib[options.opt.compress](options.body, function(err, buffer) {
+				req.end(buffer);
+			});
+		} else
+			req.end(options.body);
+	}
 }
 
 function request_process_error(err) {
