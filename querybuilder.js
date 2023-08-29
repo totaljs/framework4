@@ -389,7 +389,7 @@ DBP.evaluate = function(err, response) {
 	var t = this;
 
 	if (t.options.first && response instanceof Array)
-		response = response[0];
+		response = response.length ? response[0] : null;
 
 	if (!err && t.error) {
 		if (t.error_reverse) {
