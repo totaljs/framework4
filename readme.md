@@ -1,6 +1,8 @@
 Total.js framework 4
 ====================
 
+[![Made in EU](https://cdn.componentator.com/eu-small.png)](https://european-union.europa.eu/)
+
 - [Website](https://www.totaljs.com/)
 - [__Documentation__](https://docs.totaljs.com/total4/)
 - [Chat support](https://platform.totaljs.com/?open=messenger)
