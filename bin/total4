@@ -28,6 +28,7 @@ function display_help() {
 	console.log('minify <filename>         : Minifies .js, .css or .html file into filename.min.<extension>');
 	console.log('bundle <filename>         : Makes a bundle from the current directory');
 	console.log('package <filename>        : Makes a package from the current directory');
+	console.log('extract <filename>        : Extracts a bundle/package');
 	console.log('help                      : List all total4 commands');
 	console.log('8000                      : Starts a server on port "8000"');
 	console.log('edit <url?id=project>     : Synchronizes the current directory with the Total.js Code Editor');
@@ -521,6 +522,11 @@ function main() {
 			return;
 		}
 
+		if (!$type && (cmd === '-extract' || cmd === 'extract')) {
+			restorebundle(dir, process.argv[i + 1] || '');
+			return;
+		}
+
 		if (!$type && (cmd === '-bundle' || cmd === 'bundle')) {
 			makebundle(dir, process.argv[i + 1] || '');
 			return;
@@ -930,6 +936,21 @@ function makebundle(dir, filename) {
 		return blacklist[path] == null;
 	});
 }
+
+
+function restorebundle(dir, filename) {
+
+	RESTORE(filename, U.path(dir), function(err, path) {
+
+		if (err)
+			throw err;
+
+		console.log('Success      :', path.files.pluralize('# files', '# file', '# files', '# files') + ' (' + path.size.filesize() + ')');
+		console.log('');
+
+	});
+}
+
 
 function makepackage(dir, filename) {
 
