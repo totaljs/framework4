@@ -88,16 +88,16 @@ function trash(body) {
 
 			index = body.indexOf(t, index + t.length);
 
-			if (index === -1)
+			if (index === -1) {
 				break;
+			}
 
 			var b = body.lastIndexOf('<', index);
 			var tag = body.substring(b + 1, body.indexOf(' ', b));
 			var e = body.indexOf('</' + tag + '>', index);
 			var size = e + 3 + tag.length;
 			body = body.replace(body.substring(b, size), '');
-			index = e + 3 + tag.length;
-
+			index = b;
 		}
 	}
 
@@ -591,9 +591,8 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 
 			switch (m.type) {
 				case 'nav':
-					var nav = (opt.nav ? opt.nav instanceof Array ? opt.nav.findItem('id', m.id) : opt.nav[m.id] : null) || { children: EMPTYARRAY };
-					nav.current = nav.links ? nav.links.findItem('url', opt.url) : null;
-					body = m.template({ value: nav || { children: EMPTYARRAY }});
+					var nav = opt.navigation ? opt.navigation(m.id) : null;
+					body = m.template({ value: nav });
 					break;
 				case 'breadcrumb':
 					body = m.template({ value: opt.breadcrumb || EMPTYARRAY });
