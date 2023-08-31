@@ -236,14 +236,15 @@ exports.compile = function(html, widgets, used) {
 	var arr = html.match(/data-cms=".*?"/g) || EMPTYARRAY;
 	var response = new CMSRender();
 	var indexer = 0;
+	var index;
 	var beg;
 	var end;
-	var index;
 
 	response.css = [];
 	response.js = [];
 	response.widgets = [];
 	response.cache = {};
+	response.tangular = [];
 
 	if (!used) {
 		for (var widget of widgets) {
@@ -361,6 +362,47 @@ exports.compile = function(html, widgets, used) {
 		indexer++;
 	}
 
+	index = 0;
+
+	while (true) {
+
+		index = html.indexOf(' type="text/navigation"', index);
+
+		if (index === -1)
+			break;
+
+		var beg = html.lastIndexOf('<script', index);
+		var end = html.indexOf('</script>', index);
+		var endhead = html.indexOf('>', index);
+		var head = html.substring(beg, endhead);
+		var name = head.match(/id=".*?"/i)[0];
+		var template = html.substring(html.indexOf('>', endhead) + 1, end);
+
+		name = name.substring(4, name.length - 1);
+		html = html.replace(html.substring(beg, end + 9), '~WIDGET#' + response.tangular.length + '~');
+		response.tangular.push({ id: HASH(name).toString(36), name: name, type: 'nav', template: Tangular.compile(template) });
+		index = beg;
+
+	}
+
+	index = 0;
+
+	while (true) {
+
+		index = html.indexOf(' type="text/breadcrumb"', index);
+
+		if (index === -1)
+			break;
+
+		var beg = html.lastIndexOf('<script', index);
+		var end = html.indexOf('</script>', index);
+		var endhead = html.indexOf('>', index);
+		var template = html.substring(html.indexOf('>', endhead) + 1, end);
+		html = html.replace(html.substring(beg, end + 9), '~WIDGET#' + response.tangular.length + '~');
+		response.tangular.push({ type: 'breadcrumb', template: Tangular.compile(template) });
+		index = beg;
+	}
+
 	response.html = tidy(trash(layout(html, '~WIDGETLAYOUT~')));
 	response.multiple = expressions_multiple(response.html);
 
@@ -374,12 +416,17 @@ exports.compile = function(html, widgets, used) {
 	var text = [];
 
 	while (true) {
+
 		beg = response.html.indexOf('~WIDGET');
+
 		if (beg !== -1) {
 			end = response.html.indexOf('~', beg + 6) + 1;
 			var h = response.html.substring(0, beg);
 			var windex = response.html.substring(beg + 7, end - 1);
-			if (windex === 'LAYOUT') {
+			if (windex[0] === '#') {
+				response.html = response.html.substring(end);
+				builder.push('text[{0}]+tangular[{1}]'.format(text.push(h) - 1, windex.substring(1)));
+			} else if (windex === 'LAYOUT') {
 				response.html = response.html.substring(end);
 				builder.push('text[{0}]+body'.format(text.push(h) - 1));
 			} else {
@@ -390,7 +437,6 @@ exports.compile = function(html, widgets, used) {
 				else
 					builder.push('widget[{0}]'.format(indexer));
 			}
-
 		} else {
 			builder.push('text[{0}]'.format(text.push(response.html) - 1));
 			break;
@@ -399,8 +445,9 @@ exports.compile = function(html, widgets, used) {
 
 	response.js = response.js.length ? response.js.join('\n') : '';
 	response.css = response.css.length ? response.css.join('') : '';
-	response.toString = new Function('text', 'widget', 'body', 'return ' + builder.join('+'));
+	response.toString = new Function('text', 'widget', 'tangular', 'body', 'return ' + builder.join('+'));
 	response.text = text;
+
 	delete response.html;
 	return response;
 };
@@ -519,7 +566,6 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 				if (w.cache === 'url' && opt.url)
 					opt.cacheid += '_' + HASH(opt.url).toString(36);
 			}
-
 		}
 
 		if (self.cache[opt.cacheid]) {
@@ -536,7 +582,28 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 		});
 
 	}, function() {
-		var html = self.toString(self.text, widgets, meta.body || '');
+
+		var tangular = [];
+
+		for (var m of self.tangular) {
+
+			var body = '';
+
+			switch (m.type) {
+				case 'nav':
+					var nav = (opt.nav ? opt.nav instanceof Array ? opt.nav.findItem('id', m.id) : opt.nav[m.id] : null) || { children: EMPTYARRAY };
+					nav.current = nav ? nav.links.findItem('url', opt.url) : null;
+					body = m.template({ value: nav || { children: EMPTYARRAY }});
+					break;
+				case 'breadcrumb':
+					body = m.template({ value: opt.breadcrumb || EMPTYARRAY });
+					break;
+			}
+
+			tangular.push(body);
+		}
+
+		var html = self.toString(self.text, widgets, tangular, meta.body || '');
 		if (layout) {
 			meta.body = html;
 			layout.render(meta, callback);

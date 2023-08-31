@@ -6,6 +6,7 @@
 - updated `options` by adding `options.compress = 'gzip|deflate'` option in the `REQUEST()` method
 - fixed handling values in `QueryBuilder`
 - extended command-line tool by adding new command `total4 --extract <filename.bundle>`
+- improved CMS compiler by adding support for inline navigation and breadcrumb
 
 ========================
 0.0.88
