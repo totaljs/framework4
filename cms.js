@@ -585,18 +585,28 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 
 		var tangular = [];
 
-		for (var m of self.tangular) {
+		// opt.inlinecache {Object} user defined cache
 
-			var body = '';
+		for (let i = 0; i < self.tangular.length; i++) {
 
-			switch (m.type) {
-				case 'nav':
-					var nav = opt.navigation ? opt.navigation(m.id) : null;
-					body = m.template({ value: nav });
-					break;
-				case 'breadcrumb':
-					body = m.template({ value: opt.breadcrumb || EMPTYARRAY });
-					break;
+			let key = i + '';
+			let body = opt.inlinecache ? opt.inlinecache[key] : '';
+
+			if (!body) {
+				let item = self.tangular[i];
+				switch (item.type) {
+					case 'nav':
+						body = item.template({ value: opt.navigation ? opt.navigation(item.id) : null });
+						break;
+					case 'breadcrumb':
+						body = item.template({ value: opt.breadcrumb || EMPTYARRAY });
+						break;
+				}
+
+				if (opt.inlinecache) {
+					body = body.replace(/\t|\s{2,}/g, '');
+					opt.inlinecache[key] = body;
+				}
 			}
 
 			tangular.push(body);
