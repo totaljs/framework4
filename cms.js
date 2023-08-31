@@ -375,10 +375,10 @@ exports.compile = function(html, widgets, used) {
 		var end = html.indexOf('</script>', index);
 		var endhead = html.indexOf('>', index);
 		var head = html.substring(beg, endhead);
-		var name = head.match(/id=".*?"/i)[0];
+		var name = head.match(/name=".*?"/i)[0];
 		var template = html.substring(html.indexOf('>', endhead) + 1, end);
 
-		name = name.substring(4, name.length - 1);
+		name = name.substring(6, name.length - 1);
 		html = html.replace(html.substring(beg, end + 9), '~WIDGET#' + response.tangular.length + '~');
 		response.tangular.push({ id: HASH(name).toString(36), name: name, type: 'nav', template: Tangular.compile(template) });
 		index = beg;
@@ -592,7 +592,7 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 			switch (m.type) {
 				case 'nav':
 					var nav = (opt.nav ? opt.nav instanceof Array ? opt.nav.findItem('id', m.id) : opt.nav[m.id] : null) || { children: EMPTYARRAY };
-					nav.current = nav ? nav.links.findItem('url', opt.url) : null;
+					nav.current = nav.links ? nav.links.findItem('url', opt.url) : null;
 					body = m.template({ value: nav || { children: EMPTYARRAY }});
 					break;
 				case 'breadcrumb':
