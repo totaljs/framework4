@@ -13110,10 +13110,7 @@ function controller_api() {
 
 	self.id = model.id || '';
 
-	if (self.route.encrypt)
-		self.req.$bodyencrypt = true;
-
-	if (self.route.isENCRYPT)
+	if (self.route.encrypt || self.route.isENCRYPT)
 		self.req.$bodyencrypt = true;
 
 	if (CONF.secret_csrf)

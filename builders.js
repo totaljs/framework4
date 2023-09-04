@@ -5456,7 +5456,10 @@ global.NEWACTION = function(name, obj) {
 	if (obj.route) {
 		if (obj.route.indexOf('-->') === -1)
 			obj.route = obj.route + '  ' + (obj.input ? '+' : '-') + obj.$url + '  *  -->  ' + name;
-		obj.$route = ROUTE(obj.route);
+		var flags = null;
+		if (obj.encrypt)
+			flags = ['encrypt'];
+		obj.$route = ROUTE(obj.route, flags);
 	}
 
 	if (obj.permissions && typeof(obj.permissions) === 'string')
