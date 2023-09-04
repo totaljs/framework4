@@ -7,6 +7,7 @@
 - fixed handling values in `QueryBuilder`
 - extended command-line tool by adding new command `total4 --extract <filename.bundle>`
 - improved CMS compiler by adding support for inline navigation and breadcrumb
+- added `CONF.logger` that enables the writing of `console` into the `/logs/debug.log` file
 
 ========================
 0.0.88

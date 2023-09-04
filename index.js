@@ -2662,6 +2662,72 @@ F.debugger = function() {
 	F.runscript(PATH.root('debugger.js'));
 };
 
+F.logger = function(enable) {
+
+	if (enable == null)
+		enable = true;
+
+	if (enable) {
+
+		if (console.$backup)
+			return;
+
+	} else {
+
+		if (!console.$backup)
+			return;
+
+		console.log = console.$backup.log;
+		console.warn = console.$backup.warn;
+		console.error = console.$backup.error;
+		console.time = console.$backup.time;
+		console.timeEnd = console.$backup.timeEnd;
+		console.$backup = null;
+		return;
+	}
+
+	var Console = require('console').Console;
+
+	var path = PATH.root();
+
+	if (path.substring(path.length - 5, path.length - 1) === '.src')
+		path = F.Path.join(path.substring(0, path.length - 5), 'logs/');
+	else
+		path = F.Path.join(path, 'logs/');
+
+	PATH.mkdir(path);
+
+	var output = F.Fs.createWriteStream(F.Path.join(path, 'debug.log'), { flags: 'a' });
+	var logger = new Console({ stdout: output, stderr: output });
+
+	console.$backup = {};
+	console.$backup.log = console.log;
+	console.$backup.warn = console.warn;
+	console.$backup.error = console.error;
+	console.$backup.time = console.time;
+	console.$backup.timeEnd = console.timeEnd;
+
+	console.log = function() {
+		logger.log.apply(logger, arguments);
+	};
+
+	console.warn = function() {
+		logger.warn.apply(logger, arguments);
+	};
+
+	console.error = function() {
+		logger.error.apply(logger, arguments);
+	};
+
+	console.time = function() {
+		logger.time.apply(logger, arguments);
+	};
+
+	console.timeEnd = function() {
+		logger.timeEnd.apply(logger, arguments);
+	};
+};
+
 F.refresh = function() {
 
 	NOW = new Date();
@@ -10951,6 +11017,8 @@ function configure_configs(arr, rewrite) {
 		PATH.verify('databases');
 		Fs.writeFileSync(filenameC, JSON.stringify(tmp), NOOP);
 	}
+
+	F.logger(obj.logger == true);
 
 	U.extend(CONF, obj, rewrite);
 
