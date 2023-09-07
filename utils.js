@@ -6597,66 +6597,68 @@ MultipartParser.prototype.parse_head = function() {
 			self.current.header = null;
 			self.current.measure = null;
 
-			switch (self.current.type) {
-				case 'image/svg+xml':
-				case 'image/svg':
-					self.current.header = REG_SVG;
-					self.current.measure = 'measureSVG';
-					break;
-				case 'image/jpeg':
-				case 'image/jpg':
-					self.current.header = REG_JPG;
-					self.current.measure = 'measureJPG';
-					break;
-				case 'image/png':
-					self.current.header = 'png';
-					self.current.measure = 'measurePNG';
-					break;
-				case 'image/gif':
-					self.current.header = 'gif';
-					self.current.measure = 'measureGIF';
-					break;
-				case 'image/webp':
-					self.current.header = REG_WEBP;
-					self.current.measure = 'measureWEBP';
-					break;
-				case 'image/vnd.adobe.photoshop':
-					self.current.header = 'bps';
-					self.current.measure = 'measurePSD';
-					break;
-				case 'image/bmp':
-					self.current.header = 'bm';
-					self.current.measure = 'measureBMP';
-					break;
-				case 'application/zip':
-					self.current.header = 'pk';
-					break;
-				case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-				case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-					self.current.header = 'office';
-					break;
-				case 'application/pdf':
-					self.current.header = 'pdf';
-					break;
-				case 'video/mp4':
-					self.current.header = 'ftyp';
-					break;
-				case 'image/heic':
-				case 'image/heif':
-					self.current.header = 'heic';
-					break;
-				case 'application/x-rar-compressed':
-					self.current.header = 'rar';
-					break;
-				case 'application/x-7z-compressed':
-					self.current.header = '7z';
-					break;
-				case 'audio/mpeg':
-					self.current.header = 'id';
-					break;
-				case 'application/ogg':
-					self.current.header = 'ogg';
-					break;
+			if (!self.skipcheck) {
+				switch (self.current.type) {
+					case 'image/svg+xml':
+					case 'image/svg':
+						self.current.header = REG_SVG;
+						self.current.measure = 'measureSVG';
+						break;
+					case 'image/jpeg':
+					case 'image/jpg':
+						self.current.header = REG_JPG;
+						self.current.measure = 'measureJPG';
+						break;
+					case 'image/png':
+						self.current.header = 'png';
+						self.current.measure = 'measurePNG';
+						break;
+					case 'image/gif':
+						self.current.header = 'gif';
+						self.current.measure = 'measureGIF';
+						break;
+					case 'image/webp':
+						self.current.header = REG_WEBP;
+						self.current.measure = 'measureWEBP';
+						break;
+					case 'image/vnd.adobe.photoshop':
+						self.current.header = 'bps';
+						self.current.measure = 'measurePSD';
+						break;
+					case 'image/bmp':
+						self.current.header = 'bm';
+						self.current.measure = 'measureBMP';
+						break;
+					case 'application/zip':
+						self.current.header = 'pk';
+						break;
+					case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+					case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+						self.current.header = 'office';
+						break;
+					case 'application/pdf':
+						self.current.header = 'pdf';
+						break;
+					case 'video/mp4':
+						self.current.header = 'ftyp';
+						break;
+					case 'image/heic':
+					case 'image/heif':
+						self.current.header = 'heic';
+						break;
+					case 'application/x-rar-compressed':
+						self.current.header = 'rar';
+						break;
+					case 'application/x-7z-compressed':
+						self.current.header = '7z';
+						break;
+					case 'audio/mpeg':
+						self.current.header = 'id';
+						break;
+					case 'application/ogg':
+						self.current.header = 'ogg';
+						break;
+				}
 			}
 		}
 

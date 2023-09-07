@@ -2619,6 +2619,7 @@ exports.parseMULTIPART = function(req, type, route) {
 			req.$total_end2();
 	});
 
+	parser.skipcheck = !CONF.allow_check_upload;
 	parser.limits.total = route.length;
 };
 

@@ -9,6 +9,7 @@
 - improved CMS compiler by adding support for inline navigation and breadcrumb
 - added `CONF.logger` that enables the writing of `console` into the `/logs/debug.log` file
 - fixed `encryption` in actions
+- added new option `allow_check_upload` for disabling upload content-type checks
 
 ========================
 0.0.88
