@@ -5683,7 +5683,6 @@ global.OPERATION = function(name, value, callback, param, controller, isprocesse
 	var fn = F.operations[name];
 
 	var error = new ErrorBuilder();
-	var $now;
 
 	if (fn) {
 
@@ -6266,6 +6265,13 @@ AuthOptionsProto.success = function(user) {
 
 AuthOptionsProto.audit = function(message, type) {
 	AUDIT(this, message, type);
+	return this;
+};
+
+AuthOptionsProto.cancel = function() {
+	this.$callback = null;
+	this.req.authorizecallback = null;
+	this.processed = true;
 	return this;
 };
 
