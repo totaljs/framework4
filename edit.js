@@ -186,7 +186,7 @@ function browse($, model) {
 	var validator;
 
 	if (m.type === 'localization')
-		validator = ((path, dir) => dir ? (path.endsWith('/node_modules') || path.endsWith('/tmp') || path.endsWith('/.git') || path.endsWith('/.src') || path.endsWith('/logs')) ? false : true : true);
+		validator = ((path, dir) => dir ? (path.endsWith('/databases') || (path.endsWith('/node_modules') || path.endsWith('/tmp') || path.endsWith('/.git') || path.endsWith('/.src') || path.endsWith('/logs')) ? false : true : true);
 	else
 		validator = n => !SKIP.test(n) && (!skip || !skip.test(n));
 
