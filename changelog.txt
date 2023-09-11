@@ -4,6 +4,7 @@
 
 - improved `edit` source-code functionality
 	- improved schema by adding `nocompress {Boolean}` field
+- fixed blacklist for localization in remote editing
 
 ========================
 0.0.89
