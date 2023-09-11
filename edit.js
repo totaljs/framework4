@@ -70,6 +70,7 @@ NEWSCHEMA('CodeModule', function(schema) {
 	schema.define('TYPE', String, true);
 	schema.define('path', String);
 	schema.define('data', String);
+	schema.define('nocompress', Boolean);
 
 	schema.addWorkflow('exec', function($, model) {
 
@@ -180,7 +181,7 @@ function mkdir(path, callback) {
 
 function browse($, model) {
 	var path = PATH.root();
-	var m = model.data.parseJSON() || EMPTYARRAY;
+	var m = (model.data || '{}').parseJSON() || EMPTYARRAY;
 	var skip = m.skip ? new RegExp(m.skip) : null;
 	var validator;
 
@@ -250,7 +251,12 @@ function load($, model) {
 		if (index !== -1)
 			data = data.slice(index);
 
-		$.callback({ type: U.getContentType(U.getExtension(model.path)), data: F.Zlib.deflateSync(data).toString('base64') });
+		encodedata(model, data, function(err, buffer) {
+			if (err)
+				$.invalid(err);
+			else
+				$.callback({ type: U.getContentType(U.getExtension(model.path)), data: buffer.toString('base64') });
+		});
 	});
 }
 
@@ -262,7 +268,12 @@ function save($, model) {
 	var directory = filename.substring(0, filename.length - name.length);
 
 	Fs.mkdir(directory, { recursive: true }, function() {
-		Fs.writeFile(filename, F.Zlib.inflateSync(Buffer.from(model.data, 'base64')), $.done());
+		decodedata(model, function(err, buffer) {
+			if (err)
+				$.invalid(err);
+			else
+				Fs.writeFile(filename, buffer, $.done());
+		});
 	});
 }
 
@@ -298,10 +309,22 @@ function download($, model) {
 			$.invalid('400', 'error-file');
 		} else {
 			// Max. 5 MB
-			if (stats.size > (1024 * 1024 * 5))
+			if (stats.size > (1024 * 1024 * 5)) {
 				$.invalid('Too large');
-			else
-				$.callback({ type: U.getContentType(ext), data: F.Zlib.deflateSync(Fs.readFileSync(filename)).toString('base64') });
+			} else {
+				Fs.readFile(filename, function(err, data) {
+					if (err) {
+						$.invalid(err);
+					} else {
+						encodedata(model, data, function(err, buffer) {
+							if (err)
+								$.invalid(err);
+							else
+								$.callback({ type: U.getContentType(ext), data: buffer.toString('base64') });
+						});
+					}
+				});
+			}
 		}
 	});
 }
@@ -324,7 +347,7 @@ function customimport($, model) {
 }
 
 function rename($, model) {
-	var data = CONVERT(model.data.parseJSON(), 'newpath:String,oldpath:String');
+	var data = CONVERT((model.data || '{}').parseJSON(), 'newpath:String,oldpath:String');
 	data.newpath = PATH.root(data.newpath);
 	data.oldpath = PATH.root(data.oldpath);
 	mkdir(Path.dirname(data.newpath), function() {
@@ -335,7 +358,7 @@ function rename($, model) {
 function create($, model) {
 
 	var filename = PATH.root(model.path);
-	var data = model.data.parseJSON();
+	var data = (model.data || '{}').parseJSON();
 
 	Fs.lstat(filename, function(err) {
 
@@ -366,8 +389,12 @@ function upload($, model) {
 	var filename = PATH.root(model.path);
 	var directory = PATH.root(model.path.substring(0, model.length - name.length));
 	mkdir(directory, function() {
-		var buf = F.Zlib.inflateSync(Buffer.from(model.data, 'base64'));
-		Fs.writeFile(filename, buf, $.done());
+		decodedata(model, function(err, buffer) {
+			if (err)
+				$.invalid(err);
+			else
+				Fs.writeFile(filename, buffer, $.done());
+		});
 	});
 }
 
@@ -416,4 +443,19 @@ function ipaddress($) {
 		$.cancel();
 	};
 	REQUEST(opt);
+}
+
+function decodedata(model, callback) {
+	if (model.nocompress)
+		callback(null, Buffer.from(model.data, 'base64'));
+	else
+		F.Zlib.inflate(Buffer.from(model.data, 'base64'), callback);
+
+}
+
+function encodedata(model, buffer, callback) {
+	if (model.nocompress)
+		callback(null, buffer);
+	else
+		F.Zlib.deflate(buffer, callback);
 }

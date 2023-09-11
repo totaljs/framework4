@@ -2,6 +2,9 @@
 0.0.90
 ========================
 
+- improved `edit` source-code functionality
+	- improved schema by adding `nocompress {Boolean}` field
+
 ========================
 0.0.89
 ========================
