@@ -5,6 +5,7 @@
 - improved `edit` source-code functionality
 	- improved schema by adding `nocompress {Boolean}` field
 - fixed blacklist for localization in remote editing
+- added `flow.cloning {Boolean}` for cloning of message data (default: `true`)
 
 ========================
 0.0.89

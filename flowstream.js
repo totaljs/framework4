@@ -356,6 +356,9 @@ MP.send = function(outputindex, data, clonedata) {
 
 	var self = this;
 
+	if (clonedata == null)
+		clonedata = self.main.cloning;
+
 	if (self.isdestroyed || self.main.paused || (self.instance && self.instance.isdestroyed)) {
 		if (!self.isdestroyed)
 			self.destroy();
@@ -590,6 +593,7 @@ function Flow(name, errorhandler) {
 	var t = this;
 	t.strict = true;
 	t.loading = 0;
+	t.cloning = true;
 	t.error = errorhandler || console.error;
 	t.id = t.name = name;
 	t.uid = Date.now().toString(36) + 'X';
@@ -1113,6 +1117,15 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 						message.data = data;
 						message.duration = message.ts = ts;
 						message.used = 1;
+					}
+
+					if (i && (self.cloning != false) && message.data && typeof(message.data) === 'object') {
+						if (message.data instanceof Buffer) {
+							var buf = Buffer.alloc(message.data.length);
+							buf.copy(message.data);
+							message.data = buf;
+						} else
+							message.data = CLONE(message.data);
 					}
 
 					message.main = self;
@@ -1667,7 +1680,7 @@ FP.trigger = function(path, data, controller, events) {
 
 			var ismessage = data instanceof Message;
 			var ts = Date.now();
-			var message = ismessage ? data.clone() : new Message();
+			var message = ismessage ? data.clone(false) : new Message();
 
 			if (ismessage) {
 				if (data.processed === 0) {
