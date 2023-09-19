@@ -7,6 +7,7 @@
 - fixed blacklist for localization in remote editing
 - added `flow.cloning {Boolean}` for cloning of message data (default: `true`)
 - added missing `headers` argument in the `res.jsonstring(data, [headers])` method
+- improved code in the `U.extend_headers()` and `U.extend_headers2()` methods
 
 ========================
 0.0.89
