@@ -18360,12 +18360,13 @@ function extend_response(PROTO) {
 		return res.$text();
 	};
 
-	PROTO.jsonstring = function(str) {
+	PROTO.jsonstring = function(str, headers) {
 		var res = this;
 		F.stats.response.json++;
 		res.options.body = str;
 		res.options.compress = res.options.body.length > 4096;
 		res.options.type = CT_JSON;
+		res.options.headers = headers;
 		return res.$text();
 	};
 

@@ -6,6 +6,7 @@
 	- improved schema by adding `nocompress {Boolean}` field
 - fixed blacklist for localization in remote editing
 - added `flow.cloning {Boolean}` for cloning of message data (default: `true`)
+- added missing `headers` argument in the `res.jsonstring(data, [headers])` method
 
 ========================
 0.0.89
