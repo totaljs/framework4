@@ -769,22 +769,65 @@ global.SESSION = function(name) {
 
 global.LOADRESOURCE = function(name, value) {
 
+	if (value == null) {
+		// multiple
+		RESTBuilder.GET(name).callback(function(err, response) {
+
+			if (err)
+				throw new Error(err.toString());
+
+			if (response && (response instanceof Array || typeof(response) === 'object')) {
+				if (response instanceof Array) {
+					for (let item of response)
+						LOADRESOURCE(item.id || item.key || item.code || item.language, item.value || item.name || item.text || item.body);
+				} else {
+					for (let key in response)
+						LOADRESOURCE(key, response[key]);
+				}
+			}
+		});
+		return;
+	}
+
 	var filename = PATH.temp(name + '.resource');
 
 	if (typeof(value) === 'string') {
+
+		if (REG_HTTPHTTPS.test(value)) {
+			// http or https
+			RESTBuilder.GET(value).callback(function(err, response) {
+
+				if (err)
+					throw new Error(err.toString());
+
+				if (response && (response instanceof Array || typeof(response) === 'object'))
+					LOADRESOURCE(name, response);
+			});
+			return;
+		}
+
 		Fs.writeFile(filename, value, function() {
 			delete F.resources[name];
 		});
+
 		return;
 	}
 
 	var builder = [];
 
-	for (var i = 0; i < value.length; i++) {
-		var item = value[i];
-		var key = item.id || item.key || item.code;
-		var val = item.value || item.name || item.text || item.body;
-		key && builder.push(key.padRight(25, ' ') + ': ' + (val == null ? '' : val));
+	if (value instanceof Array) {
+		for (let item of value) {
+			let key = item.id || item.key || item.code || item.language;
+			let val = item.value || item.name || item.text || item.body;
+			if (val)
+				builder.push(key.padRight(25, ' ') + ': ' + val);
+		}
+	} else {
+		for (let key in value) {
+			let val = value[key];
+			if (val)
+				builder.push(key.padRight(25, ' ') + ': ' + val);
+		}
 	}
 
 	Fs.writeFile(filename, builder.join('\n'), function() {
