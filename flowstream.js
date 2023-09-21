@@ -436,7 +436,7 @@ MP.send = function(outputindex, data, clonedata) {
 				var inputindex = output.index;
 				var message = self.clone();
 
-				if (data)
+				if (data != undefined)
 					message.data = data;
 
 				if (clonedata && message.data && typeof(message.data) === 'object') {

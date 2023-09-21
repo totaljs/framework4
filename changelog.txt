@@ -8,6 +8,7 @@
 - added `flow.cloning {Boolean}` for cloning of message data (default: `true`)
 - added missing `headers` argument in the `res.jsonstring(data, [headers])` method
 - improved code in the `U.extend_headers()` and `U.extend_headers2()` methods
+- fixed setting values `0`, `false` and `null` in `FlowStreamMessage.send()` method <https://github.com/totaljs/flow/issues/108>
 
 ========================
 0.0.89
