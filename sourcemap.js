@@ -205,9 +205,9 @@ F.sourcemap = function() {
 	return output;
 };
 
-F.makesourcemap = function() {
+F.makesourcemap = function(force) {
 
-	if (CONF.nosourcemap || F.id)
+	if (!force && (CONF.nosourcemap || F.id))
 		return;
 
 	timeout && clearTimeout(timeout);
