@@ -9,3 +9,4 @@ test/*
 test/test-framework-debug.js.json
 test/test-framework-release.js.json
 .vscode/*
+/tests/test-debug.js.map

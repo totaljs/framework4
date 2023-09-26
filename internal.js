@@ -2480,12 +2480,6 @@ function markup(body, filename) {
 	if (!command)
 		return body;
 
-	var config = CONF;
-	var resource = F.resource;
-	var M = EMPTYOBJECT;
-	var R = EMPTYOBJECT;
-	var model = EMPTYOBJECT;
-	var repository = EMPTYOBJECT;
 	var r = [];
 
 	while (command) {

@@ -12,6 +12,7 @@
 - extended `LOADRESOURCE()` method
 	- `LOADRESOURCE(url)` for downloading multiple localizations
 	- `LOADRESOURCE(name, url)` for downloading single localization
+- added source map generator (only for `debug` mode)
 
 ========================
 0.0.89

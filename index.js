@@ -143,12 +143,8 @@ global.NEWJSONSCHEMA = function(name, value) {
 	} else {
 		if (value == null)
 			delete F.jsonschemas[name];
-		else {
-			if (value.indexOf(':') === 1)
-				F.jsonschemas[name] = value;
-			else
-				F.jsonschemas[name] = value.toJSONSchema(name);
-		}
+		else
+			F.jsonschemas[name] = value.indexOf(':') === 1 ? value : value.toJSONSchema(name);
 	}
 };
 
@@ -2087,6 +2083,7 @@ global.NEWSCHEMA = function(name, make) {
 
 	var schema = framework_builders.newschema(name);
 	make && make.call(schema, schema);
+	F.makesourcemap();
 	return schema;
 };
 
@@ -2231,6 +2228,7 @@ function Framework() {
 		debug: true,
 
 		nowarnings: process.argv.indexOf('--restart') !== -1,
+		nosourcemap: false,
 		name: 'Total.js',
 		version: '1.0.0',
 		author: '',
@@ -3078,6 +3076,8 @@ F.routes_sort = function(type) {
 		if (key[0] === '1')
 			delete F.temporary.other[key];
 	}
+
+	F.makesourcemap();
 };
 
 F.parseComponent = parseComponent;
@@ -3683,6 +3683,7 @@ global.GROUP = function() {
 var routes_sort_worker = function() {
 	routes_sort_id = null;
 	F.routes_sort();
+	F.makesourcemap();
 };
 
 var routes_sort_id;
@@ -4339,7 +4340,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (apiname && !apischema)
 			apischema = '*  -->  ' + apiname;
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout, owner: CURRENT_OWNER };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
@@ -8097,10 +8098,12 @@ function loadframework(types, cwd, ready) {
 	else if ((/\/scripts\/.*?.js/).test(process.argv[1]))
 		F.directory = directory = U.$normalize(Path.normalize(directory + '/..'));
 
+
 	F.isWorker = true;
 	global.isWORKER = true;
 	global.DEBUG = isdebug;
 	global.RELEASE = !isdebug;
+	CONF.nosourcemap = true;
 	CONF.allow_stats_snapshot = false;
 
 	var isno = true;
@@ -8224,6 +8227,9 @@ F.initialize = function(http, debug, options, callback) {
 
 	if (options.thread)
 		global.THREAD = options.thread;
+
+	if (!debug)
+		CONF.nosourcemap = true;
 
 	options.config && U.extend_headers2(CONF, options.config);
 	F.isHTTPS = Http.STATUS_CODES === undefined;
@@ -8420,6 +8426,8 @@ F.frameworkless = function(debug, options, callback) {
 	var port = options.port;
 	var ip = options.ip;
 	var unixsocket = options.unixsocket;
+
+	CONF.nosourcemap = true;
 
 	options.config && U.extend_headers2(CONF, options.config);
 	F.isHTTPS = false;
@@ -8745,7 +8753,6 @@ F.mode = function(http, name, options) {
 				debug = true;
 				break;
 		}
-		DEBUG = debug;
 		global.DEBUG = debug;
 		global.RELEASE = !debug;
 		return;
@@ -19746,10 +19753,6 @@ function existsSync(filename, file) {
 	}
 }
 
-function getLoggerMiddleware(name) {
-	return 'MIDDLEWARE("' + name + '")';
-}
-
 function async_middleware(index, req, res, middleware, callback, options, controller) {
 
 	if (res.success || res.headersSent || res.finished) {
@@ -19772,8 +19775,6 @@ function async_middleware(index, req, res, middleware, callback, options, contro
 	}
 
 	var output;
-	var $now;
-
 	var opt = req.$total_middleware;
 
 	if (!index || !opt) {
@@ -20773,3 +20774,4 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 
 UIDGENERATOR_REFRESH();
 require('./textdb-querybuilder');
+require('./sourcemap');

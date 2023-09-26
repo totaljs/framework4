@@ -5451,6 +5451,7 @@ global.NEWACTION = function(name, obj) {
 		obj.$route && obj.$route.remove();
 		delete F.actions[obj.id];
 		obj = null;
+		F.makesourcemap();
 	};
 
 	if (obj.route) {
@@ -5489,6 +5490,7 @@ global.NEWACTION = function(name, obj) {
 		return jsonschema ? jsonschema.transform(value, null, partial) : { error: null, response: value };
 	};
 
+	F.makesourcemap();
 	return obj;
 };
 
@@ -7113,8 +7115,8 @@ SCP.promise = function($) {
 
 SCP.controller = function(ctrl) {
 
-	if (value instanceof SchemaOptions)
-		value = value.contr;
+	if (ctrl instanceof SchemaOptions)
+		ctrl = ctrl.controller;
 
 	this.options.controller = ctrl;
 	return this;
