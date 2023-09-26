@@ -56,8 +56,8 @@ F.sourcemap = function() {
 			let action = schema.actions[key];
 			let permissions = action.permissions instanceof Array ? action.permissions.join(',') : action.permissions;
 			let input = action.input || parsefields(schema);
-			items.push({ action: key, schema: name, name: action.name, summary: action.summary, params: action.params, input: input, ouptut: action.ouptut, query: action.query, permissions: permissions, owner: schema.$owner });
-			actions.push({ name: name + ' --> ' + key, params: action.params, input: input, ouptut: action.ouptut, query: action.query, user: action.user, permissions: permissions, public: action.public, publish: action.publish, owner: schema.$owner });
+			items.push({ action: key, schema: name, name: action.name, summary: action.summary, params: action.params, input: input, output: action.output, query: action.query, permissions: permissions, owner: schema.$owner });
+			actions.push({ name: name + ' --> ' + key, params: action.params, input: input, output: action.output, query: action.query, user: action.user, permissions: permissions, public: action.public, publish: action.publish, owner: schema.$owner });
 		}
 
 	});
@@ -65,8 +65,8 @@ F.sourcemap = function() {
 	for (let key in F.actions) {
 		let action = F.actions[key];
 		let permissions = action.permissions instanceof Array ? action.permissions.join(',') : action.permissions;
-		items.push({ action: key, name: action.name, summary: action.summary, params: action.params, input: action.input, ouptut: action.ouptut, query: action.query, permissions: permissions, owner: action.$owner });
-		actions.push({ name: '* --> ' + key, params: action.params, input: action.input, ouptut: action.ouptut, query: action.query, user: action.user, permissions: permissions, public: action.public, publish: action.publish, owner: action.$owner });
+		items.push({ action: key, name: action.name, summary: action.summary, params: action.params, input: action.input, output: action.output, query: action.query, permissions: permissions, owner: action.$owner });
+		actions.push({ name: '* --> ' + key, params: action.params, input: action.input, output: action.output, query: action.query, user: action.user, permissions: permissions, public: action.public, publish: action.publish, owner: action.$owner });
 	}
 
 	for (let a in F.routes.api) {
@@ -100,6 +100,7 @@ F.sourcemap = function() {
 						obj.query = m.query;
 
 					obj.input = m.input;
+					obj.output = m.output;
 					obj.permissions = m.permissions;
 					obj.error = undefined;
 					break;
@@ -133,14 +134,15 @@ F.sourcemap = function() {
 			var schema = GETSCHEMA(m.schema);
 			if (schema) {
 
-				let id = a.workflow.id instanceof Array ? a.workflow.id[0] : a.workflow.id;
-				let action = schema.actions ? schema.actions[id] : null;
+				let id = a.workflow ? (a.workflow.id instanceof Array ? a.workflow.id[0] : a.workflow.id) : '';
+				let action = id && schema.actions ? schema.actions[id] : null;
 
 				if (action) {
 
 					m.summary = action.summary;
 					m.params = action.params;
 					m.query = action.query;
+					m.output = action.output;
 					m.permissions = m.permissions instanceof Array ? m.permissions.join(',') : m.permissions;
 
 					if (m.method !== 'GET')
