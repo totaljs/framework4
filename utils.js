@@ -5859,15 +5859,19 @@ EE2P.once = function(name, fn) {
 	return this.on(name, fn);
 };
 
-EE2P.removeListener = function(name, fn) {
+EE2P.off = EE2P.removeListener = function(name, fn) {
 	if (this.$events) {
 		var evt = this.$events[name];
 		if (evt) {
-			evt = evt.remove(n => n === fn);
-			if (evt.length)
-				this.$events[name] = evt;
-			else
-				this.$events[name] = undefined;
+			if (fn == null) {
+				delete this.$events[name];
+			} else {
+				evt = evt.remove(n => n === fn);
+				if (evt.length)
+					this.$events[name] = evt;
+				else
+					delete this.$events[name];
+			}
 		}
 	}
 	return this;

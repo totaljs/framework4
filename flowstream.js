@@ -163,7 +163,7 @@ MP.once = function(name, fn) {
 	return this.on(name, fn, true);
 };
 
-MP.removeListener = function(name, fn) {
+MP.off = MP.removeListener = function(name, fn) {
 	var self = this;
 	if (self.$events) {
 		var evt = self.$events[name];

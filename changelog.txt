@@ -14,6 +14,7 @@
 	- `LOADRESOURCE(name, url)` for downloading single localization
 - added source map generator (only for `debug` mode)
 - added `CONF.nosourcemap {Boolean}` option
+- extended `U.EventEmitter2()` by adding `.off(name, [fn])` method
 
 ========================
 0.0.89
