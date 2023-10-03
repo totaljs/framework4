@@ -2,6 +2,8 @@
 0.0.91
 ========================
 
+- added `.flow` extension for the watcher due to auto-restarting app
+
 ========================
 0.0.90
 ========================
