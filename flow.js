@@ -17,15 +17,15 @@ FS.internal.error = function(err, source, id, component, stack) {
 	var empty = '---';
 	var output = '';
 
-	output += '|------------- FlowStreamError: ' + new Date().format('yyyy-MM-dd HH:mm:ss') + '\n';
-	output += '| ' + err.toString() + '\n';
-	output += '| Name: ' + flow.name + '\n';
+	output += '|------------- FlowStreamError "' + id + '": ' + new Date().format('yyyy-MM-dd HH:mm:ss') + '\n';
+	output += '| FlowStream: ' + flow.name + '\n';
 	output += '| Source: ' + (source || empty) + '\n';
 	output += '| Instance ID: ' + (id || empty) + '\n';
 	output += '| Component ID: ' + (component || empty) + '\n';
+	output += '| ' + err.toString();
 
 	if (stack) {
-		output += '|---- Stack: ----\n';
+		output += '\n|---- Stack: ----\n';
 		output += stack;
 	}
 
