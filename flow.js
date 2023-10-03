@@ -101,6 +101,8 @@ FS.load = function(flow, callback) {
 	FS.db[id] = flow;
 	flow.worker && initping();
 
+	F.$owner('flowstream_' + id);
+
 	FlowStream.init(flow, flow.worker, function(err, instance) {
 
 		if (flow.worker && flow.proxypath) {
