@@ -12,18 +12,25 @@ FS.ping = false;
 FS.instances = {};
 FS.internal = {};
 FS.internal.error = function(err, source, id, component, stack) {
-	var flow = FS.db[id];
+
+	var flow = FS.db[this.id];
 	var empty = '---';
 	var output = '';
-	output += '|------------- FlowError: ' + new Date().format('yyyy-MM-dd HH:mm:ss') + '\n';
+
+	output += '|------------- FlowStreamError: ' + new Date().format('yyyy-MM-dd HH:mm:ss') + '\n';
 	output += '| ' + err.toString() + '\n';
 	output += '| Name: ' + flow.name + '\n';
 	output += '| Source: ' + (source || empty) + '\n';
 	output += '| Instance ID: ' + (id || empty) + '\n';
 	output += '| Component ID: ' + (component || empty) + '\n';
-	output += '|---- Stack: ----\n';
-	output += stack;
+
+	if (stack) {
+		output += '|---- Stack: ----\n';
+		output += stack;
+	}
+
 	console.error(output);
+
 	var meta = {};
 	meta.error = err;
 	meta.source = source;
