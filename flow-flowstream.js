@@ -2,6 +2,9 @@
 // The MIT License
 // Copyright 2021-2023 (c) Peter Širka <petersirka@gmail.com>
 
+if (!global.F)
+	require('./index');
+
 const W = F.Worker;
 const Fork = F.Child.fork;
 const VERSION = 31;
