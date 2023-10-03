@@ -1237,7 +1237,7 @@ function init_worker(meta, type, callback) {
 	if (meta.memory)
 		forkargs.push('--max-old-space-size=' + meta.memory);
 
-	var worker = type === true || type === 'worker' ? (new W.Worker(__filename, { workerData: meta })) : Fork(__filename, forkargs, { serialization: 'json', detached: false });
+	var worker = type === 'worker' ? (new W.Worker(__filename, { workerData: meta })) : Fork(__filename, forkargs, { serialization: 'json', detached: false });
 	var ischild = false;
 
 	meta.unixsocket = F.isWindows ? ('\\\\?\\pipe\\flowstream' + F.directory.makeid() + meta.id + Date.now().toString(36)) : (F.Path.join(F.OS.tmpdir(), 'flowstream_' + F.directory.makeid() + '_' + meta.id + '_' + Date.now().toString(36) + '.socket'));

@@ -75,6 +75,7 @@ FS.init = function(directory) {
 
 				if (response) {
 					response = response.parseJSON();
+					response.directory = directory;
 					FS.load(response);
 				}
 
