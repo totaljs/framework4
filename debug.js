@@ -172,6 +172,7 @@ function runwatching() {
 			Path.join(directory, CONF.directory_middleware),
 			Path.join(directory, CONF.directory_configs),
 			Path.join(directory, CONF.directory_bundles),
+			Path.join(directory, CONF.directory_flowstreams),
 			Path.join(directory, '/startup/'),
 			Path.join(directory, '/threads/'),
 			Path.join(directory, '/plugins/')

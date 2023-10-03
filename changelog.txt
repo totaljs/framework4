@@ -3,6 +3,8 @@
 ========================
 
 - added `.flow` extension for the watcher due to auto-restarting app
+- added `/flowstreams/` directory for inline FlowStreams
+- added FlowStream module into the core
 - fixed `PATH.extensions()`
 
 ========================

@@ -2254,6 +2254,7 @@ function Framework() {
 		directory_models: '/models/',
 		directory_actions: '/actions/',
 		directory_schemas: '/schemas/',
+		directory_flowstreams: '/flowstreams/',
 		directory_extensions: '/extensions/',
 		directory_jsonschemas: '/jsonschemas/',
 		directory_operations: '/operations/',
@@ -6238,7 +6239,18 @@ F.$load = function(types, targetdirectory, callback) {
 												});
 											}
 
-											next();
+											path = PATH.root('plugins/' + plugin + CONF.directory_flowstreams);
+											U.ls(path, function(items) {
+												if (items.length) {
+													dependencies.push(function(next) {
+														require('./flow').init(path);
+														next();
+													});
+												}
+												next();
+
+											});
+
 										});
 									});
 								});
@@ -6248,6 +6260,19 @@ F.$load = function(types, targetdirectory, callback) {
 					});
 				}, resume);
 			});
+		});
+	}
+
+	if (can('flowstreams') && CONF.directory_flowstreams) {
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/flowstreams/' : CONF.directory_flowstreams);
+			arr = [];
+			listing(dir, 0, arr, '.flow');
+			arr.length && dependencies.push(function(next) {
+				require('./flow').init(dir);
+				next();
+			});
+			resume();
 		});
 	}
 
