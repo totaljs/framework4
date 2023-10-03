@@ -116,7 +116,7 @@ function runwatching() {
 	const REG_COMPONENTS = /(components|plugins|extensions)\/[a-z0-9-_]\.html|\.package\/.*?$/i;
 	const REG_JSONSCHEMAS = /jsonschemas\/.*?\.json$/i;
 	const REG_THEMES_INDEX = /themes(\/|\\)?[a-z0-9_.-]+(\/|\\)?index\.js$/i;
-	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build|url)$/i;
+	const REG_EXTENSION = /\.(js|ts|resource|package|bundle|build|flow|url)$/i;
 	const REG_RELOAD = /\.(js|ts|css|html|htm|jpg|png|gif|ico|svg|resource)$/i;
 	const isRELOAD = !!options.livereload;
 	const SPEED = isRELOAD ? 1000 : 1500;

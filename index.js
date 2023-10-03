@@ -12230,7 +12230,7 @@ FrameworkPathProto.jsonschemas = function(filename) {
 };
 
 FrameworkPathProto.extensions = function(filename) {
-	return U.combine(CONF.extensions, filename);
+	return U.combine(CONF.directory_extensions, filename);
 };
 
 FrameworkPathProto.operations = function(filename) {

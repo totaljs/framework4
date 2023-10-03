@@ -3,6 +3,7 @@
 ========================
 
 - added `.flow` extension for the watcher due to auto-restarting app
+- fixed `PATH.extensions()`
 
 ========================
 0.0.90
