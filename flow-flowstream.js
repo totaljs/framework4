@@ -257,6 +257,17 @@ Instance.prototype.cmd = function(path, data) {
 	return self;
 };
 
+Instance.prototype.send = function(id, data, callback) {
+	var self = this;
+	if (self.flow.isworkerthread) {
+		var callbackid = callback ? (CALLBACKID++) : -1;
+		if (callbackid !== -1)
+			CALLBACKS[callbackid] = { id: self.flow.id, callback: callback };
+		self.flow.postMessage2({ TYPE: 'stream/send', id: id, data: data, callbackid: callbackid });
+	} else
+		send(self.flow, id, data, callback);
+};
+
 Instance.prototype.exec = function(opt, callback) {
 
 	// opt.id = instance_ID
@@ -690,6 +701,82 @@ exports.rpc = function(name, callback) {
 
 exports.version = VERSION;
 
+function send(self, id, data, callback) {
+
+	var index = id.lastIndexOf('/');
+	var input = '';
+
+	if (index !== -1) {
+		input = id.substring(index + 1);
+		id = id.substring(0, index);
+	}
+
+	var instances = self.meta.flow;
+	var instance = null;
+
+	if (id[0] === '@') {
+		id = id.substring(1);
+		for (let key in instances) {
+			if (instances[key].component === id) {
+				instance = instances[key];
+				break;
+			}
+		}
+	} else if (id[0] === '#') {
+		id = id.substring(1);
+		for (let key in instances) {
+			if (instances[key].module && instances[key].module.id === id) {
+				instance = instances[key];
+				break;
+			}
+		}
+	} else {
+		if (instances[id])
+			instance = instances[id];
+	}
+
+	if (!instance) {
+		if (callback) {
+			if (Parent) {
+				let opt = {};
+				opt.callbackid = callback;
+				opt.data = { error: 404 };
+				Parent.postMessage(opt);
+			} else
+				callback(404);
+		}
+		return;
+	}
+
+	var msg = instance.newmessage(data);
+
+	msg.input = input;
+
+	callback && msg.on('end', function(msg) {
+
+		let output = {};
+
+		output.error = msg.error;
+		output.repo = msg.repo;
+		output.data = msg.data;
+		output.count = msg.count;
+		output.cloned = msg.cloned;
+		output.duration = Date.now() - msg.duration;
+		output.meta = { id: instance.id, component: instance.component };
+
+		if (Parent) {
+			let opt = {};
+			opt.TYPE = 'stream/send';
+			opt.callbackid = callback;
+			opt.data = output;
+			Parent.postMessage(opt);
+		} else
+			callback(output.error, output);
+	});
+
+	instance.message(msg);
+}
+
 function exec(self, opt) {
 
 	var target = [];
@@ -705,7 +792,7 @@ function exec(self, opt) {
 	} else if (opt.id[0] === '#') {
 		id = opt.id.substring(1);
 		for (var key in instances) {
-			if (instances[key].module.name === id)
+			if (instances[key].module.id === id)
 				target.push(instances[key]);
 		}
 	} else {
@@ -884,6 +971,10 @@ function init_current(meta, callback, nested) {
 					var fn = msg.path.indexOf('.') === - 1 ? global[msg.path] : U.get(global, msg.path);
 					if (fn && typeof(fn) === 'function')
 						fn(msg.data);
+					break;
+
+				case 'stream/send':
+					send(flow, msg.id, msg.data, msg.callbackid);
 					break;
 
 				case 'stream/exec':
@@ -1283,6 +1374,7 @@ function init_worker(meta, type, callback) {
 	worker.on('exit', restart);
 
 	worker.on('message', function(msg) {
+
 		switch (msg.TYPE) {
 
 			case 'stream/stats':
@@ -1301,6 +1393,13 @@ function init_worker(meta, type, callback) {
 					worker.$instance.destroy(msg.code || 9);
 				break;
 
+			case 'stream/send':
+				var cb = CALLBACKS[msg.callbackid];
+				if (cb) {
+					delete CALLBACKS[msg.callbackid];
+					cb.callback(msg.data.error, msg.data);
+				}
+				break;
 			case 'stream/exec':
 				var cb = CALLBACKS[msg.callbackid];
 				if (cb) {

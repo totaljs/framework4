@@ -188,3 +188,5 @@ function initping() {
 	}, 5000);
 
 }
+
+global.FlowStream = exports;
