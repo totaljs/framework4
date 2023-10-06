@@ -11,7 +11,7 @@ FS.worker = false;
 FS.ping = false;
 FS.instances = {};
 FS.internal = {};
-FS.internal.error = function(err, source, id, component, stack) {
+FS.internal.error = function(err, source, id, componentid, stack) {
 
 	var flow = FS.db[this.id];
 	var empty = '---';
@@ -21,7 +21,7 @@ FS.internal.error = function(err, source, id, component, stack) {
 	output += '| FlowStream: ' + flow.name + '\n';
 	output += '| Source: ' + (source || empty) + '\n';
 	output += '| Instance ID: ' + (id || empty) + '\n';
-	output += '| Component ID: ' + (component || empty) + '\n';
+	output += '| Component ID: ' + (componentid || empty) + '\n';
 	output += '| ' + err.toString();
 
 	if (stack) {
@@ -31,12 +31,17 @@ FS.internal.error = function(err, source, id, component, stack) {
 
 	console.error(output);
 
-	var meta = {};
-	meta.error = err;
-	meta.source = source;
-	meta.id = id;
-	meta.component = component;
-	EMIT('flowstream_error', meta);
+	if (F.$events.flowstream_error) {
+		var meta = {};
+		meta.id = flow.id;
+		meta.name = flow.name;
+		meta.error = err;
+		meta.source = source;
+		meta.instanceid = id;
+		meta.componentid = componentid;
+		EMIT('flowstream_error', meta);
+	}
+
 };
 
 FS.internal.save = function(data) {
