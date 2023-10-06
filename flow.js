@@ -10,8 +10,7 @@ FS.db = {};
 FS.worker = false;
 FS.ping = false;
 FS.instances = {};
-FS.internal = {};
-FS.internal.error = function(err, source, id, componentid, stack) {
+FS.onerror = function(err, source, id, componentid, stack) {
 
 	var flow = FS.db[this.id];
 	var empty = '---';
@@ -44,7 +43,7 @@ FS.internal.error = function(err, source, id, componentid, stack) {
 
 };
 
-FS.internal.save = function(data) {
+FS.onsave = function(data) {
 	// @data {Object} flowstream schema
 };
 
@@ -129,12 +128,12 @@ FS.load = function(flow, callback) {
 
 		instance.httprouting();
 		instance.ondone = callback;
-		instance.onerror = FS.internal.error;
+		instance.onerror = FS.onerror;
 
 		instance.onsave = function(data) {
 			data.unixsocket = flow.unixsocket;
 			FS.db[id] = data;
-			FS.save(data);
+			FS.onsave(data);
 		};
 
 		FS.instances[id] = instance;
