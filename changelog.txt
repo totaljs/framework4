@@ -6,6 +6,7 @@
 - added `/flowstreams/` directory for inline FlowStreams
 - added FlowStream module into the core
 - fixed `PATH.extensions()`
+- fixed declared routes in the `NEWACTION()` method
 
 ========================
 0.0.90

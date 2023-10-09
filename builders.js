@@ -5460,7 +5460,7 @@ global.NEWACTION = function(name, obj) {
 		var flags = null;
 		if (obj.encrypt)
 			flags = ['encrypt'];
-		obj.$route = ROUTE(obj.route, flags);
+		obj.$route = ROUTE(obj.route, flags || []);
 	}
 
 	if (obj.permissions && typeof(obj.permissions) === 'string')
