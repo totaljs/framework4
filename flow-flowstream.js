@@ -1207,10 +1207,12 @@ function init_current(meta, callback, nested) {
 				} else if (source === 'register') {
 					instanceid = '';
 					componentid = instance;
+				} else {
+					instanceid = instance.id;
+					componentid = instance.module.id;
 				}
 			}
 
-			instanceid && flow.onerror(err, source, instanceid, componentid);
 			Parent.postMessage({ TYPE: 'stream/error', error: err.toString(), stack: err.stack, source: source, id: instanceid, component: componentid });
 		};
 
@@ -1308,10 +1310,12 @@ function init_current(meta, callback, nested) {
 				} else if (source === 'register') {
 					instanceid = '';
 					componentid = instance;
+				} else {
+					instanceid = instance.id;
+					componentid = instance.module.id;
 				}
 			}
 
-			instanceid && flow.onerror(err, source, instanceid, componentid);
 			flow.$instance.onerror && flow.$instance.onerror(err, source, instanceid, componentid);
 		};
 
@@ -2376,13 +2380,13 @@ function MAKEFLOWSTREAM(meta) {
 		}
 	};
 
-	flow.onerror = function(err, source, instanceid) {
+	flow.onerror = function(err, source) {
 
 		err += '';
 
 		var obj = {};
 		obj.error = err;
-		obj.id = instanceid || this.id;
+		obj.id = this.id;
 		obj.ts = new Date();
 		obj.source = source;
 
@@ -2391,6 +2395,7 @@ function MAKEFLOWSTREAM(meta) {
 		if (flow.errors.length > 10)
 			flow.errors.pop();
 
+		flow.proxy.error(err, source, this);
 		flow.proxy.online && flow.proxy.send({ TYPE: 'flow/error', error: err, id: obj.id, ts: obj.ts, source: source });
 	};
 

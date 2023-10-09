@@ -126,7 +126,7 @@ FS.load = function(flow, callback) {
 
 		}
 
-		instance.httprouting();
+		// instance.httprouting();
 		instance.ondone = callback;
 		instance.onerror = FS.onerror;
 
