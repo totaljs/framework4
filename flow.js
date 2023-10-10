@@ -38,13 +38,16 @@ FS.onerror = function(err, source, id, componentid, stack) {
 		meta.source = source;
 		meta.instanceid = id;
 		meta.componentid = componentid;
-		EMIT('flowstream_error', meta);
+		FS.$events.error && FS.emit('error', meta);
 	}
 
 };
 
+U.EventEmitter2(FS);
+
 FS.onsave = function(data) {
 	// @data {Object} flowstream schema
+	FS.$events.save && FS.emit('save', data);
 };
 
 FS.reload = function(flow, restart) {
@@ -65,7 +68,12 @@ FS.reload = function(flow, restart) {
 	FS.instance[flow.id].restart(flow, restart);
 };
 
-FS.init = function(directory) {
+FS.init = function(directory, callback) {
+
+	if (typeof(directory) === 'function') {
+		callback = directory;
+		directory = null;
+	}
 
 	if (!directory)
 		directory = PATH.root('flowstreams');
@@ -87,13 +95,14 @@ FS.init = function(directory) {
 				if (response) {
 					response = response.parseJSON();
 					response.directory = directory;
-					FS.load(response);
-				}
-
-				next();
+					FS.load(response, function() {
+						next();
+					});
+				} else
+					next();
 			});
 
-		});
+		}, callback);
 
 	});
 
@@ -115,6 +124,8 @@ FS.load = function(flow, callback) {
 	F.$owner('flowstream_' + id);
 
 	FlowStream.init(flow, flow.worker, function(err, instance) {
+
+		FS.$events.load && FS.emit('load', instance);
 
 		if (flow.worker && flow.proxypath) {
 
@@ -142,6 +153,7 @@ FS.load = function(flow, callback) {
 };
 
 FS.socket = FlowStream.socket;
+FS.client = FlowStream.client;
 
 FS.notify = function(controller, id) {
 
@@ -193,4 +205,5 @@ function initping() {
 
 }
 
+global.Flow = FS;
 global.FlowStream = exports;
