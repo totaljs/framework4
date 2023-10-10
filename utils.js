@@ -5890,6 +5890,8 @@ EE2P.removeAllListeners = function(name) {
 };
 
 EventEmitter2.extend = function(obj) {
+	if (!obj.$events)
+		obj.$events = {};
 	obj.emit = EE2P.emit;
 	obj.on = EE2P.on;
 	obj.once = EE2P.once;
