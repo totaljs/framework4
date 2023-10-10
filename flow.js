@@ -125,7 +125,7 @@ FS.load = function(flow, callback) {
 
 	FlowStream.init(flow, flow.worker, function(err, instance) {
 
-		FS.$events.load && FS.emit('load', instance);
+		FS.$events.load && FS.emit('load', instance, flow);
 
 		if (flow.worker && flow.proxypath) {
 
