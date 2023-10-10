@@ -19,6 +19,7 @@ var CALLBACKSCOUNTER = 1;
 function WebSocketClient() {
 
 	var t = this;
+	t.iswsclient = true;
 	t.current = {};
 	t.$events = {};
 	t.pending = [];

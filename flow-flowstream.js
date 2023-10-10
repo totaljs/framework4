@@ -376,6 +376,7 @@ Instance.prototype.kill = Instance.prototype.destroy = function() {
 
 	if (self.flow.isworkerthread) {
 		self.flow.$socket && self.flow.$socket.destroy();
+		self.flow.$client && self.flow.$client.destroy();
 		if (self.flow.terminate)
 			self.flow.terminate();
 		else
@@ -386,6 +387,7 @@ Instance.prototype.kill = Instance.prototype.destroy = function() {
 				self.flow.sockets[key].destroy();
 		}
 		self.flow.$socket && self.flow.$socket.destroy();
+		self.flow.$client && self.flow.$client.destroy();
 		self.flow.destroy();
 	}
 
@@ -1365,6 +1367,7 @@ function init_worker(meta, type, callback) {
 		worker.$terminated = true;
 		setTimeout(function(worker, code) {
 			worker.$socket && setTimeout(socket => socket && socket.destroy(), 2000, worker.$socket);
+			worker.$client && setTimeout(client => client && client.destroy(), 2000, worker.$client);
 			if (!worker.$destroyed) {
 				console.log('FlowStream auto-restart: ' + worker.$schema.name + ' (exit code: ' + ((code || '0') + '') + ')');
 				init_worker(worker.$schema, type, callback);
@@ -1378,6 +1381,8 @@ function init_worker(meta, type, callback) {
 	worker.on('exit', restart);
 
 	worker.on('message', function(msg) {
+
+		var tmp;
 
 		switch (msg.TYPE) {
 
@@ -1398,25 +1403,25 @@ function init_worker(meta, type, callback) {
 				break;
 
 			case 'stream/send':
-				var cb = CALLBACKS[msg.callbackid];
-				if (cb) {
+				tmp = CALLBACKS[msg.callbackid];
+				if (tmp) {
 					delete CALLBACKS[msg.callbackid];
-					cb.callback(msg.data.error, msg.data);
+					tmp.callback(msg.data.error, msg.data);
 				}
 				break;
 			case 'stream/exec':
-				var cb = CALLBACKS[msg.callbackid];
-				if (cb) {
+				tmp = CALLBACKS[msg.callbackid];
+				if (tmp) {
 					delete CALLBACKS[msg.callbackid];
-					cb.callback(msg.data.error, msg.data, msg.meta);
+					tmp.callback(msg.data.error, msg.data, msg.meta);
 				}
 				break;
 
 			case 'stream/httpresponse':
-				var cb = CALLBACKS[msg.callbackid];
-				if (cb) {
+				tmp = CALLBACKS[msg.callbackid];
+				if (tmp) {
 					delete CALLBACKS[msg.callbackid];
-					cb.callback(msg.data, msg.meta);
+					tmp.callback(msg.data, msg.meta);
 				}
 				break;
 
@@ -1426,7 +1431,7 @@ function init_worker(meta, type, callback) {
 
 			case 'stream/export':
 			case 'stream/components':
-				var cb = CALLBACKS[msg.callbackid];
+				cb = CALLBACKS[msg.callbackid];
 				if (cb) {
 					delete CALLBACKS[msg.callbackid];
 					cb.callback(null, msg.data);
@@ -1442,7 +1447,9 @@ function init_worker(meta, type, callback) {
 				break;
 
 			case 'stream/error':
-				worker.socket && worker.$socket.send({ TYPE: 'flow/error', error: msg.error, stack: msg.stack, source: msg.source, id: msg.id, component: msg.component });
+				tmp = { TYPE: 'flow/error', error: msg.error, stack: msg.stack, source: msg.source, id: msg.id, component: msg.component };
+				worker.$socket && worker.$socket.send(tmp);
+				worker.$client && worker.$client.send(tmp);
 				worker.$instance.onerror && worker.$instance.onerror(msg.error, msg.source, msg.id, msg.component, msg.stack);
 				break;
 
@@ -1473,7 +1480,7 @@ function init_worker(meta, type, callback) {
 
 			case 'stream/output':
 				if (worker.$instance.onoutput) {
-					var tmp = meta.design[msg.id];
+					tmp = meta.design[msg.id];
 					tmp && worker.$instance.onoutput({ id: msg.id, name: tmp.config.name, data: msg.data, reference: msg.reference });
 				}
 				worker.$instance.output && worker.$instance.output(msg.id, msg.data, msg.flowstreamid, msg.instanceid, msg.reference);
@@ -1481,23 +1488,26 @@ function init_worker(meta, type, callback) {
 
 			case 'stream/add':
 			case 'stream/rem':
-				var cb = CALLBACKS[msg.callbackid];
-				if (cb) {
+				tmp = CALLBACKS[msg.callbackid];
+				if (tmp) {
 					delete CALLBACKS[msg.callbackid];
-					cb.callback(msg.error);
+					tmp.callback(msg.error);
 				}
 				break;
 
 			case 'stream/io':
 			case 'stream/eval':
-				var cb = CALLBACKS[msg.callbackid];
-				if (cb) {
+				tmp = CALLBACKS[msg.callbackid];
+				if (tmp) {
 					delete CALLBACKS[msg.callbackid];
-					cb.callback(msg.error, msg.data);
+					tmp.callback(msg.error, msg.data);
 				}
 				break;
 
 			case 'ui/send':
+
+				worker.$client && worker.$client.send(msg.data);
+
 				switch (msg.type) {
 					case 1:
 						worker.$socket && worker.$socket.send(msg.data, client => client.id === msg.clientid);
@@ -1665,6 +1675,44 @@ exports.socket = function(flow, socket, check) {
 				break;
 		}
 	};
+};
+
+exports.client = function(flow, socket) {
+
+	if (typeof(flow) === 'string')
+		flow = FLOWS[flow];
+
+	var clientid = flow.id;
+
+	flow.$client = socket;
+
+	socket.on('close', function() {
+		if (flow.isworkerthread)
+			flow.postMessage2({ TYPE: 'ui/online', online: false });
+		else
+			flow.proxy.online = false;
+	});
+
+	socket.on('message', function(msg) {
+		if (msg.TYPE === 'flow') {
+			if (flow.isworkerthread) {
+				flow.postMessage2({ TYPE: 'ui/newclient', clientid: clientid });
+			} else {
+				flow.proxy.online = true;
+				flow.proxy.newclient(clientid);
+			}
+		} else {
+			if (flow.isworkerthread)
+				flow.postMessage2({ TYPE: 'ui/message', clientid: clientid, data: msg });
+			else
+				flow.proxy.message(msg, clientid);
+		}
+	});
+
+	if (flow.isworkerthread)
+		return;
+
+	flow.proxy.send = msg => socket.send(msg);
 };
 
 function MAKEFLOWSTREAM(meta) {
