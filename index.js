@@ -12306,6 +12306,10 @@ FrameworkPathProto.plugins = function(filename) {
 	return U.combine(CONF.directory_plugins, filename);
 };
 
+FrameworkPathProto.flowstreams = function(filename) {
+	return U.combine(CONF.directory_flowstreams, filename);
+};
+
 FrameworkPathProto.root = function(filename) {
 	var p = Path.join(directory, filename || '');
 	return F.isWindows ? p.replace(/\\/g, '/') : p;
