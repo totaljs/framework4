@@ -2846,7 +2846,6 @@ function string_hash(s, convert) {
 	for (var i = 0, l = s.length; i < l; i++) {
 		var char = s.charCodeAt(i);
 		hash = ((hash << 5) - hash) + char;
-		hash |= 0;
 	}
 	return hash;
 }
