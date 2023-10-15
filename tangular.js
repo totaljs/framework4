@@ -5,7 +5,8 @@
 
 	var Tangular = {};
 	var Thelpers = Tangular.helpers = {};
-	Tangular.version = 'v5.0.3';
+
+	Tangular.version = 'v5.0.5';
 	Tangular.cache = {};
 
 	W.Ta = W.Tangular = Tangular;
@@ -74,13 +75,20 @@
 		this.split = '\0';
 	}
 
-	Template.prototype.compile = function(template) {
+	Template.prototype.compile = function(template, tagbeg, tagend) {
 
 		var self = this;
 		var ifcount = 0;
 		var loopcount = 0;
-		var tmp;
 		var loops = [];
+		var reg_find = REG_CMDFIND;
+		var reg_clean = REG_CMDCLEAN;
+		var tmp;
+
+		if (tagbeg && tagend) {
+			reg_find = new RegExp(tagbeg + '.*?' + tagend, 'g');
+			reg_clean = new RegExp(tagbeg + '|' + tagend, 'g');
+		}
 
 		self.template = template;
 
@@ -89,9 +97,9 @@
 		self.variables = {};
 		self.commands = [];
 
-		self.builder = template.replace(REG_CMDFIND, function(text) {
+		self.builder = template.replace(reg_find, function(text) {
 
-			var cmd = text.replace(REG_CMDCLEAN, '').trim();
+			var cmd = text.replace(reg_clean, '').trim();
 			var variable = null;
 			var helpers = null;
 			var index;
@@ -265,7 +273,10 @@
 
 					var name = '$i' + Math.random().toString(16).substring(3, 6);
 					var namea = name + 'a';
-					tmp = cmd.cmd.substring(cmd.cmd.lastIndexOf(' in ') + 4).trim();
+					var index = cmd.cmd.lastIndexOf(' in ');
+					if (index === -1)
+						index = cmd.cmd.lastIndexOf(' of ');
+					tmp = cmd.cmd.substring(index + 4).trim();
 					tmp = namea + '=' + self.safe(tmp) + ';if(!(' + namea + ' instanceof Array)){if(' + namea + '&&typeof(' + namea + ')===\'object\')' + namea + '=Tangular.toArray(' + namea + ')}if(' + namea + ' instanceof Array&&' + namea + '.length){for(var ' + name + '=0,' + name + 'l=' + namea + '.length;' + name + '<' + name + 'l;' + name + '++){$index=' + name + ';var ' + cmd.cmd.split(' ')[1] + '=' + namea + '[' + name + '];';
 					builder.push(tmp);
 
@@ -377,8 +388,8 @@
 		return template(model == null ? {} : model, repository, helpers);
 	};
 
-	Tangular.compile = function(template) {
-		return new Template().compile(template);
+	Tangular.compile = function(template, tagbeg, tagend) {
+		return new Template().compile(template, tagbeg, tagend);
 	};
 
 	Tangular.register = function(name, fn) {
