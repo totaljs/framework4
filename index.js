@@ -11042,7 +11042,9 @@ function configure_configs(arr, rewrite) {
 					obj[name] = value.isNumber(true) ? value.parseFloat2() : value.parseInt2();
 				else if (subtype === 'boolean' || subtype === 'bool')
 					obj[name] = (/true|on|1|enabled/i).test(value);
-				else if (subtype === 'eval' || subtype === 'object' || subtype === 'array') {
+				else if (subtype === 'array')
+					obj[name] = value.split(',').trim();
+				else if (subtype === 'eval' || subtype === 'object') {
 					try {
 						obj[name] = new Function('return ' + value)();
 					} catch (e) {
