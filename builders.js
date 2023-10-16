@@ -5420,6 +5420,13 @@ global.NEWACTION = function(name, obj) {
 	// }
 	// name = tmp[0].trim();
 
+	var url = name;
+	var tmp = name.split('/').trim();
+	if (tmp.length)
+		obj.$url = url.replace(/\//g, '_').toLowerCase();
+
+	name = tmp[0].trim();
+
 	// Helper for auto-routing due to older operations
 	F.$newoperations = true;
 
