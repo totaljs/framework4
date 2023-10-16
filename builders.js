@@ -5409,18 +5409,16 @@ global.NEWACTION = function(name, obj) {
 		name = obj.id || obj.name;
 	}
 
-	var url = name;
-	var tmp = name.split('/').trim();
-
-	if (tmp.length) {
-		obj.params = [];
-		for (let i = 1; i < tmp.length; i++)
-			obj.params.push(tmp[i].replace(/\{|\}/g, ''));
-		obj.params = obj.params.join(',');
-		obj.$url = url.replace(/\{.*?\}/g, text => text.replace(/:.*?\}/, '}').replace(/\*/g, '')).split('/').trim().join('/');
-	}
-
-	name = tmp[0].trim();
+	// var url = name;
+	// var tmp = name.split('/').trim();
+	// if (tmp.length) {
+	// 	obj.params = [];
+	// 	for (let i = 1; i < tmp.length; i++)
+	// 		obj.params.push(tmp[i].replace(/\{|\}/g, ''));
+	// 	obj.params = obj.params.join(',');
+	// 	obj.$url = url.replace(/\{.*?\}/g, text => text.replace(/:.*?\}/, '}').replace(/\*/g, '')).split('/').trim().join('/');
+	// }
+	// name = tmp[0].trim();
 
 	// Helper for auto-routing due to older operations
 	F.$newoperations = true;

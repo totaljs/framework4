@@ -3792,12 +3792,14 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			return '';
 		}).trim();
 
-		url = url.replace(/\s(\*|~)([{}a-z0-9}]|\s)?.*?$/i, function(text) {
+		url = url.replace(/\s(\*|~|-->)([{}a-z0-9}]|\s)?.*?$/i, function(text) {
 
 			!flags && (flags = []);
 
 			if (text.indexOf('*') !== -1)
 				apischema = text.trim();
+			else if (text.indexOf('-->') !== -1)
+				apischema = '* ' + text.trim();
 
 			flags.push(text.trim());
 
@@ -3987,6 +3989,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				middleware.push(flags[i].substring(1).trim());
 				continue;
 			}
+
 
 			if (first === '*' || first === '~') {
 

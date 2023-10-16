@@ -3,6 +3,7 @@
 ========================
 
 - updated Tangular template engine
+- improved routing, actions can use `-->` instead of `* -->`
 
 ========================
 0.0.91

@@ -7107,12 +7107,17 @@ String.prototype.toJSONSchema = function(name, url) {
 			var subname = type.substring(1);
 			var schema = GETSCHEMA(subname);
 
-			schema =  schema ? schema.toJSONSchema() : F.jsonschemas[subname];
+			if (schema)
+				schema = schema.toJSONSchema();
+			else if (F.jsonschemas[subname])
+				schema = F.jsonschemas[subname];
+			else if (F.actions[subname])
+				schema = F.actions[subname].jsonschemainput;
 
 			if (schema)
 				nestedschema = schema;
 			else
-				throw new Error('Schema "' + subname + '" not found');
+				throw new Error('Schema/Action "' + subname + '" not found');
 
 			type = 'object';
 		}
