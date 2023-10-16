@@ -3821,9 +3821,11 @@ SP.parseConfig = function(def, onerr) {
 			case 'config':
 				obj[name] = CONF[value];
 				break;
+			case 'array':
+				obj[name] = value.split(',').trim();
+				break;
 			case 'eval':
 			case 'object':
-			case 'array':
 				try {
 					obj[name] = new Function('return ' + value)();
 				} catch (e) {
