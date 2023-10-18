@@ -5425,8 +5425,6 @@ global.NEWACTION = function(name, obj) {
 	if (tmp.length)
 		obj.$url = url.replace(/\//g, '_').toLowerCase();
 
-	name = tmp[0].trim();
-
 	// Helper for auto-routing due to older operations
 	F.$newoperations = true;
 
