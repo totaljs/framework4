@@ -1007,7 +1007,7 @@ function newmessage(data) {
 	msg.duration = msg.ts = Date.now();
 	msg.used = 1;
 	msg.main = self instanceof Flow ? self : self.main;
-	msg.processed = 1;
+	msg.processed = 0;
 	return msg;
 }
 

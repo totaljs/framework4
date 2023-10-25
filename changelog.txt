@@ -5,6 +5,7 @@
 - updated Tangular template engine
 - improved routing, actions can use `-->` instead of `* -->`
 - fixed parsing arrays in the `config`
+- fixed FlowStream stats in `instance.newmessage()`
 
 ========================
 0.0.91
