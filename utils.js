@@ -480,7 +480,7 @@ function parseProxy(p) {
 
 function _request(opt, callback) {
 
-	var options = { length: 0, timeout: opt.timeout || CONF.default_restbuilder_timeout, encoding: opt.encoding || ENCODING, callback: callback || opt.callback || NOOP, post: true, redirect: 0 };
+	var options = { length: 0, timeout: opt.timeout != false && opt.timeout != 0 ? opt.timeout || CONF.default_restbuilder_timeout : 0, encoding: opt.encoding || ENCODING, callback: callback || opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
 
 	if (global.F)
@@ -801,8 +801,14 @@ function request_call(uri, options) {
 	}
 
 	req.on('error', request_process_error);
-	options.timeoutid && clearTimeout(options.timeoutid);
-	options.timeoutid = setTimeout(request_process_timeout, options.timeout, req);
+
+	if (options.timeoutid) {
+		clearTimeout(options.timeoutid);
+		options.timeoutid = null;
+	}
+
+	if (options.timeout)
+		options.timeoutid = setTimeout(request_process_timeout, options.timeout, req);
 
 	req.on('response', request_assign_res);
 
@@ -5477,7 +5483,7 @@ AP.limit = function(max, fn, callback, index) {
 };
 
 ArrayBuffer.prototype.toBuffer = function() {
-	var buf = new Buffer(this.byteLength);
+	var buf = Buffer.alloc(this.byteLength);
 	var view = new Uint8Array(this);
 	for (var i = 0; i < buf.length; ++i)
 		buf[i] = view[i];
