@@ -480,7 +480,7 @@ function parseProxy(p) {
 
 function _request(opt, callback) {
 
-	var options = { length: 0, timeout: opt.timeout != false && opt.timeout != 0 ? opt.timeout || CONF.default_restbuilder_timeout : 0, encoding: opt.encoding || ENCODING, callback: callback || opt.callback || NOOP, post: true, redirect: 0 };
+	var options = { length: 0, timeout: opt.timeout != false && opt.timeout != 0 ? (opt.timeout || CONF.default_restbuilder_timeout) : 0, encoding: opt.encoding || ENCODING, callback: callback || opt.callback || NOOP, post: true, redirect: 0 };
 	var proxy;
 
 	if (global.F)
@@ -6414,6 +6414,7 @@ function MultipartParser(multipart, stream, callback) {
 	self.step = 0;
 
 	// Meta data
+	self.prevsize = 0;
 	self.sizes = { total: 0, files: 0, data: 0, parts: 0 };
 	self.limits = { total: 0, files: 0, data: 0, parts: 0 };
 	self.current = {};
@@ -6422,6 +6423,9 @@ function MultipartParser(multipart, stream, callback) {
 	self.size = 0;
 
 	self.ondata = function(chunk) {
+
+		if (!self.size)
+			chunk = chunk.slice(4);
 
 		self.size += chunk.length;
 
@@ -6450,6 +6454,11 @@ function MultipartParser(multipart, stream, callback) {
 	self.stream.on('abort', self.onclose);
 	self.stream.on('aborted', self.onclose);
 }
+
+MultipartParser.prototype.custom = function(check, callback) {
+	this.custom = { check: check, data: callback };
+	return this;
+};
 
 MultipartParser.prototype.free = function(err) {
 
@@ -6484,6 +6493,12 @@ MultipartParser.prototype.parse = function(type) {
 				break;
 			case 3: // part file
 				self.parse_file();
+				break;
+			case 4: // custom
+				self.parse_custom();
+				break;
+			case 9: // skip
+				self.parse_skip();
 				break;
 		}
 	}
@@ -6559,6 +6574,18 @@ MultipartParser.prototype.parse_head = function() {
 
 	if (!m) {
 		self.kill('7:');
+		return;
+	}
+
+	if (self.custom) {
+		self.current.file = null;
+		self.buffer = self.buffer.slice(index + HEADEREND.length);
+		self.current.size = 0;
+		if (self.custom.check(header, m))
+			self.step = 4;
+		else
+			self.step = 9; // skip
+		self.parse();
 		return;
 	}
 
@@ -6675,7 +6702,8 @@ MultipartParser.prototype.parse_head = function() {
 		}
 
 		self.current.path = self.tmp + (UPLOADINDEXER++) + '.bin';
-		self.current.stream = Fs.createWriteStream(self.current.path);
+		F.stats.performance.open++;
+		self.current.stream = F.Fs.createWriteStream(self.current.path);
 		var file = { path: self.current.path, name: self.current.name, filename: self.current.filename, size: 0, type: self.current.type, width: 0, height: 0 };
 		self.current.file = file;
 		self.current.fileheader = Buffer.alloc(0);
@@ -6780,13 +6808,13 @@ MultipartParser.prototype.parse_file = function() {
 		self.files.push(self.current.file);
 		self.buffer = self.buffer.slice(index);
 		self.current.file = null;
+		self.prevsize = 0;
 		self.step = 0;
 		self.parse(2);
 
 	} else {
 
-		var length = self.buffer.length;
-
+		let length = self.buffer.length;
 		self.current.size += length;
 		self.current.file.size += length;
 		self.sizes.total += length;
@@ -6810,7 +6838,8 @@ MultipartParser.prototype.parse_file = function() {
 MultipartParser.prototype.parse_data = function() {
 
 	var self = this;
-	var index = self.buffer.indexOf(self.header);
+	let beg = (self.prevsize - ((self.header.length * 1.3) >> 0)) < 0 ? 0 : (self.prevsize - self.header.length);
+	let index = self.buffer.indexOf(self.header, beg);
 
 	if (index !== -1) {
 
@@ -6834,12 +6863,15 @@ MultipartParser.prototype.parse_data = function() {
 
 		self.body[self.current.name] = val;
 		self.buffer = self.buffer.slice(index);
+		self.prevsize = 0;
 		self.step = 0;
 		self.parse(true);
 
 	} else {
 
-		self.current.size += self.buffer.length;
+		let length = self.buffer.length;
+		self.current.size += length;
+		self.prevsize = length;
 
 		if (self.limits.data && self.current.size > self.limits.data) {
 			self.kill('5: Data are too large');
@@ -6852,6 +6884,50 @@ MultipartParser.prototype.parse_data = function() {
 		}
 
 	}
+};
+
+MultipartParser.prototype.parse_custom = function() {
+
+	var self = this;
+
+	let length = self.buffer.length;
+	let beg = (self.prevsize - ((self.header.length * 1.3) >> 0)) < 0 ? 0 : (self.prevsize - self.header.length);
+	let index = self.buffer.indexOf(self.header, beg);
+
+	if (index !== -1) {
+		self.sizes.total += index - 2;
+		self.sizes.data += index - 2;
+		self.prevsize = 0;
+		let val = self.buffer.slice(0, index - 4);
+		self.custom.data(val);
+		self.buffer = self.buffer.slice(index);
+		self.step = 0;
+		self.parse(2);
+	} else {
+		self.current.size += length;
+		self.prevsize = length;
+	}
+};
+
+MultipartParser.prototype.parse_skip = function() {
+	var self = this;
+	var index = self.buffer.indexOf(self.header);
+	if (index !== -1) {
+		self.sizes.total += index - 2;
+		self.sizes.data += index - 2;
+		self.buffer = self.buffer.slice(index);
+		self.current.file = null;
+		self.prevsize = 0;
+		self.step = 0;
+		self.parse(2);
+	} else {
+		self.current.size += self.buffer.length;
+		self.buffer = null;
+	}
+};
+
+exports.multipartparser = function(multipart, stream, callback) {
+	return new MultipartParser(multipart, stream, callback);
 };
 
 var measuring = {};
