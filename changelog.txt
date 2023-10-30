@@ -7,6 +7,7 @@
 - fixed parsing arrays in the `config`
 - fixed FlowStream stats in `instance.newmessage()`
 - updated `REQUEST()` - `timeout` is optional and may be disabled
+- improved `MultipartParser`
 
 ========================
 0.0.91
