@@ -8,6 +8,7 @@
 - fixed FlowStream stats in `instance.newmessage()`
 - updated `REQUEST()` - `timeout` is optional and may be disabled
 - improved `MultipartParser`
+- fixed closing proxied WebSocket in the `PROXY()` method
 
 ========================
 0.0.91

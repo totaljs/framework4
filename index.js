@@ -9305,8 +9305,15 @@ function makeproxy(proxy, req, res, wshead) {
 		});
 
 		request.on('upgrade', function(proxyres, proxysocket, proxyhead) {
+
+			proxysocket.on('close', function() {
+				request.destroy();
+				proxyres.destroy();
+			});
+
 			if (proxyhead && proxyhead.length)
 				proxysocket.unshift(proxyhead);
+
 			res.write(makeproxyheadersws('HTTP/1.1 101 Switching Protocols', proxyres.headers));
 			proxysocket.pipe(res).pipe(proxysocket);
 		});

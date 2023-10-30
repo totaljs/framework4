@@ -6424,8 +6424,10 @@ function MultipartParser(multipart, stream, callback) {
 
 	self.ondata = function(chunk) {
 
+		/*
 		if (!self.size)
 			chunk = chunk.slice(4);
+			*/
 
 		self.size += chunk.length;
 
@@ -6456,7 +6458,7 @@ function MultipartParser(multipart, stream, callback) {
 }
 
 MultipartParser.prototype.custom = function(check, callback) {
-	this.custom = { check: check, data: callback };
+	this.$custom = { check: check, data: callback };
 	return this;
 };
 
@@ -6577,11 +6579,11 @@ MultipartParser.prototype.parse_head = function() {
 		return;
 	}
 
-	if (self.custom) {
+	if (self.$custom) {
 		self.current.file = null;
 		self.buffer = self.buffer.slice(index + HEADEREND.length);
 		self.current.size = 0;
-		if (self.custom.check(header, m))
+		if (self.$custom.check(header, m))
 			self.step = 4;
 		else
 			self.step = 9; // skip
@@ -6899,7 +6901,7 @@ MultipartParser.prototype.parse_custom = function() {
 		self.sizes.data += index - 2;
 		self.prevsize = 0;
 		let val = self.buffer.slice(0, index - 4);
-		self.custom.data(val);
+		self.$custom.data(val);
 		self.buffer = self.buffer.slice(index);
 		self.step = 0;
 		self.parse(2);
