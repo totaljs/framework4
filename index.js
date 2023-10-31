@@ -2705,6 +2705,8 @@ F.debugger = function() {
 	F.runscript(PATH.root('debugger.js'));
 };
 
+F.uibuildercompiler = (opt, callback) => require('./uibuilder').compile(opt, callback);
+
 F.logger = function(enable) {
 
 	if (enable == null)
