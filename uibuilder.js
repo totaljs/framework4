@@ -19,14 +19,20 @@ exports.compile = async function(opt, callback) {
 	var response = {};
 
 	for (let instance of instances)
-		used[instance.component] = 1;
+		used[instance.component] = '#';
 
-	var components = await getComponents(schema, used, opt.download);
+	if (opt.local) {
+		response.components = used;
+	} else {
+		let components = await getComponents(schema, used, opt.download);
+		response.components = components;
+	}
 
-	for (let key in schema)
-		response[key] = schema[key];
+	for (let key in schema) {
+		if (key !== 'components')
+			response[key] = schema[key];
+	}
 
-	response.components = components;
 	response.inputs = schema.inputs;
 	response.outputs = schema.outputs;
 	response.children = schema.children;
@@ -43,13 +49,27 @@ exports.compile = async function(opt, callback) {
 	callback(null, response);
 };
 
+exports.download = async function(opt, callback) {
+
+	if (!callback)
+		return new Promise((resolve, reject) => exports.download(opt, (err, response) => err ? reject(err) : resolve(response)));
+
+	try {
+		let response = await getComponents2(opt.components, opt.origin);
+		callback(null, response);
+	} catch (e) {
+		callback(e);
+	}
+
+};
+
 function getInstances(schema) {
 	var response = [];
 	var browse = function(parent) {
 
 		for (let arr of parent.children) {
 			for (let child of arr) {
-				let cloned = F.TUtils.clone(child);
+				let cloned = CLONE(child);
 				cloned.children = undefined;
 				response.push(cloned);
 				browse(child);
@@ -113,21 +133,73 @@ async function getComponents(schema, used, download) {
 			let render = body.substring(body.indexOf('=', index) + 1, index + end.index).trim().replace(REG_STRING, '').format(com.id);
 
 			if (download) {
-
-				if (render[0] === '/')
-					render = schema.origin + render;
-
-				let html = await Download(render);
-				if (html)
-					components[com.id] = 'base64 ' + Buffer.from(encodeURIComponent(html), 'utf8').toString('base64');
+				if (render.substring(0, 7) === 'base64 ') {
+					components[com.id] = render;
+				} else {
+					if (render[0] === '/')
+						render = schema.origin + render;
+					let html = await Download(render);
+					if (html)
+						components[com.id] = 'base64 ' + Buffer.from(encodeURIComponent(html), 'utf8').toString('base64');
+				}
 			} else
 				components[com.id] = render;
-
 		} else {
 			for (let key in body)
 				arr.push({ id: key, value: body[key] });
 		}
+	}
 
+	return components;
+}
+
+async function getComponents2(list, origin) {
+
+	var components = {};
+	var arr = [];
+
+	for (let key in list)
+		arr.push({ id: key, value: list[key] });
+
+	for (let com of arr) {
+
+		let url = com.value;
+		if (url[0] === '/')
+			url = origin + url;
+
+		let body = await Download(url.format(com.id));
+
+		if (typeof(body) === 'string') {
+
+			let index = body.indexOf('exports.render');
+			if (index === -1) {
+				// without render
+				continue;
+			}
+
+			index += 14;
+
+			let end = body.substring(index).match(REG_END);
+			if (!end) {
+				// without end
+				continue;
+			}
+
+			let render = body.substring(body.indexOf('=', index) + 1, index + end.index).trim().replace(REG_STRING, '').format(com.id);
+
+			if (render.substring(0, 7) === 'base64 ') {
+				components[com.id] = render;
+			} else {
+				if (render[0] === '/')
+					render = origin + render;
+				let html = await Download(render);
+				if (html)
+					components[com.id] = 'base64 ' + Buffer.from(encodeURIComponent(html), 'utf8').toString('base64');
+			}
+		} else {
+			for (let key in body)
+				arr.push({ id: key, value: body[key] });
+		}
 	}
 
 	return components;
