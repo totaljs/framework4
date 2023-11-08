@@ -65,7 +65,7 @@ FS.reload = function(flow, restart) {
 		PROXY(flow.proxypath, flow.unixsocket, false);
 
 	FS.db[flow.id] = flow;
-	FS.instance[flow.id].restart(flow, restart);
+	FS.instances[flow.id].restart(flow, restart);
 };
 
 FS.init = function(directory, callback) {
