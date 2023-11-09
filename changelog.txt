@@ -10,6 +10,7 @@
 - improved `MultipartParser`
 - fixed closing proxied WebSocket in the `PROXY()` method
 - added `F.uibuildercompiler(opt, [callback])` method
+- improved `String.toJSONSchema()` + fixed arrays with external schemas
 
 ========================
 0.0.91
