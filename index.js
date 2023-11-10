@@ -20837,3 +20837,4 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 UIDGENERATOR_REFRESH();
 require('./textdb-querybuilder');
 require('./sourcemap');
+require('./markdown');
