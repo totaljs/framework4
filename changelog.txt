@@ -11,6 +11,7 @@
 - fixed closing proxied WebSocket in the `PROXY()` method
 - added `F.uibuildercompiler(opt, [callback])` method
 - improved `String.toJSONSchema()` + fixed arrays with external schemas
+- updated Flow module
 
 ========================
 0.0.91
