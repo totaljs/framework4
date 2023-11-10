@@ -209,6 +209,7 @@ var CONTENTTYPES = {
 	xml: 'application/xml',
 	xpm: 'image/x-xpixmap',
 	xsl: 'application/xml',
+	xsd: 'application/xml',
 	xslt: 'application/xslt+xml',
 	zip: 'application/zip',
 	'7zip': 'application/x-7z-compressed'
