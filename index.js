@@ -526,7 +526,7 @@ global.NEWCOMMAND = function(name, fn) {
 function flowwrapper(name, errorhandler) {
 	if (!name)
 		name = 'default';
-	return F.flows[name] ? F.flows[name] : F.flows[name] = framework_flow.make(name, errorhandler);
+	return F.flows[name] ? F.flows[name] : F.flows[name] = framework_flow.create(name, errorhandler);
 }
 
 global.FLOWSTREAM = function(name, errorhandler) {
@@ -3290,7 +3290,13 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 		obj.path = target.pathname[target.pathname.length - 1] === '/' ? target.pathname.substring(0, target.pathname.length - 1) : target.pathname;
 	}
 
+	obj.remove = function() {
+		F.routes.proxies = F.routes.proxies.remove('url', url);
+		F._request_check_proxy = F.routes.proxies.length;
+	};
+
 	F._request_check_proxy = F.routes.proxies.push(obj);
+	return obj;
 };
 
 global.REDIRECT = function(host, newHost, withPath, permanent) {

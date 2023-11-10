@@ -1,5 +1,8 @@
-if (!global.framework_utils)
-	global.framework_utils = require('./utils');
+// Total.js FlowStream
+// The MIT License
+// Copyright 2021-2023 (c) Peter Širka <petersirka@gmail.com>
+
+'use strict';
 
 const BLACKLISTID = { paused: 1, groups: 1, tabs: 1 };
 const REG_ARGS = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
@@ -163,27 +166,23 @@ MP.once = function(name, fn) {
 	return this.on(name, fn, true);
 };
 
-MP.off = MP.removeListener = function(name, fn) {
+MP.off = MP.removeListener = MP.removeAllListeners = function(name, fn) {
 	var self = this;
+
+	if (!name) {
+		delete self.$events;
+		return;
+	}
+
 	if (self.$events) {
 		var evt = self.$events[name];
 		if (evt) {
-			evt = evt.remove(n => n.fn === fn);
-			self.$events[name] = evt.length ? evt : undefined;
+			if (fn) {
+				evt = evt.remove(n => n.fn === fn);
+				self.$events[name] = evt.length ? evt : undefined;
+			} else
+				delete self.$events[name];
 		}
-	}
-	return self;
-};
-
-MP.removeAllListeners = function(name) {
-	var self = this;
-	if (self.$events) {
-		if (name === true)
-			self.$events = {};
-		else if (name)
-			self.$events[name] = undefined;
-		else
-			self.$events = {};
 	}
 	return self;
 };
@@ -278,7 +277,7 @@ function variables(str, data, encoding) {
 	if (typeof(str) !== 'string' || str.indexOf('{') === -1)
 		return str;
 
-	var main = this.main;
+	var main = this.main ? this.main : this;
 
 	if (data == null || data == true)
 		data = this;
@@ -445,7 +444,7 @@ MP.send = function(outputindex, data, clonedata) {
 						buf.copy(message.data);
 						message.data = buf;
 					} else
-						message.data = CLONE(message.data);
+						message.data = U.clone(message.data);
 				}
 
 				message.used++;
@@ -588,8 +587,7 @@ MP.end = MP.destroy = function() {
 	self.$events = null;
 };
 
-function Flow(name, errorhandler) {
-
+function FlowStream(name, errorhandler) {
 	var t = this;
 	t.strict = true;
 	t.loading = 0;
@@ -604,59 +602,49 @@ function Flow(name, errorhandler) {
 	t.logger = [];
 	t.middleware = [];
 	t.stats = { messages: 0, pending: 0, traffic: { priority: [] }, mm: 0, minutes: 0 };
-	t.mm = 0;
 	t.paused = false;
-	t.$events = {};
-
-	var counter = 1;
-
-	setImmediate(function(t) {
-		if (t.interval !== 0) {
-			t.$interval = setInterval(function(t) {
-
-				var is = t.mm;
-
-				if (counter % 20 === 0) {
-
-					t.stats.minutes++;
-					t.stats.mm = t.mm;
-					t.mm = 0;
-					counter = 1;
-
-					for (var key in t.meta.flow) {
-						var com = t.meta.flow[key];
-						com.service && com.service(t.stats.minutes);
-					}
-
-					if (t.stats.traffic.priority.length)
-						is = 1;
-
-				} else
-					counter++;
-
-				if (counter % 10 === 0)
-					global.NOW = new Date();
-
-				t.onstats && t.onstats(t.stats);
-				t.$events.stats && t.emit('stats', t.stats);
-
-				if (is)
-					t.stats.traffic = { priority: [] };
-
-			}, t.interval || 3000, t);
-		}
-	}, t);
-
-	new framework_utils.EventEmitter2(t);
+	t.mm = 0;
+	new U.EventEmitter2(t);
+	t.$counter = 1;
+	t.$interval = setInterval(t => t.service(t.$counter++), 5000, t);
 }
 
-var FP = Flow.prototype;
+var FP = FlowStream.prototype;
+
+FP.service = function(counter) {
+
+	var t = this;
+	var is = t.mm;
+
+	if (counter % 12 === 0) {
+
+		t.stats.minutes++;
+		t.stats.mm = t.mm;
+		t.mm = 0;
+
+		for (let key in t.meta.flow) {
+			let com = t.meta.flow[key];
+			com.service && com.service(t.stats.minutes);
+		}
+
+		if (t.stats.traffic.priority.length)
+			is = 1;
+
+	}
+
+	t.onstats && t.onstats(t.stats);
+	t.$events.stats && t.emit('stats', t.stats);
+
+	if (is)
+		t.stats.traffic = { priority: [] };
+
+};
 
 FP.pause = function(is) {
 	var self = this;
 	self.paused = is;
-	for (var m in self.meta.flow) {
-		var instance = self.meta.flow[m];
+	for (let m in self.meta.flow) {
+		let instance = self.meta.flow[m];
 		if (instance && instance.pause)
 			instance.pause(is);
 	}
@@ -671,7 +659,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 	if (type === 'string') {
 
 		if (!declaration) {
-			var e = new Error('Invalid component declaration');
+			let e = new Error('Invalid component declaration');
 			callback && callback(e);
 			self.error(e, 'register', name);
 			return;
@@ -702,7 +690,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 		try {
 			var cacheid = name;
 			if (type === 'object') {
-				for (var key in declaration)
+				for (let key in declaration)
 					curr[key] = declaration[key];
 			} else
 				declaration(curr, F.require);
@@ -715,7 +703,7 @@ FP.register = function(name, declaration, config, callback, extend) {
 	} else
 		curr.make = type === 'object' ? declaration.make : declaration;
 
-	curr.config = CLONE(curr.config || curr.options);
+	curr.config = U.clone(curr.config || curr.options);
 
 	var errors = new ErrorBuilder();
 	var done = function() {
@@ -794,6 +782,11 @@ FP.inc = function(num) {
 FP.cleanforce = function() {
 
 	var self = this;
+
+	if (self.cleantimeout) {
+		clearTimeout(self.cleantimeout);
+		self.cleantimeout = null;
+	}
 
 	if (!self.meta)
 		return self;
@@ -905,16 +898,18 @@ FP.unregister = function(name, callback) {
 			callback && callback();
 			self.clean();
 		});
-	} else
-		callback && callback();
+	} else if (callback)
+		callback();
 
 	return self;
 };
 
 FP.clean = function() {
 	var self = this;
-	if (!self.loading)
-		setTimeout2(self.name, () => self.cleanforce(), 1000);
+	if (!self.loading) {
+		self.cleantimeout && clearTimeout(self.cleantimeout);
+		self.cleantimeout = setTimeout(() => self.cleanforce(), 1000);
+	}
 	return self;
 };
 
@@ -1006,7 +1001,7 @@ function newmessage(data) {
 	msg.instance = self;
 	msg.duration = msg.ts = Date.now();
 	msg.used = 1;
-	msg.main = self instanceof Flow ? self : self.main;
+	msg.main = self instanceof FlowStream ? self : self.main;
 	msg.processed = 0;
 	return msg;
 }
@@ -1125,7 +1120,7 @@ FP.ontrigger = function(outputindex, data, controller, events) {
 							buf.copy(message.data);
 							message.data = buf;
 						} else
-							message.data = CLONE(message.data);
+							message.data = U.clone(message.data);
 					}
 
 					message.main = self;
@@ -1225,27 +1220,43 @@ FP.unload = function(callback) {
 	return self;
 };
 
-FP.load = function(components, design, callback, asfile) {
+FP.loadvariables = function(variables, type = 'variables') {
+
+	// @type {String} variables (default), variables2, secrets
+
+	var self = this;
+	if (JSON.stringify(self[type]) !== JSON.stringify(variables)) {
+		self[type] = variables;
+		for (let key in self.meta.flow) {
+			let instance = self.meta.flow[key];
+			instance[type] && instance[type](self[type]);
+			instance.vary && instance.vary(type);
+		}
+	}
+	return self;
+};
+
+FP.load = function(data, callback) {
 
 	var self = this;
 	if (self.loading) {
-		setTimeout(() => self.load(components, design, callback), 200);
+		setTimeout(() => self.load(data, callback), 200);
 		return self;
 	}
 
-	self.loading = 10000;
+	self.loading = 100000;
 	self.unload(function() {
 
-		var keys = Object.keys(components);
+		var keys = Object.keys(data.components);
 		var error = new ErrorBuilder();
 
 		keys.wait(function(key, next) {
-			var body = components[key];
+			var body = data.components[key];
 			if (typeof(body) === 'string' && body.indexOf('<script ') !== -1) {
 				self.add(key, body, function(err) {
 					err && error.push(err);
 					next();
-				}, asfile);
+				}, data.asfiles);
 			} else {
 				error.push('Invalid component: ' + key);
 				next();
@@ -1254,13 +1265,66 @@ FP.load = function(components, design, callback, asfile) {
 
 			// Loads design
 			self.inc(0);
-			self.use(design, function(err) {
+			self.use(data.design, function(err) {
 				self.inc(0);
 				err && error.push(err);
 				callback && callback(err);
 				self.clean();
 			});
 
+		});
+	});
+
+	return self;
+};
+
+FP.replace = variables;
+FP.rewrite = function(data, callback) {
+
+	var self = this;
+	if (self.loading) {
+		setTimeout(() => self.replace(data, callback), 200);
+		return self;
+	}
+
+	self.loading = 100000;
+
+	var keys = Object.keys(data.components);
+	var error = new ErrorBuilder();
+	var processed = {};
+
+	keys.wait(function(key, next) {
+		var body = data.components[key];
+		processed[key] = 1;
+		if (typeof(body) === 'string' && body.indexOf('<script ') !== -1) {
+			self.add(key, body, function(err) {
+				err && error.push(err);
+				next();
+			}, data.asfiles);
+		} else {
+			error.push('Invalid component: ' + key);
+			next();
+		}
+	}, function() {
+		// Removed non-exist components
+		Object.keys(self.meta.components).wait(function(key, next) {
+			if (processed[key])
+				next();
+			else
+				self.unregister(key, next);
+		}, function() {
+			// Loads design
+			self.inc(0);
+			self.use(data.design, function(err) {
+
+				if (data.variables)
+					self.loadvariables(U.clone(data.variables));
+
+				self.inc(0);
+				err && error.push(err);
+				callback && callback(err);
+				self.clean();
+			});
 		});
 	});
 
@@ -1339,7 +1403,7 @@ FP._use = function(schema, callback, reinit, insert) {
 	if (typeof(schema) === 'string')
 		schema = schema.parseJSON(true);
 	else
-		schema = CLONE(schema);
+		schema = U.clone(schema);
 
 	if (typeof(callback) === 'boolean') {
 		var tmp = reinit;
@@ -1523,7 +1587,7 @@ FP.initcomponent = function(key, component) {
 
 	var tmp = component.config;
 	if (tmp)
-		instance.config = instance.config ? U.extend(CLONE(tmp), instance.config) : CLONE(tmp);
+		instance.config = instance.config ? U.extend(U.clone(tmp), instance.config) : U.clone(tmp);
 
 	if (!instance.config)
 		instance.config = {};
@@ -1824,7 +1888,7 @@ FP.add = function(name, body, callback, asfile) {
 
 		if (asfile) {
 
-			var filename = PATH.temp(self.id + '_' + meta.id) + '.js';
+			var filename = F.path.tmp(self.id + '_' + meta.id) + '.js';
 
 			F.Fs.writeFile(filename, node, function(err) {
 
@@ -1904,17 +1968,17 @@ FP.export_instance = function(id) {
 	if (instance) {
 
 		if (BLACKLISTID[id])
-			return CLONE(instance);
+			return U.clone(instance);
 
 		var tmp = {};
 		tmp.x = instance.x;
 		tmp.y = instance.y;
 		tmp.size = instance.size;
 		tmp.offset = instance.offset;
-		tmp.stats = CLONE(instance.stats);
-		tmp.connections = CLONE(instance.connections);
+		tmp.stats = U.clone(instance.stats);
+		tmp.connections = U.clone(instance.connections);
 		tmp.id = instance.id;
-		tmp.config = CLONE(instance.config);
+		tmp.config = U.clone(instance.config);
 		tmp.component = instance.component;
 		tmp.connected = true;
 		tmp.note = instance.note;
@@ -1991,13 +2055,8 @@ FP.components = function(prepare_export) {
 	return arr;
 };
 
-exports.make = function(name, errorhandler) {
-	return new Flow(name, errorhandler);
-};
-
-exports.prototypes = function() {
-	var obj = {};
-	obj.Message = Message.prototype;
-	obj.FlowStream = Flow.prototype;
-	return obj;
+exports.create = function(id, errorhandler) {
+	let flowstream = new FlowStream(id, errorhandler);
+	// F.flowstreams[id] = flowstream;
+	return flowstream;
 };

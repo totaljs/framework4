@@ -1,14 +1,17 @@
 // Internal module
 
-const FlowStream = require('./flow-flowstream');
+'use strict';
+
 const PING = { TYPE: 'ping' };
+const REG_BK = /-bk|_bk/i;
 
 var FS = exports;
 
+FS.module = require('./flow-flowstream');
 FS.version = 1;
+FS.proxies = {};
 FS.db = {};
 FS.worker = false;
-FS.ping = false;
 FS.instances = {};
 FS.onerror = function(err, source, id, componentid, stack) {
 
@@ -50,22 +53,41 @@ FS.onsave = function(data) {
 	FS.$events.save && FS.emit('save', data);
 };
 
-FS.reload = function(flow, restart) {
+FS.remove = function(id) {
 
-	var prev = FS.db[flow.id];
+	var tmp = FS.db[id];
+
+	if (FS.instances[id]) {
+		FS.instances[id].destroy();
+		delete FS.instances[id];
+	}
+
+	if (tmp)
+		delete FS.db[id];
+
+	FS.$events.remove && FS.emit('remove', tmp);
+};
+
+FS.reload = function(flow, restart = false) {
+
+	var prev = FS.instances[flow.id];
 	if (!prev)
 		return;
 
 	if (prev.worker) {
-		if (prev.proxypath !== flow.proxypath)
-			PROXY(prev.proxypath, null);
+		if (prev.proxypath !== flow.proxypath) {
+			if (FS.proxies[prev.proxypath]) {
+				FS.proxies[prev.proxypath].remove();
+				delete FS.proxies[prev.proxypath];
+			}
+		}
 	}
 
 	if (flow.worker && prev.proxypath !== flow.proxypath)
-		PROXY(flow.proxypath, flow.unixsocket, false);
+		FS.proxies[flow.proxypath] = PROXY(flow.proxypath, flow.unixsocket);
 
 	FS.db[flow.id] = flow;
-	FS.instances[flow.id].restart(flow, restart);
+	FS.instances[flow.id].reload(flow, restart);
 };
 
 FS.init = function(directory, callback) {
@@ -76,22 +98,25 @@ FS.init = function(directory, callback) {
 	}
 
 	if (!directory)
-		directory = PATH.root('flowstreams');
+		directory = F.path.root('flowstreams');
 
-	PATH.fs.readdir(directory, function(err, files) {
+	F.Fs.readdir(directory, function(err, files) {
+
+		if (err) {
+			callback && callback();
+			return;
+		}
 
 		var load = [];
 
 		for (var m of files) {
 			var index = m.lastIndexOf('.');
-			if (index !== -1 && m.substring(index).toLowerCase() === '.flow')
+			if (index !== -1 && m.substring(index).toLowerCase() === '.flow' && !REG_BK.test(m))
 				load.push(m);
 		}
 
 		load.wait(function(filename, next) {
-
-			PATH.fs.readFile(PATH.join(directory, filename), 'utf8', function(err, response) {
-
+			F.Fs.readFile(F.path.join(directory, filename), 'utf8', function(err, response) {
 				if (response) {
 					response = response.parseJSON();
 					response.directory = directory;
@@ -108,7 +133,7 @@ FS.init = function(directory, callback) {
 
 };
 
-FS.load = function(flow, callback) {
+FS.load = function(flow, callback, restart = false) {
 
 	// flow.directory {String}
 	// flow.asfiles {Boolean}
@@ -116,29 +141,35 @@ FS.load = function(flow, callback) {
 	// flow.memory {Number}
 	// flow.proxypath {String}
 
+	if (FS.instances[flow.id]) {
+		FS.reload(flow, restart);
+		callback && setImmediate(callback, null, FS.instances[flow.id]);
+		return;
+	}
+
 	var id = flow.id;
-	flow.directory = flow.directory || PATH.root('/flowstream/');
+	flow.directory = flow.directory || F.path.root('/flowstream/');
 	FS.db[id] = flow;
-	flow.worker && initping();
 
-	F.$owner('flowstream_' + id);
-
-	FlowStream.init(flow, flow.worker, function(err, instance) {
+	FS.module.init(flow, flow.worker, function(err, instance) {
 
 		FS.$events.load && FS.emit('load', instance, flow);
 
 		if (flow.worker && flow.proxypath) {
 
 			// Removes old
-			PROXY(flow.proxypath, null);
+			if (FS.proxies[flow.proxypath])
+				FS.proxies[flow.proxypath].remove();
 
 			// Registers new
-			PROXY(flow.proxypath, flow.unixsocket, false);
+			FS.proxies[flow.proxypath] = PROXY(flow.proxypath, flow.unixsocket);
 
 		}
 
 		// instance.httprouting();
-		instance.ondone = callback;
+		if (callback)
+			instance.ondone = err => callback(err,  err ? null : instance);
+
 		instance.onerror = FS.onerror;
 
 		instance.onsave = function(data) {
@@ -151,9 +182,6 @@ FS.load = function(flow, callback) {
 	});
 
 };
-
-FS.socket = FlowStream.socket;
-FS.client = FlowStream.client;
 
 FS.notify = function(controller, id) {
 
@@ -186,6 +214,7 @@ FS.notify = function(controller, id) {
 		$.success();
 };
 
+
 function initping() {
 
 	if (FS.ping)
@@ -202,8 +231,11 @@ function initping() {
 				fs.flow.postMessage2(PING);
 		}
 	}, 5000);
-
 }
 
 global.Flow = FS;
-global.FlowStream = exports;
+
+setImmediate(function() {
+	FS.socket = FS.module.socket;
+	FS.client = FS.module.client;
+});

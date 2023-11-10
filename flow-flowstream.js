@@ -1,13 +1,15 @@
-// FlowStream module
+// Total.js FlowStream module
 // The MIT License
 // Copyright 2021-2023 (c) Peter Širka <petersirka@gmail.com>
+
+'use strict';
 
 if (!global.F)
 	require('./index');
 
 const W = F.Worker;
 const Fork = F.Child.fork;
-const VERSION = 31;
+const VERSION = 32;
 const NOTIFYPATH = '/notify/';
 
 var isFLOWSTREAMWORKER = false;
@@ -18,6 +20,7 @@ var TMS = {};
 var RPC = {};
 var CALLBACKID = 1;
 var ASFILES = true;
+var isrunning = false;
 
 /*
 	var instance = MODULE('flowstream').init({ components: {}, design: {}, variables: {}, variables2: {} }, true/false);
@@ -375,12 +378,22 @@ Instance.prototype.kill = Instance.prototype.destroy = function() {
 	self.flow.$destroyed = true;
 
 	if (self.flow.isworkerthread) {
+
 		self.flow.$socket && self.flow.$socket.destroy();
 		self.flow.$client && self.flow.$client.destroy();
+
 		if (self.flow.terminate)
 			self.flow.terminate();
 		else
 			self.flow.kill(9);
+
+		var schema = self.flow.$schema;
+
+		var tmp = F.TFlow;
+		if (tmp.proxies[schema.proxypath]) {
+			tmp.proxies[schema.proxypath].remove();
+			delete tmp.proxies[schema.proxypath];
+		}
 	} else {
 		if (self.flow.sockets) {
 			for (var key in self.flow.sockets)
@@ -560,14 +573,34 @@ Instance.prototype.reconfigure = function(id, config) {
 	return self;
 };
 
-Instance.prototype.reload = function(data, restart) {
+Instance.prototype.reload = function(data, restart = false) {
 	var self = this;
-	return self.refresh(self.id, 'meta', data, restart);
+	var flow = self.flow;
+
+	if (flow.isworkerthread) {
+		for (let key in data)
+			flow.$schema[key] = data[key];
+		if (restart) {
+			if (flow.terminate)
+				flow.terminate();
+			else
+				flow.kill(9);
+		} else
+			flow.postMessage2({ TYPE: 'stream/rewrite', data: data });
+	} else {
+		for (let key in data)
+			flow.$schema[key] = data[key];
+		flow.variables = data.variables;
+		flow.rewrite(data, () => flow.proxy.refreshmeta());
+	}
+
+	return self;
 };
 
 Instance.prototype.refresh = function(id, type, data, restart) {
 	var self = this;
 	var flow = self.flow;
+
 	if (flow.isworkerthread) {
 
 		for (var key in data)
@@ -578,9 +611,8 @@ Instance.prototype.refresh = function(id, type, data, restart) {
 				flow.terminate();
 			else
 				flow.kill(9);
-		}
-
-		flow.postMessage2({ TYPE: 'stream/refresh', id: id, type: type, data: data });
+		} else
+			flow.postMessage2({ TYPE: 'stream/refresh', id: id, type: type, data: data });
 
 	} else {
 
@@ -904,8 +936,10 @@ function killprocess() {
 
 function init_current(meta, callback, nested) {
 
+	initrunning();
+
 	if (!meta.directory)
-		meta.directory = PATH.root('flowstream');
+		meta.directory = F.path.root('flowstream');
 
 	// Due to C/C++ modules
 	if (W.workerData || meta.sandbox)
@@ -925,7 +959,7 @@ function init_current(meta, callback, nested) {
 	if (meta.import) {
 		var tmp = meta.import.split(/,|;/).trim();
 		for (var m of tmp) {
-			var mod = require(PATH.root(m));
+			var mod = require(F.path.root(m));
 			mod.install && mod.install(flow);
 			mod.init && mod.init(flow);
 		}
@@ -1023,6 +1057,25 @@ function init_current(meta, callback, nested) {
 				case 'stream/pause':
 					flow.pause(msg.is == null ? !flow.paused : msg.is);
 					flow.save();
+					break;
+
+				case 'stream/rewrite':
+					for (var key in msg.data)
+						flow.$schema[key] = msg.data[key];
+
+					flow.rewrite(msg.data, function() {
+
+						// @err {Error}
+
+						flow.proxy.refreshmeta();
+
+						if (flow.proxy.online) {
+							flow.proxy.send({ TYPE: 'flow/components', data: flow.components(true) });
+							flow.proxy.send({ TYPE: 'flow/design', data: flow.export() });
+							flow.proxy.send({ TYPE: 'flow/variables', data: flow.variables });
+						}
+
+					});
 					break;
 
 				case 'stream/refresh':
@@ -1431,7 +1484,7 @@ function init_worker(meta, type, callback) {
 
 			case 'stream/export':
 			case 'stream/components':
-				cb = CALLBACKS[msg.callbackid];
+				var cb = CALLBACKS[msg.callbackid];
 				if (cb) {
 					delete CALLBACKS[msg.callbackid];
 					cb.callback(null, msg.data);
@@ -1718,12 +1771,11 @@ exports.client = function(flow, socket) {
 function MAKEFLOWSTREAM(meta) {
 
 	var flow = FLOWSTREAM(meta.id, function(err, type, instance) {
-		flow.proxy.error(err, type, instance);
+		this.proxy.error(err, type, instance);
 	});
 
-	var saveid;
+	var saveid = null;
 
-	flow.metadata = meta;
 	flow.cloning = meta.cloning != false;
 	flow.export_instance2 = function(id) {
 
@@ -2201,7 +2253,7 @@ function MAKEFLOWSTREAM(meta) {
 	if (meta.paused)
 		flow.pause(true);
 
-	flow.load(meta.components, meta.design, function() {
+	flow.load(meta, function() {
 
 		if (flow.sources) {
 			Object.keys(flow.sources).wait(function(key, next) {
@@ -2534,51 +2586,50 @@ function MAKEFLOWSTREAM(meta) {
 // TMS implementation:
 TMS.check = function(item, callback) {
 
-	WEBSOCKETCLIENT(function(client) {
+	var client = WEBSOCKETCLIENT();
 
-		if (item.token)
-			client.headers['x-token'] = item.token;
+	if (item.token)
+		client.headers['x-token'] = item.token;
 
-		client.options.reconnect = 0;
+	client.options.reconnect = 0;
 
-		client.on('open', function() {
-			client.tmsready = true;
-		});
-
-		client.on('error', function(err) {
-			client.tmsready = false;
-			callback(err);
-			clearTimeout(client.timeout);
-		});
-
-		client.on('close', function() {
-			client.tmsready = false;
-			callback('401: Unauthorized');
-		});
-
-		client.on('message', function(msg) {
-			switch (msg.type) {
-				case 'ping':
-					msg.type = 'pong';
-					client.send(msg);
-					break;
-				case 'meta':
-					callback(null, msg);
-					clearTimeout(client.timeout);
-					client.close();
-					break;
-			}
-		});
-
-		client.timeout = setTimeout(function() {
-			if (client.tmsready) {
-				client.close();
-				callback('408: Timeout');
-			}
-		}, 1500);
-
-		client.connect(item.url.replace(/^http/g, 'ws'));
+	client.on('open', function() {
+		client.tmsready = true;
 	});
+
+	client.on('error', function(err) {
+		client.tmsready = false;
+		callback(err);
+		clearTimeout(client.timeout);
+	});
+
+	client.on('close', function() {
+		client.tmsready = false;
+		callback('401: Unauthorized');
+	});
+
+	client.on('message', function(msg) {
+		switch (msg.type) {
+			case 'ping':
+				msg.type = 'pong';
+				client.send(msg);
+				break;
+			case 'meta':
+				callback(null, msg);
+				clearTimeout(client.timeout);
+				client.close();
+				break;
+		}
+	});
+
+	client.timeout = setTimeout(function() {
+		if (client.tmsready) {
+			client.close();
+			callback('408: Timeout');
+		}
+	}, 2500);
+
+	client.connect(item.url.replace(/^http/g, 'ws'));
 };
 
 function makemodel(item) {
@@ -2592,172 +2643,163 @@ TMS.connect = function(fs, sourceid, callback) {
 		delete fs.sockets[sourceid];
 	}
 
-	WEBSOCKETCLIENT(function(client) {
+	var client = WEBSOCKETCLIENT();
 
-		var item = fs.sources[sourceid];
-		var prev;
+	var item = fs.sources[sourceid];
+	var prev;
 
-		item.restart = false;
-		client.options.reconnectserver = true;
-		client.callbacks = {};
-		client.callbackindexer = 0;
-		client.callbacktimeout = function(callbackid) {
-			var cb = client.callbacks[callbackid];
-			if (cb) {
-				delete client.callbacks[callbackid];
-				cb(new ErrorBuilder().push(408)._prepare().items);
-			}
-		};
+	item.restart = false;
+	client.options.reconnectserver = true;
+	client.callbacks = {};
+	client.callbackindexer = 0;
+	client.callbacktimeout = function(callbackid) {
+		var cb = client.callbacks[callbackid];
+		if (cb) {
+			delete client.callbacks[callbackid];
+			cb(new ErrorBuilder().push(408).output());
+		}
+	};
 
-		if (item.token)
-			client.headers['x-token'] = item.token;
+	if (item.token)
+		client.headers['x-token'] = item.token;
 
-		var syncforce = function() {
-			client.synchronize();
-		};
+	var syncforce = function() {
+		client.synchronize();
+	};
 
-		client.on('open', function() {
-			prev = null;
-			fs.sockets[item.id] = client;
-			item.error = 0;
-			item.init = true;
-			item.online = true;
-			client.subscribers = {};
-			client.tmsready = true;
-			client.model = makemodel(item);
-			setTimeout(syncforce, 10);
-		});
-
-		client.synchronize = function() {
-
-			if (!client.tmsready)
-				return;
-
-			var publishers = {};
-
-			for (var key in fs.meta.flow) {
-				var instance = fs.meta.flow[key];
-				var com = fs.meta.components[instance.component];
-				if (com && com.itemid === item.id && com.outputs && com.outputs.length) {
-					if (Object.keys(instance.connections).length)
-						publishers[com.schema.id] = 1;
-				}
-			}
-
-			var keys = Object.keys(publishers);
-			var cache = keys.join(',');
-
-			if (!prev || prev !== cache) {
-				prev = cache;
-				client.send({ type: 'subscribers', subscribers: keys });
-			}
-
-		};
-
-		client.on('close', function(code) {
-
-			if (code === 4001)
-				client.destroy();
-
-			item.error = code;
-			item.online = false;
-
-			client.model = makemodel(item);
-			// AUDIT(client, 'close');
-
-			delete fs.sockets[item.id];
-			client.tmsready = false;
-		});
-
-		client.on('message', function(msg) {
-
-			var type = msg.type || msg.TYPE;
-
-			switch (type) {
-				case 'meta':
-
-					item.meta = msg;
-
-					var checksum = HASH(JSON.stringify(msg)).toString(36);
-					client.subscribers = {};
-					client.publishers = {};
-					client.calls = {};
-
-					for (var i = 0; i < msg.publish.length; i++) {
-						var pub = msg.publish[i];
-						client.publishers[pub.id] = pub.schema;
-					}
-
-					for (var i = 0; i < msg.subscribe.length; i++) {
-						var sub = msg.subscribe[i];
-						client.subscribers[sub.id] = 1;
-					}
-
-					if (msg.call) {
-						for (var i = 0; i < msg.call.length; i++) {
-							var call = msg.call[i];
-							client.calls[call.id] = 1;
-						}
-					}
-
-					if (item.checksum !== checksum) {
-						item.checksum = checksum;
-						item.init = false;
-						TMS.refresh2(fs);
-					}
-
-					client.synchronize();
-					break;
-
-				case 'call':
-
-					var callback = client.callbacks[msg.callbackid];
-					if (callback) {
-						callback.id && clearTimeout(callback.id);
-						callback.callback(msg.error ? msg.data : null, msg.error ? null : msg.data);
-						delete client.callbacks[msg.callbackid];
-					}
-
-					break;
-
-				case 'subscribers':
-					client.subscribers = {};
-					if (msg.subscribers instanceof Array) {
-						for (var i = 0; i < msg.subscribers.length; i++) {
-							var key = msg.subscribers[i];
-							client.subscribers[key] = 1;
-						}
-					}
-					break;
-
-				case 'publish':
-
-					if (fs.paused)
-						return;
-
-					var schema = client.publishers[msg.id];
-					if (schema) {
-						// HACK: very fast validation
-						var err = new ErrorBuilder();
-						var data = framework_jsonschema.transform(schema, err, msg.data, true);
-						if (data) {
-							var id = 'pub' + item.id + 'X' + msg.id;
-							for (var key in fs.meta.flow) {
-								var flow = fs.meta.flow[key];
-								if (flow.component === id)
-									flow.process(data, client);
-							}
-						}
-					}
-
-					break;
-			}
-
-		});
-
-		client.connect(item.url.replace(/^http/g, 'ws'));
-		callback && setImmediate(callback);
+	client.on('open', function() {
+		prev = null;
+		fs.sockets[item.id] = client;
+		item.error = 0;
+		item.init = true;
+		item.online = true;
+		client.subscribers = {};
+		client.tmsready = true;
+		client.model = makemodel(item);
+		setTimeout(syncforce, 10);
 	});
+
+	client.synchronize = function() {
+
+		if (!client.tmsready)
+			return;
+
+		var publishers = {};
+
+		for (var key in fs.meta.flow) {
+			var instance = fs.meta.flow[key];
+			var com = fs.meta.components[instance.component];
+			if (com && com.itemid === item.id && com.outputs && com.outputs.length) {
+				if (Object.keys(instance.connections).length)
+					publishers[com.schema.id] = 1;
+			}
+		}
+
+		var keys = Object.keys(publishers);
+		var cache = keys.join(',');
+
+		if (!prev || prev !== cache) {
+			prev = cache;
+			client.send({ type: 'subscribers', subscribers: keys });
+		}
+
+	};
+
+	client.on('close', function(code) {
+
+		if (code === 4001)
+			client.destroy();
+
+		item.error = code;
+		item.online = false;
+
+		client.model = makemodel(item);
+		// AUDIT(client, 'close');
+
+		delete fs.sockets[item.id];
+		client.tmsready = false;
+	});
+
+	client.on('message', function(msg) {
+
+		var type = msg.type || msg.TYPE;
+		var tmp;
+
+		switch (type) {
+			case 'meta':
+
+				item.meta = msg;
+
+				tmp = HASH(JSON.stringify(msg)).toString(36);
+				client.subscribers = {};
+				client.publishers = {};
+				client.calls = {};
+
+				for (let pub of msg.publish)
+					client.publishers[pub.id] = pub.schema;
+
+				for (let sub of msg.subscribe)
+					client.subscribers[sub.id] = 1;
+
+				if (msg.call) {
+					for (let call of msg.call)
+						client.calls[call.id] = 1;
+				}
+
+				if (item.checksum !== tmp) {
+					item.checksum = tmp;
+					item.init = false;
+					TMS.refresh2(fs);
+				}
+
+				client.synchronize();
+				break;
+
+			case 'call':
+
+				tmp = client.callbacks[msg.callbackid];
+				if (tmp) {
+					tmp.id && clearTimeout(tmp.id);
+					tmp.callback(msg.error ? msg.data : null, msg.error ? null : msg.data);
+					delete client.callbacks[msg.callbackid];
+				}
+
+				break;
+
+			case 'subscribers':
+				client.subscribers = {};
+				if (msg.subscribers instanceof Array) {
+					for (let key of msg.subscribers)
+						client.subscribers[key] = 1;
+				}
+				break;
+
+			case 'publish':
+
+				if (fs.paused)
+					return;
+
+				tmp = client.publishers[msg.id];
+				if (tmp) {
+					// HACK: very fast validation
+					var err = new ErrorBuilder();
+					var data = framework_jsonschema.transform(tmp, err, msg.data, true);
+					if (data) {
+						var id = 'pub' + item.id + 'X' + msg.id;
+						for (let key in fs.meta.flow) {
+							var flow = fs.meta.flow[key];
+							if (flow.component === id)
+								flow.process(data, client);
+						}
+					}
+				}
+
+				break;
+		}
+	});
+
+	client.connect(item.url.replace(/^http/g, 'ws'));
+	callback && setImmediate(callback);
 };
 
 const TEMPLATE_PUBLISH = `<script total>
@@ -2933,7 +2975,6 @@ TMS.refresh = function(fs, callback) {
 
 		var item = fs.sources[key];
 		if (item.init) {
-
 			if (item.restart || !fs.sources[key])
 				TMS.connect(fs, item.id, next);
 			else
@@ -3098,7 +3139,7 @@ isFLOWSTREAMWORKER = W.workerData || process.argv.indexOf('--fork') !== -1;
 
 // Runs the worker
 if (W.workerData) {
-	F.dir(PATH.join(__dirname, '../'));
+	F.dir(F.path.join(__dirname, '../'));
 	exports.init(W.workerData);
 }
 
@@ -3120,19 +3161,28 @@ if (process.argv.includes('--fork')) {
 	});
 }
 
-ON('service', function() {
-	if (CALLBACKID > 999999999)
-		CALLBACKID = 1;
-});
+function initrunning() {
 
-ON('exit', function() {
-	for (var key in FLOWS) {
-		var flow = FLOWS[key];
-		if (flow.terminate || flow.kill) {
-			if (flow.terminate)
-				flow.terminate();
-			else
-				flow.kill(9);
+	if (isrunning)
+		return;
+
+	isrunning = true;
+
+	ON('service', function() {
+		if (CALLBACKID > 999999999)
+			CALLBACKID = 1;
+	});
+
+	ON('exit', function() {
+		for (var key in FLOWS) {
+			var flow = FLOWS[key];
+			if (flow.terminate || flow.kill) {
+				if (flow.terminate)
+					flow.terminate();
+				else
+					flow.kill(9);
+			}
 		}
-	}
-});
+	});
+
+}
