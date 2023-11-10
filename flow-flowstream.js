@@ -2253,7 +2253,7 @@ function MAKEFLOWSTREAM(meta) {
 	if (meta.paused)
 		flow.pause(true);
 
-	flow.load(meta, function() {
+	flow.load(meta.components, meta.design, function() {
 
 		if (flow.sources) {
 			Object.keys(flow.sources).wait(function(key, next) {
