@@ -12,6 +12,7 @@
 - added `F.uibuildercompiler(opt, [callback])` method
 - improved `String.toJSONSchema()` + fixed arrays with external schemas
 - updated Flow module
+- added support for `jsonschemas/*.txt` with inline implementation of the JSON schemas
 
 ========================
 0.0.91

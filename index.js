@@ -5967,6 +5967,13 @@ F.$load = function(types, targetdirectory, callback) {
 			arr.forEach(item => dependencies.push(next => install('jsonschema', item.name, item.filename, next)));
 			resume();
 		});
+		operations.push(function(resume) {
+			dir = U.combine(targetdirectory, isPackage ? '/jsonschemas/' : CONF.directory_jsonschemas);
+			arr = [];
+			listing(dir, 0, arr, '.txt');
+			arr.forEach(item => dependencies.push(next => install('jsonschema2', item.name, item.filename, next)));
+			resume();
+		});
 	}
 
 	if (can('modules') && CONF.directory_modules) {
@@ -6530,8 +6537,14 @@ function install_component(name, filename, next) {
 
 function install(type, name, filename, next) {
 
-	if (type === 'jsonschema') {
-		var tmp = Fs.readFileSync(filename).toString('utf8').parseJSON(true);
+	if (type === 'jsonschema' || type === 'jsonschema2') {
+		var tmp = Fs.readFileSync(filename).toString('utf8');
+
+		if (type === 'jsonschema2')
+			tmp = tmp.toJSONSchema();
+		else
+			tmp = tmp.parseJSON(true);
+
 		if (tmp) {
 			if (tmp.$id)
 				F.jsonschemas[tmp.$id] = tmp;
