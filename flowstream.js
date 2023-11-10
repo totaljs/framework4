@@ -1236,27 +1236,27 @@ FP.loadvariables = function(variables, type = 'variables') {
 	return self;
 };
 
-FP.load = function(data, callback) {
+FP.load = function(components, design, callback, asfile) {
 
 	var self = this;
 	if (self.loading) {
-		setTimeout(() => self.load(data, callback), 200);
+		setTimeout(() => self.load(components, design, callback), 200);
 		return self;
 	}
 
-	self.loading = 100000;
+	self.loading = 10000;
 	self.unload(function() {
 
-		var keys = Object.keys(data.components);
+		var keys = Object.keys(components);
 		var error = new ErrorBuilder();
 
 		keys.wait(function(key, next) {
-			var body = data.components[key];
+			var body = components[key];
 			if (typeof(body) === 'string' && body.indexOf('<script ') !== -1) {
 				self.add(key, body, function(err) {
 					err && error.push(err);
 					next();
-				}, data.asfiles);
+				}, asfile);
 			} else {
 				error.push('Invalid component: ' + key);
 				next();
@@ -1265,7 +1265,7 @@ FP.load = function(data, callback) {
 
 			// Loads design
 			self.inc(0);
-			self.use(data.design, function(err) {
+			self.use(design, function(err) {
 				self.inc(0);
 				err && error.push(err);
 				callback && callback(err);
