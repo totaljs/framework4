@@ -292,9 +292,9 @@ global.NEWSUBSCRIBE = function(name, value, callback) {
 };
 
 global.PUBLISH = function(name, value) {
-	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name]) {
+	if (F.tms.socket && F.tms.publish_cache[name]) {
 		F.stats.performance.publish++;
-		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready);
+		F.tms.socket.send({ type: 'publish', id: name, data: value }, client => client.tmsready && client.$subscribers[name]);
 	}
 };
 
@@ -5690,7 +5690,6 @@ function tmscontroller() {
 		}
 
 		delete TMSBLOCKED[client.ip];
-		F.tms.publishers = {};
 		client.tmsready = true;
 		tmsrefresh(client);
 	});
@@ -5714,9 +5713,9 @@ function tmscontroller() {
 					});
 				}
 			} else if (msg.type === 'subscribers' && msg.subscribers instanceof Array) {
-				F.tms.publishers = {};
-				for (var i = 0; i < msg.subscribers.length; i++)
-					F.tms.publishers[msg.subscribers[i]] = 1;
+				client.$subscribers = {};
+				for (let m of msg.subscribers)
+					client.$subscribers[m] = true;
 			} else if (msg.type === 'call' && msg.id) {
 				var tmp = F.tms.calls[msg.id];
 				if (tmp) {

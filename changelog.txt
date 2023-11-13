@@ -15,6 +15,7 @@
 - added support for `jsonschemas/*.txt` with inline implementation of the JSON schemas
 - added a `String.markdown(opt)` parser
 - enabled `.xslt`, `.xsd` and `.xls` extensions for handling static files
+- fixed sending messages to all subscribers in TMS (critical)
 
 ========================
 0.0.91
