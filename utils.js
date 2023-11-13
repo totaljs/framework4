@@ -5903,7 +5903,7 @@ EventEmitter2.extend = function(obj) {
 	obj.emit = EE2P.emit;
 	obj.on = EE2P.on;
 	obj.once = EE2P.once;
-	obj.removeListener = EE2P.removeListener;
+	obj.off = obj.removeListener = EE2P.removeListener;
 	obj.removeAllListeners = EE2P.removeAllListeners;
 };
 
