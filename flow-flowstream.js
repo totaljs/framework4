@@ -591,6 +591,10 @@ Instance.prototype.reload = function(data, restart = false) {
 		for (let key in data)
 			flow.$schema[key] = data[key];
 		flow.variables = data.variables;
+
+		if (data.variables2)
+			flow.variables2 = data.variables2;
+
 		flow.rewrite(data, () => flow.proxy.refreshmeta());
 	}
 
