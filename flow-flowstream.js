@@ -16,6 +16,7 @@ var isFLOWSTREAMWORKER = false;
 var Parent = W.parentPort;
 var CALLBACKS = {};
 var FLOWS = {};
+var PROXIES = {};
 var TMS = {};
 var RPC = {};
 var CALLBACKID = 1;
@@ -72,12 +73,23 @@ var isrunning = false;
 */
 
 function Instance(instance, id) {
-	this.httproutes = {};
-	this.version = VERSION;
-	this.id = id;
-	this.flow = instance;
+	var self = this;
+	self.httproutes = {};
+	self.version = VERSION;
+	self.id = id;
+	self.flow = instance;
 	// this.onoutput = null;
 }
+
+Instance.prototype.restart = function() {
+	var self = this;
+	self.flow.$socket && self.flow.$socket.destroy();
+	self.flow.$client && self.flow.$client.destroy();
+	if (self.flow.terminate)
+		self.flow.terminate();
+	else
+		self.flow.kill(9);
+};
 
 Instance.prototype.httprequest = function(opt, callback) {
 
@@ -387,13 +399,11 @@ Instance.prototype.kill = Instance.prototype.destroy = function() {
 		else
 			self.flow.kill(9);
 
-		var schema = self.flow.$schema;
-
-		var tmp = F.TFlow;
-		if (tmp.proxies[schema.proxypath]) {
-			tmp.proxies[schema.proxypath].remove();
-			delete tmp.proxies[schema.proxypath];
+		if (PROXIES[self.id]) {
+			PROXIES[self.id].remove();
+			delete PROXIES[self.id];
 		}
+
 	} else {
 		if (self.flow.sockets) {
 			for (var key in self.flow.sockets)
@@ -573,31 +583,32 @@ Instance.prototype.reconfigure = function(id, config) {
 	return self;
 };
 
-Instance.prototype.reload = function(data, restart = false) {
+Instance.prototype.reload = function(data) {
 	var self = this;
 	var flow = self.flow;
 
+	if (PROXIES[data.id]) {
+		PROXIES[data.id].remove();
+		delete PROXIES[data.id];
+	}
+
 	if (flow.isworkerthread) {
+
+		if (data.proxypath)
+			PROXIES[data.id] = PROXY(data.proxypath, data.unixsocket);
+
 		for (let key in data)
 			flow.$schema[key] = data[key];
-		if (restart) {
-			if (flow.terminate)
-				flow.terminate();
-			else
-				flow.kill(9);
-		} else
-			flow.postMessage2({ TYPE: 'stream/rewrite', data: data });
+		self.proxypath = data.proxypath;
+		flow.postMessage2({ TYPE: 'stream/rewrite', data: data });
 	} else {
 		for (let key in data)
 			flow.$schema[key] = data[key];
 		flow.variables = data.variables;
-
 		if (data.variables2)
 			flow.variables2 = data.variables2;
-
 		flow.rewrite(data, () => flow.proxy.refreshmeta());
 	}
-
 	return self;
 };
 
@@ -1399,6 +1410,14 @@ function init_worker(meta, type, callback) {
 
 	meta.unixsocket = F.isWindows ? ('\\\\?\\pipe\\flowstream' + F.directory.makeid() + meta.id + Date.now().toString(36)) : (F.Path.join(F.OS.tmpdir(), 'flowstream_' + F.directory.makeid() + '_' + meta.id + '_' + Date.now().toString(36) + '.socket'));
 
+	if (PROXIES[meta.id]) {
+		PROXIES[meta.id].remove();
+		delete PROXIES[meta.id];
+	}
+
+	if (meta.proxypath)
+		PROXIES[meta.id] = PROXY(meta.proxypath, meta.unixsocket);
+
 	if (!worker.postMessage) {
 		worker.postMessage = worker.send;
 		ischild = true;
@@ -1504,7 +1523,7 @@ function init_worker(meta, type, callback) {
 				break;
 
 			case 'stream/error':
-				tmp = { TYPE: 'flow/error', error: msg.error, stack: msg.stack, source: msg.source, id: msg.id, component: msg.component };
+				tmp = { TYPE: 'flow/error', error: msg.error, stack: msg.stack, source: msg.source, id: msg.id, component: msg.component, ts: new Date() };
 				worker.$socket && worker.$socket.send(tmp);
 				worker.$client && worker.$client.send(tmp);
 				worker.$instance.onerror && worker.$instance.onerror(msg.error, msg.source, msg.id, msg.component, msg.stack);

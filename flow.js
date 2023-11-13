@@ -9,7 +9,6 @@ var FS = exports;
 
 FS.module = require('./flow-flowstream');
 FS.version = 1;
-FS.proxies = {};
 FS.db = {};
 FS.worker = false;
 FS.instances = {};
@@ -68,26 +67,23 @@ FS.remove = function(id) {
 	FS.$events.remove && FS.emit('remove', tmp);
 };
 
-FS.reload = function(flow, restart = false) {
-
+FS.reload = function(flow, restart) {
 	var prev = FS.instances[flow.id];
 	if (!prev)
-		return;
-
-	if (prev.worker) {
-		if (prev.proxypath !== flow.proxypath) {
-			if (FS.proxies[prev.proxypath]) {
-				FS.proxies[prev.proxypath].remove();
-				delete FS.proxies[prev.proxypath];
-			}
-		}
-	}
-
-	if (flow.worker && prev.proxypath !== flow.proxypath)
-		FS.proxies[flow.proxypath] = PROXY(flow.proxypath, flow.unixsocket);
+		return false;
 
 	FS.db[flow.id] = flow;
-	FS.instances[flow.id].reload(flow, restart);
+
+	var instance = FS.instances[flow.id];
+	instance.worker = flow.worker;
+	instance.proxypath = flow.proxypath;
+
+	if (restart)
+		instance.restart();
+	else
+		instance.reload(flow);
+
+	return true;
 };
 
 FS.init = function(directory, callback) {
@@ -120,9 +116,7 @@ FS.init = function(directory, callback) {
 				if (response) {
 					response = response.parseJSON();
 					response.directory = directory;
-					FS.load(response, function() {
-						next();
-					});
+					FS.load(response, () => next());
 				} else
 					next();
 			});
@@ -133,7 +127,7 @@ FS.init = function(directory, callback) {
 
 };
 
-FS.load = function(flow, callback, restart = false) {
+FS.load = function(flow, callback) {
 
 	// flow.directory {String}
 	// flow.asfiles {Boolean}
@@ -142,7 +136,7 @@ FS.load = function(flow, callback, restart = false) {
 	// flow.proxypath {String}
 
 	if (FS.instances[flow.id]) {
-		FS.reload(flow, restart);
+		FS.reload(flow);
 		callback && setImmediate(callback, null, FS.instances[flow.id]);
 		return;
 	}
@@ -154,17 +148,6 @@ FS.load = function(flow, callback, restart = false) {
 	FS.module.init(flow, flow.worker, function(err, instance) {
 
 		FS.$events.load && FS.emit('load', instance, flow);
-
-		if (flow.worker && flow.proxypath) {
-
-			// Removes old
-			if (FS.proxies[flow.proxypath])
-				FS.proxies[flow.proxypath].remove();
-
-			// Registers new
-			FS.proxies[flow.proxypath] = PROXY(flow.proxypath, flow.unixsocket);
-
-		}
 
 		// instance.httprouting();
 		if (callback)
