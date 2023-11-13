@@ -227,12 +227,17 @@ FS.restart = function(id) {
 	}
 };
 
+FS.save = function(data) {
+	FS.onsave(data);
+};
+
 function initping() {
 
 	if (FS.ping)
 		return;
 
 	FS.ping = true;
+	FS.off('load', initping);
 
 	// A simple prevetion for the Flow zombie processes
 	setInterval(function() {
@@ -244,6 +249,8 @@ function initping() {
 		}
 	}, 5000);
 }
+
+FS.on('load', initping);
 
 global.Flow = FS;
 
