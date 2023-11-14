@@ -945,7 +945,7 @@ function httprequest(self, opt, callback) {
 }
 
 function killprocess() {
-	console.error('Main process doesn\'t respond');
+	// console.error('Main process doesn\'t respond');
 	process.exit(1);
 }
 
