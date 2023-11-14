@@ -257,8 +257,9 @@ SchemaOptionsProto.action = function(schema, data) {
 
 SchemaOptionsProto.publish = function(value) {
 	var name = this.ID;
-	if (F.tms.socket && F.tms.publish_cache[name] && F.tms.publishers[name]) {
 
+	if (F.tms.socket && F.tms.publish_cache[name]) {
+		F.stats.performance.publish++;
 		var tmp = {};
 		if (tmp) {
 			for (var key in value) {
@@ -266,11 +267,9 @@ SchemaOptionsProto.publish = function(value) {
 					tmp[key] = value[key];
 			}
 		}
-
-		F.stats.performance.publish++;
-		F.tms.socket.send({ type: 'publish', id: name, data: tmp }, client => client.tmsready);
-
+		F.tms.socket.send({ type: 'publish', id: name, data: tmp }, client => client.tmsready && client.$subscribers[name]);
 	}
+
 	return this;
 };
 
