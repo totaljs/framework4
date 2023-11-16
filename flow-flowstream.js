@@ -3158,32 +3158,6 @@ TMS.refresh2 = function(fs) {
 	setTimeout2('tms_refresh_' + fs.name, fs => TMS.refresh(fs), 500, null, fs);
 };
 
-isFLOWSTREAMWORKER = W.workerData || process.argv.indexOf('--fork') !== -1;
-
-// Runs the worker
-if (W.workerData) {
-	F.dir(F.path.join(__dirname, '../'));
-	exports.init(W.workerData);
-}
-
-if (process.argv.includes('--fork')) {
-
-	process.once('message', function(msg) {
-		if (msg.TYPE === 'init') {
-			Parent = process;
-			if (!Parent.postMessage)
-				Parent.postMessage = process.send;
-			F.dir(process.argv[2]);
-			exports.init(msg.data);
-		}
-	});
-
-	ON('error', function(obj) {
-		if (obj.error.indexOf('ERR_IPC_CHANNEL_CLOSED') !== -1)
-			process.exit(1);
-	});
-}
-
 function initrunning() {
 
 	if (isrunning)
@@ -3208,4 +3182,33 @@ function initrunning() {
 		}
 	});
 
+}
+
+if (process.argv[1].endsWith('flow-flowstream.js')) {
+
+	isFLOWSTREAMWORKER = W.workerData || process.argv.indexOf('--fork') !== -1;
+
+	// Runs the worker
+	if (W.workerData) {
+		F.dir(F.path.join(__dirname, '../'));
+		exports.init(W.workerData);
+	}
+
+	if (process.argv.includes('--fork')) {
+
+		process.once('message', function(msg) {
+			if (msg.TYPE === 'init') {
+				Parent = process;
+				if (!Parent.postMessage)
+					Parent.postMessage = process.send;
+				F.dir(process.argv[2]);
+				exports.init(msg.data);
+			}
+		});
+
+		ON('error', function(obj) {
+			if (obj.error.indexOf('ERR_IPC_CHANNEL_CLOSED') !== -1)
+				process.exit(1);
+		});
+	}
 }
