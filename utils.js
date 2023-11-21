@@ -5392,6 +5392,8 @@ AP.async = function(thread, callback, tmp) {
 		thread = 1;
 	} else if (thread === undefined)
 		thread = 1;
+	else if (thread > self.length)
+		thread = self.length;
 
 	if (!tmp) {
 		tmp = {};
