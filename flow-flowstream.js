@@ -971,6 +971,12 @@ function init_current(meta, callback, nested) {
 		F.frameworkless(false, { unixsocket: meta.unixsocket, config: { allow_stats_snapshot: false }});
 	}
 
+	flow.env = meta.env;
+	flow.origin = meta.origin;
+	flow.proxypath = meta.proxypath || '';
+	flow.proxy.online = false;
+	flow.proxy.ping = 0;
+
 	if (meta.import) {
 		var tmp = meta.import.split(/,|;/).trim();
 		for (var m of tmp) {
@@ -980,11 +986,13 @@ function init_current(meta, callback, nested) {
 		}
 	}
 
-	flow.env = meta.env;
-	flow.origin = meta.origin;
-	flow.proxypath = meta.proxypath || '';
-	flow.proxy.online = false;
-	flow.proxy.ping = 0;
+	if (meta.initscript) {
+		try {
+			new Function('instance', meta.initscript)(flow);
+		} catch (e) {
+			flow.error(e, 'initscript');
+		}
+	}
 
 	flow.$instance = new Instance(flow, meta.id);
 
@@ -1262,12 +1270,20 @@ function init_current(meta, callback, nested) {
 			var componentid = '';
 
 			if (instance) {
-				if (source === 'instance_message') {
+				if (typeof(instance) === 'string') {
+					if (source === 'add') {
+						componentid = instance;
+						F.error(err, 'FlowStream | register component | ' + instance);
+					} else if (meta.design[instance]) {
+						instanceid = instance;
+						componentid = meta.design[instance].component;
+					}
+				} else if (source === 'instance_message') {
 					if (instance.instance) {
 						instanceid = instance.instance.id;
 						componentid = instance.instance.component;
 					} else
-						console.log('ERROR', instance);
+						F.error(err, 'FlowStream | message | ' + instance);
 				} else if (source === 'instance_close') {
 					instanceid = instance.id;
 					componentid = instance.component;
@@ -1837,17 +1853,16 @@ function MAKEFLOWSTREAM(meta) {
 		}
 	};
 
+	function stringifyskip(key, value) {
+		return key === '$$ID' || key === '$$REQUIRED' ? undefined : value;
+	}
+
 	flow.export2 = function() {
 
 		var variables = flow.variables;
 		var design = {};
 		var components = {};
-		var sources = {};
-
-		for (var key in flow.sources) {
-			var com = flow.sources[key];
-			sources[key] = com;
-		}
+		var sources = JSON.parse(JSON.stringify(flow.sources, stringifyskip));
 
 		for (var key in flow.meta.components) {
 			var com = flow.meta.components[key];
@@ -1881,7 +1896,7 @@ function MAKEFLOWSTREAM(meta) {
 		return data;
 	};
 
-	var save_force = function() {
+	var saveforce = function() {
 		saveid && clearTimeout(saveid);
 		saveid = null;
 		flow.proxy.save(flow.export2());
@@ -1897,7 +1912,7 @@ function MAKEFLOWSTREAM(meta) {
 			return;
 
 		clearTimeout(saveid);
-		saveid = setTimeout(save_force, 5000);
+		saveid = setTimeout(saveforce, 5000);
 	};
 
 	flow.save = function() {
@@ -1956,6 +1971,9 @@ function MAKEFLOWSTREAM(meta) {
 	};
 
 	flow.proxy.message = function(msg, clientid, callback) {
+
+		var tmp;
+
 		switch (msg.TYPE) {
 
 			case 'call':
@@ -2237,6 +2255,19 @@ function MAKEFLOWSTREAM(meta) {
 				break;
 
 			case 'component_read':
+
+				tmp = flow.meta.components[msg.id];
+				if (tmp && tmp.meta) {
+					if (tmp.meta.readonly) {
+						msg.TYPE = 'flow/component_read';
+						msg.data = null;
+						msg.error = 'The component cannot be edited';
+						flow.proxy.online && flow.proxy.send(msg, 1, clientid);
+						callback && callback(msg);
+						return;
+					}
+				}
+
 				msg.TYPE = 'flow/component_read';
 				msg.data = flow.meta.components[msg.id] ? flow.meta.components[msg.id].ui.raw : null;
 				msg.error = msg.data == null ? 'Not found' : null;
@@ -2245,6 +2276,19 @@ function MAKEFLOWSTREAM(meta) {
 				break;
 
 			case 'component_save':
+
+				// check prev functionality
+				tmp = flow.meta.components[msg.id];
+				if (tmp && tmp.meta) {
+					if (tmp.meta.readonly) {
+						msg.TYPE = 'flow/component_save';
+						msg.error = 'The component cannot be edited';
+						flow.proxy.online && flow.proxy.send(msg, 1, clientid);
+						callback && callback(msg);
+						return;
+					}
+				}
+
 				flow.add(msg.id, msg.data, function(err) {
 					delete msg.data;
 					msg.TYPE = 'flow/component_save';
@@ -2257,10 +2301,24 @@ function MAKEFLOWSTREAM(meta) {
 				break;
 
 			case 'component_remove':
+
+				// check prev functionality
+				tmp = flow.meta.components[msg.id];
+				if (tmp && tmp.meta) {
+					if (tmp.meta.protected) {
+						msg.TYPE = 'flow/component_remove';
+						msg.error = 'The component cannot be removed';
+						flow.proxy.online && flow.proxy.send(msg, 1, clientid);
+						callback && callback(msg);
+						return;
+					}
+				}
+
 				flow.unregister(msg.id, function() {
 					refresh_components();
 					save();
 				});
+
 				break;
 		}
 	};
