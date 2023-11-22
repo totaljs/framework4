@@ -88,12 +88,27 @@ function trash(body) {
 
 			index = body.indexOf(t, index + t.length);
 
-			if (index === -1) {
+			if (index === -1)
 				break;
-			}
 
 			var b = body.lastIndexOf('<', index);
-			var tag = body.substring(b + 1, body.indexOf(' ', b));
+			if (b === -1)
+				break;
+
+			var end = body.indexOf(' ', b);
+
+			if (end === -1) {
+				index += t.length + 1;
+				continue;
+			}
+
+			var tag = body.substring(b + 1, end);
+
+			if (tag.length > 10) {
+				index += tag.length;
+				continue;
+			}
+
 			var e = body.indexOf('</' + tag + '>', index);
 			var size = e + 3 + tag.length;
 			body = body.replace(body.substring(b, size), '');
