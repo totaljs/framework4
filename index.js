@@ -3218,7 +3218,7 @@ F.stop = F.kill = function(signal) {
 	F.isKilled = true;
 
 	if (!signal)
-		signal = 'SIGTERM';
+		signal = 15;
 
 	for (var m in F.workers) {
 		var worker = F.workers[m];
