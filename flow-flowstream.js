@@ -81,6 +81,21 @@ function Instance(instance, id) {
 	// this.onoutput = null;
 }
 
+Instance.prototype = {
+
+	get worker() {
+		return this.flow;
+	},
+
+	get stream() {
+		return this.flow;
+	}
+};
+
+Instance.prototype.postMessage = function(msg) {
+	this.flow.postMessage && this.flow.postMessage(msg);
+};
+
 Instance.prototype.restart = function() {
 	var self = this;
 	self.flow.$socket && self.flow.$socket.destroy();
@@ -1481,10 +1496,14 @@ function init_worker(meta, type, callback) {
 
 		var tmp;
 
+		Flow.$events.message && Flow.emit('message', worker.$instance.id, msg);
+
 		switch (msg.TYPE) {
 
 			case 'stream/stats':
 				worker.stats = msg.data;
+				if (Flow.$events.stats)
+					Flow.emit('stats', meta.id, msg.data);
 				break;
 
 			case 'stream/restart':
@@ -2406,7 +2425,13 @@ function MAKEFLOWSTREAM(meta) {
 		// Each 9 seconds
 		if (notifier % 3 === 0) {
 			notifier = 0;
-			Parent && Parent.postMessage({ TYPE: 'stream/stats', data: { paused: flow.paused, messages: flow.stats.messages, pending: flow.stats.pending, memory: flow.stats.memory, minutes: flow.stats.minutes, errors: flow.stats.errors, mm: flow.stats.mm }});
+			if (Parent || Flow.$events.stats) {
+				let pstats = { paused: flow.paused, messages: flow.stats.messages, pending: flow.stats.pending, memory: flow.stats.memory, minutes: flow.stats.minutes, errors: flow.stats.errors, mm: flow.stats.mm };
+				if (Parent)
+					Parent.postMessage({ TYPE: 'stream/stats', data: pstats });
+				else if (Flow.$events.stats)
+					Flow.emit(flow.$schema.id, pstats);
+			}
 		}
 
 		notifier++;
