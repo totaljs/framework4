@@ -18,6 +18,7 @@
 - fixed sending messages to all subscribers in TMS (critical)
 - fixed compiling HTML in CMS
 - fixed `signal` in the `F.exit(signal)` method
+- improved CMS compiler
 
 ========================
 0.0.91

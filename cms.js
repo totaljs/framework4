@@ -1,8 +1,10 @@
-// CMS module v1
+// Total.js CMS compiler
 // The MIT License
-// Copyright 2021 (c) Peter Širka <petersirka@gmail.com>
+// Copyright 2021-2023 (c) Peter Širka <petersirka@gmail.com>
 
-const SKIP_CLASSES = { CMS_hidden: 1, CMS_mv: 1, CMS_mh: 1, CMS_expression: 1, CMS_multiple: 1 };
+'use strict';
+
+const SKIP_CLASSES = { CMS_hidden: 1, CMS_mv: 1, CMS_mh: 1, CMS_expression: 1, CMS_multiple: 1, CMS_keyword: 1, CMS_monospace: 1 };
 const VERSION = 1;
 
 function clean(html) {
@@ -20,12 +22,20 @@ function expressions_multiple(body) {
 	while (true) {
 
 		index = body.indexOf('CMS_multiple', index + 12);
-
 		if (index === -1)
 			break;
 
-		var b = body.lastIndexOf('<', index);
-		var tag = body.substring(b + 1, body.indexOf(' ', b));
+		var b = findstart(body, index);
+		if (b === -1)
+			break;
+
+		var end = body.indexOf(' ', b);
+		if (end === -1) {
+			index += 13;
+			continue;
+		}
+
+		var tag = body.substring(b + 1, end);
 
 		var e = body.indexOf('</' + tag + '>', index);
 		var size = e + 3 + tag.length;
@@ -51,6 +61,25 @@ function expressions_multiple(body) {
 	return arr;
 }
 
+function findstart(body, index) {
+
+	var notallowed = [';', '.', '>', ':', '\n', '\r', '\t'];
+
+	for (let i = index; i > -1; i--) {
+
+		let c = body[i];
+		if (c === '<')
+			return i;
+
+		if (notallowed.includes(c))
+			break;
+	}
+
+
+	return -1;
+
+}
+
 function expressions(body) {
 
 	var index = 0;
@@ -63,9 +92,17 @@ function expressions(body) {
 		if (index === -1)
 			break;
 
-		var b = body.lastIndexOf('<', index);
-		var tag = body.substring(b + 1, body.indexOf(' ', b));
+		var b = findstart(body, index);
+		if (b === -1)
+			break;
 
+		var end = body.indexOf(' ', b);
+		if (end === -1) {
+			index += 15;
+			continue;
+		}
+
+		var tag = body.substring(b + 1, end);
 		var e = body.indexOf('</' + tag + '>', index);
 		var size = e + 3 + tag.length;
 		var obj = {};
@@ -91,7 +128,7 @@ function trash(body) {
 			if (index === -1)
 				break;
 
-			var b = body.lastIndexOf('<', index);
+			var b = findstart(body, index);
 			if (b === -1)
 				break;
 
@@ -360,7 +397,7 @@ exports.compile = function(html, widgets, used) {
 		opt.id = id;
 		opt.indexer = indexer;
 		opt.body = tidy(clean(body));
-		opt.text = body.substring(body.lastIndexOf('~BEG~') + 5, body.lastIndexOf('~END~'));
+		opt.html = body.substring(body.lastIndexOf('~BEG~') + 5, body.lastIndexOf('~END~'));
 		opt.config = config || EMPTYOBJECT;
 		opt.render = widget.render;
 		opt.beg = opt.body.substring(0, opt.body.indexOf('>') + 1);
@@ -590,7 +627,7 @@ CMSRender.prototype._render = function(meta, layout, callback) {
 		}
 
 		render(opt, function(response, replace, cache) {
-			widgets[item.indexer] = replace === true ? response == null ? '' : (response + '').replace(/~(BEG|END)~/g, '') : (item.beg + (response || '') + item.end);
+			widgets[item.indexer] = replace === true ? (response == null || response == '' ? '' : (response + '').replace(/~(BEG|END)~/g, '')) : (item.beg + (response || '') + item.end);
 			if (cache)
 				self.cache[opt.cacheid] = widgets[item.indexer];
 			next();
