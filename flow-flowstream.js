@@ -1893,8 +1893,10 @@ function MAKEFLOWSTREAM(meta) {
 			components[key] = com.ui.raw;
 		}
 
-		for (var key in flow.meta.flow)
+		for (var key in flow.meta.flow) {
 			design[key] = flow.export_instance2(key);
+			delete design[key].template;
+		}
 
 		var data = {};
 		data.paused = flow.paused;

@@ -756,7 +756,7 @@ FP.destroy = function() {
 		self.emit('destroy');
 		self.meta = null;
 		self.$events = null;
-		delete F.flows[self.name];
+		delete F.flowstreams[self.name];
 	});
 
 };
@@ -2057,6 +2057,6 @@ FP.components = function(prepare_export) {
 
 exports.create = function(id, errorhandler) {
 	let flowstream = new FlowStream(id, errorhandler);
-	// F.flowstreams[id] = flowstream;
+	F.flowstreams[id] = flowstream;
 	return flowstream;
 };
