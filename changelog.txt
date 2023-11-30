@@ -19,6 +19,7 @@
 - fixed compiling HTML in CMS
 - fixed `signal` in the `F.exit(signal)` method
 - improved CMS compiler
+- fixed JS minification
 
 ========================
 0.0.91
