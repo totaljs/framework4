@@ -687,7 +687,7 @@ function minify_javascript(data) {
 			}
 		}
 
-		if ((c === '}' && last === ';') || ((c === '}' || c === ']') && output[output.length - 1] === ' ' && alpha.test(output[output.length - 2])))
+		if (!scope && (c === '}' && last === ';') || ((c === '}' || c === ']') && output[output.length - 1] === ' ' && alpha.test(output[output.length - 2])))
 			output.pop();
 
 		output.push(c);
