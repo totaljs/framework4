@@ -406,13 +406,8 @@ Instance.prototype.kill = Instance.prototype.destroy = function() {
 
 	if (self.flow.isworkerthread) {
 
-		self.flow.$socket && self.flow.$socket.destroy();
-		self.flow.$client && self.flow.$client.destroy();
-
-		if (self.flow.terminate)
-			self.flow.terminate();
-		else
-			self.flow.kill(9);
+		self.postMessage({ TYPE: 'stream/destroy' });
+		setTimeout(self => self.flow.terminate ? self.flow.terminate() : self.flow.kill(9), 1000, self);
 
 		if (PROXIES[self.id]) {
 			PROXIES[self.id].remove();
@@ -424,10 +419,11 @@ Instance.prototype.kill = Instance.prototype.destroy = function() {
 			for (var key in self.flow.sockets)
 				self.flow.sockets[key].destroy();
 		}
-		self.flow.$socket && self.flow.$socket.destroy();
-		self.flow.$client && self.flow.$client.destroy();
 		self.flow.destroy();
 	}
+
+	self.flow.$socket && self.flow.$socket.destroy();
+	self.flow.$client && self.flow.$client.destroy();
 
 	for (var key in CALLBACKS) {
 		if (CALLBACKS[key].id === self.id)
