@@ -105,7 +105,7 @@ async function getComponents(schema, used, download) {
 
 	for (let com of arr) {
 
-		if (com.value.indexOf('.json') === -1 & !used[com.id])
+		if (com.value.indexOf('.json') === -1 && !used[com.id])
 			continue;
 
 		let url = com.value;
