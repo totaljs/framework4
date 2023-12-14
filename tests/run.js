@@ -2055,6 +2055,158 @@ tests.push(function(next) {
 
 });
 
+// Flow
+tests.push(function(next) {
+
+	var group = 'Flow';
+	var group_log = log(group, 0, true);
+
+	var subtests = [];
+
+	console.log(group_log);
+
+	subtests.push(function(next) {
+
+		subtest_name = 'Flow: @exec';
+		subtest_log = log(subtest_name, 1);
+
+		var opt = {};
+		opt.id = '@exec';
+		opt.data = { name: 'Total.js' };
+
+		// Optional
+		// opt.vars = {};
+		// opt.repo = {};
+
+		// Optional, a custom reference
+		opt.ref = GUID(10);
+
+		// Optiona, a custom UID
+		opt.uid = GUID(10);
+
+		opt.callback = function(err, msg) {
+
+			if (err)
+				throw new Error('Flow error ' + err.toString());
+
+			// msg.uid;
+			// msg.ref;
+			// msg.repo {Object}
+			// msg.data {Object}
+			// msg.cloned {Number} how many times was the message cloned?
+			// msg.duration {Number} in milliseconds
+
+			Assert.ok(err ? false : true, 'Flow: error - ' + err);
+			Assert.ok(msg.ref === opt.ref, 'Flow: msg.ref !== opt.ref');
+			Assert.ok(msg.uid === opt.uid, 'Flow: msg.uid !== opt.uid');
+			Assert.ok(msg.data.name === 'TOTAL.JS', 'Flow: msg.data');
+
+			console.timeEnd(subtest_log);
+			next();
+		};
+
+		console.time(subtest_log);
+		Flow.instances.example.exec(opt);
+
+	});
+
+	subtests.push(function(next) {
+
+		subtest_name = 'Flow: #Exec';
+		subtest_log = log(subtest_name, 1);
+
+		var opt = {};
+		opt.id = '#Exec';
+		opt.data = { name: 'Total.js' };
+
+		// Optional
+		// opt.vars = {};
+		// opt.repo = {};
+
+		// Optional, a custom reference
+		opt.ref = GUID(10);
+
+		// Optiona, a custom UID
+		opt.uid = GUID(10);
+
+		opt.callback = function(err, msg) {
+
+			if (err)
+				throw new Error('Flow error ' + err.toString());
+
+			// msg.uid;
+			// msg.ref;
+			// msg.repo {Object}
+			// msg.data {Object}
+			// msg.cloned {Number} how many times was the message cloned?
+			// msg.duration {Number} in milliseconds
+
+			Assert.ok(err ? false : true, 'Flow: error - ' + err);
+			Assert.ok(msg.ref === opt.ref, 'Flow: msg.ref !== opt.ref');
+			Assert.ok(msg.uid === opt.uid, 'Flow: msg.uid !== opt.uid');
+			Assert.ok(msg.data.name === 'TOTAL.JS', 'Flow: msg.data');
+
+			console.timeEnd(subtest_log);
+			next();
+		};
+
+		console.time(subtest_log);
+		Flow.instances.example.exec(opt);
+
+	});
+
+	subtests.push(function(next) {
+
+		subtest_name = 'Flow: ilq5bavbf';
+		subtest_log = log(subtest_name, 1);
+
+		var opt = {};
+		opt.id = 'ilq5bavbf';
+		opt.data = { name: 'Total.js' };
+
+		// Optional
+		// opt.vars = {};
+		// opt.repo = {};
+
+		// Optional, a custom reference
+		opt.ref = GUID(10);
+
+		// Optiona, a custom UID
+		opt.uid = GUID(10);
+
+		opt.callback = function(err, msg) {
+
+			if (err)
+				throw new Error('Flow error ' + err.toString());
+
+			// msg.uid;
+			// msg.ref;
+			// msg.repo {Object}
+			// msg.data {Object}
+			// msg.cloned {Number} how many times was the message cloned?
+			// msg.duration {Number} in milliseconds
+
+			Assert.ok(err ? false : true, 'Flow: error - ' + err);
+			Assert.ok(msg.ref === opt.ref, 'Flow: msg.ref !== opt.ref');
+			Assert.ok(msg.uid === opt.uid, 'Flow: msg.uid !== opt.uid');
+			Assert.ok(msg.data.name === 'TOTAL.JS', 'Flow: msg.data');
+
+			console.timeEnd(subtest_log);
+			next();
+		};
+
+		console.time(subtest_log);
+		Flow.instances.example.exec(opt);
+
+	});
+
+	// Run
+	subtests.wait(function(item, next) {
+		item(next);
+	}, next);
+
+});
+
 // Run
 ON('ready', function() {
 	console.time('	Finished');

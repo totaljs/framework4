@@ -1,0 +1,59 @@
+{
+	"id": "example",
+	"components": {
+		"exec": "<script total>\n\n\texports.id = 'exec';\n\texports.name = 'Exec';\n\texports.group = 'Triggers';\n\texports.version = '1';\n\texports.icon = 'ti ti-sliders-v';\n\texports.author = 'Total.js';\n\texports.config = {};\n\texports.outputs = [{ id: 'output', name: 'Output' }];\n\texports.kind = 'trigger';\n\n\texports.make = function(instance) {\n\t\tinstance.message = function($) {\n\t\t\t$.send('output');\n\t\t};\n\t};\n\n</script>\n\n<readme>\nThe component is extraordinary because it must be executed directly from the source code via the `flowstream.exec()` method. The component triggers received data into the Flow.\n\n```js\nvar opt = {};\nopt.id = 'ID_OF_EXEC_INSTANCE';\nopt.data = { custom: 'data' };\nopt.callback = function(err, msg) {\n\t// msg.uid;\n\t// msg.ref;\n\t// msg.repo {Object}\n\t// msg.data {Object}\n\t// msg.cloned {Number} how many times was the message cloned?\n\t// msg.duration {Number} in milliseconds\n};\n\n// optional:\n// opt.vars = {};    --> custom variables\n// opt.repo = {};    --> custom repository data and this data will be returned in the callback\n// opt.uid;          --> for storing some unique ID\n// opt.ref;          --> for storing some reference ID\nflowinstance.exec(opt);\n```\n</readme>\n\n<body>\n\t<header>\n\t\t<i class=\"ICON\"></i>NAME\n\t</header>\n</body>",
+		"delay": "<script total>\n\n\texports.id = 'delay';\n\texports.name = 'Delay';\n\texports.group = 'Common';\n\texports.version = '4';\n\texports.icon = 'ti ti-hourglass';\n\texports.author = 'Total.js';\n\texports.config = { delay: 1000 };\n\texports.inputs = [{ id: 'input', name: 'Input' }];\n\texports.outputs = [{ id: 'output', name: 'Output' }];\n\n\texports.make = function(instance, config) {\n\n\t\tvar items = [];\n\t\tvar timeout;\n\t\tvar paused = false;\n\n\t\tinstance.checkstatus = function() {\n\t\t\tinstance.status({ pending: items.length });\n\t\t};\n\n\t\tinstance.trigger = function() {\n\n\t\t\ttimeout = null;\n\n\t\t\tif (paused)\n\t\t\t\treturn;\n\n\t\t\tvar msg = items.pop();\n\t\t\tif (msg) {\n\t\t\t\tinstance.checkstatus();\n\t\t\t\tmsg.send('output');\n\t\t\t\ttimeout = clearTimeout(timeout);\n\t\t\t\ttimeout = setTimeout(instance.trigger, config.delay);\n\t\t\t}\n\t\t};\n\n\t\tinstance.message = function($) {\n\t\t\titems.push($);\n\t\t\tif (timeout)\n\t\t\t\tinstance.checkstatus();\n\t\t\telse\n\t\t\t\ttimeout = setTimeout(instance.trigger, config.delay);\n\t\t};\n\n\t\tinstance.pause = function(is) {\n\t\t\tpaused = is;\n\t\t\t!is && instance.trigger();\n\t\t};\n\n\t\tinstance.close = function() {\n\t\t\tfor (let $ of items)\n\t\t\t\t$.destroy();\n\t\t\titems = null;\n\t\t\ttimeout && clearTimeout(timeout);\n\t\t\ttimeout = null;\n\t\t};\n\n\t\tinstance.configure = function() {\n\t\t\ttimeout && clearTimeout(timeout);\n\t\t\ttimeout = setTimeout(instance.trigger);\n\t\t};\n\n\t};\n\n</script>\n\n<style>\n\t.CLASS .status { font-size: 12px; margin: 0; padding: 10px; }\n\t.CLASS .status ui-bind { color: #A0A0A0; }\n\t.CLASS .padding { padding: 0 10px 10px; }\n\t.CLASS button { width: 100%; height: 24px; border: 1px solid #E0E0E0; border-radius: var(--radius); color: #000; background-color: #F0F0F0; margin: 0; }\n\t.CLASS button:hover { background-color: #F8F8F8; }\n\t.CLASS button:active { background-color: #E0E0E0; }\n\t.ui-dark .CLASS .status ui-bind { color: #777; }\n\t.ui-dark .CLASS button { border-color: #404040; color: #FFF; background-color: #222; }\n\t.ui-dark .CLASS button:hover { background-color: #303030; }\n\t.ui-dark .CLASS button:active { background-color: #404040; }\n</style>\n\n<settings>\n\t<div class=\"padding\">\n\t\t<div class=\"grid-4\">\n\t\t\t<div class=\"m\">\n\t\t\t\t<ui-component name=\"input\" path=\"?.delay\" config=\"type:number;required:1\">Delay</ui-component>\n\t\t\t\t<div class=\"help\">In milliseconds</div>\n\t\t\t</div>\n\t\t</div>\n\t</div>\n</settings>\n\n<readme>\nThe component delays processing of a message.\n</readme>\n\n<body>\n\t<header>\n\t\t<i class=\"ICON\"></i>NAME\n\t</header>\n\t<div class=\"padding\">\n\t\t<button class=\"exec\" data-exec=\"FUNC.fdelay_exec\">Skip</button>\n\t</div>\n\t<footer>\n\t\t<div class=\"status\">\n\t\t\t<div>Timeout: <ui-bind path=\"CONFIG.delay\" config=\"text:(value?value:'0')+'ms'\"></ui-bind></div>\n\t\t\t<div>Delayed messages: <b><ui-bind path=\"STATUS.pending\" config=\"text:value?value.format(0):'0'\"></ui-bind></b></div>\n\t\t</div>\n\t</footer>\n</body>\n\n<script>\n\tFUNC.fdelay_exec = function(el) {\n\t\tif (!BLOCKED('fdelay', 500))\n\t\t\tSETTER('websocket/send', { TYPE: 'trigger', id: el.attrd2('id') });\n\t};\n</script>",
+		"transformer": "<script total>\n\n\texports.id = 'transformer';\n\texports.name = 'Transformer';\n\texports.icon = 'ti ti-pulse';\n\texports.author = 'Total.js';\n\texports.version = '1';\n\texports.group = 'Common';\n\texports.config = { code: 'data.name = data.name.toUpperCase()', clear: false };\n\texports.inputs = [{ id: 'input', name: 'Input' }];\n\texports.outputs = [{ id: 'output', name: 'Output' }];\n\texports.kind = 'action';\n\n\texports.make = function(instance, config) {\n\n\t\tvar repo = {};\n\t\tvar fn;\n\n\t\tinstance.message = function($) {\n\t\t\tvar data = $.data;\n\t\t\tif (fn) {\n\t\t\t\ttry {\n\t\t\t\t\tvar val = fn(data, repo, $.refs);\n\t\t\t\t\tif (val != null)\n\t\t\t\t\t\tdata = val;\n\t\t\t\t} catch (e) {\n\t\t\t\t\t$.destroy();\n\t\t\t\t\tinstance.throw(e);\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t}\n\t\t\t$.send('output', data);\n\t\t};\n\n\t\tinstance.configure = function() {\n\t\t\ttry {\n\t\t\t\tif (config.code)\n\t\t\t\t\tfn = new Function('data', 'repo', 'refs', config.code + ';return data;');\n\t\t\t\telse\n\t\t\t\t\tfn = null;\n\t\t\t\tif (config.clear)\n\t\t\t\t\trepo = {};\n\t\t\t} catch (e) {\n\t\t\t\tinstance.throw(e);\n\t\t\t}\n\n\t\t};\n\n\t\tinstance.configure();\n\n\t};\n\n</script>\n\n<readme>\nWith this component you can easily modify incoming data. Then the `data` content is delivered. For storing temporary/persistent data you can use `repo {Object}` variable.\n\n__Example 1__:\n\n```js\n// \"data\" is a reference to message data\ndata.name = data.name.toUpperCase();\n```\n\n__Example 2__:\n\n```js\ndata = data.toUpperCase();\n```\n\n__Example 3__:\n\n```js\nvar tmp = data;\ndata = {};\ndata.name = tmp.Name;\n```\n</readme>\n\n<settings>\n\t<div class=\"padding\">\n\t\t<ui-component name=\"codemirror\" path=\"?.code\" config=\"type:javascript;minheight:300;parent:auto;margin:85;tabs:true;trim:true\" class=\"m\"></ui-component>\n\t\t<ui-component name=\"input\" path=\"?.clear\" config=\"type:checkbox\">Clear repository object</ui-component>\n\t</div>\n</settings>\n\n<body>\n\t<header>\n\t\t<i class=\"ICON\"></i>NAME\n\t</header>\n</body>",
+		"end": "<script total>\n\n\texports.id = 'end';\n\texports.name = 'End';\n\texports.group = 'Common';\n\texports.version = '1';\n\texports.icon = 'ti ti-ban';\n\texports.author = 'Total.js';\n\texports.config = {};\n\texports.inputs = [{ id: 'input', name: 'Input' }];\n\texports.kind = 'output';\n\n\texports.make = function(instance) {\n\t\tinstance.message = function($) {\n\t\t\t$.destroy();\n\t\t};\n\t};\n\n</script>\n\n<readme>\nThe component destroys the incoming message.\n</readme>\n\n<body>\n\t<header>\n\t\t<i class=\"ICON\"></i>NAME\n\t</header>\n</body>"
+	},
+	"design": {
+		"ilq5batki": {
+			"id": "ilq5batki",
+			"connections": {
+				"output": [
+					{
+						"id": "ilq5bb50x",
+						"index": "input"
+					}
+				]
+			},
+			"config": {
+				"code": "data.name = data.name.toUpperCase()",
+				"clear": false
+			},
+			"component": "transformer",
+			"x": 433,
+			"y": 203,
+			"connected": true
+		},
+		"ilq5bavbf": {
+			"id": "ilq5bavbf",
+			"connections": {
+				"output": [
+					{
+						"id": "ilq5batki",
+						"index": "input"
+					}
+				]
+			},
+			"config": {},
+			"component": "exec",
+			"x": 109,
+			"y": 274,
+			"connected": true
+		},
+		"ilq5bb50x": {
+			"id": "ilq5bb50x",
+			"connections": {},
+			"config": {},
+			"component": "end",
+			"x": 805,
+			"y": 119,
+			"connected": true
+		}
+	},
+	"variables": {},
+	"readme": "",
+	"name": "FlowStream",
+	"cloning": true
+}
