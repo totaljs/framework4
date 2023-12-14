@@ -850,14 +850,14 @@ function exec(self, opt) {
 
 	if (opt.id[0] === '@') {
 		id = opt.id.substring(1);
-		for (var key in instances) {
+		for (let key in instances) {
 			if (instances[key].component === id)
 				target.push(instances[key]);
 		}
 	} else if (opt.id[0] === '#') {
 		id = opt.id.substring(1);
-		for (var key in instances) {
-			if (instances[key].module.id === id)
+		for (let key in instances) {
+			if (instances[key].module.name === id)
 				target.push(instances[key]);
 		}
 	} else {
