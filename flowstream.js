@@ -1268,8 +1268,8 @@ FP.load = function(components, design, callback, asfile) {
 			self.use(design, function(err) {
 				self.inc(0);
 				err && error.push(err);
-				callback && callback(err);
 				self.clean();
+				callback && callback(err);
 			});
 
 		});
@@ -1322,8 +1322,8 @@ FP.rewrite = function(data, callback) {
 
 				self.inc(0);
 				err && error.push(err);
-				callback && callback(err);
 				self.clean();
+				callback && callback(err);
 			});
 		});
 	});
