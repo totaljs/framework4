@@ -7,6 +7,11 @@ const REG_STRING = /'|"/g;
 
 exports.compile = async function(opt, callback) {
 
+	// opt.schema {String/Object}
+	// |--- opt.schema.origin {String}
+	// opt.local {Boolean}
+	// opt.download {Boolean}
+
 	if (!callback)
 		return new Promise((resolve, reject) => exports.compile(opt, (err, response) => err ? reject(err) : resolve(response)));
 
@@ -95,6 +100,18 @@ async function Download(url) {
 	});
 }
 
+function parseorigin(url) {
+
+	var origin = '';
+
+	if (url.charAt(0) !== '/') {
+		var index = url.indexOf('/', 9);
+		origin = index === -1 ? url : url.substring(0, index);
+	}
+
+	return origin;
+}
+
 async function getComponents(schema, used, download) {
 
 	var components = {};
@@ -109,8 +126,12 @@ async function getComponents(schema, used, download) {
 			continue;
 
 		let url = com.value;
-		if (url[0] === '/')
+		let origin = schema.origin;
+
+		if (url[0] === '/') {
 			url = schema.origin + url;
+		} else
+			origin = parseorigin(url);
 
 		let body = await Download(url.format(com.id));
 
@@ -132,12 +153,13 @@ async function getComponents(schema, used, download) {
 
 			let render = body.substring(body.indexOf('=', index) + 1, index + end.index).trim().replace(REG_STRING, '').format(com.id);
 
+			if (render[0] === '/')
+				render = (origin || schema.origin || '') + render;
+
 			if (download) {
 				if (render.substring(0, 7) === 'base64 ') {
 					components[com.id] = render;
 				} else {
-					if (render[0] === '/')
-						render = schema.origin + render;
 					let html = await Download(render);
 					if (html)
 						components[com.id] = 'base64 ' + Buffer.from(encodeURIComponent(html), 'utf8').toString('base64');
