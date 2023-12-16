@@ -2660,7 +2660,7 @@ function MAKEFLOWSTREAM(meta) {
 	});
 
 	var makemeta = function() {
-		return { TYPE: 'flow/flowstream', id: flow.$schema.id, version: VERSION, paused: flow.paused, node: F.version_node, total: F.version, name: flow.$schema.name, version2: flow.$schema.version, icon: flow.$schema.icon, reference: flow.$schema.reference, author: flow.$schema.author, color: flow.$schema.color, origin: flow.$schema.origin, notify: flow.$schema.origin + NOTIFYPATH + flow.$schema.id + '-/', readme: flow.$schema.readme, url: flow.$schema.url, proxypath: flow.$schema.proxypath, env: flow.$schema.env, worker: isFLOWSTREAMWORKER ? (W.workerData ? 'Worker Thread' : 'Child Process') : false, cloning: flow.cloning };
+		return { TYPE: 'flow/flowstream', id: flow.$schema.id, version: VERSION, paused: flow.paused, node: F.version_node, total: F.version, name: flow.$schema.name, version2: flow.$schema.version, icon: flow.$schema.icon, reference: flow.$schema.reference, author: flow.$schema.author, color: flow.$schema.color, origin: flow.$schema.origin, notify: flow.$schema.origin + NOTIFYPATH + flow.$schema.id + '-/', readme: flow.$schema.readme, url: flow.$schema.url, proxypath: isFLOWSTREAMWORKER ? flow.$schema.proxypath : '/', env: flow.$schema.env, worker: isFLOWSTREAMWORKER ? (W.workerData ? 'Worker Thread' : 'Child Process') : false, cloning: flow.cloning };
 	};
 
 	flow.proxy.refreshmeta = function() {

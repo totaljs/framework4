@@ -3,6 +3,7 @@
 ========================
 
 - improved UI Builder compiler
+- improved `FlowStream` initial header for WebSocket
 
 ========================
 0.0.93
