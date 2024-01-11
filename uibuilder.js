@@ -11,6 +11,7 @@ exports.compile = async function(opt, callback) {
 	// |--- opt.schema.origin {String}
 	// opt.local {Boolean}
 	// opt.download {Boolean}
+	// opt.origin {String}
 
 	if (!callback)
 		return new Promise((resolve, reject) => exports.compile(opt, (err, response) => err ? reject(err) : resolve(response)));
@@ -29,7 +30,7 @@ exports.compile = async function(opt, callback) {
 	if (opt.local) {
 		response.components = used;
 	} else {
-		let components = await getComponents(schema, used, opt.download);
+		let components = await getComponents(opt, used);
 		response.components = components;
 	}
 
@@ -60,7 +61,7 @@ exports.download = async function(opt, callback) {
 		return new Promise((resolve, reject) => exports.download(opt, (err, response) => err ? reject(err) : resolve(response)));
 
 	try {
-		let response = await getComponents2(opt.components, opt.origin);
+		let response = await getComponents2(opt);
 		callback(null, response);
 	} catch (e) {
 		callback(e);
@@ -86,17 +87,25 @@ function getInstances(schema) {
 	return response;
 }
 
-async function Download(url) {
+async function Download(url, local = false) {
 	return new Promise(function(resolve) {
-		let opt = {};
-		opt.url = url;
-		opt.method = 'GET';
-		opt.keepalive = true;
-		opt.insecure = true;
-		opt.callback = function(err, response) {
-			resolve(response.status === 200 ? (response.body.isJSON() ? response.body.parseJSON(true) : response.body) : '');
-		};
-		REQUEST(opt);
+
+		if (local && url[0] === '~') {
+			// File on HDD (potential dangerous)
+			F.Fs.readFile(url.substring(1), 'utf8', function(err, response) {
+				resolve(err ? '' : (response.isJSON() ? response.parseJSON(true) : response));
+			});
+		} else {
+			let opt = {};
+			opt.url = url;
+			opt.method = 'GET';
+			opt.keepalive = true;
+			opt.insecure = true;
+			opt.callback = function(err, response) {
+				resolve(response.status === 200 ? (response.body.isJSON() ? response.body.parseJSON(true) : response.body) : '');
+			};
+			REQUEST(opt);
+		}
 	});
 }
 
@@ -112,8 +121,10 @@ function parseorigin(url) {
 	return origin;
 }
 
-async function getComponents(schema, used, download) {
+async function getComponents(opt, used) {
 
+	var schema = opt.schema;
+	var download = opt.download;
 	var components = {};
 	var arr = [];
 
@@ -126,10 +137,10 @@ async function getComponents(schema, used, download) {
 			continue;
 
 		let url = com.value;
-		let origin = schema.origin;
+		let origin = opt.origin || schema.origin;
 
 		if (url[0] === '/') {
-			url = schema.origin + url;
+			url = origin + url;
 		} else
 			origin = parseorigin(url);
 
@@ -175,8 +186,10 @@ async function getComponents(schema, used, download) {
 	return components;
 }
 
-async function getComponents2(list, origin) {
+async function getComponents2(opt) {
 
+	var list = opt.components;
+	var origin = opt.origin;
 	var components = {};
 	var arr = [];
 
