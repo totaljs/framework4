@@ -6189,7 +6189,8 @@ F.$load = function(types, targetdirectory, callback) {
 				items.wait(function(plugin, next) {
 
 					if (plugin.indexOf('.html') !== -1) {
-						dependencies.push(next => install('plugin', plugin.replace(/\.html$/g, ''), Path.join(dir, plugin), next));
+						var dir2 = dir;
+						dependencies.push(next => install('plugin', plugin.replace(/\.html$/g, ''), Path.join(dir2, plugin), next));
 						next();
 						return;
 					}

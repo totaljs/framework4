@@ -4,6 +4,7 @@
 
 - improved UI Builder compiler
 - improved `FlowStream` initial header for WebSocket
+- fixed loading `.html` plugins
 
 ========================
 0.0.93
