@@ -3733,7 +3733,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				delete F.routes.api[r.url][r.name];
 			if (Object.keys(F.routes.api[r.url]).length === 0) {
 				delete F.routes.api[r.url];
-				var rindex = F.routes.web.findIndex('path', r.routepath);
+				var rindex = F.routes.web.TfindIndex('path', r.routepath);
 				if (rindex !== -1) {
 					F.routes.web.splice(rindex, 1);
 					if (isremoveonly)
@@ -13640,7 +13640,7 @@ ControllerProto.sitemap_add = function(parent, name, url) {
 			return EMPTYARRAY;
 	}
 
-	var index = sitemap.findIndex('id', parent);
+	var index = sitemap.TfindIndex('id', parent);
 	if (index === -1)
 		return sitemap;
 
@@ -20597,7 +20597,7 @@ NEWCOMMAND('clear_owner', function(owner) {
 	for (var key in F.transformations) {
 		arr = F.transformations[key];
 		while (true) {
-			var index = arr.findIndex('owner', owner);
+			var index = arr.TfindIndex('owner', owner);
 			if (index === -1)
 				break;
 			arr.splice(index, 1);

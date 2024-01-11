@@ -5248,7 +5248,7 @@ AP.findAll = function(cb, value) {
 };
 
 AP.findValue = function(cb, value, path, def) {
-	var index = this.findIndex(cb, value);
+	var index = this.TfindIndex(cb, value);
 	if (index !== -1) {
 		var item = this[index][path];
 		return item == null ? def : item;
@@ -5258,13 +5258,13 @@ AP.findValue = function(cb, value, path, def) {
 
 AP.findItem = function(cb, value) {
 	var self = this;
-	var index = self.findIndex(cb, value);
+	var index = self.TfindIndex(cb, value);
 	if (index === -1)
 		return null;
 	return self[index];
 };
 
-AP.findIndex = function(cb, value) {
+AP.TfindIndex = AP.findIndex = function(cb, value) {
 
 	var self = this;
 	var isFN = typeof(cb) === 'function';

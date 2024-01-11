@@ -3627,7 +3627,7 @@ ErrorBuilder.prototype.remove = function(name) {
  * @return {Boolean}
  */
 ErrorBuilder.prototype.hasError = function(name) {
-	return name ? this.items.findIndex('name', name) !== -1 : this.items.length > 0;
+	return name ? this.items.TfindIndex('name', name) !== -1 : this.items.length > 0;
 };
 
 /**
@@ -5115,7 +5115,7 @@ global.NEWTRANSFORM = function(name, fn, id) {
 		id = GUID(10);
 
 	var items = F.transformations[name];
-	var index = items.findIndex('id', id);
+	var index = items.TfindIndex('id', id);
 
 	if (fn) {
 		if (index === -1)
