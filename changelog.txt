@@ -3,6 +3,7 @@
 ========================
 
 - added alias `Array.TfindIndex` (because some of NPM used their own)
+- added `String.tslash()` method
 
 ========================
 0.0.94
