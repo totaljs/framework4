@@ -4,6 +4,8 @@
 
 - added alias `Array.TfindIndex` (because some of NPM used their own)
 - added `String.tslash()` method
+- added `error` argument in the `jsonschemaobject.transform(data, partial, [error])` method
+- removed `callback` argument in the `jsonschemaobject.transform(data, [callback], partial)` method
 
 ========================
 0.0.94

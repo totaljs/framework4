@@ -7338,9 +7338,11 @@ String.prototype.toJSONSchema = function(name, url) {
 	return obj;
 };
 
-exports.jsonschematransform = function(value, callback, partial) {
+exports.jsonschematransform = function(value, partial, error) {
 
-	var error = new ErrorBuilder();
+	if (!error)
+		error = new ErrorBuilder();
+
 	var response = null;
 
 	if (partial) {

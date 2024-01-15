@@ -1550,7 +1550,7 @@ SchemaBuilderEntityProto.action = function(name, obj) {
 
 	obj.validate = function(type, value, partial) {
 		var jsonschema = this['jsonschema' + type];
-		return jsonschema ? jsonschema.transform(value, null, partial) : { error: null, response: value };
+		return jsonschema ? jsonschema.transform(value, partial) : { error: null, response: value };
 	};
 
 	if (obj.route) {
@@ -5489,7 +5489,7 @@ global.NEWACTION = function(name, obj) {
 
 	obj.validate = function(type, value, partial) {
 		var jsonschema = this['jsonschema' + type];
-		return jsonschema ? jsonschema.transform(value, null, partial) : { error: null, response: value };
+		return jsonschema ? jsonschema.transform(value, partial) : { error: null, response: value };
 	};
 
 	F.makesourcemap();
