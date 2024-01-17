@@ -4352,7 +4352,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (apiname && !apischema)
 			apischema = '*  -->  ' + apiname;
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout, owner: CURRENT_OWNER, fn: typeof(funcExecute) === 'function' ? funcExecute : null };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout, owner: CURRENT_OWNER, fn: typeof(funcExecute) === 'function' && funcExecute !== controller_json_workflow_multiple && funcExecute !== controller_json_workflow ? funcExecute : null };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
