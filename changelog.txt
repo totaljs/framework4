@@ -6,6 +6,7 @@
 - added `String.tslash()` method
 - added `error` argument in the `jsonschemaobject.transform(data, partial, [error])` method
 - removed `callback` argument in the `jsonschemaobject.transform(data, [callback], partial)` method
+- added support for custom Route API actions
 
 ========================
 0.0.94

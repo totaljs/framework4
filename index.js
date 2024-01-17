@@ -4352,7 +4352,7 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 		if (apiname && !apischema)
 			apischema = '*  -->  ' + apiname;
 
-		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout, owner: CURRENT_OWNER };
+		F.routes.all[mypath] = F.routes.api[tmpapi][apiname] = { url: tmpapi, name: apiname, method: apimethod, action: (apimethod + apischema), params: apiparams, member: membertype, path: mypath, isAPI: true, flags: flags, timeout: timeout, owner: CURRENT_OWNER, fn: typeof(funcExecute) === 'function' ? funcExecute : null };
 
 		for (var i = 0; i < F.routes.web.length; i++) {
 			var tmp = F.routes.web[i];
@@ -13234,6 +13234,11 @@ function controller_api() {
 
 	if (s.method !== '-' && !model.data)
 		model.data = {};
+
+	if (s.fn) {
+		s.fn.call(self);
+		return;
+	}
 
 	// Evaluates action
 	CALL(s.action, model.data, self).callback(self.callback());
