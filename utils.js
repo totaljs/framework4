@@ -69,7 +69,7 @@ const regexpDiacritics = /[^\u0000-\u007e]/g;
 const regexpUA = /[a-z]+/gi;
 const regexpXML = /\w+=".*?"/g;
 const regexpDECODE = /&#?[a-z0-9]+;/g;
-const regexpARG = /\{{1,2}[a-z0-9_.-\s]+\}{1,2}/gi;
+const regexpARG = /\{{1,2}[a-z0-9_$.-\s]+\}{1,2}/gi;
 const regexpINTEGER = /(^-|\s-)?[0-9]+/g;
 const regexpFLOAT = /(^-|\s-)?[0-9.,]+/g;
 const regexpSEARCH = /[^a-zA-Zá-žÁ-Ž\d\s:]/g;
