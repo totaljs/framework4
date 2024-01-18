@@ -9,6 +9,7 @@
 - added support for custom Route API actions
 - fixed loading FlowStreams without identifiers
 - fixed serializing TMS sources in the Flow module
+- fixed `String.args()` for evaluting keys with `$` character
 
 ========================
 0.0.94
