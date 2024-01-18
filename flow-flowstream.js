@@ -1882,7 +1882,7 @@ function MAKEFLOWSTREAM(meta) {
 		var variables = flow.variables;
 		var design = {};
 		var components = {};
-		var sources = JSON.parse(JSON.stringify(flow.sources, stringifyskip));
+		var sources = flow.sources ? JSON.parse(JSON.stringify(flow.sources, stringifyskip)) : {};
 
 		for (var key in flow.meta.components) {
 			var com = flow.meta.components[key];
@@ -1976,7 +1976,7 @@ function MAKEFLOWSTREAM(meta) {
 	};
 
 	flow.redraw = refresh_components;
-	flow.sources = meta.sources;
+	flow.sources = meta.sources || {};
 	flow.proxy = {};
 
 	flow.proxy.variables = function(data) {
