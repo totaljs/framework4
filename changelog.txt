@@ -7,6 +7,7 @@
 - added `error` argument in the `jsonschemaobject.transform(data, partial, [error])` method
 - removed `callback` argument in the `jsonschemaobject.transform(data, [callback], partial)` method
 - added support for custom Route API actions
+- fixed loading FlowStreams without identifiers
 
 ========================
 0.0.94

@@ -135,6 +135,9 @@ FS.load = function(flow, callback) {
 	// flow.memory {Number}
 	// flow.proxypath {String}
 
+	if (!flow.id)
+		flow.id = F.TUtils.random_string(10).toLowerCase();
+
 	if (FS.instances[flow.id]) {
 		FS.reload(flow);
 		callback && setImmediate(callback, null, FS.instances[flow.id]);
