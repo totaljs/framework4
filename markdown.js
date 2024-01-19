@@ -221,10 +221,10 @@ function parseul(builder) {
 		var arr = ul[key];
 		var lines = [];
 		var tags = [];
-		var prev;
-		var diff;
+		var prev = null;
+		var diff = null;
 		var init = false;
-		var tmp;
+		var tmp = null;
 
 		for (var i = 0; i < arr.length; i++) {
 
