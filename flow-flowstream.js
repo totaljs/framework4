@@ -396,13 +396,19 @@ Instance.prototype.eval = function(msg, callback) {
 	return self;
 };
 
+Instance.prototype.remove = function() {
+	Flow.remove(this.id);
+};
+
 // Destroys the Flow
 Instance.prototype.kill = Instance.prototype.destroy = function() {
 
 	var self = this;
 
 	setTimeout(() => exports.refresh(self.id, 'destroy'), 500);
+
 	self.flow.$destroyed = true;
+	self.flow.$terminated = true;
 
 	if (self.flow.isworkerthread) {
 
@@ -1253,6 +1259,10 @@ function init_current(meta, callback, nested) {
 			}
 		});
 
+		flow.proxy.remove = function() {
+			Parent.postMessage({ TYPE: 'stream/remove' });
+		};
+
 		flow.proxy.kill = function() {
 			Parent.postMessage({ TYPE: 'stream/kill' });
 		};
@@ -1360,6 +1370,10 @@ function init_current(meta, callback, nested) {
 
 		flow.proxy.restart = function() {
 			// nothing
+		};
+
+		flow.proxy.remove = function() {
+			flow.$instance.remove();
 		};
 
 		flow.proxy.kill = function() {
@@ -1512,6 +1526,11 @@ function init_worker(meta, type, callback) {
 			case 'stream/kill':
 				if (!worker.$terminated)
 					worker.$instance.destroy(msg.code || 9);
+				break;
+
+			case 'stream/remove':
+				if (!worker.$terminated)
+					worker.$instance.remove();
 				break;
 
 			case 'stream/send':
@@ -1939,6 +1958,10 @@ function MAKEFLOWSTREAM(meta) {
 
 	flow.save = function() {
 		save();
+	};
+
+	flow.remove = function() {
+		flow.proxy.remove();
 	};
 
 	flow.kill = function(code) {

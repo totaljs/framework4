@@ -11,6 +11,7 @@
 - fixed serializing TMS sources in the Flow module
 - fixed `String.args()` for evaluting keys with `$` character
 - fixed `ul` parsing in the Markdown parser
+- added a new method `FlowInstance.remove()`
 
 ========================
 0.0.94
