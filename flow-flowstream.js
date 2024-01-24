@@ -1903,37 +1903,29 @@ function MAKEFLOWSTREAM(meta) {
 		var components = {};
 		var sources = flow.sources ? JSON.parse(JSON.stringify(flow.sources, stringifyskip)) : {};
 
-		for (var key in flow.meta.components) {
-			var com = flow.meta.components[key];
+		for (let key in flow.meta.components) {
+			let com = flow.meta.components[key];
 			components[key] = com.ui.raw;
 		}
 
-		for (var key in flow.meta.flow) {
+		for (let key in flow.meta.flow) {
 			design[key] = flow.export_instance2(key);
 			delete design[key].template;
 		}
 
 		var data = {};
+		var blacklist = { unixsocket: 1, components: 1, variables2: 1, sources: 1, design: 1, size: 1, directory: 1 };
+
+		for (let key in flow.$schema) {
+			if (!blacklist[key])
+				data[key] = flow.$schema[key];
+		}
+
 		data.paused = flow.paused;
-		data.id = flow.$schema.id;
-		data.reference = flow.$schema.reference;
-		data.author = flow.$schema.author;
-		data.group = flow.$schema.group;
-		data.icon = flow.$schema.icon;
-		data.color = flow.$schema.color;
-		data.version = flow.$schema.version;
-		data.cloning = flow.$schema.cloning;
-		data.readme = flow.$schema.readme;
-		data.url = flow.$schema.url;
-		data.name = flow.$schema.name;
 		data.components = components;
 		data.design = design;
 		data.variables = variables;
 		data.sources = sources;
-		data.proxypath = flow.$schema.proxypath;
-		data.origin = flow.$schema.origin;
-		data.dtcreated = flow.$schema.dtcreated;
-		data.import = flow.$schema.import;
 		return data;
 	};
 
