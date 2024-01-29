@@ -13,6 +13,7 @@
 - fixed `ul` parsing in the Markdown parser
 - added a new method `FlowInstance.remove()`
 - improved exporting Flow schema
+- extended `U.ls()` by adding `unified` argument
 
 ========================
 0.0.94

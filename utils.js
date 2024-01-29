@@ -28,6 +28,7 @@ const REGREPLACEARR = /\[\]/g;
 const REG_JPG = /jfif|exif/;
 const REG_WEBP = /jfif|webp|exif/;
 const REG_SVG = /xml|svg/i;
+const REG_WIN = /\\/g;
 
 const COMPARER = function(a, b) {
 	if (!a && b)
@@ -2279,10 +2280,11 @@ exports.distance = function(lat1, lon1, lat2, lon2) {
 	return (R * c).floor(3);
 };
 
-function ls(path, callback, advanced, filter) {
+function ls(path, callback, advanced, filter, unified) {
 	var filelist = new FileList();
 	var tmp;
 
+	filelist.unified = unified == true;
 	filelist.advanced = advanced;
 	filelist.onComplete = callback;
 
@@ -2309,11 +2311,11 @@ function ls(path, callback, advanced, filter) {
  * @param {Function(files, directories)} callback Callback
  * @param {Function(filename, isDirectory) or String or RegExp} filter Custom filter (optional).
  */
-exports.ls = function(path, callback, filter) {
+exports.ls = function(path, callback, filter, unified) {
 	if (callback)
-		ls(path, callback, false, filter);
+		ls(path, callback, false, filter, unified);
 	else
-		return new Promise(resolve => ls(path, (files, dirs) => resolve({ directories: dirs, files: files }), false, filter));
+		return new Promise(resolve => ls(path, (files, dirs) => resolve({ directories: dirs, files: files }), false, filter, unified));
 };
 
 /**
@@ -2322,11 +2324,11 @@ exports.ls = function(path, callback, filter) {
  * @param {Function(files, directories)} callback Callback
  * @param {Function(filename ,isDirectory) or String or RegExp} filter Custom filter (optional).
  */
-exports.ls2 = function(path, callback, filter) {
+exports.ls2 = function(path, callback, filter, unified) {
 	if (callback)
-		ls(path, callback, true, filter);
+		ls(path, callback, true, filter, unified);
 	else
-		return new Promise(resolve => ls(path, (files, dirs) => resolve({ directories: dirs, files: files }), true, filter));
+		return new Promise(resolve => ls(path, (files, dirs) => resolve({ directories: dirs, files: files }), true, filter, unified));
 };
 
 DP.setTimeZone = function(timezone) {
@@ -5513,6 +5515,7 @@ function FileList() {
 	this.onComplete = null;
 	this.onFilter = null;
 	this.advanced = false;
+	this.unified = false;
 }
 
 const FLP = FileList.prototype;
@@ -5554,14 +5557,19 @@ FLP.stat = function(path) {
 		if (err)
 			return self.next();
 
+		var cleaned = self.unified && isWindows ? path.replace(REG_WIN, '/') : path;
+		var path2 = path;
+
 		if (stats.isDirectory()) {
 			path = self.clean(path);
-			if (!self.onFilter || self.onFilter(path, true)) {
-				self.directory.push(path);
-				self.pendingDirectory.push(path);
+			cleaned = self.unified && isWindows ? path.replace(REG_WIN, '/') : path;
+
+			if (!self.onFilter || self.onFilter(cleaned, true)) {
+				self.directory.push(cleaned);
+				self.pendingDirectory.push(path2);
 			}
-		} else if (!self.onFilter || self.onFilter(path, false))
-			self.file.push(self.advanced ? { filename: path, stats: stats } : path);
+		} else if (!self.onFilter || self.onFilter(cleaned, false))
+			self.file.push(self.advanced ? { filename: cleaned, stats: stats } : cleaned);
 
 		self.next();
 	});
