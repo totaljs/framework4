@@ -16,6 +16,7 @@
 - extended `U.ls()` by adding `unified` argument
 - added `FlowStreamComponentInstance.components {Object}`
 - fixed `every` (e.g. `*/5`) value in the Cron
+- fixed `#id` selector for `FlowStreamInstacen.send()` method
 
 ========================
 0.0.94

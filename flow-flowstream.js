@@ -796,7 +796,7 @@ function send(self, id, data, callback) {
 	} else if (id[0] === '#') {
 		id = id.substring(1);
 		for (let key in instances) {
-			if (instances[key].module && instances[key].module.id === id) {
+			if (instances[key].module.name === id) {
 				instance = instances[key];
 				break;
 			}
