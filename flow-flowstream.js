@@ -1432,6 +1432,9 @@ function init_current(meta, callback, nested) {
 				}
 			}
 
+			var tmp = { TYPE: 'flow/error', error: err.toString(), source: source, id: instanceid, component: componentid, ts: new Date() };
+			flow.$socket && flow.$socket.send(tmp);
+			flow.$client && flow.$client.send(tmp);
 			flow.$instance.onerror && flow.$instance.onerror(err, source, instanceid, componentid);
 		};
 
