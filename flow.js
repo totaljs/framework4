@@ -40,7 +40,7 @@ FS.onerror = function(err, source, id, componentid, stack) {
 		meta.source = source;
 		meta.instanceid = id;
 		meta.componentid = componentid;
-		FS.$events.error && FS.emit('error', meta);
+		FS.emit('flowstream_error', meta);
 	}
 
 };
