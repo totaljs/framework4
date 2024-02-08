@@ -17,6 +17,7 @@
 - added `FlowStreamComponentInstance.components {Object}`
 - fixed `every` (e.g. `*/5`) value in the Cron
 - fixed `#id` selector for `FlowStreamInstance.send()` method
+- fixed loading the `default_root` configuration from the environment
 
 ========================
 0.0.94

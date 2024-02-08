@@ -10992,12 +10992,6 @@ function configure_configs(arr, rewrite) {
 				accepts = value.replace(REG_ACCEPTCLEANER, '').split(',');
 				break;
 
-			case 'default_root':
-			case 'root':
-				if (value)
-					obj[name] = U.path(value);
-				break;
-
 			case 'static_accepts':
 				obj[name] = {};
 				tmp = value.replace(REG_ACCEPTCLEANER, '').split(',');
@@ -11103,6 +11097,12 @@ function configure_configs(arr, rewrite) {
 				break;
 		}
 	}
+
+	if (obj.root)
+		obj.root = U.path(obj.root);
+
+	if (obj.default_root)
+		obj.default_root = U.path(obj.default_root);
 
 	// Cache for generated passwords
 	if (generated && generated.length) {
