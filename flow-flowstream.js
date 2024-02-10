@@ -83,6 +83,10 @@ function Instance(instance, id) {
 
 Instance.prototype = {
 
+	get stats() {
+		return this.worker ? this.worker.stats : this.flow.stats;
+	},
+
 	get worker() {
 		return this.flow;
 	},
