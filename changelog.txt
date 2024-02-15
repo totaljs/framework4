@@ -3,6 +3,7 @@
 ========================
 
 - added `FlowStreamInstance.stats {Object}` property
+- registered a new global variable `Total` - alias for `F`
 
 ========================
 0.0.95

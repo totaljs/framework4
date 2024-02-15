@@ -2648,7 +2648,7 @@ Framework.prototype = {
 };
 
 var framework = new Framework();
-global.framework = global.F = module.exports = framework;
+global.Total = global.framework = global.F = module.exports = framework;
 
 global.CMD = function(key, a, b, c, d) {
 	if (F.commands[key]) {
