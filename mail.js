@@ -731,7 +731,7 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 
 	message.push('MIME-Version: 1.0');
 	buffer.push('MAIL FROM: <' + msg.address_from.address + '>');
-	message.push('Message-ID: <total4_' + obj.date.toString(36) + '_' + (INDEXATTACHMENT++) + '_' + (INDEXATTACHMENT) + '>');
+	message.push('Message-ID: <total4_' + dt.toString(36) + '_' + (INDEXATTACHMENT++) + '_' + (INDEXATTACHMENT) + '>');
 
 	self.$priority && message.push('X-Priority: ' + self.$priority);
 	self.$confidential && message.push('Sensitivity: Company-Confidential');
