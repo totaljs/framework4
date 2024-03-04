@@ -89,7 +89,7 @@ tests.push(function(next) {
 		subtest_log = log(subtest_name, 1);
 		console.time(subtest_log);
 
-		RESTBuilder.GET('https://www.totaljs.com/helfo').exec(function(err) {
+		RESTBuilder.GET('https://www.totaljs.com/helfo').xhr().exec(function(err) {
 			Assert.ok(err instanceof ErrorBuilder, group + ' - Expecting ErrorBuilder');
 			console.timeEnd(subtest_log);
 			next();
