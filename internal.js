@@ -2350,7 +2350,10 @@ function onFinished(stream, fn) {
 		stream.$onFinishedQueue = fn;
 
 	var callback = function() {
-		!stream.$onFinished && (stream.$onFinished = true);
+
+		if (!stream.$onFinished)
+			stream.$onFinished = true;
+
 		if (stream.$onFinishedQueue instanceof Array) {
 			while (stream.$onFinishedQueue.length)
 				stream.$onFinishedQueue.shift()();
@@ -2361,7 +2364,7 @@ function onFinished(stream, fn) {
 		}
 	};
 
-	if (isFinished(stream)) {
+	if (F.version_node2 < 1800 && isFinished(stream)) {
 		setImmediate(callback);
 	} else {
 

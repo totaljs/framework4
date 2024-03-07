@@ -5,6 +5,7 @@
 - added `FlowStreamInstance.stats {Object}` property
 - registered a new global variable `Total` - alias for `F`
 - fixed generating `Message-ID` in SMTP sender
+- fixed `CLEANUP()` method
 
 ========================
 0.0.95

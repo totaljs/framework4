@@ -2219,6 +2219,7 @@ function Framework() {
 	self.is4 = self.version = 4096;
 	self.version_header = '4';
 	self.version_node = process.version + '';
+	self.version_node2 = self.version_node.replace(/v|\./g, '').parseInt();
 	self.syshash = (__dirname + '-' + Os.hostname() + '-' + Os.platform() + '-' + Os.arch() + '-' + Os.release() + '-' + Os.tmpdir() + JSON.stringify(process.versions)).md5();
 	self.pref = global.PREF;
 	self.timestamp = Date.now().toString(36);
