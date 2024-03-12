@@ -2447,7 +2447,7 @@ function MAKEFLOWSTREAM(meta) {
 		if (notifier % 3 === 0) {
 			notifier = 0;
 			if (Parent || Flow.$events.stats) {
-				let pstats = { paused: flow.paused, messages: flow.stats.messages, pending: flow.stats.pending, memory: flow.stats.memory, minutes: flow.stats.minutes, errors: flow.stats.errors, mm: flow.stats.mm };
+				let pstats = { paused: flow.paused, messages: flow.stats.messages, pending: flow.stats.pending, memory: flow.stats.memory, minutes: flow.stats.minutes, errors: flow.stats.errors, mm: flow.stats.mm, pid: process.pid };
 				if (Parent)
 					Parent.postMessage({ TYPE: 'stream/stats', data: pstats });
 				else if (Flow.$events.stats)
