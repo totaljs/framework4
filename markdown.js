@@ -1,3 +1,7 @@
+// Total.js Markdown
+// The MIT License
+// Copyright 2018-2023 (c) Peter Širka <petersirka@gmail.com>
+
 const REG_DASH = /-{2,}/g;
 const REG_TAGS = /<[^>]*>/g;
 const REG_EMPTYCHAR = /\s|\W/;
@@ -137,9 +141,9 @@ function markdown_format(value, index, text) {
 	return value;
 }
 
-function markdown_id(value) {
+function markdown_id(prefix, value) {
 	value = value.replace(REG_TAGS, '');
-	return value.slug().replace(REG_DASH, '-');
+	return prefix + value.slug().replace(REG_DASH, '-');
 }
 
 function markdown_icon(value) {
@@ -420,11 +424,16 @@ String.prototype.markdown = function(opt, nested) {
 	// opt.urlify = true;
 	// opt.keywords = true;
 	// opt.emptynewline = true;
+	// opt.bookmarks = true;
+	// opt.prefix = '';
 
 	var str = this;
 
 	if (!opt)
 		opt = {};
+
+	if (opt.bookmarks == null)
+		opt.bookmarks = true;
 
 	var lines = str.split('\n');
 	var builder = [];
@@ -434,9 +443,10 @@ String.prototype.markdown = function(opt, nested) {
 	var isblock = false;
 	var ishead = 0;
 	var isprevblock = false;
-	var headline = '<{0} id="{3}" class="markdown-line" data-index="{1}">{2}</{0}>';
+	var headline = '<{0}' + (opt.bookmarks ? ' id="{3}"' : '') + ' class="markdown-line" data-index="{1}">{2}</{0}>';
 	var line;
 	var tmp;
+	var prefix = opt.prefix || '';
 
 	if (opt.wrap == null)
 		opt.wrap = true;
@@ -624,7 +634,7 @@ String.prototype.markdown = function(opt, nested) {
 				if (opt.headlines !== false) {
 					if (opt.html)
 						tmp = opt.html(tmp, '#');
-					builder.push(headline.format('h1', i, tmp, markdown_id(tmp)));
+					builder.push(headline.format('h1', i, tmp, opt.bookmarks ? markdown_id(prefix, tmp) : ''));
 				}
 				continue;
 			}
@@ -634,7 +644,7 @@ String.prototype.markdown = function(opt, nested) {
 				if (opt.headlines !== false) {
 					if (opt.html)
 						tmp = opt.html(tmp, '##');
-					builder.push(headline.format('h2', i, tmp, markdown_id(tmp)));
+					builder.push(headline.format('h2', i, tmp, opt.bookmarks ? markdown_id(prefix, tmp) : ''));
 				}
 				continue;
 			}
@@ -644,7 +654,7 @@ String.prototype.markdown = function(opt, nested) {
 				if (opt.headlines !== false) {
 					if (opt.html)
 						tmp = opt.html(tmp, '###');
-					builder.push(headline.format('h3', i, tmp, markdown_id(tmp)));
+					builder.push(headline.format('h3', i, tmp, opt.bookmarks ? markdown_id(prefix, tmp) : ''));
 				}
 				continue;
 			}
@@ -654,7 +664,7 @@ String.prototype.markdown = function(opt, nested) {
 				if (opt.headlines !== false) {
 					if (opt.html)
 						tmp = opt.html(tmp, '####');
-					builder.push(headline.format('h4', i, tmp, markdown_id(tmp)));
+					builder.push(headline.format('h4', i, tmp, opt.bookmarks ? markdown_id(prefix, tmp) : ''));
 				}
 				continue;
 			}
@@ -664,7 +674,7 @@ String.prototype.markdown = function(opt, nested) {
 				if (opt.headlines !== false) {
 					if (opt.html)
 						tmp = opt.html(tmp, '#####');
-					builder.push(headline.format('h5', i, tmp, markdown_id(tmp)));
+					builder.push(headline.format('h5', i, tmp, opt.bookmarks ? markdown_id(prefix, tmp) : ''));
 				}
 				continue;
 			}
