@@ -7,6 +7,7 @@
 - fixed generating `Message-ID` in SMTP sender
 - fixed `CLEANUP()` method
 - improved bookmarks in `Markdown`
+- fixed `unit testing`
 
 ========================
 0.0.95

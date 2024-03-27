@@ -20237,7 +20237,7 @@ global.ACTION = function(url, data, callback) {
 	req.uri = framework_internal.parseURI(req);
 	req.path = framework_internal.routesplit(req.uri.pathname);
 	req.method = method;
-	req.split = framework_internal.routesplit(req.uri.pathname, true);
+	req.split = req.split2 = framework_internal.routesplit(req.uri.pathname, true);
 	req.isAuthorized = authorized === 1;
 
 	var route = F.lookup(req, authorized, true);
