@@ -951,6 +951,11 @@ FP.ondebug = function(a, b, c, d) {
 	this.main.$events.debug && this.main.emit('debug', this, a, b, c, d);
 };
 
+FP.onlog = function(a, b, c, d) {
+	// this == instance
+	this.main.$events.log && this.main.emit('log', this, a, b, c, d);
+};
+
 function newlogger(callback) {
 
 	var self = this;
@@ -1596,6 +1601,7 @@ FP.initcomponent = function(key, component) {
 	instance.dashboard = self.ondashboard;
 	instance.status = self.onstatus;
 	instance.debug = self.ondebug;
+	instance.log = self.onlog;
 	instance.throw = self.onerror;
 	instance.send = self.ontrigger;
 	instance.newmessage = newmessage;
