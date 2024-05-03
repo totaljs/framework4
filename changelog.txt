@@ -8,6 +8,7 @@
 - fixed `CLEANUP()` method
 - improved bookmarks in `Markdown`
 - fixed `unit testing`
+- fixed refreshing subscribers in Total.js Message Service
 
 ========================
 0.0.95

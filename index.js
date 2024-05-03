@@ -5692,6 +5692,7 @@ function tmscontroller() {
 
 		delete TMSBLOCKED[client.ip];
 		client.tmsready = true;
+		client.$subscribers = {};
 		tmsrefresh(client);
 	});
 
