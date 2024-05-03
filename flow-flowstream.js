@@ -2940,7 +2940,7 @@ const TEMPLATE_PUBLISH = `<script total>
 	exports.icon = '{3}';
 	exports.config = {};
 	exports.outputs = [{ id: 'publish', name: 'Output' }];
-	exports.group = 'Publishers';
+	exports.group = 'Subscribe';
 	exports.type = 'pub';
 	exports.schemaid = ['{7}', '{1}'];
 
@@ -2971,7 +2971,7 @@ const TEMPLATE_SUBSCRIBE = `<script total>
 
 	exports.name = '{0}';
 	exports.icon = '{3}';
-	exports.group = 'Subscribers';
+	exports.group = 'Publish';
 	exports.config = {};
 	exports.inputs = [{ id: 'subscribe', name: 'Input' }];
 	exports.type = 'sub';
