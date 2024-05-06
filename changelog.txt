@@ -2,6 +2,8 @@
 0.0.97
 ========================
 
+- extended icon validator by adding support for `tic` keyword
+
 ========================
 0.0.96
 ========================
