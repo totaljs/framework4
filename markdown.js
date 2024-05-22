@@ -1,6 +1,6 @@
 // Total.js Markdown
 // The MIT License
-// Copyright 2018-2023 (c) Peter Širka <petersirka@gmail.com>
+// Copyright 2018-2024 (c) Peter Širka <petersirka@gmail.com>
 
 const REG_DASH = /-{2,}/g;
 const REG_TAGS = /<[^>]*>/g;
@@ -64,9 +64,14 @@ function markdown_links(value) {
 	var link = value.substring(end + 2, value.length - 1);
 
 	// footnotes
-	if ((/^#\d+$/).test(link)) {
+	if ((/^#\d+$/).test(link))
 		return (/^\d+$/).test(text) ? '<sup data-id="{0}" class="markdown-footnote">{1}</sup>'.format(link.substring(1), text) : '<span data-id="{0}" class="markdown-footnote">{1}</span>'.format(link.substring(1), text);
-	}
+
+	if (link.isEmail())
+		return '<a href="mailto:' + link + '" rel="nofollow">' + text + '</a>';
+
+	if (link.isPhone())
+		return '<a href="tel:' + link + '" rel="nofollow">' + text + '</a>';
 
 	if (link.substring(0, 4) === 'www.')
 		link = 'https://' + link;
