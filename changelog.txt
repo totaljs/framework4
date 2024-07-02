@@ -4,6 +4,7 @@
 
 - extended icon validator by adding support for `tic` keyword
 - fixed link generator for email and phone numbers in `Markdown`
+- improved `Number.pluralize()` method
 
 ========================
 0.0.96
