@@ -295,6 +295,84 @@ FP.read = function(id, callback, nostream) {
 		return new Promise((resolve, reject) => self._read(id, (err, res) => err ? reject(err) : resolve(res), nostream));
 };
 
+FP.copy = function(id, path, callback) {
+	var self = this;
+	if (callback)
+		return self._copy(id, path, callback);
+	else
+		return new Promise((resolve, reject) => self._copy(id, path, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._copy = function(id, path, callback) {
+
+	var self = this;
+
+	if (self.pause) {
+		setTimeout(self._copy, 500, id, path, callback);
+		return self;
+	}
+
+	var filename = Path.join(self.makedirectory(id), id + '.file');
+
+	F.stats.performance.open++;
+	Fs.open(filename, 'r', function(err, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var buffer = Buffer.alloc(HEADERSIZE);
+		Fs.read(fd, buffer, 0, HEADERSIZE, 0, function(err) {
+
+			if (err) {
+				Fs.close(fd, NOOP);
+				callback(err);
+				return;
+			}
+
+			var str = buffer.toString('utf8').replace(REGCLEAN, '');
+			if (!str) {
+				// Invalid file
+				Fs.close(fd, function() {
+					if (buffer.length === HEADERSIZE)
+						Fs.unlink(filename, NOOP);
+				});
+				callback('File not found');
+				return;
+			}
+
+			var meta = str.parseJSON(true);
+			if (!meta) {
+				Fs.close(fd, NOOP);
+				callback('Invalid file');
+				return;
+			}
+
+			meta.id = id;
+
+			if (meta.expire && meta.expire < NOW) {
+				Fs.close(fd, NOOP);
+				callback('File is expired');
+				return;
+			}
+
+			F.stats.performance.open++;
+
+			var reader = Fs.createReadStream(filename, { fd: fd, start: HEADERSIZE });
+			var writer = Fs.createWriteStream(path.includes('.') ? path : Path.join(path, meta.name));
+
+			reader.pipe(writer);
+
+			CLEANUP(reader, function() {
+				callback(err, meta);
+				Fs.close(fd, NOOP);
+			});
+
+		});
+	});
+};
+
 FP._read = function(id, callback, nostream) {
 
 	var self = this;
