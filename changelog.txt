@@ -9,6 +9,7 @@
 - added `$.promisify(fn, [a], [b])` method
 - added `FILESTORAGE().copy(id, path, [callback(err, meta)])`
 - fixed formatting `0` number in the `Tangular.format` helper
+- improved `DATA.query()` method
 
 ========================
 0.0.96
