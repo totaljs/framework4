@@ -2,6 +2,8 @@
 0.0.98
 ========================
 
+- fixed inline declared middleware `&middleware` in the `ROUTE()` method
+
 ========================
 0.0.97
 ========================

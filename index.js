@@ -3792,12 +3792,13 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 			flags.push(first === '-' ? 'unauthorized' : 'authorized');
 		}
 
-		url = url.replace(/\s&[#0-9a-z]+/gi, function(text) {
+		url = url.replace(/\s&[0-9a-z]+/gi, function(text) {
 			!flags && (flags = []);
-			let f = text.trim().substring(1);
-			if ((/^\d+$/).test(f))
-				f = +f;
-			flags.push(f);
+			let flag = text.trim();
+			let cleaned = flag.substring(1);
+			if ((/^\d+$/).test(cleaned))
+				flag = +cleaned;
+			flags.push(flag);
 			return '';
 		}).trim();
 
@@ -3992,6 +3993,8 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				id = flags[i].substring(3).trim();
 				continue;
 			}
+
+			console.log(flags[i])
 
 			if (first === '#' || first === '&') {
 				!middleware && (middleware = []);
