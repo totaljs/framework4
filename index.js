@@ -3994,8 +3994,6 @@ global.ROUTE = function(url, funcExecute, flags, length, language) {
 				continue;
 			}
 
-			console.log(flags[i])
-
 			if (first === '#' || first === '&') {
 				!middleware && (middleware = []);
 				middleware.push(flags[i].substring(1).trim());
