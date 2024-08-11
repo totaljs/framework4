@@ -274,7 +274,7 @@ function read_def(ref, definitions) {
 	}
 }
 
-function check_array(meta, error, value, stop, definitions, path) {
+function check_array(meta, error, value, stop, definitions, path, partial) {
 
 	if (!(value instanceof Array)) {
 		if (meta.$$REQUIRED) {
@@ -336,7 +336,7 @@ function check_array(meta, error, value, stop, definitions, path) {
 							return;
 						}
 					case 'object':
-						tmp = check_object(type, error, val, null, stop, definitions);
+						tmp = check_object(type, error, val, null, stop, definitions, null, partial);
 						if (tmp != null) {
 							response.push(tmp);
 							break;
@@ -345,7 +345,7 @@ function check_array(meta, error, value, stop, definitions, path) {
 							return;
 						}
 					case 'array':
-						tmp = check_array(type, error, value, null, definitions);
+						tmp = check_array(type, error, value, null, definitions, null, partial);
 						if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1)) {
 							response.push(tmp);
 							break;
@@ -382,7 +382,7 @@ function check_array(meta, error, value, stop, definitions, path) {
 				var ref = read_def(meta.items.$ref, definitions);
 				if (ref) {
 					var newerror = [];
-					tmp = transform(ref, newerror, val);
+					tmp = transform(ref, newerror, val, null, null, partial);
 					if (newerror.length) {
 						for (var err of newerror)
 							error.push(ref.$$ID + '.' + err, '@', path, i);
@@ -414,7 +414,7 @@ function check_array(meta, error, value, stop, definitions, path) {
 					break;
 				case 'object':
 					var newerror = new ErrorBuilder();
-					tmp = check_object(meta.items, newerror, val, stop, definitions, currentpath);
+					tmp = check_object(meta.items, newerror, val, stop, definitions, currentpath, partial);
 					if (newerror.length) {
 						for (var err of newerror.items)
 							error.push(meta.$$ID + '.' + err.name, err.error, currentpath, i);
@@ -422,7 +422,7 @@ function check_array(meta, error, value, stop, definitions, path) {
 						response.push(tmp);
 					break;
 				case 'array':
-					tmp = check_array(meta.items, error, value, stop, definitions, currentpath);
+					tmp = check_array(meta.items, error, value, stop, definitions, currentpath, partial);
 					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
 					break;
@@ -458,7 +458,7 @@ function check_array(meta, error, value, stop, definitions, path) {
 	return response;
 }
 
-function check_object(meta, error, value, response, stop, definitions, path) {
+function check_object(meta, error, value, response, stop, definitions, path, partial) {
 
 	if (!value || typeof(value) !== 'object') {
 		if (meta.$$REQUIRED) {
@@ -499,6 +499,9 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 		var currentpath = (path ? (path + '.') : '') + key;
 		var val = value[key];
 
+		if (partial && val === undefined)
+			continue;
+
 		switch (prop.type) {
 			case 'number':
 			case 'integer':
@@ -534,7 +537,7 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 				break;
 			case 'object':
 				if (prop.properties) {
-					tmp = check_object(prop, error, val, null, null, definitions, currentpath);
+					tmp = check_object(prop, error, val, null, null, definitions, currentpath, partial);
 					if (tmp != null) {
 						response[key] = tmp;
 						count++;
@@ -546,7 +549,7 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 						var ref = read_def(prop.$ref, definitions);
 						if (ref) {
 							var newerror = new ErrorBuilder();
-							tmp = transform(ref, newerror, val);
+							tmp = transform(ref, newerror, val, null, null, partial);
 							if (newerror.items.length) {
 								for (var err of newerror.items)
 									error.push(ref.$$ID + '.' + err, '@');
@@ -562,7 +565,7 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 				}
 				break;
 			case 'array':
-				tmp = check_array(prop, error, val, null, definitions, currentpath);
+				tmp = check_array(prop, error, val, null, definitions, currentpath, partial);
 				if (tmp != null) {
 					response[key] = tmp;
 					count++;
@@ -572,7 +575,7 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 				if (prop.$ref) {
 					var ref = F.jsonschemas[prop.$ref];
 					if (ref) {
-						tmp = check_object(ref, error, val, null, null, definitions, currentpath);
+						tmp = check_object(ref, error, val, null, null, definitions, currentpath, partial);
 						if (tmp != null) {
 							response[key] = tmp;
 							count++;
@@ -603,7 +606,7 @@ function check_object(meta, error, value, response, stop, definitions, path) {
 		return response;
 }
 
-function transform(meta, error, value, stop, path) {
+function transform(meta, error, value, stop, path, partial) {
 
 	var output;
 
@@ -625,10 +628,10 @@ function transform(meta, error, value, stop, path) {
 			output = check_date(meta, error, value, null, path);
 			break;
 		case 'object':
-			output = check_object(meta, error, value, null, stop, meta, path);
+			output = check_object(meta, error, value, null, stop, meta, path, partial);
 			break;
 		case 'array':
-			output = check_array(meta, error, value, stop, meta, path);
+			output = check_array(meta, error, value, stop, meta, path, partial);
 			break;
 		default:
 			error.push('.type', undefined, path);

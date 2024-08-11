@@ -7361,35 +7361,7 @@ exports.jsonschematransform = function(value, partial, error) {
 	if (!error)
 		error = new ErrorBuilder();
 
-	var response = null;
-
-	if (partial) {
-
-		var tmp = {};
-		var schema = {};
-
-		schema.properties = {};
-		schema.required = [];
-
-		for (let key in value) {
-			let prop = this.properties[key];
-			if (prop) {
-				tmp[key] = value[key];
-				schema.properties[key] = prop;
-				if (this.required && this.required.includes(key))
-					schema.required.push(key);
-			}
-		}
-
-		schema.$id = this.$id;
-		schema.$schema = this.$schema;
-		schema.type = this.type;
-
-		response = framework_jsonschema.transform(schema, error, tmp);
-
-	} else
-		response = framework_jsonschema.transform(this, error, value);
-
+	var response = framework_jsonschema.transform(this, error, value, null, null, partial);
 	return { error: error.is ? error : null, response: response };
 };
 

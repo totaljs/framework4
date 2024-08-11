@@ -3,6 +3,7 @@
 ========================
 
 - fixed inline declared middleware `&middleware` in the `ROUTE()` method
+- fixed partial validation
 
 ========================
 0.0.97
