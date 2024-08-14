@@ -107,7 +107,7 @@ exports.measureWEBP = function(buffer) {
 	}
 
 	if (header === 'VP8 ' && buffer[0] !== 0x2f)
-		return { width: buffer.readInt16LE(8) & 0x3fff, height: buffer.readInt16LE(6) & 0x3fff };
+		return { width: buffer.readInt16LE(6) & 0x3fff, height: buffer.readInt16LE(8) & 0x3fff };
 
 	var signature = buffer.toString('hex', 3, 6);
 	if (header === 'VP8L' && signature !== '9d012a')
