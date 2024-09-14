@@ -9,7 +9,7 @@ const REG_ICONS = /(^|[^\w]):((fab|far|fas|fal|fad|fa|ti)\s(fa|ti)-)?[a-z-]+:([^
 const REG_KEYWORDS = /\{.*?\}\(.*?\)/g;
 const REG_LINKEXTERNAL = /(https|http):\/\//;
 const REG_FORMAT = /__.*?__|_.*?_|\*\*.*?\*\*|\*.*?\*|~~.*?~~|~.*?~/g;
-const REG_ORDERED = /^[a-z|0-9]{1,3}\.\s|^-\s/i;
+const REG_ORDERED = /^[a-z|0-9]{1,3}\.\s|^(-|\*|\+)\s/i;
 const REG_ORDEREDSIZE = /^(\s|\t)+/;
 const REG_CODE = /`.*?`/g;
 const REG_ENCODETAGS = /<|>/g;
@@ -732,7 +732,8 @@ String.prototype.markdown = function(opt, nested) {
 			else
 				size = 0;
 
-			var ultype = tmpline.charAt(0) === '-' ? 'ul' : 'ol';
+			var c = tmpline.charAt(0);
+			var ultype = c === '-' || c === '*' || c === '+' ? 'ul' : 'ol';
 			var tmpstr = (ultype === 'ol' ? tmpline.substring(tmpline.indexOf('.') + 1) : tmpline.substring(2));
 			var istask = false;
 

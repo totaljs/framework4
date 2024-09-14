@@ -5,6 +5,7 @@
 - fixed inline declared middleware `&middleware` in the `ROUTE()` method
 - fixed partial validation
 - fix image bug in the `Image.measureWEBP()` method by [Marek Mraz](https://github.com/Mrazbb)
+- improved Markdown parser
 
 ========================
 0.0.97
