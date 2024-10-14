@@ -6,6 +6,7 @@
 - fixed partial validation
 - fix image bug in the `Image.measureWEBP()` method by [Marek Mraz](https://github.com/Mrazbb)
 - improved Markdown parser
+- improved user-agent parser (added support for new headers `Sec-CH-UA`)
 
 ========================
 0.0.97

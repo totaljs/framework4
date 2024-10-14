@@ -17343,7 +17343,7 @@ function extend_request(PROTO) {
 	Object.defineProperty(PROTO, 'ua', {
 		get: function() {
 			if (this.$ua === undefined)
-				this.$ua = (this.headers['user-agent'] || '').parseUA();
+				this.$ua = U.parseUA(this.headers);
 			return this.$ua;
 		}
 	});
