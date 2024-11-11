@@ -1,4 +1,8 @@
-require('./utils');
+// Total.js HTML Parser
+// The MIT License
+// Copyright 2023 (c) Peter Širka <petersirka@gmail.com>
+
+'use strict';
 
 function HTMLElement() {
 	this.children = [];
@@ -42,15 +46,7 @@ function parseRule(selector, output) {
 
 	selector = selector.replace(/\[\d+\]/, text => cache[+text.substring(1, text.length - 1)]);
 
-	var match = selector.match(/[#|.][a-z-_0-9]+/i);
-	if (match) {
-		for (var m of match) {
-			var val = m.substring(1);
-			rule.attrs.push({ id: m[0] === '#' ? 'id' : 'class', value: val });
-		}
-		selector = selector.replace(match, '');
-	}
-
+	// attribute search
 	match = selector.match(/\[.*?\]/i);
 	if (match) {
 		for (var m of match) {
@@ -60,8 +56,23 @@ function parseRule(selector, output) {
 		selector = selector.replace(match, '');
 	}
 
+	// #id or .class
+	var match = selector.match(/[#|.][a-z-_0-9]+/i);
+	if (match) {
+		for (var m of match) {
+			var val = m.substring(1);
+			rule.attrs.push({ id: m[0] === '#' ? 'id' : 'class', value: val });
+		}
+		selector = selector.replace(match, '');
+	}
+
 	selector = selector.trim();
-	rule.tagName = selector[0] === '*' ? '' : selector.toUpperCase();
+
+	if (selector[selector.length - 1] === ':') {
+		rule.prefix = selector.toUpperCase();
+		rule.tagName = '';
+	} else
+		rule.tagName = selector[0] === '*' ? '' : selector.toUpperCase();
 
 	return rule;
 }
@@ -130,6 +141,13 @@ function extendarr(output) {
 		return this;
 	};
 
+	output.toString = output.html = function(formatted) {
+		var builder = [];
+		for (var item of this)
+			builder.push(item.toString(formatted));
+		return builder.join(formatted ? '\n' : '');
+	};
+
 	return output;
 }
 
@@ -155,10 +173,11 @@ HTMLElement.prototype.find = function(selector, reverse) {
 			if (rule.tagName && rule.tagName !== node.tagName)
 				skip = true;
 
+			if (rule.prefix && rule.prefix !== node.prefix)
+				skip = true;
+
 			if (rule.attrs.length && !skip) {
-
 				for (var attr of rule.attrs) {
-
 					switch (attr.id) {
 
 						case 'class':
@@ -274,7 +293,7 @@ HTMLElement.prototype.stringifycache = function() {
 	var tmp = [];
 
 	for (var key in self.cache.css)
-		tmp.push(key + ':' + self.cache.css[key]);
+		self.cache.css[key] && tmp.push(key + ':' + self.cache.css[key]);
 
 	if (tmp.length)
 		self.attrs.style = tmp.join(';');
@@ -349,7 +368,7 @@ HTMLElement.prototype.css = function(key, value) {
 	var self = this;
 	self.parsecache();
 	if (typeof(key) === 'object') {
-		for (var k of key) {
+		for (var k of Object.keys(key)) {
 			value = key[k];
 			if (value)
 				self.cache.css[k] = value;
@@ -379,7 +398,7 @@ HTMLElement.prototype.remove = function() {
 HTMLElement.prototype.append = function(str) {
 
 	var self = this;
-	var dom = parseHTML(str);
+	var dom = parseHTML(str, null, null, self.xml);
 
 	for (var item of dom.children)
 		self.children.push(item);
@@ -390,7 +409,7 @@ HTMLElement.prototype.append = function(str) {
 HTMLElement.prototype.prepend = function(str) {
 
 	var self = this;
-	var dom = parseHTML(str);
+	var dom = parseHTML(str, null, null, self.xml);
 
 	for (var item of dom.children)
 		self.children.unshift(item);
@@ -428,6 +447,7 @@ HTMLElement.prototype.toString = HTMLElement.prototype.html = function(formatted
 						builder.push(indent + item.textContent);
 					break;
 				default:
+					tag = item.raw;
 					if (item.unpair) {
 						builder.push(indent + '<' + tag + (attrs.length ? (' ' + attrs.join(' ')) : '') + ' />');
 					} else {
@@ -458,17 +478,18 @@ function removeComments(html) {
 			break;
 
 		var comment = html.substring(beg, end + 3);
-		html = html.replacer(comment, '');
+		html = html.replaceAll(comment, '');
 		beg = html.indexOf(tagBeg, beg);
 	}
 
 	return html;
 }
 
-function parseHTML(html, trim, onerror) {
+function parseHTML(html, trim, onerror, isxml) {
 
 	var makeText = function(parent, str) {
 		var obj = new HTMLElement();
+		obj.xml = isxml;
 		obj.tagName = 'TEXT';
 		obj.children = [];
 		obj.attrs = {};
@@ -478,7 +499,7 @@ function parseHTML(html, trim, onerror) {
 	};
 
 	var parseAttrs = function(str) {
-		var attrs = str.match(/[a-z-0-9]+(=("|').*?("|'))?/g);
+		var attrs = str.match(/[a-z-0-9A-Z\:_-]+(=("|').*?("|'))?/g);
 		var obj = {};
 		if (attrs) {
 			for (var m of attrs) {
@@ -528,8 +549,10 @@ function parseHTML(html, trim, onerror) {
 		var node = str.substring(beg + 1, end);
 		var dom = new HTMLElement();
 
-		// Doctype?
-		if (node[0] === '!')
+		dom.xml = isxml;
+
+		// Doctype or xml?
+		if (node[0] === '!' || node[0] === '?')
 			return str.substring(end + 1);
 
 		if (node[node.length - 1] === '/') {
@@ -538,7 +561,15 @@ function parseHTML(html, trim, onerror) {
 		}
 
 		var tag = node;
-		var index = tag.indexOf(' ');
+		var index = -1;
+
+		for (let i = 0; i < tag.length; i++) {
+			let c = tag[i];
+			if (c === '\n' || c === ' ' || c === '/' || c === '>') {
+				index = i;
+				break;
+			}
+		}
 
 		if (index > 0) {
 			tag = tag.substring(0, index);
@@ -552,6 +583,11 @@ function parseHTML(html, trim, onerror) {
 		}
 
 		dom.tagName = tag.toUpperCase();
+		index = dom.tagName.indexOf(':');
+
+		if (index !== -1)
+			dom.prefix = dom.tagName.substring(0, index + 1);
+
 		dom.children = [];
 		dom.attrs = node ? parseAttrs(node) : {};
 		dom.raw = tag;
@@ -561,15 +597,25 @@ function parseHTML(html, trim, onerror) {
 		str = str.substring(end + 1);
 
 		// Unpair tags
-		switch (dom.tagName) {
-			case 'BR':
-			case 'HR':
-			case 'IMG':
-			case 'META':
-			case 'LINK':
-			case 'INPUT':
-				dom.unpair = true;
+		if (isxml) {
+			if (dom.unpair)
 				return str;
+		} else {
+			switch (dom.tagName) {
+				case 'BR':
+				case 'HR':
+				case 'IMG':
+				case 'INPUT':
+				case 'META':
+				case 'LINK':
+				case 'SOURCE':
+				case 'AREA':
+				case 'COL':
+				case 'EMBED':
+				case 'TRACK':
+					dom.unpair = true;
+					return str;
+			}
 		}
 
 		var pos = 0;
@@ -610,8 +656,7 @@ function parseHTML(html, trim, onerror) {
 		}
 
 		var inner = str.substring(0, pos - tagEnd.length);
-
-		if (inner.indexOf('<') === -1 || (/script|style|template/).test(tag)) {
+		if (inner.indexOf('<') === -1 || (/\<(script|style|template)/).test(tag)) {
 			if (trim)
 				inner = inner.trim();
 			if (inner)
@@ -626,8 +671,9 @@ function parseHTML(html, trim, onerror) {
 		if (str && str.indexOf('<') === -1) {
 			if (trim)
 				str = str.trim();
-			if (str)
-				parent.children.push(makeText(parent, str));
+
+			// Commented because it inserts the same textContent twice
+			// str && parent.children.push(makeText(parent, str));
 		}
 
 		return str;
@@ -636,6 +682,7 @@ function parseHTML(html, trim, onerror) {
 	html = removeComments(html);
 
 	var dom = new HTMLElement();
+	dom.xml = isxml;
 
 	while (html)
 		html = parseElements(html, dom);
