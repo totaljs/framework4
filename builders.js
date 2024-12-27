@@ -4993,7 +4993,10 @@ function exec_callback(err, response) {
 
 		if (err) {
 			if (self.$resolve) {
-				self.$.invalid(err);
+				if (self.$)
+					self.$.invalid(err);
+				else
+					self.$reject(err);
 				self.$ = null;
 				self.$reject = null;
 				self.$resolve = null;
@@ -5018,7 +5021,12 @@ function exec_callback(err, response) {
 			} else if (output.status >= 400) {
 				err = output.status;
 				if (self.$resolve) {
-					self.$.invalid(err);
+
+					if (self.$)
+						self.$.invalid(err);
+					else
+						self.$reject(err);
+
 					self.$ = null;
 					self.$reject = null;
 					self.$resolve = null;
@@ -5036,9 +5044,12 @@ function exec_callback(err, response) {
 
 			if (self.$resolve) {
 
-				if (err)
-					self.$.invalid(err);
-				else
+				if (err) {
+					if (self.$)
+						self.$.invalid(err);
+					else
+						self.$reject(err);
+				} else
 					self.$resolve(model);
 
 				self.$ = null;
@@ -5075,9 +5086,12 @@ function exec_callback(err, response) {
 
 		if (self.$resolve) {
 
-			if (err)
-				self.$.invalid(err);
-			else
+			if (err) {
+				if (self.$)
+					self.$.invalid(err);
+				else
+					self.$reject(err);
+			} else
 				self.$resolve(val);
 
 			self.$ = null;
