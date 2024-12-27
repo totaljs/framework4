@@ -4882,10 +4882,14 @@ function exec_callback(err, response) {
 
 	if (self.options.custom) {
 		if (self.$resolve) {
-			if (err)
-				self.$.invalid(err);
-			else
+			if (err) {
+				if (self.$)
+					self.$.invalid(err);
+				else
+					self.$reject(err);
+			} else
 				self.$resolve(response);
+
 			self.$ = null;
 			self.$reject = null;
 			self.$resolve = null;

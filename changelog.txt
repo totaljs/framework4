@@ -7,6 +7,7 @@
 - fix image bug in the `Image.measureWEBP()` method by [Marek Mraz](https://github.com/Mrazbb)
 - improved Markdown parser
 - improved HTML parser
+- fixed `RESTBuilder.promise()`
 
 ========================
 0.0.97
