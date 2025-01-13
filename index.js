@@ -2216,7 +2216,7 @@ function Framework() {
 	var self = this;
 
 	self.$id = null; // F.id ==> property
-	self.is4 = self.version = 4098;
+	self.is4 = self.version = 4099;
 	self.version_header = '4';
 	self.version_node = process.version + '';
 	self.version_node2 = self.version_node.replace(/v|\./g, '').parseInt();
