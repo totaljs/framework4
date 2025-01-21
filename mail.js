@@ -731,7 +731,11 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 
 	message.push('MIME-Version: 1.0');
 	buffer.push('MAIL FROM: <' + msg.address_from.address + '>');
-	message.push('Message-ID: <total4X' + dt.toString(36) + 'X' + (INDEXATTACHMENT++) + 'X' + (INDEXATTACHMENT) + '>');
+
+	if (!Mailer.domain)
+		Mailer.domain = msg.address_from.address.substring(msg.address_from.address.lastIndexOf('@'));
+
+	message.push('Message-ID: <total4X' + dt.toString(36) + 'X' + (INDEXATTACHMENT++) + 'X' + (INDEXATTACHMENT) + Mailer.domain + '>');
 
 	self.$priority && message.push('X-Priority: ' + self.$priority);
 	self.$confidential && message.push('Sensitivity: Company-Confidential');
