@@ -4,6 +4,7 @@
 
 - fixed `Message-ID` generator for email messages
 - __critital__ fixed cloning buffers in the `FlowStream`
+- added `FILESTORAGE().clone(id, newid, [callback])` method
 
 ========================
 0.0.98

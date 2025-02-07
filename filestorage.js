@@ -295,6 +295,106 @@ FP.read = function(id, callback, nostream) {
 		return new Promise((resolve, reject) => self._read(id, (err, res) => err ? reject(err) : resolve(res), nostream));
 };
 
+FP.clone = function(id, newid, callback) {
+	var self = this;
+
+	if (typeof(newid) === 'function') {
+		callback = newid;
+		newid = UID();
+	}
+
+	if (callback)
+		return self._clone(id, newid, callback);
+	else
+		return new Promise((resolve, reject) => self._clone(id, newid, (err, res) => err ? reject(err) : resolve(res)));
+};
+
+FP._clone = function(id, newid, callback) {
+
+	var self = this;
+
+	if (self.pause) {
+		setTimeout(self._clone, 500, id, newid, callback);
+		return self;
+	}
+
+	var filename = Path.join(self.makedirectory(id), id + '.file');
+
+	F.stats.performance.open++;
+	Fs.open(filename, 'r', function(err, fd) {
+
+		if (err) {
+			callback(err);
+			return;
+		}
+
+		var buffer = Buffer.alloc(HEADERSIZE);
+		Fs.read(fd, buffer, 0, HEADERSIZE, 0, function(err) {
+
+			if (err) {
+				Fs.close(fd, NOOP);
+				callback(err);
+				return;
+			}
+
+			F.stats.performance.open++;
+
+			var str = buffer.toString('utf8').replace(REGCLEAN, '');
+			if (!str) {
+				// Invalid file
+				Fs.close(fd, function() {
+					if (buffer.length === HEADERSIZE)
+						Fs.unlink(filename, NOOP);
+				});
+				callback('File not found');
+				return;
+			}
+
+			var meta = str.parseJSON(true);
+			if (!meta) {
+				Fs.close(fd, NOOP);
+				callback('Invalid file');
+				return;
+			}
+
+			Fs.close(fd, NOOP);
+			meta.id = newid;
+
+			if (meta.expire && meta.expire < NOW) {
+				callback('File is expired');
+				return;
+			}
+
+			var directory = self.makedirectory(newid);
+			var filenamenew = Path.join(directory, newid + '.file');
+
+			if (self.cache[directory]) {
+				Fs.copyFile(filename, filenamenew, function(err) {
+					if (!err)
+						Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
+					callback && callback(err, meta);
+				});
+			} else {
+				Fs.mkdir(directory, MKDIR, function(err) {
+
+					if (err) {
+						callback(err);
+						return;
+					}
+
+					self.cache[directory] = 1;
+					Fs.copyFile(filename, filenamenew, function(err) {
+						if (!err)
+							Fs.appendFile(self.logger, JSON.stringify(meta) + '\n', NOOP);
+						callback && callback(err, meta);
+					});
+				});
+			}
+
+		});
+	});
+};
+
 FP.copy = function(id, path, callback) {
 	var self = this;
 	if (callback)
