@@ -418,7 +418,7 @@ HTMLElement.prototype.prepend = function(str) {
 };
 
 HTMLElement.prototype.text = function() {
-	return this.html().removeTags();
+	return this.html().removeTags().decode();
 };
 
 HTMLElement.prototype.toString = HTMLElement.prototype.html = function(formatted) {
