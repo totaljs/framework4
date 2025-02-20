@@ -6,6 +6,7 @@
 - __critital__ fixed cloning buffers in the `FlowStream`
 - added `FILESTORAGE().clone(id, newid, [callback])` method
 - fixed decoding of encoded HTML entities in the HTML parser
+- fixed loading `empty` flow in `Flow.load()` method
 
 ========================
 0.0.98

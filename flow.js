@@ -146,6 +146,22 @@ FS.load = function(flow, callback) {
 
 	var id = flow.id;
 	flow.directory = flow.directory || F.path.root('/flowstream/');
+
+	if (!flow.name)
+		flow.name = flow.id;
+
+	if (!flow.components)
+		flow.components = {};
+
+	if (!flow.design)
+		flow.design = {};
+
+	if (!flow.sources)
+		flow.sources = {};
+
+	if (!flow.variables)
+		flow.variables = {};
+
 	FS.db[id] = flow;
 
 	FS.module.init(flow, flow.worker, function(err, instance) {
