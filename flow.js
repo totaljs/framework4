@@ -148,7 +148,7 @@ FS.load = function(flow, callback) {
 	flow.directory = flow.directory || F.path.root('/flowstream/');
 
 	if (!flow.name)
-		flow.name = flow.id;
+		flow.name = id;
 
 	if (!flow.components)
 		flow.components = {};
