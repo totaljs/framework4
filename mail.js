@@ -475,7 +475,7 @@ Mailer.prototype.$writeattachment = function(obj) {
 	var stream;
 
 	if (attachment.storage) {
-		FILESTORAGE(attachment.storage).readbase64(attachment.filename, function(err, meta) {
+		FILESTORAGE(attachment.storage).readbuffer(attachment.filename, function(err, buffer, meta) {
 			if (err) {
 				F.error(err, 'Mail.filestorage()', attachment.filename);
 				mailer.$writeattachment(obj);
@@ -483,11 +483,11 @@ Mailer.prototype.$writeattachment = function(obj) {
 
 				if (!attachment.name) {
 					attachment.name = meta.name;
-					attachment.type = meta.type;
+					attachment.type = meta.type || 'application/octet-stream';
 					attachment.extension = meta.ext;
 				}
 
-				writeattachemnt_stream(attachment, obj, meta.stream);
+				writeattachemnt_stream(attachment, obj, buffer);
 			}
 		});
 	} else {
@@ -519,6 +519,16 @@ function writeattachemnt_stream(attachment, obj, stream) {
 	message.push('Content-Transfer-Encoding: base64');
 	message.push(CRLF);
 	mailer.$writeline(obj, message.join(CRLF));
+
+	// A Buffer (the file of the storage): the Base64 of the whole Buffer is split into lines (splitting the bytes would add padding to each line)
+	if (stream instanceof Buffer) {
+		var value = stream.toString('base64');
+		for (var index = 0; index < value.length; index += 68)
+			mailer.$writeline(obj, value.substring(index, index + 68));
+		mailer.$writeline(obj, CRLF);
+		mailer.$writeattachment(obj);
+		return;
+	}
 
 	stream.$mailer = mailer;
 	stream.$mailerobj = obj;
