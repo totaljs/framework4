@@ -7,6 +7,7 @@
 - fixed nested objects in JSON schemas
 - fixed string slug method
 - changed `max-age` header to `5 minutes`
+- fixed `attachmentfs()` in the mail: the file of the storage is read as a Buffer and the message is completed (it threw a `TypeError` and the SMTP connection stayed open)
 
 ========================
 0.0.99
