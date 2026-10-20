@@ -8,6 +8,7 @@
 - fixed string slug method
 - changed `max-age` header to `5 minutes`
 - fixed `attachmentfs()` in the mail: the file of the storage is read as a Buffer and the message is completed (it threw a `TypeError` and the SMTP connection stayed open)
+- added `QueryBuilder.autoqueryjson($, column, schema, [defsort], [maxlimit])` that works like `autoquery()` but for properties stored in a JSON column; the builder uses the neutral name `json:column:property:type` and the database adapter translates it into SQL
 
 ========================
 0.0.99
