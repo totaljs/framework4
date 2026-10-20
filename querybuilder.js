@@ -1305,7 +1305,7 @@ QBP.autoquery = function(query, schema, defsort, maxlimit) {
 			if ((skipped && skipped[name]) || (!allowed.meta[name]))
 				continue;
 
-			t.sort(allowed.fields[name], item[index + 1] === 'd');
+			t.sort(allowed.fields[name], index !== -1 && item.substring(index + 1).toLowerCase() === 'desc');
 			count++;
 		}
 
