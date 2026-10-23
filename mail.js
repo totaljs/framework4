@@ -601,6 +601,17 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 		options = {};
 	}
 
+	if (smtp && typeof(smtp) === 'string') {
+		var smtphost = framework_utils.tohost(smtp);
+		if (!smtphost) {
+			var smtperr = new Error('Invalid SMTP server hostname.');
+			callback && callback(smtperr);
+			F.error(smtperr, 'mail_smtp');
+			return this;
+		}
+		smtp = smtphost;
+	}
+
 	if (cache && CONNECTIONS[smtp]) {
 
 		if (messages instanceof Array) {

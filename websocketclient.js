@@ -135,7 +135,13 @@ WebSocketClientProto.connectforce = function(self, url, protocol, origin) {
 
 	if (typeof(url) === 'string') {
 		url = Url.parse(url);
-		options.host = url.hostname;
+		options.host = framework_utils.tohost(url.hostname);
+
+		if (!options.host) {
+			setImmediate(() => self.$events.error && self.emit('error', new Error('Invalid hostname')));
+			return;
+		}
+
 		options.path = url.path;
 		options.query = url.query;
 		secured = url.protocol === 'wss:';

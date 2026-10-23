@@ -316,12 +316,63 @@ exports.toURLEncode = function(value) {
 	return builder.length ? builder.join('&') : '';
 };
 
+const REG_HOST_NUMERIC = /^(0x[0-9a-f]+|[0-9]+)(\.(0x[0-9a-f]+|[0-9]+))*$/i;
+const REG_HOST_IPV4 = /^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/;
+
+// Accepts plain hostnames and canonical IP literals only. It rejects NUL bytes, non-ASCII characters
+// and non-canonical IPv4 forms (0127.0.0.1, 0x7f.1, 2130706433, 127.1) which Node.js, certificate
+// checks and the OS can interpret differently.
+exports.validhost = function(host) {
+
+	if (!host || typeof(host) !== 'string' || /[^\x21-\x7e]/.test(host))
+		return false;
+
+	return REG_HOST_NUMERIC.test(host) ? REG_HOST_IPV4.test(host) : true;
+};
+
+// Converts a host to its canonical ASCII form (punycode for international names, canonical dotted IPv4)
+// and returns an empty string when the host is not valid.
+exports.tohost = function(host) {
+
+	if (!host || typeof(host) !== 'string')
+		return '';
+
+	if (host.indexOf(':') === -1)
+		host = Url.domainToASCII(host);
+
+	return exports.validhost(host) ? host : '';
+};
+
+// Normalizes the hostname of a parsed URL (Url.parse() keeps "0127.0.0.1" or "0x7f.1" as they were written)
+// Returns false when the hostname is not valid.
+function normalizeuri(uri) {
+
+	if (!uri.hostname)
+		return true;
+
+	var hostname = exports.tohost(uri.hostname);
+	if (!hostname)
+		return false;
+
+	if (hostname !== uri.hostname) {
+		var host = hostname + (uri.port ? (':' + uri.port) : '');
+		if (uri.href)
+			uri.href = uri.href.replace(uri.host, host);
+		uri.hostname = hostname;
+		uri.host = host;
+	}
+
+	return true;
+}
+
 exports.resolve = function(url, callback, param) {
 
 	var uri;
 
 	try {
 		uri = Url.parse(url);
+		if (!normalizeuri(uri))
+			throw new Error('Invalid hostname');
 	} catch (e) {
 		callback(e);
 		return;
@@ -612,7 +663,7 @@ function _request(opt, callback) {
 
 	var uri = opt.unixsocket ? { socketPath: opt.unixsocket.socket, path: opt.unixsocket.path } : Url.parse(opt.url);
 
-	if ((opt.unixsocket && !uri.socketPath) || (!opt.unixsocket && (!uri.hostname || !uri.host))) {
+	if ((opt.unixsocket && !uri.socketPath) || (!opt.unixsocket && (!uri.hostname || !uri.host || !normalizeuri(uri)))) {
 		options.response.canceled = true;
 		opt.callback && opt.callback('Invalid hostname', options.response);
 		return;
@@ -1019,6 +1070,32 @@ function request_response(res) {
 			loc = uri.protocol + '//' + uri.hostname + (uri.port && !SKIPPORTS[uri.port] ? (':' + uri.port) : '') + loc;
 
 		var tmp = Url.parse(loc);
+
+		if (!normalizeuri(tmp)) {
+			options.timeoutid && clearTimeout(options.timeoutid);
+			options.canceled = true;
+			options.response.origin = options.origin;
+			options.response.headers = res.headers;
+
+			if (options.callback) {
+				if (options.custom) {
+					options.response.status = res.statusCode;
+					options.response.stream = res;
+				} else {
+					options.response.status = 0;
+					options.response.host = uri.host;
+				}
+				options.callback('Invalid hostname', options.response);
+				options.callback = null;
+			}
+
+			res.req.removeAllListeners();
+			res.removeAllListeners();
+			res.req = null;
+			res = null;
+			return;
+		}
+
 		tmp.headers = uri.headers;
 
 		// Transfers cookies
@@ -7064,6 +7141,15 @@ exports.connect = function(opt, callback) {
 	meta.tls = tls;
 
 	delete opt.tls;
+
+	if (opt.host) {
+		opt.host = exports.tohost(opt.host);
+		if (!opt.host) {
+			meta.destroy = meta.close = NOOP;
+			callback && setImmediate(callback, new Error('Invalid hostname'));
+			return meta;
+		}
+	}
 
 	var close = function() {
 
