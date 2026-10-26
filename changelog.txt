@@ -9,6 +9,16 @@
 - changed `max-age` header to `5 minutes`
 - fixed `attachmentfs()` in the mail: the file of the storage is read as a Buffer and the message is completed (it threw a `TypeError` and the SMTP connection stayed open)
 - added `QueryBuilder.autoqueryjson($, column, schema, [defsort], [maxlimit])` that works like `autoquery()` but for properties stored in a JSON column; the builder uses the neutral name `json:column:property:type` and the database adapter translates it into SQL
+- security: hardened the hostnames against the Node.js security release of 2026-10-21 (patched in Node.js 22.23.4, 24.22.1 and 26.12.1) ; the framework does not require a specific version of Node.js, the hostnames are normalized and validated in the framework itself
+	- CVE-2026-105482: `dns.resolve*()` truncates a name at a NUL byte (`attacker.example\0.trusted.example`)
+	- CVE-2026-105483, CVE-2026-106069, CVE-2026-106072: `tls.checkServerIdentity()` with IPv4 literals written with non-ASCII digits, leading zeros or in a non-canonical form (`0x7f.0.0.1`, `127.1`, `2130706433`)
+- added `U.validhost(host)` that accepts only plain hostnames and canonical IP literals
+- added `U.tohost(host)` that converts a hostname to the canonical ASCII form (punycode, dotted IPv4) and returns an empty string for an invalid hostname
+- fixed `REQUEST()`, `U.resolve()` and the redirects: the hostname of the URL is normalized (`Url.parse()` keeps `0127.0.0.1` or `0x7f.1` as written) and an invalid hostname gives the `Invalid hostname` error
+- fixed `U.connect()` (used also by `LDAP()`): the `host` is normalized and an invalid hostname gives the `Invalid hostname` error
+- fixed the WebSocket client: the hostname is normalized and an invalid hostname emits the `error` event
+- fixed the SMTP server in the mail: the hostname is normalized (international names to punycode, IPv4 to the canonical form) and an invalid hostname gives the `Invalid SMTP server hostname.` error
+- note: the issue CVE-2026-105481 (unsolicited data on a reused keep-alive socket, `http.Agent`) is fixed only by updating Node.js ; the Brotli issue CVE-2026-111497 does not affect the framework (only `gzip` and `deflate` are decompressed)
 
 ========================
 0.0.99
