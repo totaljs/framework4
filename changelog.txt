@@ -41,6 +41,30 @@
 - fixed `secured` in the WebSocket controller: it threw an error
 - fixed inline declared middleware `&middleware` in the `FILE` and `WebSocket` routes (only the first character was used)
 - fixed `ondata` argument in the `SESSION(name, [ondata])` method and the count returned by `session.clear()`
+- fixed `Image.trim()`: it added a stray `1` to the command
+- fixed `Image.minify()`: the priority was passed in the wrong argument
+- fixed `Image.measure()` with a stream: it crashed instead of returning an error
+- fixed `HttpFile.image()` with the `im` converter (ImageMagick)
+- fixed `find()` on found HTML elements: it returned the original array
+- fixed `NEWMACRO()` with names containing `if` or `else`
+- fixed the debug watcher: it matched only single-character `.html` names of components, plugins and extensions
+- fixed `apicall.done()`: it called an undefined `t.free()`
+- fixed `TotalAPI` output to a file path: it called an undefined `opt.next`
+- fixed `INMEMORY()` `clear()`, `drop()`, `clean()` and the reverse order of `find2()`
+- fixed `F.cluster.request()`: the sender answered its own request and a stray reply threw an error; fixed `F.cluster.on()` with more listeners
+- fixed `$MAKE()` and `schema.make()` returning an empty model for schemas bound with `schema.jsonschema()`
+- fixed JSON schema validation of `$ref` to `#/definitions`, tuple `items`, `maxItems` and `maxProperties`
+- fixed SQL QueryBuilder `gridfields()`: it set the fields only when no field matched
+- fixed SQL and NoSQL `gridfilter()`: dates in the `DD.MM` format and year ranges were built wrong
+- fixed persistent cache items (`F.cache.set2()`, `CACHE(..., persistent)`): they were never saved
+- fixed `F.cache.removeAll([...])`: it removed all keys after the first match
+- fixed `F.worker.is` / `F.worker.isfork`, `pool.count` and replacing lost workers in `NEWTHREADPOOL()`
+- fixed `PROXY()` and `res.proxy()` with a unix socket target (threads)
+- fixed `CORS()` header flags blocking preflight requests
+- fixed `@{breadcrumb}` view commands
+- fixed `Flow.restart()` and `Flow.reload(flow, true)` for FlowStreams running without a worker (they destroyed the Flow)
+- fixed the `flowstream_error` event for `ON()` and `Flow.on()`, and the `stats` event for FlowStreams running without a worker
+- fixed the unix socket of FlowStreams in a worker: it used `F.Os`, which does not exist (`F.OS`)
 
 ========================
 0.0.99

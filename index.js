@@ -3290,7 +3290,7 @@ global.PROXY = function(url, target, copypath, before, after, check, timeout) {
 	else
 		target = { socketPath: target };
 
-	if ((copypath === true || copypath === 'replace') && target.pathname.length > 1)
+	if ((copypath === true || copypath === 'replace') && target.pathname && target.pathname.length > 1)
 		copypath = 'extend';
 
 	var obj = { url: url, uri: target, before: before, after: after, check: check, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
@@ -9647,8 +9647,10 @@ F.$cors = function(req, res, fn, arg) {
 
 			if (cors.headers) {
 				isAllowed = false;
+				// Preflight requests announce the headers in "access-control-request-headers"
+				var requested = req.method === 'OPTIONS' && headers['access-control-request-headers'] ? headers['access-control-request-headers'].toLowerCase().split(',').trim() : null;
 				for (var i = 0; i < cors.headers.length; i++) {
-					if (headers[cors.headers[i]]) {
+					if (headers[cors.headers[i]] || (requested && requested.indexOf(cors.headers[i]) !== -1)) {
 						isAllowed = true;
 						break;
 					}
@@ -11695,7 +11697,7 @@ function process_thread() {
 	F.worker = {};
 	F.worker.data = Port ? Worker.workerData : {};
 	F.worker.message = NOOP;
-	F.worker.isfork = !!Port;
+	F.worker.isfork = !Port;
 	F.worker.is = process.argv.indexOf('--worker') !== -1;
 	F.worker.setTimeout = function(timeout) {
 		F.worker.$timeout && clearTimeout(F.worker.$timeout);
@@ -11742,7 +11744,7 @@ global.NEWTHREADPOOL = function(name, count, isfork) {
 	var pool = {};
 	pool.workers = [];
 	pool.pending = [];
-	pool.count = pool;
+	pool.count = count;
 	pool.next = function() {
 		for (var worker of pool.workers) {
 			if (worker.$released) {
@@ -11762,10 +11764,13 @@ global.NEWTHREADPOOL = function(name, count, isfork) {
 	var release = function(worker) {
 		worker.on('exit', function() {
 			var index = pool.workers.indexOf(worker);
-			pool.workers.splice(index, 1);
-			var worker = isfork ? NEWFORK(name) : NEWTHREAD(name);
-			worker.$pool = pool;
-			worker.release = release(worker);
+			index !== -1 && pool.workers.splice(index, 1);
+			var replacement = isfork ? NEWFORK(name) : NEWTHREAD(name);
+			replacement.$pool = pool;
+			replacement.$released = true;
+			replacement.release = release(replacement);
+			pool.workers.push(replacement);
+			pool.next();
 		});
 
 		return function() {
@@ -11804,7 +11809,7 @@ global.NEWFORK = function(name) {
 		return process_thread();
 
 	var filename = name[0] === '@' ? (PATH.package(name.substring(1)) + '.js') : name[0] === '~' ? name.substring(1) : (U.combine(CONF.directory_workers, name) + '.js');
-	var fork = new Child.fork(filename, { cwd: HEADERS.worker_threads.cwd, argv: ['--worker'] });
+	var fork = new Child.fork(filename, ['--worker'], { cwd: HEADERS.worker_threads.cwd });
 	fork.postMessage = fork.send;
 	fork.terminate = () => fork.kill('SIGTERM');
 
@@ -12434,7 +12439,7 @@ FrameworkCacheProto.load = function(callback) {
 FrameworkCacheProto.savepersistent = function() {
 	setTimeout2('framework_cachepersist', function(self) {
 		var obj = {};
-		for (var key in self.keys) {
+		for (var key in self.items) {
 			var item = self.items[key];
 			if (item && item.persist)
 				obj[key] = item;
@@ -12628,7 +12633,7 @@ FrameworkCacheProto.reset = FrameworkCacheProto.removeAll = function(search) {
 	var count = 0;
 	var isarr = search instanceof Array;
 	var isreg = isarr ? false : typeof(search) === 'object';
-	var is = false;
+	var is;
 
 	for (var key in this.items) {
 
@@ -12637,10 +12642,11 @@ FrameworkCacheProto.reset = FrameworkCacheProto.removeAll = function(search) {
 				continue;
 		} else {
 			if (isarr) {
+				is = false;
 				for (var m of search) {
 					if (key.indexOf(m) !== -1) {
 						is = true;
-						continue;
+						break;
 					}
 				}
 				if (!is)
@@ -18209,7 +18215,7 @@ function extend_response(PROTO) {
 		else
 			target = { socketPath: target };
 
-		var obj = { uri: Parser.parse(target), path: '', before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
+		var obj = { uri: target, path: '', before: before, after: after, copypath: copypath, timeout: timeout ? (timeout / 1000) : 10 };
 		F.stats.response.proxy++;
 		makeproxy(obj, this.req, this);
 	};
@@ -20846,7 +20852,7 @@ Api.evaluate('TotalAPI,TAPI', function(opt, next) {
 		var writer = F.Fs.createWriteStream(opt.output);
 		response.stream.pipe(writer);
 		CLEANUP(writer, function() {
-			opt.next(null, opt.output);
+			next(null, opt.output);
 		});
 
 	};

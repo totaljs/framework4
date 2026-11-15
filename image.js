@@ -186,12 +186,13 @@ ImageProto.clear = function() {
 ImageProto.measure = function(callback) {
 
 	var self = this;
-	var index = self.filename.lastIndexOf('.');
 
 	if (!self.filename) {
 		callback(new Error('Measure does not support stream.'));
 		return;
 	}
+
+	var index = self.filename.lastIndexOf('.');
 
 	if (index === -1) {
 		callback(new Error('This type of file is not supported.'));
@@ -542,7 +543,7 @@ ImageProto.filter = function(type) {
 };
 
 ImageProto.trim = function() {
-	return this.push('-trim +repage', 1);
+	return this.push('-trim +repage', null, 1);
 };
 
 ImageProto.limit = function(type, value) {
@@ -714,7 +715,7 @@ ImageProto.define = function(value) {
 };
 
 ImageProto.minify = function() {
-	return this.push('+profile', '*', null, 10, true);
+	return this.push('+profile', '*', 10, true);
 };
 
 ImageProto.grayscale = function() {

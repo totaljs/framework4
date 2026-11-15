@@ -77,7 +77,6 @@ APICallProto.done = function($, callback) {
 			$.invalid(err);
 		else
 			callback && callback(response);
-		t.free();
 	};
 	return t;
 };

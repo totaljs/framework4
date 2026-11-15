@@ -274,6 +274,17 @@ function read_def(ref, definitions) {
 	}
 }
 
+function check_ref(ref, error, value, definitions, path, index, partial) {
+	var newerror = new ErrorBuilder();
+	var tmp = transform(ref, newerror, value, null, null, partial, definitions);
+	if (newerror.items.length) {
+		for (var err of newerror.items)
+			error.push(ref.$$ID + '.' + err.name, err.error, path, index);
+		return;
+	}
+	return tmp;
+}
+
 function check_array(meta, error, value, stop, definitions, path, partial) {
 
 	if (!(value instanceof Array)) {
@@ -297,79 +308,55 @@ function check_array(meta, error, value, stop, definitions, path, partial) {
 
 	if (meta.items instanceof Array) {
 
+		response = [];
+
 		for (var i = 0; i < value.length; i++) {
 			var val = value[i];
 			var type = meta.items[i];
 			if (type) {
-				switch (type) {
-					case '$ref':
-						break;
-					case 'number':
-					case 'integer':
-					case 'float':
-					case 'decimal':
-						tmp = check_number(type, error, val);
-						if (tmp != null) {
-							response.push(tmp);
+				var newerror = new ErrorBuilder();
+				if (type.$ref) {
+					var ref = read_def(type.$ref, definitions);
+					tmp = ref ? transform(ref, newerror, val, null, null, partial, definitions) : null;
+				} else {
+					switch (type.type) {
+						case 'number':
+						case 'integer':
+						case 'float':
+						case 'decimal':
+							tmp = check_number(type, newerror, val);
 							break;
-						} else {
-							error.push(meta.$$ID, undefined, currentpath);
-							return;
-						}
-					case 'boolean':
-					case 'bool':
-						tmp = check_boolean(type, error, val);
-						if (tmp != null) {
-							response.push(tmp);
+						case 'boolean':
+						case 'bool':
+							tmp = check_boolean(type, newerror, val);
 							break;
-						} else {
-							error.push(meta.$$ID, undefined, currentpath);
-							return;
-						}
-					case 'date':
-						tmp = check_date(type, error, val);
-						if (tmp != null) {
-							response.push(tmp);
+						case 'date':
+							tmp = check_date(type, newerror, val);
 							break;
-						} else {
-							error.push(meta.$$ID, undefined, currentpath);
-							return;
-						}
-					case 'object':
-						tmp = check_object(type, error, val, null, stop, definitions, null, partial);
-						if (tmp != null) {
-							response.push(tmp);
+						case 'object':
+							tmp = check_object(type, newerror, val, null, stop, definitions, null, partial);
 							break;
-						} else {
-							error.push(meta.$$ID, undefined, currentpath);
-							return;
-						}
-					case 'array':
-						tmp = check_array(type, error, value, null, definitions, null, partial);
-						if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1)) {
-							response.push(tmp);
+						case 'array':
+							tmp = check_array(type, newerror, val, null, definitions, null, partial);
 							break;
-						} else {
-							error.push(meta.$$ID, undefined, currentpath);
-							return;
-						}
-					case 'string':
-					default:
-						tmp = check_string(type, error, val, null, currentpath);
-						if (tmp != null) {
+						case 'string':
+						default:
+							tmp = check_string(type, newerror, val);
 							if (!tmp && type.subtype === 'uid')
 								tmp = null;
-							response.push(tmp);
 							break;
-						} else {
-							error.push(meta.$$ID, undefined, currentpath);
-							return;
-						}
+					}
 				}
-			} else if (!type && !meta.additionalItems) {
+				if (tmp == null || newerror.items.length) {
+					error.push(meta.$$ID, undefined, currentpath);
+					return;
+				}
+				response.push(tmp);
+			} else if (!meta.additionalItems) {
 				error.push(meta.$$ID, undefined, currentpath);
 				return;
-			}
+			} else
+				response.push(val);
 		}
 	} else if (meta.items) {
 
@@ -381,16 +368,11 @@ function check_array(meta, error, value, stop, definitions, path, partial) {
 			if (meta.items.$ref) {
 				var ref = read_def(meta.items.$ref, definitions);
 				if (ref) {
-					var newerror = [];
-					tmp = transform(ref, newerror, val, null, null, partial);
-					if (newerror.length) {
-						for (var err of newerror)
-							error.push(ref.$$ID + '.' + err, '@', path, i);
-					} else if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
+					tmp = check_ref(ref, error, val, definitions, path, i, partial);
+					if (tmp != null && (!meta.uniqueItems || response.indexOf(tmp) === -1))
 						response.push(tmp);
-					continue;
-				} else
-					continue;
+				}
+				continue;
 			}
 
 
@@ -450,7 +432,7 @@ function check_array(meta, error, value, stop, definitions, path, partial) {
 		return;
 	}
 
-	if (meta.maxItems && response.length < meta.maxItems) {
+	if (meta.maxItems && response.length > meta.maxItems) {
 		error.push(meta.$$ID, undefined, currentpath);
 		return;
 	}
@@ -490,11 +472,6 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 
 		if (stop && error.items.length)
 			return;
-
-		if (meta.maxProperties && count > meta.maxProperties) {
-			error.push(meta.$$ID, undefined, path);
-			return;
-		}
 
 		var currentpath = (path ? (path + '.') : '') + key;
 		var val = value[key];
@@ -548,18 +525,13 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 					if (prop.$ref) {
 						var ref = read_def(prop.$ref, definitions);
 						if (ref) {
-							var newerror = new ErrorBuilder();
-							tmp = transform(ref, newerror, val, null, null, partial);
-							if (newerror.items.length) {
-								for (var err of newerror.items)
-									error.push(ref.$$ID + '.' + err, '@');
-							} else {
+							tmp = check_ref(ref, error, val, definitions, currentpath, undefined, partial);
+							if (tmp != null) {
 								response[key] = tmp;
 								count++;
 							}
-							continue;
-						} else
-							continue;
+						}
+						continue;
 					}
 
 					response[key] = val;
@@ -574,7 +546,17 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 				}
 				break;
 			default:
-				if (prop.$ref) {
+				if (prop.$ref && prop.$ref[0] === '#') {
+					var ref = read_def(prop.$ref, definitions);
+					if (ref) {
+						tmp = check_ref(ref, error, val, definitions, currentpath, undefined, partial);
+						if (tmp != null) {
+							response[key] = tmp;
+							count++;
+						}
+					} else
+						error.push(prop.$$ID, undefined, currentpath);
+				} else if (prop.$ref) {
 					var ref = F.jsonschemas[prop.$ref];
 					if (ref) {
 						tmp = check_object(ref, error, val, null, null, definitions, currentpath, partial);
@@ -582,9 +564,9 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 							response[key] = tmp;
 							count++;
 						} else if (prop.$$REQUIRED)
-							error.push(prop.ID, undefined, currentpath);
+							error.push(prop.$$ID, undefined, currentpath);
 					} else
-						error.push(prop.ID, undefined, currentpath);
+						error.push(prop.$$ID, undefined, currentpath);
 				} else {
 					// String
 					tmp = check_string(prop, error, val, null, currentpath);
@@ -599,6 +581,11 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 		}
 	}
 
+	if (meta.maxProperties && count > meta.maxProperties) {
+		error.push(meta.$$ID, undefined, path);
+		return;
+	}
+
 	if (meta.minProperties && count < meta.minProperties) {
 		error.push(meta.$$ID, undefined, path);
 		return;
@@ -608,9 +595,12 @@ function check_object(meta, error, value, response, stop, definitions, path, par
 		return response;
 }
 
-function transform(meta, error, value, stop, path, partial) {
+function transform(meta, error, value, stop, path, partial, definitions) {
 
 	var output;
+
+	if (!definitions)
+		definitions = meta;
 
 	switch (meta.type) {
 		case 'string':
@@ -630,10 +620,10 @@ function transform(meta, error, value, stop, path, partial) {
 			output = check_date(meta, error, value, null, path);
 			break;
 		case 'object':
-			output = check_object(meta, error, value, null, stop, meta, path, partial);
+			output = check_object(meta, error, value, null, stop, definitions, path, partial);
 			break;
 		case 'array':
-			output = check_array(meta, error, value, stop, meta, path, partial);
+			output = check_array(meta, error, value, stop, definitions, path, partial);
 			break;
 		default:
 			error.push('.type', undefined, path);

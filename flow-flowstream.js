@@ -100,15 +100,60 @@ Instance.prototype.postMessage = function(msg) {
 	this.flow.postMessage && this.flow.postMessage(msg);
 };
 
-Instance.prototype.restart = function() {
+Instance.prototype.restart = function(data) {
 	var self = this;
 	self.flow.$socket && self.flow.$socket.destroy();
 	self.flow.$client && self.flow.$client.destroy();
-	if (self.flow.terminate)
+	if (!self.flow.isworkerthread && !Parent)
+		restart_current(self, data);
+	else if (self.flow.terminate)
 		self.flow.terminate();
 	else
 		self.flow.kill(9);
 };
+
+// Restarts a Flow running in the current process (without a worker)
+function restart_current(self, data) {
+
+	var flow = self.flow;
+	var meta = flow.$schema;
+	var tmp = flow.export2();
+
+	for (let key in tmp)
+		meta[key] = tmp[key];
+
+	if (data) {
+		for (let key in data)
+			meta[key] = data[key];
+	}
+
+	flow.$destroyed = true;
+	flow.$terminated = true;
+
+	for (let key in flow.sockets)
+		flow.sockets[key].destroy();
+
+	flow.destroy();
+
+	// FLOWSTREAM() would return the destroyed Flow
+	if (F.flows[flow.name] === flow)
+		delete F.flows[flow.name];
+
+	for (let key in self.httproutes)
+		self.httproutes[key].remove();
+
+	self.httproutes = {};
+
+	// The "ondone" delegate is not called again for the restarted Flow
+	var ondone = self.ondone;
+	self.ondone = function() {
+		self.ondone = ondone;
+	};
+
+	tmp = init_current(meta, null, true);
+	tmp.flow.$instance = self;
+	self.flow = tmp.flow;
+}
 
 Instance.prototype.httprequest = function(opt, callback) {
 
@@ -2451,7 +2496,7 @@ function MAKEFLOWSTREAM(meta) {
 				if (Parent)
 					Parent.postMessage({ TYPE: 'stream/stats', data: pstats });
 				else if (Flow.$events.stats)
-					Flow.emit(flow.$schema.id, pstats);
+					Flow.emit('stats', flow.$schema.id, pstats);
 			}
 		}
 
@@ -3294,7 +3339,7 @@ function initrunning() {
 }
 
 function makeunixsocket(id) {
-	return F.isWindows ? ('\\\\?\\pipe\\flowstream' + F.directory.makeid() + id + Date.now().toString(36)) : (F.Path.join(F.Os.tmpdir(), 'flowstream_' + F.directory.makeid() + '_' + id + '_' + Date.now().toString(36) + '.socket'));
+	return F.isWindows ? ('\\\\?\\pipe\\flowstream' + F.directory.makeid() + id + Date.now().toString(36)) : (F.Path.join(F.OS.tmpdir(), 'flowstream_' + F.directory.makeid() + '_' + id + '_' + Date.now().toString(36) + '.socket'));
 }
 
 if (process.argv[1].endsWith('flow-flowstream.js')) {

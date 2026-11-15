@@ -1018,7 +1018,7 @@ var convert = function(value, type) {
 				index = value.indexOf('.');
 				if (index !== -1) {
 					tmp = value.split('.');
-					value = NOW.getFullYear() + '-' + (tmp[1].length > 1 ? '' : '0') + tmp[0] + '-' + (tmp[0].length > 1 ? '' : '0') + tmp[1];
+					value = NOW.getFullYear() + '-' + (tmp[1].length > 1 ? '' : '0') + tmp[1] + '-' + (tmp[0].length > 1 ? '' : '0') + tmp[0];
 				} else {
 					index = value.indexOf(':');
 					if (index !== -1) {
@@ -1101,7 +1101,7 @@ DB.gridfilter = function(name, obj, type, key) {
 
 		if (type === Date) {
 			if (typeof(arr[0]) === 'number') {
-				arr[0] = new Date(arr[0], 1, 1, 0, 0, 0);
+				arr[0] = new Date(arr[0], 0, 1, 0, 0, 0);
 				arr[1] = new Date(arr[1], 11, 31, 23, 59, 59);
 			} else
 				arr[1] = arr[1].extend('23:59:59');

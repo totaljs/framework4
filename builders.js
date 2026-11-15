@@ -1983,9 +1983,7 @@ SchemaBuilderEntityProto.make = function(model, callback, arg, novalidate, $, op
 	if (self.$jsonschema) {
 
 		var builder = new ErrorBuilder();
-		var output = new SchemaValue();
-
-		framework_jsonschema.transform(self.$jsonschema, builder, model, output);
+		var output = framework_jsonschema.transform(self.$jsonschema, builder, model);
 
 		if (!novalidate && builder.length) {
 			self.resourceName && builder.setResource(self.resourceName);
