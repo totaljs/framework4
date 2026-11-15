@@ -564,7 +564,7 @@ QueryBuilder.prototype.backupitem = function(item) {
 
 QueryBuilder.prototype.logitem = function() {
 	var self = this;
-	Fs.appendFile(self.db.filenameLog, self.logarg, errorhandling);
+	Fs.appendFile(self.db.filenamelog, self.logarg, errorhandling);
 	return self;
 };
 

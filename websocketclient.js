@@ -782,15 +782,15 @@ WebSocketClientProto.sendcustom = function(type, message) {
 
 	if (this.istext) {
 		var data = (message == null ? '' : message) + '';
-		if (self.options.encrypt)
-			data = framework_utils.encrypt_data(data, self.options.encrypt);
+		if (this.options.encrypt)
+			data = framework_utils.encrypt_data(data, this.options.encrypt);
 		if (this.options.encodedecode && data)
 			data = encodeURIComponent(data);
 		if (this.deflate) {
 			this.deflatepending.push(Buffer.from(data));
 			this.sendDeflate();
 		} else
-			this.socket.write(U.getWebSocketFrame(0, data, 0x01, false, self.options.masking));
+			this.socket.write(U.getWebSocketFrame(0, data, 0x01, false, this.options.masking));
 	} else {
 
 		if (!(message instanceof Buffer))
@@ -800,7 +800,7 @@ WebSocketClientProto.sendcustom = function(type, message) {
 			this.deflatepending.push(message);
 			this.sendDeflate();
 		} else
-			this.socket.write(U.getWebSocketFrame(0, message, 0x02, false, self.options.masking));
+			this.socket.write(U.getWebSocketFrame(0, message, 0x02, false, this.options.masking));
 	}
 
 	return true;

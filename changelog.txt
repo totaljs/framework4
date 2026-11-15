@@ -19,6 +19,28 @@
 - fixed the WebSocket client: the hostname is normalized and an invalid hostname emits the `error` event
 - fixed the SMTP server in the mail: the hostname is normalized (international names to punycode, IPv4 to the canonical form) and an invalid hostname gives the `Invalid SMTP server hostname.` error
 - note: the issue CVE-2026-105481 (unsolicited data on a reused keep-alive socket, `http.Agent`) is fixed only by updating Node.js ; the Brotli issue CVE-2026-111497 does not affect the framework (only `gzip` and `deflate` are decompressed)
+- fixed `*/n` and `a/n` step values in the cron (`*/5` in the minutes ran every minute)
+- fixed `WebSocketClient.sendcustom()`: it used an undefined `self`
+- fixed `RESTBuilder.robot()` and `RESTBuilder.mobile()`: they add `Bot` / `iPhone` to the default `User-Agent`
+- fixed `RESTBuilder.error(err)`: an empty array is the error, a non-empty array is a valid response
+- fixed `REQUEST()` options `limit`, `redirects` and `nocookies` (they were never applied, so `RESTBuilder.maxlength()` did nothing)
+- fixed `$.DB()` in operations: it returns `DB()`
+- fixed `CALL().language(value)`: the value is used as `$.language`
+- fixed `String.count()`: it skipped a match at the beginning of the string
+- fixed `String.args(obj, encode, def)`: it kept the `def` argument only without `encode`
+- fixed `U.set()` with a function value
+- fixed `U.toURLEncode()` with dates
+- fixed NoSQL `builder.hour()` and `builder.minute()`: they used `getHour()`/`getMinute()`, which do not exist
+- fixed NoSQL `builder.log()`: it wrote to an undefined path
+- fixed NoSQL `builder.gridfields()`: it ignored the allowed fields
+- fixed NoSQL `builder.autoquery()`: sorting kept only the last field and lost the direction
+- fixed NoSQL `builder.relation()`: it read and wrote the main database instead of the relation file
+- fixed `high()`, `low()` and `confidential()` in the mail: the `X-Priority` and `Sensitivity` headers were never sent
+- fixed sending emails via the Total.js API (`mail_api`): the sender and the priority were not sent and the callback of the message was not called
+- fixed the callback of the mail with several messages and on a reused SMTP connection: it is called once, after the last message
+- fixed `secured` in the WebSocket controller: it threw an error
+- fixed inline declared middleware `&middleware` in the `FILE` and `WebSocket` routes (only the first character was used)
+- fixed `ondata` argument in the `SESSION(name, [ondata])` method and the count returned by `session.clear()`
 
 ========================
 0.0.99

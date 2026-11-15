@@ -185,7 +185,7 @@ SchemaOptions.prototype = {
 	},
 
 	get language() {
-		return (this.controller ? this.controller.language : '') || '';
+		return this.$language || (this.controller ? this.controller.language : '') || '';
 	},
 
 	get ip() {
@@ -2679,6 +2679,9 @@ SchemaBuilderEntityProto.exec = function(type, name, model, options, controller,
 	else
 		$.session = controller ? controller.session : {};
 
+	if (additional && additional.language)
+		$.$language = additional.language;
+
 	if (caller) {
 		caller.action = action;
 		$.caller = caller;
@@ -2919,6 +2922,9 @@ SchemaBuilderEntityProto.async = function(model, callback, index, controller, ca
 		$.session = additional.session;
 	else
 		$.session = controller ? controller.session : {};
+
+	if (additional && additional.language)
+		$.$language = additional.language;
 
 	if (caller) {
 		$.caller = caller;
@@ -4592,18 +4598,18 @@ RESTP.origin = function(value) {
 };
 
 RESTP.robot = function() {
-	if (this.options.headers['User-Agent'])
-		this.options.headers['User-Agent'] += ' Bot';
+	if (this.options.headers['user-agent'])
+		this.options.headers['user-agent'] += ' Bot';
 	else
-		this.options.headers['User-Agent'] = 'Bot';
+		this.options.headers['user-agent'] = 'Bot';
 	return this;
 };
 
 RESTP.mobile = function() {
-	if (this.options.headers['User-Agent'])
-		this.options.headers['User-Agent'] += ' iPhone';
+	if (this.options.headers['user-agent'])
+		this.options.headers['user-agent'] += ' iPhone';
 	else
-		this.options.headers['User-Agent'] = 'iPhone';
+		this.options.headers['user-agent'] = 'iPhone';
 	return this;
 };
 
@@ -4983,7 +4989,7 @@ function exec_callback(err, response) {
 	if (!err && self.$errorhandler) {
 		if (typeof(self.$errorhandler) === 'function')
 			err = self.$errorhandler(output.value);
-		else if (!output.value || output.value === EMPTYOBJECT || (output.value instanceof Array && output.value.length))
+		else if (!output.value || output.value === EMPTYOBJECT || (output.value instanceof Array && !output.value.length))
 			err = self.$errorhandler;
 	}
 
@@ -6136,7 +6142,7 @@ OperationOptionsProto.redirect = function(url) {
 };
 
 OperationOptionsProto.DB = function() {
-	return F.database(this.error);
+	return DB();
 };
 
 OperationOptionsProto.done = function(arg) {
@@ -7051,6 +7057,9 @@ function callnewaction(caller, meta) {
 		$.session = additional.session;
 	else
 		$.session = controller ? controller.session : {};
+
+	if (additional && additional.language)
+		$.$language = additional.language;
 
 	$.multiple = meta.multiple;
 

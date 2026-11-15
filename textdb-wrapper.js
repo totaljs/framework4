@@ -113,6 +113,9 @@ function Database(type, name, onetime, schema, fork) {
 
 		var key = t.key;
 
+		if (name !== t.name)
+			key = type + '_' + HASH(name).toString(36);
+
 		if (!t.fork[key]) {
 
 			if (fork) {
@@ -983,10 +986,10 @@ function compare_datetype(type, key, paramindex, operator) {
 			type = 'getFullYear()';
 			break;
 		case 'hour':
-			type = 'getHour()';
+			type = 'getHours()';
 			break;
 		case 'minute':
-			type = 'getMinute()';
+			type = 'getMinutes()';
 			break;
 	}
 	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key.replace(REG_NULLABLE, '?.'), paramindex, operator, type);
@@ -1065,7 +1068,7 @@ DB.gridfields = function(fields, allowed) {
 		}
 	}
 
-	if (!count)
+	if (count)
 		self.options.fields = newfields.join(',');
 
 	return self;
@@ -1371,7 +1374,7 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 	if (query.sort) {
 
 		tmp = query.sort.split(',');
-		var count = 0;
+		var sortvalue = '';
 
 		for (var i = 0; i < tmp.length; i++) {
 			var index = tmp[i].lastIndexOf('_');
@@ -1383,11 +1386,12 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 			if (!allowed.meta[name])
 				continue;
 
-			self.sort(name, tmp[i][index + 1] === 'd');
-			count++;
+			sortvalue += (sortvalue ? ',' : '') + tmp[i];
 		}
 
-		if (!count && defsort)
+		if (sortvalue)
+			self.sort(sortvalue);
+		else if (defsort)
 			self.gridsort(defsort);
 
 	} else if (defsort)

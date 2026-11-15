@@ -299,9 +299,6 @@ exports.toURLEncode = function(value) {
 			case 'string':
 				builder.push(key + '=' + encodeURIComponent(val));
 				break;
-			case 'date':
-				builder.push(key + '=' + encodeURIComponent(val.format('utc')));
-				break;
 			case 'boolean':
 			case 'number':
 				builder.push(key + '=' + val);
@@ -309,6 +306,8 @@ exports.toURLEncode = function(value) {
 			case 'object':
 				if (val instanceof Array)
 					builder.push(key + '=' + encodeURIComponent(val.join(',')));
+				else if (val instanceof Date)
+					builder.push(key + '=' + encodeURIComponent(val.toISOString()));
 				break;
 		}
 	}
@@ -580,6 +579,15 @@ function _request(opt, callback) {
 
 	if (opt.noredirect)
 		options.noredirect = true;
+
+	if (opt.nocookies)
+		options.nocookies = true;
+
+	if (opt.limit)
+		options.limit = opt.limit;
+
+	if (opt.redirects)
+		options.redirects = opt.redirects;
 
 	if (opt.keepalive)
 		options.keepalive = true;
@@ -2949,13 +2957,14 @@ function string_hash(s, convert) {
 }
 
 SP.count = function(text) {
+	if (!text)
+		return 0;
 	var index = 0;
 	var count = 0;
-	do {
-		index = this.indexOf(text, index + text.length);
-		if (index > 0)
-			count++;
-	} while (index > 0);
+	while ((index = this.indexOf(text, index)) !== -1) {
+		count++;
+		index += text.length;
+	}
 	return count;
 };
 
@@ -4011,8 +4020,10 @@ SP.decode = function() {
 };
 
 SP.arg = SP.args = function(obj, encode, def) {
-	if (typeof(encode) === 'string')
+	if (def == null && typeof(encode) === 'string' && encode !== 'html' && encode !== 'json' && encode !== 'url') {
 		def = encode;
+		encode = null;
+	}
 	var isfn = typeof(encode) === 'function';
 	return this.replace(regexpARG, function(text) {
 		// Is double bracket?
@@ -7471,7 +7482,7 @@ exports.set = function(obj, path, value) {
 
 	var v = arr[arr.length - 1];
 	var ispush = v.lastIndexOf('[]') !== -1;
-	var a = builder.join(';') + ';var v=typeof(a)===\'function\'?a(U.get(b)):a;w' + (v[0] === '[' ? '' : '.') + (ispush ? v.replace(REGREPLACEARR, '.push(v)') : (v + '=v')) + ';return v';
+	var a = builder.join(';') + ';var v=typeof(a)===\'function\'?a(U.get(w,b)):a;w' + (v[0] === '[' ? '' : '.') + (ispush ? v.replace(REGREPLACEARR, '.push(v)') : (v + '=v')) + ';return v';
 
 	var fn = new Function('w', 'a', 'b', a);
 	F.temporary.other[cachekey] = fn;

@@ -743,12 +743,23 @@ function countuploadstats(chunk) {
 	F.stats.performance.upload += chunk.length / 1024 / 1024;
 }
 
-function sessionwrapper(name) {
+function sessionwrapper(name, ondata) {
+
+	if (typeof(name) === 'function') {
+		ondata = name;
+		name = null;
+	}
+
 	if (!name)
 		name = 'default';
-	if (F.sessions[name])
+
+	if (F.sessions[name]) {
+		if (ondata)
+			F.sessions[name].ondata = ondata;
 		return F.sessions[name];
-	var session = new framework_session.Session(name);
+	}
+
+	var session = new framework_session.Session(name, ondata);
 	session.load();
 	if (F.sessionscount)
 		F.sessionscount++;
@@ -757,10 +768,10 @@ function sessionwrapper(name) {
 	return F.sessions[name] = session;
 }
 
-global.SESSION = function(name) {
+global.SESSION = function(name, ondata) {
 	global.framework_session = require('./session');
 	global.SESSION = sessionwrapper;
-	return sessionwrapper(name);
+	return sessionwrapper(name, ondata);
 };
 
 global.LOADRESOURCE = function(name, value) {
@@ -4939,7 +4950,7 @@ global.WEBSOCKET = function(url, funcInitialize, flags, length) {
 			throw new Error('Sitemap item "' + url + '" not found.');
 	}
 
-	url = url.replace(/\s&[0-9a-z]/gi, function(text) {
+	url = url.replace(/\s&[0-9a-z]+/gi, function(text) {
 		!flags && (flags = []);
 		flags.push(text.trim());
 		return '';
@@ -5227,7 +5238,7 @@ global.FILE = function(fnValidation, fnExecute, flags) {
 	var mypath = fnValidation;
 
 	if (typeof(fnValidation) === 'string') {
-		fnValidation = fnValidation.replace(/\s&[0-9a-z]/gi, function(text) {
+		fnValidation = fnValidation.replace(/\s&[0-9a-z]+/gi, function(text) {
 			!flags && (flags = []);
 			flags.push(text.trim());
 			return '';
@@ -9970,6 +9981,7 @@ F.$websocketcontinue_process = function(route, req, path) {
 
 		var connection = new WebSocket(path, route.controller, id);
 		connection.encodedecode = CONF.default_websocket_encodedecode === true;
+		connection.$secured = req.secured;
 
 		if (!route.connections)
 			route.connections = [];
@@ -16087,7 +16099,7 @@ WebSocket.prototype = {
 	},
 
 	get secured() {
-		return this.req.secured;
+		return this.$secured === true;
 	},
 
 	get params() {
