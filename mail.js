@@ -343,15 +343,18 @@ Message.prototype.send2 = function(callback) {
 				data.reply.push(m instanceof Object ? m.email : m);
 		}
 
-		data.from = self.from.email;
+		data.from = self.address_from.address;
 		data.subject = self.subject;
 		data.type = self.type;
 		data.body = self.body;
-		data.priority = self.$priotity;
+		data.priority = self.$priority;
 		data.unsubscribe = self.$unsubscribe;
 		data.confidential = self.$confidential;
 
-		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? (CONF.totalapi || CONF.secret_totalapi) : CONF.mail_api, 'mail', data, callback || NOOP);
+		TotalAPI(CONF.mail_api === true || CONF.mail_api === 1 ? (CONF.totalapi || CONF.secret_totalapi) : CONF.mail_api, 'mail', data, function(err, response) {
+			self.$callback && self.$callback(err, self);
+			callback && callback(err, response);
+		});
 		return;
 	}
 
@@ -454,9 +457,10 @@ Mailer.prototype.$writeattachment = function(obj) {
 
 		mailer.$writeline(obj, '--' + obj.boundary + '--', '', '.');
 
-		if (obj.callback) {
-			obj.callback(null, obj.instance);
-			obj.callback = null;
+		if (obj.messagecallback3) {
+			obj.messagecallback3 === obj.callback && (obj.callback = null);
+			obj.messagecallback3(null, obj.instance);
+			obj.messagecallback3 = null;
 		}
 
 		if (obj.messagecallback) {
@@ -612,6 +616,12 @@ Mailer.prototype.send = function(smtp, options, messages, callback, cache) {
 		smtp = smtphost;
 	}
 
+	// The callback of the send is called after the last message of the send (also on a reused connection)
+	if (callback && messages) {
+		var last = messages instanceof Array ? messages[messages.length - 1] : messages;
+		last && (last.$callback3 = callback);
+	}
+
 	if (cache && CONNECTIONS[smtp]) {
 
 		if (messages instanceof Array) {
@@ -758,8 +768,8 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 
 	message.push('Message-ID: <total4X' + dt.toString(36) + 'X' + (INDEXATTACHMENT++) + 'X' + (INDEXATTACHMENT) + Mailer.domain + '>');
 
-	self.$priority && message.push('X-Priority: ' + self.$priority);
-	self.$confidential && message.push('Sensitivity: Company-Confidential');
+	msg.$priority && message.push('X-Priority: ' + msg.$priority);
+	msg.$confidential && message.push('Sensitivity: Company-Confidential');
 
 	message.push('From: ' + (msg.address_from.name ? unicode_encode(msg.address_from.name) + ' <' + msg.address_from.address + '>' : msg.address_from.address));
 
@@ -849,7 +859,13 @@ Mailer.prototype.$writemessage = function(obj, buffer) {
 	obj.message = message.join(CRLF);
 	obj.messagecallback = msg.$callback;
 	obj.messagecallback2 = msg.$callback2;
+	obj.messagecallback3 = msg.$callback3;
 	obj.instance = msg;
+	msg.$callback3 = null;
+
+	// The socket errors are sent to the callback of the current send
+	if (obj.messagecallback3)
+		obj.callback = obj.messagecallback3;
 
 	message = null;
 	return self;
@@ -1060,6 +1076,12 @@ Mailer.prototype.$send = function(obj, options, autosend) {
 				if (obj.messagecallback2) {
 					obj.messagecallback2(err, obj.instance);
 					obj.messagecallback2 = null;
+				}
+
+				if (obj.messagecallback3) {
+					obj.messagecallback3 === obj.callback && (obj.callback = null);
+					obj.messagecallback3(err, obj.instance);
+					obj.messagecallback3 = null;
 				}
 
 				if (obj.messages.length) {

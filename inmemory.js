@@ -117,6 +117,26 @@ IM.remove = function() {
 	return builder;
 };
 
+IM.clear = function(callback) {
+	var self = this;
+	self.pending_clear.push(callback || NOOP);
+	setImmediate(next_operation, self, 12);
+	return self;
+};
+
+IM.clean = function(callback) {
+	var self = this;
+	callback && callback();
+	return self;
+};
+
+IM.drop = function(callback) {
+	var self = this;
+	self.pending_drops = callback || NOOP;
+	setImmediate(next_operation, self, 7);
+	return self;
+};
+
 IM.$append = function() {
 	var self = this;
 	if (self.pending_append.length) {
@@ -204,7 +224,7 @@ IM.$reader2 = function() {
 	var items = self.items.slice(0);
 	items.reverse();
 
-	filters.compare(self.items);
+	filters.compare(items);
 	filters.done();
 };
 
@@ -272,14 +292,33 @@ IM.$clear = function() {
 		return;
 
 	self.items = [];
+	self.flush2();
 
 	var filter = self.pending_clear.splice(0);
 	for (var i = 0; i < filter.length; i++)
 		filter[i]();
 };
 
+IM.$drop = function() {
+
+	var self = this;
+
+	if (!self.pending_drops)
+		return;
+
+	var callback = self.pending_drops;
+	self.pending_drops = null;
+	self.dropped = true;
+	self.items = [];
+	self.flushing && clearTimeout(self.flushing);
+	self.flushing = null;
+	Fs.unlink(self.filename, () => callback());
+};
+
 IM.flush = function() {
 	var self = this;
+	if (self.dropped)
+		return;
 	Fs.writeFile(self.filename, JSON.stringify(self.items), ERROR('inmemory'));
 };
 

@@ -113,6 +113,9 @@ function Database(type, name, onetime, schema, fork) {
 
 		var key = t.key;
 
+		if (name !== t.name)
+			key = type + '_' + HASH(name).toString(36);
+
 		if (!t.fork[key]) {
 
 			if (fork) {
@@ -983,10 +986,10 @@ function compare_datetype(type, key, paramindex, operator) {
 			type = 'getFullYear()';
 			break;
 		case 'hour':
-			type = 'getHour()';
+			type = 'getHours()';
 			break;
 		case 'minute':
-			type = 'getMinute()';
+			type = 'getMinutes()';
 			break;
 	}
 	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key.replace(REG_NULLABLE, '?.'), paramindex, operator, type);
@@ -1015,7 +1018,7 @@ var convert = function(value, type) {
 				index = value.indexOf('.');
 				if (index !== -1) {
 					tmp = value.split('.');
-					value = NOW.getFullYear() + '-' + (tmp[1].length > 1 ? '' : '0') + tmp[0] + '-' + (tmp[0].length > 1 ? '' : '0') + tmp[1];
+					value = NOW.getFullYear() + '-' + (tmp[1].length > 1 ? '' : '0') + tmp[1] + '-' + (tmp[0].length > 1 ? '' : '0') + tmp[0];
 				} else {
 					index = value.indexOf(':');
 					if (index !== -1) {
@@ -1065,7 +1068,7 @@ DB.gridfields = function(fields, allowed) {
 		}
 	}
 
-	if (!count)
+	if (count)
 		self.options.fields = newfields.join(',');
 
 	return self;
@@ -1098,7 +1101,7 @@ DB.gridfilter = function(name, obj, type, key) {
 
 		if (type === Date) {
 			if (typeof(arr[0]) === 'number') {
-				arr[0] = new Date(arr[0], 1, 1, 0, 0, 0);
+				arr[0] = new Date(arr[0], 0, 1, 0, 0, 0);
 				arr[1] = new Date(arr[1], 11, 31, 23, 59, 59);
 			} else
 				arr[1] = arr[1].extend('23:59:59');
@@ -1371,7 +1374,7 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 	if (query.sort) {
 
 		tmp = query.sort.split(',');
-		var count = 0;
+		var sortvalue = '';
 
 		for (var i = 0; i < tmp.length; i++) {
 			var index = tmp[i].lastIndexOf('_');
@@ -1383,11 +1386,12 @@ DB.autoquery = function(query, schema, defsort, maxlimit, localized) {
 			if (!allowed.meta[name])
 				continue;
 
-			self.sort(name, tmp[i][index + 1] === 'd');
-			count++;
+			sortvalue += (sortvalue ? ',' : '') + tmp[i];
 		}
 
-		if (!count && defsort)
+		if (sortvalue)
+			self.sort(sortvalue);
+		else if (defsort)
 			self.gridsort(defsort);
 
 	} else if (defsort)

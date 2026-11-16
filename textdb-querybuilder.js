@@ -295,10 +295,10 @@ function compare_datetype(type, key, paramindex, operator) {
 			type = 'getFullYear()';
 			break;
 		case 'hour':
-			type = 'getHour()';
+			type = 'getHours()';
 			break;
 		case 'minute':
-			type = 'getMinute()';
+			type = 'getMinutes()';
 			break;
 	}
 	return 'doc.{0}&&doc.{0}.getTime?doc.{0}.{3}{2}arg.params[{1}]:false'.format(key.replace(REG_NULLABLE, '?.'), paramindex, operator, type);

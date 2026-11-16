@@ -111,14 +111,14 @@ function prepareline(str, meta, isasync) {
 
 	// Conditions
 	var lower = str.toLowerCase();
-	var index = lower.indexOf('else');
+	var index = lower.search(/\belse\b/);
 	if (index !== -1) {
 		var tmp = str.substring(index);
 		var tmplower = tmp.toLowerCase();
 		str = str.substring(0, index) + '}' + tmp + (tmplower.indexOf('else if') === -1 ? '{' : '');
 	}
 
-	if (lower.indexOf('if ') !== -1) {
+	if ((/\bif\s/).test(lower)) {
 		str = str.replace(/.=./g, function(text) {
 			if (text[0] === '>' || text[0] === '<' || text[0] === '=' || (text[1] === '=' && text[2] === '='))
 				return text;
@@ -131,7 +131,7 @@ function prepareline(str, meta, isasync) {
 	}
 
 	// Conditions
-	str = str.replace(/(\s)?(else|else\sif|if)(\s)?/ig, function(text) {
+	str = str.replace(/(\s)?\b(else|else\sif|if)\b(\s)?/ig, function(text) {
 		var key = '@' + meta.indexer + '@';
 		meta.keywords[key] = text.replace(/if(\s)/i, 'if(').replace(/else/i, 'else');
 		meta.indexer++;

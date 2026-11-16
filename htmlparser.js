@@ -135,10 +135,10 @@ function extendarr(output) {
 		for (var item of this) {
 			var result = item.find(selector);
 			if (result.length)
-				arr.push(result);
+				arr.push.apply(arr, result);
 		}
 		extendarr(arr);
-		return this;
+		return arr;
 	};
 
 	output.toString = output.html = function(formatted) {

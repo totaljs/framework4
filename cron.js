@@ -26,7 +26,7 @@ function cronexec(output, date) {
 				break;
 			}
 		} else if (m.type === 'every') {
-			if (m.value[i] !== '*' && m.value[i] % val !== 0) {
+			if (m.value[0] === '*' ? (val % m.value[1] !== 0) : (val < m.value[0] || (val - m.value[0]) % m.value[1] !== 0)) {
 				is = false;
 				break;
 			}

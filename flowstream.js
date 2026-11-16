@@ -750,7 +750,8 @@ FP.destroy = function() {
 		self.emit('destroy');
 		self.meta = null;
 		self.$events = null;
-		delete F.flows[self.name];
+		if (F.flows[self.name] === self)
+			delete F.flows[self.name];
 	});
 
 };

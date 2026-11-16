@@ -750,7 +750,7 @@ SessionProto.clear = function(lastusage, callback) {
 			}
 		}
 	} else {
-		count = self.items.length;
+		count = self.items.size;
 		if (self.onremove) {
 			for (var m of self.items.values())
 				self.onremove(m);

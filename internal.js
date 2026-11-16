@@ -379,9 +379,9 @@ HFP.isAudio = function() {
 };
 
 HFP.image = function(im) {
-	if (im === undefined)
-		im = CONF.default_image_converter === 'im';
-	return framework_image.init(this.path, im, this.width, this.height);
+	// true: ImageMagick, false: GraphicsMagick, a string: the name of the converter, nothing: the default converter
+	var cmd = im === true ? 'im' : im === false ? 'gm' : typeof(im) === 'string' ? im : CONF.default_image_converter;
+	return framework_image.init(this.path, cmd, this.width, this.height);
 };
 
 HFP.fs = function(storage, id, custom, expire, callback) {
@@ -1332,13 +1332,13 @@ function view_prepare(command, dynamicCommand, functions, controller, components
 		case 'breadcrumb_url2':
 		case 'breadcrumb_name2':
 		case 'breadcrumb_navigation':
-			return 'self.sitemap_' + command.substring(10);
+			return 'self.sitemap_' + command.substring(11);
 
 		case 'sitemap':
 		case 'breadcrumb':
 		case 'place':
 			if (name === 'breadcrumb')
-				name = 'sitemap';
+				command = 'sitemap' + command.substring(10);
 			return command.indexOf('(') === -1 ? '(repository[\'$' + command + '\'] || \'\')' : 'self.$' + command;
 
 		case 'meta':

@@ -19,7 +19,7 @@ var TIMEOUTS = {};
 exports.on = function(name, callback) {
 	!MASTER && (MASTER = {});
 	if (MASTER[name])
-		MASTER.push(callback);
+		MASTER[name].push(callback);
 	else
 		MASTER[name] = [callback];
 	return F;
@@ -95,7 +95,8 @@ exports.response = function(name, callback) {
 
 exports.req = function(message) {
 
-	if (!F.isCluster)
+	// The sender does not answer its own request
+	if (!F.isCluster || message.id === CLUSTER_REQ.id)
 		return F;
 
 	// message.id
@@ -122,6 +123,11 @@ exports.req = function(message) {
 
 exports.res = function(message) {
 	var callback = CALLBACKS[message.callback];
+
+	// A reply after the timeout or after the last expected reply
+	if (!callback)
+		return;
+
 	callback.fn && callback.response.push(message.data);
 
 	var count = message.target === 'master' ? THREADS : THREADS - 1;

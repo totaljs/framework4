@@ -32,7 +32,7 @@ FS.onerror = function(err, source, id, componentid, stack) {
 
 	console.error(output);
 
-	if (F.$events.flowstream_error) {
+	if (F.$events.flowstream_error || FS.$events.flowstream_error) {
 		var meta = {};
 		meta.id = flow.id;
 		meta.name = flow.name;
@@ -40,7 +40,8 @@ FS.onerror = function(err, source, id, componentid, stack) {
 		meta.source = source;
 		meta.instanceid = id;
 		meta.componentid = componentid;
-		FS.emit('flowstream_error', meta);
+		F.$events.flowstream_error && EMIT('flowstream_error', meta);
+		FS.$events.flowstream_error && FS.emit('flowstream_error', meta);
 	}
 
 };
@@ -79,7 +80,7 @@ FS.reload = function(flow, restart) {
 	instance.proxypath = flow.proxypath;
 
 	if (restart)
-		instance.restart();
+		instance.restart(flow);
 	else
 		instance.reload(flow);
 
@@ -219,7 +220,9 @@ FS.restart = function(id) {
 	let item = FS.instances[id];
 	if (item) {
 		if (item.flow) {
-			if (item.flow.terminate)
+			if (!item.flow.isworkerthread)
+				item.restart();
+			else if (item.flow.terminate)
 				item.flow.terminate();
 			else
 				item.flow.kill(9);
